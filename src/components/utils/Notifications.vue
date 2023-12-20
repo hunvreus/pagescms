@@ -3,7 +3,7 @@
     <ul class="notifications">
       <TransitionGroup>
         <li
-          v-for="notification in notificationManager.state.notifications"
+          v-for="notification in notifications.state.notifications"
           :key="notification.id"
           class="notification"
           :class="[ `notification-${notification.type}` ]"
@@ -24,7 +24,7 @@
               </svg>
             </div>
             <div class="notification-message">{{ notification.message }}</div>
-            <button @click="notificationManager.close(notification.id)" class="link !p-2 -my-1.5 -mr-1">
+            <button @click="notifications.close(notification.id)" class="link !p-2 -my-1.5 -mr-1">
               <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
                 <path d="M18 6L6 18M6 6L18 18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
@@ -37,7 +37,7 @@
 </template>
 
 <script setup>
-import notificationManager from '@/services/notificationManager'; // Adjust the import path as needed
+import notifications from '@/services/notifications'; // Adjust the import path as needed
 </script>
 
 <style scoped>

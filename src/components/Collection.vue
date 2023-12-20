@@ -44,7 +44,7 @@
                   </button>
                 </li>
                 <li><hr class="border-t border-neutral-150 my-2"/></li>
-                <li><div class="font-medium text-xs pb-1 px-3 text-neutral-400">Order</div></li>
+                <!-- <li><div class="font-medium text-xs pb-1 px-3 text-neutral-400">Order</div></li> -->
                 <li>
                   <button class="link w-full" @click="view.sort_order = 'asc'">
                     Ascendant
@@ -181,14 +181,13 @@ import { ref, reactive, onMounted, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import lunr from 'lunr';
 import moment from 'moment';
-import useGithub from '@/composables/useGithub';
+import github from '@/services/github';
 import useYfm from '@/composables/useYfm';
 import Dropdown from '@/components/utils/Dropdown.vue';
 import Rename from '@/components/file/Rename.vue';
 import Delete from '@/components/file/Delete.vue';
 
 const route = useRoute();
-const { getContents } = useGithub();
 const { loadYfm } = useYfm();
 
 const props = defineProps({
@@ -362,7 +361,7 @@ const setCollection = async () => {
 
   const fullPath = route.query.subfolder ? route.query.subfolder : schema.value.path;
 
-  const files = await getContents(props.owner, props.repo, props.branch, fullPath);
+  const files = await github.getContents(props.owner, props.repo, props.branch, fullPath);
   if (!files) {
     status.value = 'error';
     return;

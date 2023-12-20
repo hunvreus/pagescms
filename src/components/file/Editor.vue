@@ -119,8 +119,8 @@ import { ref, onMounted, watch, computed, reactive, provide } from 'vue';
 import { useRouter } from 'vue-router';
 import { Base64 } from 'js-base64';
 import YAML from 'js-yaml';
-import notificationManager from '@/services/notificationManager';
-import useGithub from '@/composables/useGithub';
+import notifications from '@/services/notifications';
+import github from '@/services/github';
 import useYfm from '@/composables/useYfm';
 import useSchema from '@/composables/useSchema';
 import Datagrid from '@/components/file/Datagrid.vue';
@@ -131,7 +131,6 @@ import History from '@/components/file/History.vue';
 import Rename from '@/components/file/Rename.vue';
 
 const router = useRouter();
-const { getFile, saveFile } = useGithub();
 const { loadYfm } = useYfm();
 const { createModel, sanitizeObject, getSchemaByName, generateFilename } = useSchema();
 
@@ -217,9 +216,9 @@ const setEditor = async () => {
 
   // Fetch the file (edit or copy)
   if (props.path) {
-    file.value = await getFile(props.owner, props.repo, props.branch, props.path);
+    file.value = await github.getFile(props.owner, props.repo, props.branch, props.path);
     if (!file.value) {
-      notificationManager.notify(`Failed to retrieve the file at "${props.path}".`, 'error');
+      notifications.notify(`Failed to retrieve the file at "${props.path}".`, 'error');
       status.value = 'error';
       return;
     } else {
@@ -296,7 +295,7 @@ const save = async () => {
       currentPath.value = `${schema.value.path}/${filename}`;
     }
 
-    const saveData = await saveFile(props.owner, props.repo, props.branch, currentPath.value, Base64.encode(content), sha.value);
+    const saveData = await github.saveFile(props.owner, props.repo, props.branch, currentPath.value, Base64.encode(content), sha.value);
 
     // If we've just created the file, we update the history to point at the edit route
     if (!sha.value) {
@@ -309,10 +308,10 @@ const save = async () => {
     sha.value = saveData.content.sha;
     initialModel.value = JSON.parse(JSON.stringify(model.value));
     setDisplayTitle();
-    notificationManager.notify(`Saved "${currentPath.value}"`, 'success');
+    notifications.notify(`Saved "${currentPath.value}"`, 'success');
     status.value = '';
   } catch (error) {
-    notificationManager.notify(`Failed to save the file "${currentPath.value}"`, 'error');
+    notifications.notify(`Failed to save the file "${currentPath.value}"`, 'error');
     // status.value = 'error';
   }
 };

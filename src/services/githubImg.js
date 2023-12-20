@@ -1,8 +1,6 @@
 // TODO: add TTL for paths?
 import { reactive } from 'vue';
-import useGithub from '@/composables/useGithub';
-
-const { getContents } = useGithub();
+import github from '@/services/github';
 
 const state = reactive({
   urls: {},
@@ -18,7 +16,7 @@ const getRawUrl = async (owner, repo, branch, path, isPrivate = false) => {
       const fullParentPath = `${owner}/${repo}/${branch}/${parentPath}`;
       if (state.paths[fullParentPath]) return null;
       if (!state.requests[fullParentPath]) {
-        state.requests[fullParentPath] = getContents(owner, repo, branch, parentPath, false);
+        state.requests[fullParentPath] = github.getContents(owner, repo, branch, parentPath, false);
       }
       const files = await state.requests[fullParentPath];
       addRawUrls(owner, repo, branch, files);

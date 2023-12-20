@@ -21,11 +21,9 @@
 
 <script setup>
 import { ref } from 'vue';
-import notificationManager from '@/services/notificationManager';
-import useGithub from '@/composables/useGithub';
+import notifications from '@/services/notifications';
+import github from '@/services/github';
 import Modal from '@/components/utils/Modal.vue';
-
-const { deleteFile } = useGithub();
 
 const emits = defineEmits(['deleted', 'error']);
 
@@ -42,13 +40,13 @@ const status = ref('');
 
 const deleteEntry = async () => {
   status.value = 'deleting';
-  const deleteData = await deleteFile(props.owner, props.repo, props.branch, props.path, props.sha);
+  const deleteData = await github.deleteFile(props.owner, props.repo, props.branch, props.path, props.sha);
   if (!deleteData) {
     emits('error');
-    notificationManager.notify(`Failed to delete the file at "${props.path}".`, 'error');
+    notifications.notify(`Failed to delete the file at "${props.path}".`, 'error');
   } else {
     emits('deleted');
-    notificationManager.notify(`"${props.path}" was deleted.`, 'success');
+    notifications.notify(`"${props.path}" was deleted.`, 'success');
     deleteModal.value.closeModal();
   }
   status.value = '';

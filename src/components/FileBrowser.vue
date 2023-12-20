@@ -184,8 +184,8 @@
 import { ref, onMounted, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import githubImg from '@/services/githubImg';
-import notificationManager from '@/services/notificationManager';
-import useGithub from '@/composables/useGithub';
+import notifications from '@/services/notifications';
+import github from '@/services/github';
 import Dropdown from '@/components/utils/Dropdown.vue';
 import Delete from '@/components/file/Delete.vue';
 import Rename from '@/components/file/Rename.vue';
@@ -201,7 +201,6 @@ const extensionCategories = {
 
 const route = useRoute();
 const router = useRouter();
-const { getContents, saveFile } = useGithub();
 
 const emit = defineEmits(['update:selected']);
 
@@ -338,9 +337,9 @@ const setContents = async () => {
   let contentsData = null;
 
   if (githubImg.state.requests[fullPath] || githubImg.state.paths[fullPath]) {
-    contentsData = await getContents(props.owner, props.repo, props.branch, path.value, false);
+    contentsData = await github.getContents(props.owner, props.repo, props.branch, path.value, false);
   } else {
-    githubImg.state.requests[fullPath] = getContents(props.owner, props.repo, props.branch, path.value, false);
+    githubImg.state.requests[fullPath] = github.getContents(props.owner, props.repo, props.branch, path.value, false);
     contentsData = await githubImg.state.requests[fullPath];
     githubImg.addRawUrls(props.owner, props.repo, props.branch, contentsData);
     delete githubImg.state.requests[fullPath];
@@ -395,12 +394,12 @@ const addFolder = async () => {
   const folderName = prompt('Enter a name for the new folder:');
   if (folderName) {
     status.value = 'creating-folder';
-    const data = await saveFile(props.owner, props.repo, props.branch, `${path.value}/${folderName}/.gitkeep`, '');
+    const data = await github.saveFile(props.owner, props.repo, props.branch, `${path.value}/${folderName}/.gitkeep`, '');
     if (data) {
-      notificationManager.notify(`Folder "${folderName}" successfully created.`, 'success');
+      notifications.notify(`Folder "${folderName}" successfully created.`, 'success');
       setContents();
     } else {
-      notificationManager.notify(`Folder "${folderName}" couldn't be created.`, 'error');
+      notifications.notify(`Folder "${folderName}" couldn't be created.`, 'error');
     }
     status.value = '';
   }
@@ -408,7 +407,7 @@ const addFolder = async () => {
 
 const checkAndRedirectPath = () => {
   if (props.root && !path.value.startsWith(props.root)) {
-    notificationManager.notify(`Root folder is set to "${props.root}".`, 'warning');
+    notifications.notify(`Root folder is set to "${props.root}".`, 'warning');
     goTo();
   }
 };

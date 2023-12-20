@@ -8,10 +8,8 @@
 
 <script setup>
 import { ref } from 'vue';
-import notificationManager from '@/services/notificationManager';
-import useGithub from '@/composables/useGithub';
-
-const { saveFile } = useGithub();
+import notifications from '@/services/notifications';
+import github from '@/services/github';
 
 const emits = defineEmits(['processed', 'uploaded', 'error']);
 
@@ -48,12 +46,12 @@ const upload = async (file) => {
     let content = await readFileContent(file);
     if (content) {
       content = content.replace(/^(.+,)/, ''); // We strip out the info at the beginning of the file (mime type + encoding)
-      const data = await saveFile(props.owner, props.repo, props.branch, `${props.path}/${file.name}`, content);
+      const data = await github.saveFile(props.owner, props.repo, props.branch, `${props.path}/${file.name}`, content);
       if (data) {
-        notificationManager.notify(`File '${file.name}' successfully uploaded.`, 'success');
+        notifications.notify(`File '${file.name}' successfully uploaded.`, 'success');
         emits('uploaded', file);
       } else {
-        notificationManager.notify(`File upload failed.`, 'error');
+        notifications.notify(`File upload failed.`, 'error');
         emits('error', file);
       }
     }

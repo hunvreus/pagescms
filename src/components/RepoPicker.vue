@@ -54,10 +54,8 @@
 <script setup>
 import { ref, computed, watch, inject } from 'vue';
 import _ from 'lodash';
-import notificationManager from '@/services/notificationManager';
-import useGithub from '@/composables/useGithub';
-
-const { searchRepos } = useGithub();
+import notifications from '@/services/notifications';
+import github from '@/services/github';
 
 const repoStore = inject('repoStore', { owner: null, repo: null });
 const keywords = ref('');
@@ -76,7 +74,7 @@ const debouncedSearchRepos = _.debounce(
       return;
     }
     status.value = 'searching';
-    const searchResults = await searchRepos(query.value);
+    const searchResults = await github.searchRepos(query.value);
     if (searchResults) {
       // Bring repos with push permissions at the top
       results.value = searchResults.items.sort((a, b) => {
@@ -86,7 +84,7 @@ const debouncedSearchRepos = _.debounce(
       });
       status.value = '';
     } else {
-      notificationManager.notify(`Search failed.`, 'error');
+      notifications.notify(`Search failed.`, 'error');
       status.value = 'error';
     }
   },

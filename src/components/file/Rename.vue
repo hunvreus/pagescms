@@ -21,11 +21,9 @@
 
 <script setup>
 import { onMounted, ref, watch } from 'vue';
-import notificationManager from '@/services/notificationManager';
-import useGithub from '@/composables/useGithub';
+import notifications from '@/services/notifications';
+import github from '@/services/github';
 import Modal from '@/components/utils/Modal.vue';
-
-const { renameFile } = useGithub();
 
 const emits = defineEmits(['renamed', 'error']);
 
@@ -42,13 +40,13 @@ const status = ref('');
 
 const renameEntry = async () => {
   status.value = 'renaming';
-  const newSha = await renameFile(props.owner, props.repo, props.branch, props.path, newPath.value);
+  const newSha = await github.renameFile(props.owner, props.repo, props.branch, props.path, newPath.value);
   if (!newSha) {
     emits('error');
-    notificationManager.notify(`Failed to rename the file from "${props.path}" to "${newPath.value}".`, 'error');
+    notifications.notify(`Failed to rename the file from "${props.path}" to "${newPath.value}".`, 'error');
   } else {
     emits('renamed', { renamedPath: newPath.value, renamedSha: newSha });
-    notificationManager.notify(`File "${props.path}" renamed to "${newPath.value}".`, 'success');
+    notifications.notify(`File "${props.path}" renamed to "${newPath.value}".`, 'success');
     renameModal.value.closeModal();
   }
   status.value = '';

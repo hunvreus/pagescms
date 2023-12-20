@@ -43,10 +43,8 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue';
 import moment from 'moment';
-import useGithub from '@/composables/useGithub';
+import github from '@/services/github';
 import Dropdown from '@/components/utils/Dropdown.vue';
-
-const { getCommits } = useGithub();
 
 const props = defineProps({
   owner: { type: String },
@@ -65,7 +63,7 @@ const status = ref('');
 
 const setHistory = async () => {
   status.value = 'loading';
-  commits.value = await getCommits(props.owner, props.repo, props.branch, props.path);
+  commits.value = await github.getCommits(props.owner, props.repo, props.branch, props.path);
   status.value = '';
 };
 

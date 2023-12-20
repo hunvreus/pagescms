@@ -152,8 +152,8 @@ import { onMounted, ref, reactive, provide, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
 import YAML from 'js-yaml';
-import notificationManager from '@/services/notificationManager';
-import useGithub from '@/composables/useGithub';
+import notifications from '@/services/notifications';
+import github from '@/services/github';
 import Dropdown from '@/components/utils/Dropdown.vue';
 import Modal from '@/components/utils/Modal.vue';
 import RepoPicker from '@/components/RepoPicker.vue';
@@ -161,7 +161,6 @@ import User from '@/components/User.vue';
 
 const route = useRoute();
 const router = useRouter();
-const { getRepo, getFile, getBranches } = useGithub();
 
 const props = defineProps({
   owner: String,
@@ -192,9 +191,9 @@ const setRepo = async () => {
   repoStore.repo = props.repo;
   repoStore.branch = props.branch;
   
-  const repoDetails = await getRepo(props.owner, props.repo);
+  const repoDetails = await github.getRepo(props.owner, props.repo);
   if (!repoDetails) {
-    notificationManager.notify(`The repo "${props.owner}/${props.repo}" doesn't exist.`, 'error');
+    notifications.notify(`The repo "${props.owner}/${props.repo}" doesn't exist.`, 'error');
     router.push({ name: 'home' });
     return;
   } else {
@@ -203,33 +202,33 @@ const setRepo = async () => {
   
   if (!props.branch) {
     // If the branch isn't provided, we use the default one
-    notificationManager.notify(`No branch provided. Redirecting you to the default branch ("${repoDetails.default_branch}").`, 'warning');
+    notifications.notify(`No branch provided. Redirecting you to the default branch ("${repoDetails.default_branch}").`, 'warning');
     router.push({ name: 'content-root', params: { ...route.params, branch: repoDetails.default_branch } });
     return;
   } else {
     // Else, we retrieve the list of branches and check if the provided branch exists
-    const repoBranches = await getBranches(props.owner, props.repo);
+    const repoBranches = await github.getBranches(props.owner, props.repo);
     if (!repoBranches.includes(props.branch)) {
-      notificationManager.notify(`The branch "${props.branch}" doesn't exist. Redirecting you to the default branch ("${repoDetails.default_branch}").`, 'error', 0);
+      notifications.notify(`The branch "${props.branch}" doesn't exist. Redirecting you to the default branch ("${repoDetails.default_branch}").`, 'error', 0);
       router.push({ name: route.name, params: { ...route.params, branch: repoDetails.default_branch } });
       return;
     }
     branches.value = repoBranches;
   }  
 
-  let configFile = await getFile(props.owner, props.repo, props.branch, '.pages.yml', true);
+  let configFile = await github.getFile(props.owner, props.repo, props.branch, '.pages.yml', true);
   
   // If we can't find a config file, we fetch the default config
   // TODO: this should send the user to a config wizard
   if (!configFile || configFile === null) {
-    notificationManager.notify('No configuration file in the repository, switching to default configuration.', 'warning');
+    notifications.notify('No configuration file in the repository, switching to default configuration.', 'warning');
     try {
       const response = await axios.get('/.pages.yml');
       configFile = response.data;
       console.warn('Missing .pages.yml configuration file, switched to default configuration.');
     } catch (error) {
       console.error('Error fetching the default configuration:', error);
-      notificationManager.notify('Failed to retrieve the default configuration.', 'error', 0);
+      notifications.notify('Failed to retrieve the default configuration.', 'error', 0);
     }
   }
   if (configFile) {

@@ -318,7 +318,9 @@ const editor = useEditor({
   extensions: [
     StarterKit,
     Image.configure({ inline: true }),
-    Link.configure({ openOnClick: false, }),
+    Link.configure({
+      openOnClick: false,
+    }),
     TextAlign.configure({ types: ['heading', 'paragraph'], }),
   ],
   onUpdate: ({ editor }) => {
