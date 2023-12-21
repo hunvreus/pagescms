@@ -1,16 +1,10 @@
 # Pages CMS
 
-This template should help get you started developing with Vue 3 in Vite.
+## Stack
 
-## Recommended IDE Setup
+Pages CMS is a [Vue.js](https://vuejs.org/) app with a few serverless functions to handle the Github login. It is intended to be deployed with [Cloudflare Pages](https://pages.cloudflare.com/), using [Cloudflare Workers](https://workers.cloudflare.com/) (referred to as functions [functions](https://developers.cloudflare.com/pages/functions/)) for the serverless code.
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur) + [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin).
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vitejs.dev/config/).
-
-## Project Setup
+## Install
 
 ```sh
 npm install

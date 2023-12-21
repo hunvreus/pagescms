@@ -14,12 +14,12 @@
       <div class="sidebar-content">
         <div class="flex grow flex-col overflow-y-auto border-r border-neutral-200 bg-white">
           <!-- Repository info and links -->
-          <div class="px-4 py-3">
+          <div class="px-3 py-2.5 lg:px-4 lg:py-3">
             <Dropdown>
               <template #trigger>
-                <button class="border border-neutral-200 hover:bg-neutral-100 group-[.dropdown-active]:bg-neutral-100 w-full flex items-center justify-between gap-x-2 rounded-xl py-2 px-3 transition-colors">
-                  <div class="flex items-center gap-x-2">
-                    <img class="h-10 w-10 rounded-lg" :src="'https://github.com/' + props.owner + '.png'" alt="Owner's avatar"/>
+                <button class="btn group-[.dropdown-active]:bg-neutral-100 w-full">
+                  <div class="flex items-center gap-x-2 w-full">
+                    <img class="h-10 w-10 rounded-lg -ml-1 lg:-ml-1.5" :src="'https://github.com/' + props.owner + '.png'" alt="Owner's avatar"/>
                     <div class="text-left overflow-hidden">
                       <div class="font-medium truncate">{{ props.repo }}</div>
                       <div class="truncate text-xs">{{ props.branch }}</div>
@@ -74,7 +74,7 @@
             </Dropdown>
           </div>
           <!-- Main navigation: Content, Media, Files and Settings -->
-          <nav class="flex flex-1 flex-col px-4 pb-3 navigation">
+          <nav class="flex flex-1 flex-col px-3 pb-2.5 lg:px-4 lg:pb-3 navigation">
             <ul role="list" class="flex flex-1 flex-col">
               <li>
                 <ul role="list" class="space-y-1">
@@ -122,7 +122,7 @@
             </ul>
           </nav>
           <!-- User profile and logout -->
-          <div class="mt-auto border-t border-neutral-200 px-4 py-3">
+          <div class="mt-auto border-t border-neutral-200 px-3 py-2.5 lg:px-4 lg:py-3">
             <User/>
           </div>
         </div>

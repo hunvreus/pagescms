@@ -10,9 +10,6 @@ module.exports = {
           150: '#EDEDED',
         },
       },
-      fontFamily: {
-        sans: ['Inter var', ...defaultTheme.fontFamily.sans],
-      },
       height: {
         screen: ['100vh /* fallback for Opera, IE and etc. */', '100dvh'],
       },

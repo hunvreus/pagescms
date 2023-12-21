@@ -140,7 +140,7 @@
                   class="link w-full"
                   :class="{ 'bg-neutral-100': editor.isActive({ textAlign: 'right' }) }"
                 >
-                  Aligh right
+                  Align right
                 </button>
               </li>
               <li>
