@@ -260,7 +260,6 @@ const deleteFile = async (owner, repo, branch, path, sha) => {
 // Revoke Oauth token and clear local storage
 const logout = async () => {
   try {
-    // await axios.post(import.meta.env.VITE_CLOUDFLARE_WORKERS + '/revoke?token=' + token.value);
     await axios.get('/auth/revoke?token=' + token.value);
     clearToken();
   } catch (error) {

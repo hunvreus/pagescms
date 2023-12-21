@@ -8,12 +8,12 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-.DS_Store
 dist
 dist-ssr
 coverage
 *.local
 .wrangler
+.dev.vars
 
 /cypress/videos/
 /cypress/screenshots/

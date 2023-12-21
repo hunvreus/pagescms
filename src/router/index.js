@@ -92,20 +92,18 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to, from) => {
-  // Callback from GitHub Oauth
+  // Redirect to saved page on callback from GitHub Oauth (see below)
   if (to.query.access_token) {
     github.setToken(to.query.access_token);
     var redirect = localStorage.getItem('redirect') ? localStorage.getItem('redirect') : '/' ;
     localStorage.removeItem('redirect');
     return { path: redirect }    
   }
-  // If the user doesn't have a token, we redirect him to log in and save the
-  // initial path for later redirection
+  // Redirect logged out users to log in screen and save page for redirection post-loing
   if (to.name != 'login' && github.token.value === null) {
     localStorage.setItem('redirect', to.fullPath);
     return { path: '/login' }
   }
-  // If the user is logged in, we prevent him from going to the login page
   if (to.name == 'login' && github.token.value !== null) {
     return { path: '/' }
   }
