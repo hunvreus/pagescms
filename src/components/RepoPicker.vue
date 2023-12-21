@@ -8,7 +8,7 @@
       </svg>
     </div>
   </div>
-  <div class="h-[352px] mt-3 overflow-auto" :class="[ (status == 'searching') ? 'processing' : '' ]">
+  <div class="max-h-[calc(100vh-12.5rem)] h-[352px] mt-3 overflow-auto" :class="[ (status == 'searching') ? 'processing' : '' ]">
     <ul v-if="query && results && results.length" class="flex flex-col gap-y-2">
       <li v-for="result in results">
         <div v-if="!(result.permissions && result.permissions.push) || isCurrentRepo(result)" class="link-text cursor-not-allowed" :class="[ isCurrentRepo(result) ? 'bg-neutral-100' : '' ]">

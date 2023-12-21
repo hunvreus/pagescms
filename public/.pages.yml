@@ -1,5 +1,5 @@
 url: 'https://localhost:8080'
-media: images
+media: files
 media_prefix: '/'
 
 content:
@@ -10,37 +10,7 @@ content:
     filename: '{title}'
     view:
       fields: [ title, published, date ]
-      search: [ title, body ]
-      filter: [ published ]
-      sort: [ 'date', 'title' ]
-      default:
-        sort: date
-        sort_order: desc
-        filter: published
-        filter_value: true
-        search: 'China'
     fields:
-      - name: body
-        label: Body
-        type: markdown
-        default: |
-          ### Heading
-
-          - Bullet
-          - Points
-          
-          This is content **markdown** and **stuff**.
-      - type: object
-        name: person
-        label: Person
-        list: true
-        fields:
-          - name: name
-            label: Name
-            type: string
-          - name: age
-            label: Age
-            type: number
       - name: published
         label: Published
         type: boolean
@@ -60,45 +30,6 @@ content:
         type: image
         prefix: '/'
         description: This may be used as a preview in social cards.
-      - name: tags
-        label: Tags
-        type: select
-        options:
-        - value: 'work'
-          label: 'Case studies'
-        - value: 'company'
-          label: 'Company'
-        - value: 'data'
-          label: 'Data'
-        - value: 'design'
-          label: 'Design'
-        - value: 'event'
-          label: 'Event'
-        - value: 'strategy'
-          label: 'Strategy'
-        - value: 'technology'
-          label: 'Technology'
-        list: true
-        default: 'event'
-      - name: author
-        label: Author
-        type: select
-        options:
-          - value: 'xinyi'
-            label: 'Xinyi'
-          - value: 'hunvreus'
-            label: 'Ronan'
-        default: 'xinyi'
-      - name: cover
-        type: boolean
-        hidden: true
-        default: true
-      - name: lang
-        type: string
-        hidden: true
-        default: 'en'
-  - name: users
-    label: List of users
-    type: single
-    path: '_data/users.csv'
-    editor: csv
+      - name: body
+        label: Body
+        type: markdown

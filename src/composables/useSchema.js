@@ -1,3 +1,7 @@
+/**
+ * Helper functions for the schema defined in .pages.yml
+ */
+
 import moment from 'moment';
 import slugify from 'slugify';
 import { transliterate } from 'transliteration';
@@ -82,18 +86,15 @@ export default function useSchema() {
     return config.content.find(item => item.name === name);
   };
 
-  // TODO: revisit errors and maybe trigger some console.log
-  // Helper function to generate a filename based on a pattern (and the model + schema)
   const generateFilename = (pattern, schema, model) => {
     // Replace date placeholders
     pattern = pattern.replace(/\{year\}/g, moment().format('YYYY'))
-                    .replace(/\{month\}/g, moment().format('MM'))
-                    .replace(/\{day\}/g, moment().format('DD'))
-                    .replace(/\{hour\}/g, moment().format('HH'))
-                    .replace(/\{minute\}/g, moment().format('mm'))
-                    .replace(/\{second\}/g, moment().format('ss'));
+                     .replace(/\{month\}/g, moment().format('MM'))
+                     .replace(/\{day\}/g, moment().format('DD'))
+                     .replace(/\{hour\}/g, moment().format('HH'))
+                     .replace(/\{minute\}/g, moment().format('mm'))
+                     .replace(/\{second\}/g, moment().format('ss'));
 
-    // Function to find a field in the schema
     function findFieldInSchema(schema, fieldName) {
       return schema.fields.find(field => field.name === fieldName);
     }
@@ -137,5 +138,3 @@ export default function useSchema() {
 
   return { createModel, getDefaultValue, sanitizeObject, getSchemaByPath, getSchemaByName, generateFilename };
 }
-
-// TODO: add some sort of schema check to make things are properly configured (e.g. fields are correctly formed, etc)

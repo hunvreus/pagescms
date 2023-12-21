@@ -74,14 +74,14 @@ body {
 .btn-primary-sm,
 .btn-secondary-sm,
 .btn-danger-sm {
-  @apply py-1 px-2 text-sm rounded-lg;
+  @apply py-1 px-2 lg:py-1.5 lg:px-3 text-sm rounded-lg;
 }
 
 .btn-icon-sm,
 .btn-icon-primary-sm,
 .btn-icon-secondary-sm,
 .btn-icon-danger-sm {
-  @apply p-1.5 text-sm rounded-lg;
+  @apply p-1.5 lg:p-2 text-sm rounded-lg;
 }
 
 .btn-primary,
@@ -171,7 +171,7 @@ button.btn-icon-danger-sm {
 /* Sidebar */
 
 .sidebar-trigger {
-  @apply fixed bottom-4 left-4 z-50 p-3 text-white bg-neutral-950 rounded-full cursor-pointer hover:bg-neutral-700 transition-all custom-shadow lg:hidden;
+  @apply fixed bottom-4 left-4 z-100 p-3 text-white bg-neutral-950 rounded-full cursor-pointer hover:bg-neutral-700 transition-all custom-shadow lg:hidden;
 }
 
 .sidebar-overlay {
@@ -204,7 +204,7 @@ button.btn-icon-danger-sm {
   @apply font-medium text-red-700 hover:bg-red-100 flex items-center gap-x-2 rounded-xl py-2 px-3 transition-colors disabled:opacity-60 disabled:cursor-not-allowed;
 }
 
-.sidebar .navigation .link.router-link-active {
+.sidebar-navigation .link.router-link-active {
   @apply bg-neutral-100;
 }
 

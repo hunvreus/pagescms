@@ -48,6 +48,7 @@ const props = defineProps({
   path: String,
   config: Object
 });
+
 const schema = computed(() => getSchemaByName(props.config, props.name));
 
 const redirectName = () => {

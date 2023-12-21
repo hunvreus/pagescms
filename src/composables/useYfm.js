@@ -1,4 +1,6 @@
-/** YAML Front Matter wrapper for js-yaml (also js-yaml doesn't work natively in the browser). */
+/**
+ * YAML Front Matter wrapper for js-yaml.
+ */
 
 import { load } from 'js-yaml';
 

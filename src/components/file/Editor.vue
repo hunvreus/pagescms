@@ -113,8 +113,6 @@
 </template>
 
 <script setup>
-// TODO: Deal with collaboration and race conditions (e.g. someone updates a file while we're editing)
-
 import { ref, onMounted, watch, computed, reactive, provide } from 'vue';
 import { useRouter } from 'vue-router';
 import { Base64 } from 'js-base64';
@@ -164,12 +162,11 @@ const isModelChanged = computed(() => {
 });
 
 const handleRenamed = ({ renamedPath, renamedSha }) => {
-  // We update the history to point at the new route/path
+  // Updating path/history to continue editing
   router.replace({
     name: 'edit',
     params: { owner: props.owner, repo: props.repo, branch: props.branch, path: renamedPath } 
   });
-  // Updating values to continue editing
   currentPath.value = renamedPath;
 };
 
@@ -178,7 +175,6 @@ const handleDeleted = () => {
 };
 
 const resetEditor = () => {
-  // Reset the editor
   schema.value = null;
   mode.value = props.editor;
   file.value = null;
@@ -192,7 +188,6 @@ const resetEditor = () => {
 };
 
 const setDisplayTitle = () => {
-  // Set the title (not very elegant, I know)
   if (props.title) {
     // If the title is passed as a prop, we use it
     displayTitle.value = props.title;
@@ -208,7 +203,6 @@ const setDisplayTitle = () => {
   }
 };
 
-// Initialize the editor
 const setEditor = async () => {
   resetEditor();
   
@@ -227,7 +221,6 @@ const setEditor = async () => {
     }
   }
   
-  // If we have a content name, we attemp to retrieve its schema
   schema.value = (props.name) ? getSchemaByName(props.config, props.name) : null;  
 
   // If there's no editor defined, we infer it from the schema
@@ -257,23 +250,18 @@ const setEditor = async () => {
     model.value = content;
   }
 
-  // Making a copy of the model to define if it has changed
   initialModel.value = JSON.parse(JSON.stringify(model.value));
-  
   setDisplayTitle();
   status.value = '';
 };
 
-
-
-// Saving the file
 // TODO: if saving fails, it reloads the file and wipe out all the edits
+// TODO: prevent saving when no change happened and handle when Github API doesn't create a commit if no change
 const save = async () => {
   status.value = 'saving';
   let content;
 
   if (mode.value === 'yfm') {
-    // Prepare the file content from the model
     let body = model.value.body;
     let yaml = JSON.parse(JSON.stringify(model.value));
     delete yaml.body;
@@ -284,7 +272,6 @@ const save = async () => {
     content = model.value;
   }
   
-  // We edit/create the file on GitHub
   try {
     // For new files, we need to generate the filename
     // TODO: check that the file doesn't already exist, append number if so and warn the user
@@ -304,6 +291,7 @@ const save = async () => {
         params: { owner: props.owner, repo: props.repo, branch: props.branch, path: currentPath.value } 
       });
     }
+
     // Updating values to continue editing
     sha.value = saveData.content.sha;
     initialModel.value = JSON.parse(JSON.stringify(model.value));
@@ -312,7 +300,6 @@ const save = async () => {
     status.value = '';
   } catch (error) {
     notifications.notify(`Failed to save the file "${currentPath.value}"`, 'error');
-    // status.value = 'error';
   }
 };
 
@@ -320,18 +307,15 @@ onMounted(async () => {
   await setEditor();
 });
 
-// TODO: Add watcher for props.path that knows when we're trying to replace the path (renaming/creating)
 watch(
   [
     () => props.owner,
     () => props.repo,
     () => props.branch,
     () => props.name,
-    // () => props.path
   ],
   async () => {
     await setEditor();
   }
 );
 </script>
-<!-- TODO: How to prevent saving when no change happened + reflect this in useGithub when API tells you "no change" -->

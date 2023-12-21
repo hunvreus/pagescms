@@ -22,7 +22,7 @@
         </header>
 
         <div class="flex justify-between items-center mb-4 flex-row gap-x-2">
-          <input type="text" v-model="searchTerm" placeholder="Search by keywords" class="!rounded-full !px-5 w-full">
+          <input type="text" v-model="view.search" placeholder="Search by keywords" class="!rounded-full !px-5 w-full">
           
           <Dropdown :elementClass="'z-30'" :dropdownClass="'!max-w-none'">
             <template #trigger>
@@ -44,7 +44,6 @@
                   </button>
                 </li>
                 <li><hr class="border-t border-neutral-150 my-2"/></li>
-                <!-- <li><div class="font-medium text-xs pb-1 px-3 text-neutral-400">Order</div></li> -->
                 <li>
                   <button class="link w-full" @click="view.sort_order = 'asc'">
                     Ascendant
@@ -75,13 +74,11 @@
             <router-link :to="{ name: 'new' }" class="btn-primary-sm">Add an entry</router-link>
           </div>
         </div>
-        <div v-else-if="viewContents.files.length == 0" class="text-center rounded-xl bg-neutral-100 p-6">
-          <div class="max-w-md mx-auto">
-            <h2 class="font-semibold">No results</h2>
-            <p class="text-neutral-400">There are no results for your search terms. You can use wildcard (e.g. "keyword*") or field specific search (e.g. "title:keyword").</p>
-          </div>
+        <div v-else-if="viewContents.files.length == 0" class="text-center p-6 max-w-md mx-auto">
+          <h2 class="font-medium">No results</h2>
+          <p class="text-neutral-400">There are no results for your search terms. You can use wildcard (e.g. "keyword*") or field specific search (e.g. "title:keyword").</p>
           <div class="flex gap-x-2 justify-center mt-4">
-            <button class="btn-sm" @click="searchTerm = ''">Clear search terms</button>
+            <button class="btn-sm" @click="view.search = ''">Clear search terms</button>
           </div>
         </div>
         <template v-else>
@@ -215,41 +212,57 @@ const fieldsSchemas = computed(() => {
   });
   return schemas;
 });
-const searchTerm = ref('');
-let searchIndex;
+const parentFolder = computed(() => {
+  if (!route.query.subfolder) return null;
+  const pathSegments = route.query.subfolder.split('/').filter(Boolean);
+  pathSegments.pop();
+  const parentPath = pathSegments.join('/');
+
+  return {
+    name: route.name,
+    query: { ...route.query, subfolder: (parentPath == schema.value.path) ? null : parentPath }
+  };
+});
+const view = reactive({
+  config: {
+    fields: [],
+    primary: '',
+    sort: [],
+    filter: null,
+  },
+  sort: null,
+  sort_order: 'asc',
+  filter: null,
+  filter_value: null,
+  search: '',
+});
 const viewContents = computed(() => {
   let files = collection.value.filter(item => item.type === 'blob');
   let folders = collection.value.filter(item => item.type === 'tree');
-
   let viewFiles = files;
   
   // Apply search filter
-  if (searchTerm.value.trim()) {
-    const searchResults = searchIndex.search(`${searchTerm.value.trim()}`);
+  if (view.search.trim()) {
+    const searchResults = searchIndex.search(`${view.search.trim()}`);
     viewFiles = searchResults.map(result => {
       return files.find(item => item.filename === result.ref);
     });
   }
-
+  
   // Apply sorting
   viewFiles = viewFiles.slice().sort((a, b) => {
     const sortKey = view.sort;
-    
     // Default value when sortKey is not present or fields is undefined.
     const defaultValue = '';
-
     // Check if fields is defined and has the sortKey
     let valA = (a.fields && a.fields[sortKey] !== undefined) ? a.fields[sortKey] : defaultValue;
     let valB = (b.fields && b.fields[sortKey] !== undefined) ? b.fields[sortKey] : defaultValue;
-
     // Convert booleans to integers to help with comparison with null/undefined
     if (typeof valA === 'boolean') valA = valA ? 2 : 1;
     if (typeof valB === 'boolean') valB = valB ? 2 : 1;
-
     // Convert to lowercase if the value is a string
     if (typeof valA === 'string') valA = valA.toLowerCase();
     if (typeof valB === 'string') valB = valB.toLowerCase();
-
     let comparison = 0;
     if (valA < valB) {
       comparison = -1;
@@ -266,17 +279,20 @@ const viewContents = computed(() => {
   };
 });
 
-const parentFolder = computed(() => {
-  if (!route.query.subfolder) return null;
-  const pathSegments = route.query.subfolder.split('/').filter(Boolean);
-  pathSegments.pop();
-  const parentPath = pathSegments.join('/');
-
-  return {
-    name: route.name,
-    query: { ...route.query, subfolder: (parentPath == schema.value.path) ? null : parentPath }
-  };
-});
+const formatField = (field, value) => {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  switch (fieldsSchemas.value[field]?.type) {
+    case 'date':
+      return moment(value).format('ll');
+    case 'boolean':
+      const chipClass = value ? 'chip-true' : 'chip-false';
+      return `<span class="${chipClass}">${value ? 'True' : 'False'}</span>`;
+    default:
+      return value;
+  }
+};
 
 function openRenameModal(item) {
   renamePath.value = item.path;
@@ -300,34 +316,7 @@ const handleDeleted = () => {
   collection.value.splice(index, 1);
 };
 
-const formatField = (field, value) => {
-  if (value === null || value === undefined) {
-    return '';
-  }
-  switch (fieldsSchemas.value[field]?.type) {
-    case 'date':
-      return moment(value).format('ll');
-    case 'boolean':
-      const chipClass = value ? 'chip-true' : 'chip-false';
-      return `<span class="${chipClass}">${value ? 'True' : 'False'}</span>`;
-    default:
-      return value;
-  }
-};
-
-const view = reactive({
-  config: {
-    fields: [],
-    primary: '',
-    sort: [],
-    filter: null,
-  },
-  sort: null,
-  sort_order: 'asc',
-  filter: null,
-  filter_value: null,
-  search: '',
-});
+let searchIndex;
 
 const setSearch = () => {
   searchIndex = lunr(function () {
@@ -347,13 +336,13 @@ const setSearch = () => {
 };
 
 const setView = () => {
-  view.config.fields = schema.value.view.fields || [ fields.value[0] ];
-  view.config.primary = schema.value.view.primary || (fields.value.includes('title') ? 'title' : fields.value[0]);
-  view.config.sort = schema.value.view.sort || (collection.value[0] && collection.value[0].fields.date ? ['date', view.config.primary] : [view.config.primary]);
-  view.config.filter = schema.value.view.filter || null;
-  view.sort = schema.value.view.default.sort || view.config.sort.length ? view.config.sort[0] : null;
-  view.sort_order = schema.value.view.default.sort_order || 'desc';
-  view.search = schema.value.view.default.search || '';
+  view.config.fields = (schema.value.view && schema.value.view.fields) || [ fields.value[0] ];
+  view.config.primary = (schema.value.view && schema.value.view.primary) || (fields.value.includes('title') ? 'title' : fields.value[0]);
+  view.config.sort = (schema.value.view && schema.value.view.sort) || (collection.value[0] && collection.value[0].fields.date ? ['date', view.config.primary] : [view.config.primary]);
+  view.config.filter = (schema.value.view && schema.value.view.filter) || null;
+  view.sort = (schema.value.view && schema.value.view.default && schema.value.view.default.sort) || (view.config.sort && view.config.sort.length) ? view.config.sort[0] : null;
+  view.sort_order = (schema.value.view && schema.value.view.default && schema.value.view.default.sort_order) || 'desc';
+  view.search = (schema.value.view && schema.value.view.default && schema.value.view.default.search) || '';
 };
 
 const setCollection = async () => {

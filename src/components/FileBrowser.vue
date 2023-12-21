@@ -114,8 +114,6 @@
                 </div>
                 <div class="fb-files-item-name">{{  item.name }}</div>
                 <div class="fb-files-item-meta">
-                  <!-- <div class="files-item-meta-extension">{{ item.extension }}</div>
-                  <div class="files-item-meta-kind">{{ item.kind }}</div> -->
                   <div class="fb-files-item-meta-size">{{ $filters.fileSize(item.size) }}</div>
                 </div>
                 <div class="fb-files-item-options">
@@ -181,6 +179,8 @@
 </template>
 
 <script setup>
+// TODO: support initial path when opening file browser
+// TODO: support history
 import { ref, onMounted, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import githubImg from '@/services/githubImg';
@@ -317,7 +317,7 @@ const filteredContents = computed(() => {
 
 const breadcrumb = computed(() => {
   if (props.hasBreadcrumb) {
-    const cleanedPath = path.value.replace(props.root, ''); // Remove the root from the path
+    const cleanedPath = path.value.replace(props.root, '');
     const pathSegments = cleanedPath.split('/').filter(Boolean);
     const breadcrumbSegments = pathSegments.map((segment, index) => {
       const fullPath = props.root + '/' + pathSegments.slice(0, index + 1).join('/');

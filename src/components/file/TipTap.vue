@@ -6,7 +6,6 @@
     <!-- Editor buttons -->
     <div v-if="editor" class="tiptap-controls" :class="{ 'tiptap-controls-focused': isEditorFocused }">
       <div class="tiptap-controls-wrapper">
-        <!-- Bold -->
         <button
           @click="editor.chain().focus().toggleBold().run()"
           :disabled="!editor.can().chain().focus().toggleBold().run()"
@@ -18,7 +17,6 @@
           </svg>
           <div class="tooltip-top">Bold</div>
         </button>
-        <!-- Italic -->
         <button
           @click="editor.chain().focus().toggleItalic().run()"
           :disabled="!editor.can().chain().focus().toggleItalic().run()"
@@ -30,7 +28,6 @@
           </svg>
           <div class="tooltip-top">Italic</div>
         </button>
-        <!-- Image -->
         <button
         @click="setHeadline()"
           class="tiptap-control group relative"
@@ -40,7 +37,6 @@
           </svg>
           <div class="tooltip-top">Headline</div>
         </button>
-        <!-- Image -->
         <button
           @click="insertImageModal.openModal()"
           class="tiptap-control group relative"
@@ -50,7 +46,6 @@
           </svg>
           <div class="tooltip-top">Image</div>
         </button>
-        <!-- Link -->
         <button
           @click="linkUrl = editor.isActive('link') ? editor.getAttributes('link').href : ''; linkUrlPrev = linkUrl; linkModal.openModal();"
           class="tiptap-control group relative"
@@ -61,7 +56,6 @@
           </svg>
           <div class="tooltip-top">Link</div>
         </button>
-        <!-- Unordered list -->
         <button
           @click="editor.chain().focus().toggleBulletList().run()"
           class="tiptap-control group relative"
@@ -72,7 +66,6 @@
           </svg>
           <div class="tooltip-top">Bullet list</div>
         </button>
-        <!-- Align left -->
         <button
           @click="editor.chain().focus().setTextAlign('left').run()"
           class="tiptap-control group relative"
@@ -83,7 +76,6 @@
           </svg>
           <div class="tooltip-top">Align left</div>
         </button>
-        <!-- Center -->
         <button
           @click="editor.chain().focus().setTextAlign('center').run()"
           class="tiptap-control group relative"
@@ -94,7 +86,6 @@
           </svg>
           <div class="tooltip-top">Center</div>
         </button>
-        <!-- Remove format -->
         <button
           @click="editor.chain().focus().unsetAllMarks().clearNodes().run()"
           class="tiptap-control group relative"
@@ -240,7 +231,6 @@ import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image'
 import Link from '@tiptap/extension-link'
 import TextAlign from '@tiptap/extension-text-align'
-
 import githubImg from '@/services/githubImg';
 import Dropdown from '@/components/utils/Dropdown.vue';
 import FileBrowser from '@/components/FileBrowser.vue';
@@ -258,6 +248,7 @@ const props = defineProps({
   source: { type: String, default: 'markdown' },
   private: { type: Boolean, default: false },
 });
+
 const insertImageModal = ref(null);
 const linkModal = ref(null);
 const linkUrl = ref('');

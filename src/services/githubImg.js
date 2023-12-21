@@ -1,7 +1,11 @@
-// TODO: add TTL for paths?
+/**
+ * Helper for images on GitHub: convert from a path to a raw.githubusercontent.com URL, handle prefixes, etc.
+ */
+
 import { reactive } from 'vue';
 import github from '@/services/github';
 
+// We use the state object to coordinate data fetching (mainly to prevent fetching the same content multiple time) and cacching results.
 const state = reactive({
   urls: {},
   paths: {},

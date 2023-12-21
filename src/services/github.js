@@ -1,3 +1,7 @@
+/**
+ * Interface with the GitHub API and handle the OAuth token.
+ */
+
 import { ref } from 'vue';
 import axios from 'axios';
 
@@ -30,7 +34,6 @@ const getProfile = async () => {
   }
 };
 
-// Search repositories by name
 const searchRepos = async (query, writeAccessOnly = false) => {
   if (!query) return { items: [] };
   try {
@@ -51,7 +54,6 @@ const searchRepos = async (query, writeAccessOnly = false) => {
   }
 };
 
-// Fetch the repository details
 const getRepo = async (owner, name) => {
   try {
     const url = `https://api.github.com/repos/${owner}/${name}`;
@@ -70,7 +72,6 @@ const getRepo = async (owner, name) => {
   }
 };
 
-// Fetch list of branches in a repo
 const getBranches = async (owner, name) => {
   try {
     const url = `https://api.github.com/repos/${owner}/${name}/branches`;
@@ -89,10 +90,9 @@ const getBranches = async (owner, name) => {
   }
 };
 
-// Fetch list of files and their content in a repo folder
-const getContents = async (owner, repo, branch = 'HEAD', path = '', graphql = true) => {
-  if (graphql) {
-    // The GraphQL query gives us the contents of the path along with the content of each file
+const getContents = async (owner, repo, branch = 'HEAD', path = '', useGraphql = true) => {
+  if (useGraphql) {
+    // The GraphQL query gives us the list of files along with each of their content
     try {
       const response = await axios.post(
         'https://api.github.com/graphql',
@@ -136,7 +136,6 @@ const getContents = async (owner, repo, branch = 'HEAD', path = '', graphql = tr
       return null;
     }
   } else {
-    // If not GraphQL, we use REST (which comes with)the size and download URL for eahc file)
     try {
       const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
       const response = await axios.get(url, {
@@ -157,7 +156,6 @@ const getContents = async (owner, repo, branch = 'HEAD', path = '', graphql = tr
   }
 };
 
-// Fetch a file from a repo
 const getFile = async (owner, repo, branch, path, raw = false) => {
   try {
     const accept = raw ? 'application/vnd.github.v3.raw' : 'application/vnd.github.v3+json';
@@ -180,7 +178,6 @@ const getFile = async (owner, repo, branch, path, raw = false) => {
   }
 };
 
-// Retrieve list of commits for a specific file
 const getCommits = async (owner, repo, branch, path) => {
   try {
     const url = `https://api.github.com/repos/${owner}/${repo}/commits`;
@@ -202,7 +199,7 @@ const getCommits = async (owner, repo, branch, path) => {
   }
 };
 
-// Update or create a file (depending on whether a SHA is provided)
+// Update a file if SHA is provided, otherwise create a new one
 const saveFile = async (owner, repo, branch, path, content, sha = null) => {
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
   
@@ -231,7 +228,6 @@ const saveFile = async (owner, repo, branch, path, content, sha = null) => {
   }
 };
 
-// Delete a file
 const deleteFile = async (owner, repo, branch, path, sha) => {
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
 
@@ -249,21 +245,9 @@ const deleteFile = async (owner, repo, branch, path, sha) => {
       data: params
     });
 
-    // Handle success
     return response.data;
   } catch (error) {
     console.error('Failed to delete the file:', error);
-    return null;
-  }
-};
-
-// Revoke Oauth token and clear local storage
-const logout = async () => {
-  try {
-    await axios.get('/auth/revoke?token=' + token.value);
-    clearToken();
-  } catch (error) {
-    console.error('Failed to revoke token:', error);
     return null;
   }
 };
@@ -276,7 +260,6 @@ const logout = async () => {
 // https://medium.com/@obodley/renaming-a-file-using-the-git-api-fed1e6f04188
 // https://www.levibotelho.com/development/commit-a-file-with-the-github-api/
 
-// Rename a file (using the 5 steps)
 const renameFile = async (owner, repo, branch, oldPath, newPath) => {
   // Step 1: Get the current branch commit SHA
   const getCurrentBranchSHA = async () => {
@@ -370,9 +353,19 @@ const renameFile = async (owner, repo, branch, oldPath, newPath) => {
     const commitSha = await createCommitForNewTree(newTreeSha, currentSha);
     await updateBranch(commitSha);
 
-    return commitSha; // Return new commit SHA if successful
+    return commitSha;
   } catch (error) {
     console.error('Failed to rename the file:', error);
+    return null;
+  }
+};
+
+const logout = async () => {
+  try {
+    await axios.get('/auth/revoke?token=' + token.value);
+    clearToken();
+  } catch (error) {
+    console.error('Failed to revoke token:', error);
     return null;
   }
 };

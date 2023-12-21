@@ -1,8 +1,6 @@
 <template>
   <div v-if="model && !field.hidden" class="field" :class="field.hidden ? 'hiddden' : ''">
-    <!-- TODO: Add hidden, probably need to hide label and use textarea by default -->
     <label class="label" v-if="field.label">{{ field.label }}</label>
-    <!-- Field description -->
     <div v-if="field.description" class="description">{{ field.description }}</div>
     <!-- List field -->
     <template v-if="field.list">
@@ -46,7 +44,7 @@
       </Draggable>
       <button @click="addEntry" class="btn text-sm">Add an entry</button>
     </template>
-    <!-- Regular field -->
+    <!-- Single field -->
     <template v-else>
       <component
         :is="component"
@@ -72,7 +70,7 @@ import FieldObject from '@/components/fields/FieldObject.vue';
 import FieldImage from '@/components/fields/FieldImage.vue';
 import FieldMarkdown from '@/components/fields/FieldMarkdown.vue';
 
-const { createModel, getDefaultValue } = useSchema();
+const { getDefaultValue } = useSchema();
 
 const components = {
   FieldString,
@@ -85,10 +83,12 @@ const components = {
   FieldImage,
   FieldMarkdown
 };
+
 const props = defineProps({
   field: Object,
   model: [String, Number, Boolean, Array, Object]
 });
+
 const component = computed(() => {
   const componentName = 'Field' + props.field.type.charAt(0).toUpperCase() + props.field.type.slice(1);
   return components[componentName] || components['FieldText'];

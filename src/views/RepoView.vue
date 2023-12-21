@@ -74,7 +74,7 @@
             </Dropdown>
           </div>
           <!-- Main navigation: Content, Media, Files and Settings -->
-          <nav class="flex flex-1 flex-col px-3 pb-2.5 lg:px-4 lg:pb-3 navigation">
+          <nav class="flex flex-1 flex-col px-3 pb-2.5 lg:px-4 lg:pb-3 sidebar-navigation">
             <ul role="list" class="flex flex-1 flex-col">
               <li>
                 <ul role="list" class="space-y-1">
@@ -206,7 +206,7 @@ const setRepo = async () => {
     router.push({ name: 'content-root', params: { ...route.params, branch: repoDetails.default_branch } });
     return;
   } else {
-    // Else, we retrieve the list of branches and check if the provided branch exists
+    // We retrieve the list of branches and check if the provided branch exists
     const repoBranches = await github.getBranches(props.owner, props.repo);
     if (!repoBranches.includes(props.branch)) {
       notifications.notify(`The branch "${props.branch}" doesn't exist. Redirecting you to the default branch ("${repoDetails.default_branch}").`, 'error', 0);

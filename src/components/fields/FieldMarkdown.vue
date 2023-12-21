@@ -21,5 +21,6 @@ const props = defineProps({
   modelValue: String,
   prefix: String
 });
+
 const repoStore = inject('repoStore', { owner: null, repo: null, branch: null, config: null, details: null });
 </script>
