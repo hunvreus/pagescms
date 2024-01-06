@@ -2,15 +2,13 @@
   <Teleport to="body">
     <div @click="closeModal" class="modal-overlay" :class="[ isOpen ? 'modal-active' : '', props.customClass ]">
       <div class="modal-wrapper">
-        <div v-if="isInitialized" class="modal-box" @click.stop>
+        <div v-if="isInitialized" class="modal-box adjust-dark" @click.stop>
           <header class="modal-header">
             <div class="modal-title">
               <slot name="header"></slot>
             </div>
             <button @click="closeModal" class="modal-close">
-              <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18 6L6 18M6 6L18 18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <Icon name="X" class="h-4 w-4 stroke-2 shrink-0"/>
             </button>
           </header>
           <div class="modal-body">
@@ -24,6 +22,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
+import Icon from '@/components/utils/Icon.vue';
 
 const props = defineProps({
   customClass: { type: String, default: '' }

@@ -2,7 +2,7 @@
   <div ref="dropdownRef" class="relative group" @click="toggleDropdown" :class="[ isOpen ? 'dropdown-active' : '', props.elementClass ]">
     <slot name="trigger"></slot>
     <Transition>
-      <div v-if="isOpen" class="dropdown-content text-sm p-2" role="menu" aria-orientation="vertical" aria-labelledby="menu-button" tabindex="-1" :class="[ dropdownClass ]">
+      <div v-if="isOpen" class="dropdown-content adjust-dark text-sm p-2" role="menu" aria-orientation="vertical" aria-labelledby="menu-button" tabindex="-1" :class="[ dropdownClass ]">
         <slot name="content"></slot>
       </div>
     </Transition>

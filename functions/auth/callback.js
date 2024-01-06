@@ -10,8 +10,8 @@ export async function onRequest(context) {
         'Accept': 'application/json',
       },
       body: JSON.stringify({
-        client_id: env.CLIENT_ID,
-        client_secret: env.CLIENT_SECRET,
+        client_id: env.GITHUB_CLIENT_ID,
+        client_secret: env.GITHUB_CLIENT_SECRET,
         code: url.searchParams.get('code'),
         redirect_uri: `${new URL(request.url).origin}/auth/callback`,
       }),
@@ -22,10 +22,10 @@ export async function onRequest(context) {
       throw new Error(`Error fetching access token: ${response.statusText}. GitHub says: ${errorText}`);
     }
 
-    const data = await response.json();
+    const responseData = await response.json();
     
-    if (data.access_token) {
-      return Response.redirect(`${env.CLIENT_URL}/?access_token=${data.access_token}`, 302);
+    if (responseData.access_token) {
+      return Response.redirect(`${env.CLIENT_URL}/?access_token=${responseData.access_token}`, 302);
     } else {
       throw new Error('Access token not found');
     }

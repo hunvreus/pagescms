@@ -1,6 +1,6 @@
 <template>
   <select class="select w-full" :value="modelValue" @change="$emit('update:modelValue', $event.target.value)">
-    <option v-for="option in field.options" :key="option.value" :value="option.value">
+    <option v-for="option in field.options.values" :key="option.value" :value="option.value">
       {{ option.label }}
     </option>
   </select>

@@ -25,11 +25,40 @@ content:
         label: Description
         type: string
         description: This may be used for SEO (<meta name="description">).
+      - name: tag
+        label: Tag
+        type: select
+        list: true
+        options:
+          values:
+            - label: 'Tech'
+              value: 'tech'
+            - label: 'Work'
+              value: 'case-study'
+            - label: 'Life'
+              value: 'life'
       - name: image
         label: Image
         type: image
-        prefix: '/'
         description: This may be used as a preview in social cards.
+        options:
+          prefix: '/'
       - name: body
         label: Body
-        type: markdown
+        type: rich-text
+        options:
+          format: markdown
+      - name: something
+        label: Something
+        type: code
+        options:
+          format: markdown
+  - name: about
+    label: About
+    type: single
+    path: 'about.html'
+  - name: home
+    label: Homepage
+    type: single
+    path: 'index.html'
+    editor: raw

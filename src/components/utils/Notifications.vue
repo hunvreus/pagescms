@@ -1,32 +1,30 @@
 <template>
   <Teleport to="body">    
-    <ul class="notifications">
+    <ul class="notifications" v-show="notifications.state.notifications.length">
       <TransitionGroup>
         <li
           v-for="notification in notifications.state.notifications"
           :key="notification.id"
-          class="notification"
+          class="notification adjust-dark"
           :class="[ `notification-${notification.type}` ]"
         >
-          <div class="notification-icon">
-            <svg v-if="notification.type == 'success'" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
-              <path d="M20 6L9 17L4 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <svg v-else-if="notification.type == 'error'" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6L18 18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <svg v-else-if="notification.type == 'warning'" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
-              <path d="M11.9998 8.99999V13M11.9998 17H12.0098M10.6151 3.89171L2.39019 18.0983C1.93398 18.8863 1.70588 19.2803 1.73959 19.6037C1.769 19.8857 1.91677 20.142 2.14613 20.3088C2.40908 20.5 2.86435 20.5 3.77487 20.5H20.2246C21.1352 20.5 21.5904 20.5 21.8534 20.3088C22.0827 20.142 22.2305 19.8857 22.2599 19.6037C22.2936 19.2803 22.0655 18.8863 21.6093 18.0983L13.3844 3.89171C12.9299 3.10654 12.7026 2.71396 12.4061 2.58211C12.1474 2.4671 11.8521 2.4671 11.5935 2.58211C11.2969 2.71396 11.0696 3.10655 10.6151 3.89171Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 18V10M12 6H12.01" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+          <div class="notification-icon" v-if="[ 'success', 'error', 'warning' ].includes(notification.type)">
+            <Icon v-if="notification.type == 'success'" name="Check" class="h-3 w-3 stroke-[3] shrink-0"/>
+            <Icon v-else-if="notification.type == 'error'" name="X" class="h-3 w-3 stroke-[3] shrink-0"/>
+            <Icon v-else-if="notification.type == 'warning'" name="Bell" class="h-3 w-3 stroke-[3] shrink-0"/>
           </div>
-          <div class="notification-message">{{ notification.message }}</div>
-          <button @click="notifications.close(notification.id)" class="link !p-2 -my-1.5 -mr-1">
-            <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6L18 18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+          <div class="notification-content">
+            <div class="notification-message">{{ notification.message }}</div>
+            <ul class="notification-actions" v-if="notification.actions">
+              <li v-for="(action, index) in notification.actions" :key="index">
+                <button @click="action.handler(notification.id)" :class="[ action.primary ? 'btn-primary-sm' : 'btn-sm' ]">
+                  {{ action.label }}
+                </button>
+              </li>
+            </ul>
+          </div>
+          <button @click="notifications.close(notification.id)" class="btn-icon-secondary-sm -my-1.5 -mr-1">
+            <Icon name="X" class="h-4 w-4 stroke-2 shrink-0"/>
           </button>
         </li>
       </TransitionGroup>
@@ -36,6 +34,7 @@
 
 <script setup>
 import notifications from '@/services/notifications';
+import Icon from '@/components/utils/Icon.vue';
 </script>
 
 <style scoped>

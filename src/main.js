@@ -1,4 +1,4 @@
-import './assets/styles.css'
+import './styles/main.css'
 
 import { createApp } from 'vue'
 import moment from 'moment';

@@ -1,0 +1,160 @@
+
+/* TipTap */
+
+.tiptap-controls {
+  @apply sticky top-[59px] z-20 p-3 opacity-100 hover:z-50;
+}
+
+.tiptap-controls-wrapper {
+  @apply custom-shadow bg-neutral-950 dark:bg-white rounded-lg inline-flex;
+}
+
+.tiptap-control {
+  @apply btn-icon-primary-sm !rounded-none;
+}
+
+.tiptap-controls-wrapper > .tiptap-control:first-child {
+  @apply !rounded-l-lg;
+}
+
+.tiptap-controls-wrapper > :last-child .tiptap-control {
+  @apply !rounded-r-lg;
+
+}
+
+.tiptap-control.tiptap-control-active {
+  @apply bg-neutral-700 border-neutral-700 dark:bg-neutral-200 dark:border-neutral-200;
+}
+
+.tiptap-controls .dropdown-active {
+  @apply rounded-r-xl;
+}
+
+.tiptap-controls .dropdown-active > .tiptap-control {
+  @apply bg-neutral-700 border-neutral-700 dark:bg-neutral-200 dark:border-neutral-200;
+}
+
+.tiptap-controls + div > .ProseMirror {
+  @apply -mt-[58px] pt-[58px];
+}
+
+/* ProseMirror */
+
+.ProseMirror {
+  @apply border bg-neutral-150 border-neutral-150 dark:bg-neutral-800 dark:border-neutral-800 py-2 px-3 rounded-xl transition-all min-h-[378px];
+}
+
+.tiptap-controls:active + div > .ProseMirror,
+.ProseMirror-focused {
+  @apply outline-none ring ring-1 border-neutral-950 ring-neutral-950 dark:border-white dark:ring-white;
+}
+
+.ProseMirror-focused .ProseMirror-selectednode {
+  @apply outline outline-2 outline-neutral-950 dark:outline-white;
+}
+
+/* I don't like tailwindcss/typography */
+
+.tiptap h1,
+.tiptap h2,
+.tiptap h3,
+.tiptap h4,
+.tiptap h5,
+.tiptap h6 {
+  @apply font-semibold;
+}
+
+.tiptap h1 {
+  @apply text-2xl;
+}
+
+.tiptap h2 {
+  @apply text-xl;
+}
+
+.tiptap h3 {
+  @apply text-lg;
+}
+
+.tiptap h1,
+.tiptap h2,
+.tiptap h3,
+.tiptap h4,
+.tiptap h5,
+.tiptap h6,
+.tiptap p,
+.tiptap blockquote,
+.tiptap ul,
+.tiptap ol {
+  @apply my-4 first:mt-0;
+}
+
+.tiptap code {
+  @apply text-sm bg-neutral-300 dark:bg-neutral-600 rounded-lg font-mono;
+}
+
+.tiptap p code {
+  @apply p-1;
+}
+
+.tiptap pre code {
+  @apply p-2 block;
+}
+
+.tiptap ul,
+.tiptap ol {
+  @apply pl-5 mb-4;
+}
+
+.tiptap ul li,
+.tiptap ol li {
+  @apply mb-2 last:mb-0;
+}
+
+.tiptap ul li > p,
+.tiptap ol li > p {
+  @apply m-0;
+}
+
+.tiptap ul li ul,
+.tiptap ul li ol,
+.tiptap ol li ul,
+.tiptap ol li ol {
+  @apply my-2;
+}
+
+.tiptap ul {
+  @apply list-disc;
+}
+
+.tiptap ol {
+  @apply list-decimal;
+}
+
+.tiptap a {
+  @apply underline;
+}
+
+.tiptap pre > code .ProseMirror-trailingBreak {
+  /* @apply !hidden; */
+}
+
+.tiptap p > img + .ProseMirror-separator,
+.tiptap p > img + .ProseMirror-separator + .ProseMirror-trailingBreak {
+  @apply !hidden;
+}
+
+.tiptap blockquote {
+  @apply pl-4 ml-1 border-l-2 border-l-neutral-300 dark:border-l-neutral-600;
+}
+
+.tiptap img,
+.tiptap svg,
+.tiptap video,
+.tiptap canvas,
+.tiptap audio,
+.tiptap iframe,
+.tiptap embed,
+.tiptap object {
+  @apply inline-block;
+}

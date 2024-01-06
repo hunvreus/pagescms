@@ -8,18 +8,16 @@
         <h1 class="font-semibold text-2xl mb-2">Uh oh. Something went wrong.</h1>
         <p class="text-neutral-400 mb-6">Make sure things are properly configured and that your connection is working.</p>
         <div class="flex gap-x-2 justify-center">
-          <router-link class="btn" :to="{name: 'settings'}">Review settings</router-link>
+          <router-link class="btn-primary" :to="{name: 'settings'}">Review settings</router-link>
         </div>
       </div>
     </div>
   </template>
   <template v-else>
     <!-- Header (navigation + history + actions) -->
-    <header class="z-50 sticky top-0 bg-white border-b border-neutral-200 flex gap-x-1 lg:gap-x-2 items-center py-1 px-2 lg:py-2 lg:px-4">
-      <router-link v-if="schema && schema.type && (schema.type == 'collection')" :to="{ name: 'content', params: { name: name } }" class="btn-icon-secondary lg:py-2 lg:px-4">
-        <svg class="shrink-0 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
-          <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+    <header class="z-50 sticky top-0 bg-white border-b border-neutral-200 dark:bg-neutral-950 dark:border-neutral-750 flex gap-x-1 lg:gap-x-2 items-center py-1 px-2 lg:py-2 lg:px-4">
+      <router-link v-if="schema && schema.type && (schema.type == 'collection')" :to="{ name: 'content', params: { name: name } }" class="btn-icon-secondary lg:py-2 lg:pr-4 lg:pl-2.5">
+        <Icon name="ArrowLeft" class="h-4 w-4 stroke-2 shrink-0"/>
         <div class="hidden lg:block">{{ schema.label }}</div>
       </router-link>
       <div class="flex gap-x-2 ml-auto items-center">
@@ -38,12 +36,8 @@
         </button>
         <Dropdown v-if="sha" :dropdownClass="'!max-w-none w-48'">
           <template #trigger>
-            <button class="btn-icon group-[.dropdown-active]:bg-neutral-100">
-              <svg class="shrink-0 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 13C12.5523 13 13 12.5523 13 12C13 11.4477 12.5523 11 12 11C11.4477 11 11 11.4477 11 12C11 12.5523 11.4477 13 12 13Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M12 6C12.5523 6 13 5.55228 13 5C13 4.44772 12.5523 4 12 4C11.4477 4 11 4.44772 11 5C11 5.55228 11.4477 6 12 6Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M12 20C12.5523 20 13 19.5523 13 19C13 18.4477 12.5523 18 12 18C11.4477 18 11 18.4477 11 19C11 19.5523 11.4477 20 12 20Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+            <button class="btn-icon-secondary group-[.dropdown-active]:bg-neutral-100 dark:group-[.dropdown-active]:bg-neutral-850">
+              <Icon name="MoreVertical" class="h-4 w-4 stroke-2 shrink-0"/>
             </button>
           </template>
           <template #content>
@@ -51,13 +45,11 @@
               <li>
                 <a :href="`https://github.com/${props.owner}/${props.repo}/blob/${props.branch}/${props.path}`" target="_blank" class="link">
                   <div>See file on GitHub</div>
-                  <svg class="shrink-0 h-4 w-4 ml-auto text-neutral-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M21 9L21 3M21 3H15M21 3L13 11M10 5H7.8C6.11984 5 5.27976 5 4.63803 5.32698C4.07354 5.6146 3.6146 6.07354 3.32698 6.63803C3 7.27976 3 8.11984 3 9.8V16.2C3 17.8802 3 18.7202 3.32698 19.362C3.6146 19.9265 4.07354 20.3854 4.63803 20.673C5.27976 21 6.11984 21 7.8 21H14.2C15.8802 21 16.7202 21 17.362 20.673C17.9265 20.3854 18.3854 19.9265 18.673 19.362C19 18.7202 19 17.8802 19 16.2V14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
+                  <Icon name="ExternalLink" class="h-4 w-4 stroke-2 shrink-0 ml-auto text-neutral-400 dark:text-neutral-500"/>
                 </a>
               </li>
               <template v-if="schema && schema.type && (schema.type == 'collection')">
-                <li><hr class="border-t border-neutral-150 my-2"/></li>
+                <li><hr class="border-t border-neutral-150 dark:border-neutral-750 my-2"/></li>
                 <li><button class="link w-full" @click.prevent="renameComponent.openModal()">Rename</button></li>
                 <li><router-link :to="{ name: 'new', params: { path: currentPath } }" class="link w-full">Make a copy</router-link></li>
                 <li><button class="link-danger w-full" @click.prevent="deleteComponent.openModal()">Delete</button></li>
@@ -68,13 +60,16 @@
       </div>
     </header>
     <!-- Fields -->
-    <main class="max-w-4xl mx-auto p-4 lg:p-8">
+    <main class="mx-auto p-4 lg:p-8" :class="{ 'max-w-6xl': mode !== 'datagrid'}">
       <h1 v-if="displayTitle" class="font-semibold text-2xl lg:text-4xl mb-8">{{ displayTitle }}</h1>
-      <template v-if="model">
+      <template v-if="model || model === ''">
         <template v-if="mode === 'yfm'">
           <template v-if="schema && schema.fields">
             <field v-for="field in schema.fields" :key="field.name" :field="field" :model="model"></field>
           </template>
+        </template>
+        <template v-else-if="mode === 'code'">
+          <CodeMirror v-model="model" :format="extension"/>
         </template>
         <template v-else-if="mode === 'datagrid'">
           <div class="overflow-x-auto">
@@ -93,7 +88,7 @@
       :repo="props.repo"
       :branch="props.branch"
       :path="currentPath"
-      @renamed="handleRenamed"
+      @file-renamed="handleRenamed"
     />
     <!-- Delete modal -->
     <Delete
@@ -103,7 +98,7 @@
       :branch="props.branch"
       :path="currentPath"
       :sha="sha"
-      @deleted="handleDeleted"
+      @file-deleted="handleDeleted"
     />
     <!-- Waiting overlay -->
     <Teleport to="body">
@@ -113,24 +108,29 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed, reactive, provide } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, onMounted, watch, computed, nextTick } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { Base64 } from 'js-base64';
 import YAML from 'js-yaml';
 import notifications from '@/services/notifications';
 import github from '@/services/github';
 import useYfm from '@/composables/useYfm';
 import useSchema from '@/composables/useSchema';
+import CodeMirror from '@/components/file/CodeMirror.vue';
 import Datagrid from '@/components/file/Datagrid.vue';
 import Dropdown from '@/components/utils/Dropdown.vue';
+import Icon from '@/components/utils/Icon.vue';
 import Field from '@/components/file/Field.vue';
 import Delete from '@/components/file/Delete.vue';
 import History from '@/components/file/History.vue';
 import Rename from '@/components/file/Rename.vue';
 
+const route = useRoute();
 const router = useRouter();
 const { loadYfm } = useYfm();
 const { createModel, sanitizeObject, getSchemaByName, generateFilename } = useSchema();
+
+const emit = defineEmits(['file-saved']);
 
 const props = defineProps({
   owner: String,
@@ -147,6 +147,7 @@ const props = defineProps({
 const schema = ref(null);
 const mode = ref(props.editor);
 const file = ref(null);
+const extension = ref(null);
 const sha = ref(null);
 const model = ref(null);
 const initialModel = ref(null);
@@ -163,11 +164,13 @@ const isModelChanged = computed(() => {
 
 const handleRenamed = ({ renamedPath, renamedSha }) => {
   // Updating path/history to continue editing
+  status.value = 'handling-renamed';
   router.replace({
     name: 'edit',
     params: { owner: props.owner, repo: props.repo, branch: props.branch, path: renamedPath } 
   });
   currentPath.value = renamedPath;
+  // Status get reset in the watcher at the end
 };
 
 const handleDeleted = () => {
@@ -178,6 +181,7 @@ const resetEditor = () => {
   schema.value = null;
   mode.value = props.editor;
   file.value = null;
+  extension.value = null;
   sha.value = null;
   model.value = null;
   initialModel.value = null;
@@ -225,20 +229,42 @@ const setEditor = async () => {
 
   // If there's no editor defined, we infer it from the schema
   if (!props.editor) {
-    let extension = null;
-    
     if (file.value) {
       const parts = file.value.name.split('.');
-      if (parts.length > 1 && parts[0] !== '') {
-        extension = parts.pop().toLowerCase();
+      if (parts.length > 1 && !(parts.length === 2 && parts[0] === '')) {
+        extension.value = parts.pop().toLowerCase();
       }
     }
-    
-    mode.value = (schema.value && schema.value.fields)
-      ? 'yfm'
-      : (extension && extension === 'csv')
-        ? 'datagrid'
-        : 'raw';
+
+    if (schema.value && schema.value.fields) {
+      mode.value = 'yfm';
+    } else if (extension.value) {
+      switch (extension.value) {
+        case 'md':
+        case 'markdown':
+        case 'mdx':
+        case 'html':
+        case 'htm':
+        case 'yaml':
+        case 'yml':
+        case 'json':
+        case 'js':
+        case 'ts':
+        case 'tsx':
+          mode.value = 'code';
+          break;
+        case 'csv':
+          mode.value = 'datagrid';
+          break;
+        default:
+          mode.value = 'raw';
+          break;   
+      }
+    } else {
+      mode.value = 'raw';
+    }
+  } else {
+    mode.value = props.editor;
   }
 
   if (mode.value == 'yfm') {
@@ -246,7 +272,6 @@ const setEditor = async () => {
     const contentObject = (content) ? loadYfm(content) : {};
     model.value = createModel(schema.value.fields, contentObject);
   } else {
-    // Datagrid and raw editor
     model.value = content;
   }
 
@@ -257,6 +282,8 @@ const setEditor = async () => {
 
 // TODO: if saving fails, it reloads the file and wipe out all the edits
 // TODO: prevent saving when no change happened and handle when Github API doesn't create a commit if no change
+// TODO: history doesn't reload when creating a copy
+// TODO: doesn't prevent duplicate name
 const save = async () => {
   status.value = 'saving';
   let content;
@@ -297,6 +324,7 @@ const save = async () => {
     initialModel.value = JSON.parse(JSON.stringify(model.value));
     setDisplayTitle();
     notifications.notify(`Saved "${currentPath.value}"`, 'success');
+    emit('file-saved', currentPath.value);
     status.value = '';
   } catch (error) {
     notifications.notify(`Failed to save the file "${currentPath.value}"`, 'error');
@@ -307,15 +335,11 @@ onMounted(async () => {
   await setEditor();
 });
 
-watch(
-  [
-    () => props.owner,
-    () => props.repo,
-    () => props.branch,
-    () => props.name,
-  ],
-  async () => {
+watch(() => route.path, async () => {
+  if (status.value === 'handling-renamed') {
+    status.value = '';
+  } else {
     await setEditor();
   }
-);
+});
 </script>

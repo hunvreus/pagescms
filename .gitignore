@@ -14,6 +14,8 @@ coverage
 *.local
 .*
 
+wrangler.toml
+
 /cypress/videos/
 /cypress/screenshots/
 

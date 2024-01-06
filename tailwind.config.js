@@ -1,13 +1,14 @@
 const defaultTheme = require('tailwindcss/defaultTheme')
 
 module.exports = {
-  purge: ['./index.html', './src/**/*.{vue,js,ts,jsx,tsx}'],
-  content: [],
+  content: ['./index.html', './src/**/*.{vue,js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
         neutral: {
           150: '#EDEDED',
+          750: '#333333',
+          850: '#1F1F1F',
         },
       },
       height: {
@@ -25,4 +26,5 @@ module.exports = {
   plugins: [
     require('@tailwindcss/forms')
   ],
+  darkMode: 'class',
 }

@@ -1,26 +1,22 @@
 <template>
   <div class="relative">
-    <input v-model="keywords" type="text" placeholder="e.g. vuejs/vue" class="input w-full !pr-8"/>
+    <input v-model="keywords" type="text" placeholder="e.g. vuejs/vue" class="input w-full !pr-8 placeholder-neutral-400 dark:placeholder-neutral-500"/>
     <div class="absolute right-3 top-1/2 -translate-y-1/2 opacity-50">
       <div v-if="status == 'searching'" class="spinner-black-sm"></div>
-      <svg v-else class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
-        <path d="M21 21L16.65 16.65M19 11C19 15.4183 15.4183 19 11 19C6.58172 19 3 15.4183 3 11C3 6.58172 6.58172 3 11 3C15.4183 3 19 6.58172 19 11Z"/>
-      </svg>
+      <Icon v-else name="Search" class="h-4 w-4 stroke-2 shrink-0"/>
     </div>
   </div>
-  <div class="max-h-[calc(100vh-12.5rem)] h-[352px] mt-3 overflow-auto" :class="[ (status == 'searching') ? 'processing' : '' ]">
+  <div class="max-h-[calc(100vh-12.5rem)] h-[352px] mt-3 overflow-auto custom-scrollbar" :class="[ (status == 'searching') ? 'processing' : '' ]">
     <ul v-if="query && results && results.length" class="flex flex-col gap-y-2">
       <li v-for="result in results">
-        <div v-if="!(result.permissions && result.permissions.push) || isCurrentRepo(result)" class="link-text cursor-not-allowed" :class="[ isCurrentRepo(result) ? 'bg-neutral-100' : '' ]">
+        <div v-if="!(result.permissions && result.permissions.push) || isCurrentRepo(result)" class="link-text cursor-not-allowed" :class="[ isCurrentRepo(result) ? 'bg-neutral-100 dark:bg-neutral-750' : '' ]">
           <div class="truncate w-full" :class="[ isCurrentRepo(result) ? '' : 'opacity-50' ]">
             <div class="flex gap-x-2 items-center">
               <div class="truncate font-medium">{{ result.full_name }}</div>
-              <div v-if="result.private" class="text-xs rounded-full px-2 py-0.5 bg-neutral-950 text-white font-normal">Private</div>
-              <svg v-if="isCurrentRepo(result)" class="shrink-0 h-4 w-4 ml-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 6L9 17L4 12"/>
-              </svg>
+              <div v-if="result.private" class="chip-primary">Private</div>
+              <Icon v-if="isCurrentRepo(result)" name="Check" class="h-4 w-4 stroke-2 shrink-0 ml-auto"/>
             </div>
-            <div class="text-sm text-neutral-400 truncate mt-1">
+            <div class="text-sm text-neutral-400 dark:text-neutral-500 truncate mt-1">
               Updated {{ $filters.fromNow(result.pushed_at) }}
               <span v-if="result.description"> • {{ result.description }}</span>
             </div>
@@ -30,9 +26,9 @@
           <div class="truncate">
             <div class="flex gap-x-2 items-center">
               <div class="truncate font-medium">{{ result.full_name }}</div>
-              <div v-if="result.private" class="text-xs rounded-full px-2 py-0.5 bg-neutral-950 text-white font-normal">Private</div>
+              <div v-if="result.private" class="chip-primary">Private</div>
             </div>
-            <div class="text-sm text-neutral-400 truncate mt-1">
+            <div class="text-sm text-neutral-400 dark:text-neutral-500 truncate mt-1">
               Updated {{ $filters.fromNow(result.pushed_at) }}
               <span v-if="result.description"> • {{ result.description }}</span>
             </div>
@@ -42,11 +38,11 @@
     </ul>
     <div v-else-if="keywords && results && results.length == 0" class="text-center p-6">
       <div class="font-medium">We couldn't find any matching repository.</div>
-      <div class="text-neutral-400">Try and fill in the complete name of the repo (e.g. "vuejs/vue").</div>
+      <div class="text-neutral-400 dark:text-neutral-500">Try and fill in the complete name of the repo (e.g. "vuejs/vue").</div>
     </div>
     <div v-else class="text-center p-6">
       <div class="font-medium">Find your GitHub repository.</div>
-      <div class="text-neutral-400">Search by organization and repository name . You need write permissions on the repository.</div>
+      <div class="text-neutral-400 dark:text-neutral-500">Search by organization and repository name . You need write permissions on the repository.</div>
     </div>
   </div>
 </template>
@@ -54,10 +50,12 @@
 <script setup>
 import { ref, computed, watch, inject } from 'vue';
 import _ from 'lodash';
+import Icon from '@/components/utils/Icon.vue';
 import notifications from '@/services/notifications';
 import github from '@/services/github';
 
 const repoStore = inject('repoStore', { owner: null, repo: null });
+
 const keywords = ref('');
 const results = ref([]);
 const status = ref('');
