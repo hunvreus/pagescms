@@ -71,7 +71,6 @@ onMounted(() => {
       }
     }),
   ];
-  console.log(props.format);
   switch (props.format) {
     case 'yaml':
     case 'yml':

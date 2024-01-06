@@ -263,7 +263,6 @@ const insertImage = async () => {
 
 const importContent = async (content) => {
   let htmlContent = (props.format == 'markdown') ? marked(content) : content;
-  console.log(htmlContent);
   if (props.imagePrefix) {
     htmlContent = githubImg.removePrefix(htmlContent, props.imagePrefix);
   }

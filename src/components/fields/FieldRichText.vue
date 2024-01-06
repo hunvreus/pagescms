@@ -1,6 +1,5 @@
 
 <template>
-  <div class="max-h-[300px] whitespace-pre overflow-auto">{{ modelValue }}</div>
   <TipTap
     :model-value="modelValue"
     @update:modelValue="$emit('update:modelValue', $event)"
