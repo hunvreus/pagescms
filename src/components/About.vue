@@ -15,7 +15,7 @@
           <Icon name="Chrome" class="h-4 w-4 stroke-2 shrink-0"/>
           Website
         </a>
-        <a class="btn text-center" href="https://github.com/pages-cms/pages-cms" target="_blank">
+        <a class="btn text-center" href="https://pagescms.org/docs" target="_blank">
           <Icon name="Book" class="h-4 w-4 stroke-2 shrink-0"/>
           Docs
         </a>

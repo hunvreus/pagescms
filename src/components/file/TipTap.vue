@@ -236,7 +236,7 @@ const isEditorFocused = ref(false);
 const status = ref('loading');
 
 const turndown = new TurndownService({ headingStyle: 'atx' });
-turndown.addRule('something', {
+turndown.addRule('keep-styled-elements', {
   filter: (node, options) => node.getAttribute('style'),
   replacement: (content, node, options) => `<${node.nodeName.toLowerCase()} style="${node.getAttribute('style')}">${content}</${node.nodeName.toLowerCase()}>`
 })
