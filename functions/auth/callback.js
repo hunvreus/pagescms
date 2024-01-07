@@ -13,7 +13,7 @@ export async function onRequest(context) {
         client_id: env.GITHUB_CLIENT_ID,
         client_secret: env.GITHUB_CLIENT_SECRET,
         code: url.searchParams.get('code'),
-        redirect_uri: `${new URL(request.url).origin}/auth/callback`,
+        redirect_uri: `${env.BASE_URL}/auth/callback`,
       }),
     });
     
@@ -25,7 +25,7 @@ export async function onRequest(context) {
     const responseData = await response.json();
     
     if (responseData.access_token) {
-      return Response.redirect(`${env.CLIENT_URL}/?access_token=${responseData.access_token}`, 302);
+      return Response.redirect(`${env.BASE_URL}/?access_token=${responseData.access_token}`, 302);
     } else {
       throw new Error('Access token not found');
     }
