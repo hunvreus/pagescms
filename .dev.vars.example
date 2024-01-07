@@ -1,0 +1,3 @@
+CLIENT_URL = "http://localhost:8788"
+GITHUB_CLIENT_ID =	"XXX"
+GITHUB_CLIENT_SECRET = "XXX"
