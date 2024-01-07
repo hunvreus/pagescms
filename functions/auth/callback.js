@@ -25,7 +25,7 @@ export async function onRequest(context) {
     const responseData = await response.json();
     
     if (responseData.access_token) {
-      return Response.redirect(`${env.CF_PAGES_URL}/?access_token=${responseData.access_token}`, 302);
+      return Response.redirect(`${env.CLIENT_URL}/?access_token=${responseData.access_token}`, 302);
     } else {
       throw new Error('Access token not found');
     }
