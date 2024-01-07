@@ -46,10 +46,10 @@ To get a local version up and running:
 
 ### Deploy on Cloudflare
 
-1. **Prerequisit**: you'll need a [Cloudflare](https://cloudflare.com) account (it's free). Once you have one:
+1. **Prerequisite**: you'll need a [Cloudflare](https://cloudflare.com) account (it's free). Once you have one:
 1. **Create a [Cloudflare Pages](https://developers.cloudflare.com/pages/) app**:
     1. From your account dashboard, go to `Workers & Pages`, then click on `Create application` and select the `Pages` tab.
-    1. From there you can connect your GitHub account and select the repo you want to deploy (most likely [a fork of pages-cms/pages-cms](https://github.com/pages-cms/pages-cms/fork) or your own fork).
+    1. From there you can connect your GitHub account and select the repo you want to deploy (assuming you've [forked pages-cms/pages-cms](https://github.com/pages-cms/pages-cms/fork)).
     1. Cloudflare will give you a public URL (e.g. https://pages-cms-123.pages.dev).
 1. **Create a GitHub OAuth app**: same as for local, go to [your Developer Settings](https://github.com/settings/developers) and [create a New OAuth App](https://github.com/settings/applications/new) (or alternatively create one for one of your organizations) with the following settings:
     - **Application name**: `Pages CMS`
