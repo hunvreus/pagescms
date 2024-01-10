@@ -62,7 +62,6 @@
     <!-- Fields -->
     <main class="mx-auto p-4 lg:p-8" :class="{ 'max-w-4xl': mode !== 'datagrid'}">
       <h1 v-if="displayTitle" class="font-semibold text-2xl lg:text-4xl mb-8">{{ displayTitle }}</h1>
-      {{  model  }}
       <template v-if="model || model === ''">
         <template v-if="mode === 'yfm'">
           <template v-if="schema && schema.fields">
