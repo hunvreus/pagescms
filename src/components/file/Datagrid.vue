@@ -1,6 +1,6 @@
 <template>  
   <template v-if="model">
-    <table>
+    <table class="datagrid">
       <tbody>
         <tr v-for="(row, rowIndex) in model" :key="rowIndex">
           <td
@@ -158,29 +158,3 @@ const onKeydown = (event) => {
   }
 };
 </script>
-
-<style scoped>
-td {
-  @apply border border-neutral-200 p-0 relative;
-}
-
-tr:first-child {
-  @apply bg-neutral-100;
-}
-
-.cell-content {
-  @apply px-2 py-1 truncate border border-transparent min-h-[2.125rem] w-36;
-}
-
-td.selected {
-  @apply border-double border-neutral-950;
-}
-
-td.selected .cell-content {
-  @apply border-neutral-950 z-100;
-}
-
-td textarea {
-  @apply bg-white absolute -top-[1px] -left-[1px] w-72 h-36 px-1 py-0.5 rounded-none z-10 border-2 border-neutral-950 focus:outline-none focus:ring-0;
-}
-</style>

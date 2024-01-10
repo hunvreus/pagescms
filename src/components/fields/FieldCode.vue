@@ -1,6 +1,7 @@
 <template>
   <CodeMirror
     :modelValue="modelValue"
+    :format="field.options.format"
     @update:modelValue="$emit('update:modelValue', $event)"
   />
 </template>
@@ -13,7 +14,6 @@ const repoStore = inject('repoStore', { owner: null, repo: null, branch: null, c
 
 const props = defineProps({
   field: Object,
-  modelValue: String,
-  format: String
+  modelValue: String
 });
 </script>

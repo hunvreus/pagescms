@@ -1,5 +1,7 @@
-@import './tiptap.css';
 @import './codemirror.css';
+@import './datagrid.css';
+@import './filebrowser.css';
+@import './tiptap.css';
 
 @tailwind base;
 @tailwind components;
@@ -493,129 +495,6 @@ fieldset .field:last-child {
   @apply bg-orange-500;
 }
 
-/* File browser */
-
-.fb-files.fb-files-dragging {
-  @apply bg-neutral-100 dark:bg-neutral-850;
-}
-
-.fb-files .fb-files-item-content {
-  @apply ring ring-2 ring-transparent ring-inset transition-all;
-}
-
-.fb-files .fb-files-item-content.selected {
-  @apply ring-neutral-950 dark:ring-white;
-}
-
-.fb-files .fb-files-item-image {
-  @apply relative bg-neutral-100 dark:bg-neutral-850 overflow-hidden;
-}
-
-.fb-files .fb-files-item-image img {
-  @apply object-cover absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2;
-}
-
-/* File browser: list layout */
-
-.fb-files.fb-files-list {
-  @apply flex flex-col;
-}
-
-.fb-files.fb-files-list .fb-files-item-content {
-  @apply flex gap-x-2 items-center rounded-xl py-2 px-3 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-850 relative w-full;
-}
-
-.adjust-dark .fb-files.fb-files-list .fb-files-item-content {
-  @apply dark:hover:bg-neutral-750;
-}
-
-.fb-files.fb-files-list .fb-files-item-icon {
-  @apply w-4 h-4 stroke-2 shrink-0;
-}
-
-.fb-files.fb-files-list .fb-files-item-image {
-  @apply w-4 h-4;
-}
-
-.fb-files.fb-files-list .fb-files-item-name {
-  @apply font-medium truncate;
-}
-
-.fb-files.fb-files-list .fb-files-item-meta {
-  @apply text-neutral-400 dark:text-neutral-500 text-sm ml-auto flex gap-x-2 items-center whitespace-nowrap;
-}
-
-.fb-files.fb-files-list .fb-files-item-options {
-  @apply flex items-center;
-}
-
-.fb-files.fb-files-list .fb-files-item-options > div {
-  @apply block;
-}
-
-.fb-files.fb-files-list .fb-files-item-options .fb-files-item-options-btn {
-  @apply block py-1 px-2 -m-1;
-}
-
-/* File browser: grid layout */
-
-.fb-files.fb-files-grid {
-   @apply grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6;
-}
-
-.fb-files.fb-files-grid .fb-files-item-content {
-  @apply w-full hover:bg-neutral-100 dark:hover:bg-neutral-850 rounded-2xl transition-colors p-4 relative ;
-}
-
-.adjust-dark .fb-files.fb-files-grid .fb-files-item-content {
-  @apply dark:hover:bg-neutral-750;
-}
-
-.fb-files.fb-files-grid .fb-files-item-name {
-  @apply truncate font-medium;
-}
-
-.fb-files.fb-files-grid .fb-files-item-dir .fb-files-item-name {
-  @apply pb-4;
-}
-
-.fb-files.fb-files-grid .fb-files-item-checkbox {
-  @apply absolute top-6 left-6 z-10 opacity-0;
-}
-
-.fb-files.fb-files-grid .fb-files-item-checkbox:checked {
-  @apply opacity-100;
-}
-
-.fb-files.fb-files-grid .fb-files-item-image,
-.fb-files.fb-files-grid .fb-files-item-icon {
-  @apply mb-2;
-}
-
-.fb-files.fb-files-grid .fb-files-item-image {
-  @apply w-full pb-[66.66%] rounded-xl ring-1 ring-neutral-200 dark:ring-neutral-700;
-}
-
-.fb-files.fb-files-grid .fb-files-item-icon  {
-  @apply relative w-full pb-[66.66%] overflow-hidden;
-}
-
-.fb-files.fb-files-grid .fb-files-item-icon svg {
-  @apply absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-12 stroke-[1] sm:w-14 sm:stroke-[1] lg:w-16 lg:stroke-[0.75] xl:w-20 xl:stroke-[0.6];
-}
-
-.fb-files.fb-files-grid .fb-files-item-meta {
-  @apply text-xs text-neutral-400 dark:text-neutral-500 text-sm;
-}
-
-.fb-files.fb-files-grid .fb-files-item-options {
-  @apply absolute bottom-1 right-px z-10;
-}
-
-.fb-files.fb-files-grid .fb-files-item-options-btn {
-  @apply p-3;
-}
-
 /* Modal */
 
 .modal-overlay {
@@ -664,15 +543,6 @@ fieldset .field:last-child {
   @apply !w-[500px];
 }
 
-/* File browser modal */
-
-.modal-file-browser .modal-box {
-  @apply w-[calc(100vw-14rem)];
-}
-
-.modal-body .fb-files {
-  @apply overflow-auto custom-scrollbar max-h-[calc(100vh-24rem)];
-}
 
 /* Table */
 

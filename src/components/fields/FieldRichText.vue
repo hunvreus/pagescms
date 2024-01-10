@@ -1,4 +1,3 @@
-
 <template>
   <TipTap
     :model-value="modelValue"

@@ -2,98 +2,108 @@
   <div v-if="status == 'loading'" class="bg-neutral-150 dark:bg-neutral-800 border-neutral-150 dark:border-neutral-800 py-2 px-3 h-24 rounded-xl flex items-center justify-center">
     <div class="spinner-black"></div>
   </div>
-  <div v-else class="editor">
+  <div v-else class="rich-text-editor">
     <!-- Editor buttons -->
     <div v-if="editor" class="tiptap-controls" :class="{ 'tiptap-controls-focused': isEditorFocused }">
       <div class="tiptap-controls-wrapper">
+        <template v-if="!isCodeEditor">
+          <button
+            @click="editor.chain().focus().toggleBold().run()"
+            :disabled="!editor.can().chain().focus().toggleBold().run()"
+            class="tiptap-control group relative"
+            :class="{ 'tiptap-control-active': editor.isActive('bold') }"
+          >
+            <Icon name="Bold" class="h-4 w-4 stroke-2 shrink-0"/>
+            <div class="tooltip-top">Bold</div>
+          </button>
+          <button
+            @click="editor.chain().focus().toggleItalic().run()"
+            :disabled="!editor.can().chain().focus().toggleItalic().run()"
+            class="tiptap-control group relative"
+            :class="{ 'tiptap-control-active': editor.isActive('italic') }"
+          >
+            <Icon name="Italic" class="h-4 w-4 stroke-2 shrink-0"/>
+            <div class="tooltip-top">Italic</div>
+          </button>
+          <button
+          @click="setHeadline()"
+            class="tiptap-control group relative"
+          >
+            <Icon name="Heading" class="h-4 w-4 stroke-2 shrink-0"/>
+            <div class="tooltip-top">Heading</div>
+          </button>
+          <button
+            @click="insertImageModal.openModal()"
+            class="tiptap-control group relative"
+          >
+            <Icon name="Image" class="h-4 w-4 stroke-2 shrink-0"/>
+            <div class="tooltip-top">Image</div>
+          </button>
+          <button
+            @click="linkUrl = editor.isActive('link') ? editor.getAttributes('link').href : ''; linkUrlPrev = linkUrl; linkModal.openModal();"
+            class="tiptap-control group relative"
+            :class="{ 'tiptap-control-active': editor.isActive('link') }"
+          >
+            <Icon name="Link2" class="h-4 w-4 stroke-2 shrink-0"/>
+            <div class="tooltip-top">Link</div>
+          </button>
+          <button
+            @click="editor.chain().focus().toggleBulletList().run()"
+            class="tiptap-control group relative"
+            :class="{ 'tiptap-control-active': editor.isActive('bulletList') }"
+          >
+            <Icon name="List" class="h-4 w-4 stroke-2 shrink-0"/>
+            <div class="tooltip-top">Bullet list</div>
+          </button>
+          <button
+            @click="editor.chain().focus().toggleOrderedList().run()"
+            class="tiptap-control group relative"
+            :class="{ 'tiptap-control-active': editor.isActive('orderedList') }"
+          >
+            <Icon name="ListOrdered" class="h-4 w-4 stroke-2 shrink-0"/>
+            <div class="tooltip-top">Ordered list</div>
+          </button>
+          <button
+            @click="editor.chain().focus().setTextAlign('left').run()"
+            class="tiptap-control group relative"
+            :class="{ 'tiptap-control-active': editor.isActive({ textAlign: 'left' }) }"
+          >
+            <Icon name="AlignLeft" class="h-4 w-4 stroke-2 shrink-0"/>
+            <div class="tooltip-top">Align left</div>
+          </button>
+          <button
+            @click="editor.chain().focus().setTextAlign('center').run()"
+            class="tiptap-control group relative"
+            :class="{ 'tiptap-control-active': editor.isActive({ textAlign: 'center' }) }"
+          >
+            <Icon name="AlignCenter" class="h-4 w-4 stroke-2 shrink-0"/>
+            <div class="tooltip-top">Center</div>
+          </button>
+          <button
+            @click="editor.chain().focus().setTextAlign('right').run()"
+            class="tiptap-control group relative"
+            :class="{ 'tiptap-control-active': editor.isActive({ textAlign: 'right' }) }"
+          >
+            <Icon name="AlignRight" class="h-4 w-4 stroke-2 shrink-0"/>
+            <div class="tooltip-top">Align right</div>
+          </button>
+          <button
+            @click="editor.chain().focus().unsetAllMarks().clearNodes().run()"
+            class="tiptap-control group relative"
+          >
+            <Icon name="RemoveFormatting" class="h-4 w-4 stroke-2 shrink-0"/>
+            <div class="tooltip-top">Remove format</div>
+          </button>
+        </template>
         <button
-          @click="editor.chain().focus().toggleBold().run()"
-          :disabled="!editor.can().chain().focus().toggleBold().run()"
+          @click="toggleEditor()"
           class="tiptap-control group relative"
-          :class="{ 'tiptap-control-active': editor.isActive('bold') }"
+          :class="{ 'tiptap-control-active': isCodeEditor }"
         >
-          <Icon name="Bold" class="h-4 w-4 stroke-2 shrink-0"/>
-          <div class="tooltip-top">Bold</div>
-        </button>
-        <button
-          @click="editor.chain().focus().toggleItalic().run()"
-          :disabled="!editor.can().chain().focus().toggleItalic().run()"
-          class="tiptap-control group relative"
-          :class="{ 'tiptap-control-active': editor.isActive('italic') }"
-        >
-          <Icon name="Italic" class="h-4 w-4 stroke-2 shrink-0"/>
-          <div class="tooltip-top">Italic</div>
-        </button>
-        <button
-        @click="setHeadline()"
-          class="tiptap-control group relative"
-        >
-          <Icon name="Heading" class="h-4 w-4 stroke-2 shrink-0"/>
-          <div class="tooltip-top">Heading</div>
-        </button>
-        <button
-          @click="insertImageModal.openModal()"
-          class="tiptap-control group relative"
-        >
-          <Icon name="Image" class="h-4 w-4 stroke-2 shrink-0"/>
-          <div class="tooltip-top">Image</div>
-        </button>
-        <button
-          @click="linkUrl = editor.isActive('link') ? editor.getAttributes('link').href : ''; linkUrlPrev = linkUrl; linkModal.openModal();"
-          class="tiptap-control group relative"
-          :class="{ 'tiptap-control-active': editor.isActive('link') }"
-        >
-          <Icon name="Link2" class="h-4 w-4 stroke-2 shrink-0"/>
-          <div class="tooltip-top">Link</div>
-        </button>
-        <button
-          @click="editor.chain().focus().toggleBulletList().run()"
-          class="tiptap-control group relative"
-          :class="{ 'tiptap-control-active': editor.isActive('bulletList') }"
-        >
-          <Icon name="List" class="h-4 w-4 stroke-2 shrink-0"/>
-          <div class="tooltip-top">Bullet list</div>
-        </button>
-        <button
-          @click="editor.chain().focus().toggleOrderedList().run()"
-          class="tiptap-control group relative"
-          :class="{ 'tiptap-control-active': editor.isActive('orderedList') }"
-        >
-          <Icon name="ListOrdered" class="h-4 w-4 stroke-2 shrink-0"/>
-          <div class="tooltip-top">Ordered list</div>
-        </button>
-        <button
-          @click="editor.chain().focus().setTextAlign('left').run()"
-          class="tiptap-control group relative"
-          :class="{ 'tiptap-control-active': editor.isActive({ textAlign: 'left' }) }"
-        >
-          <Icon name="AlignLeft" class="h-4 w-4 stroke-2 shrink-0"/>
-          <div class="tooltip-top">Align left</div>
-        </button>
-        <button
-          @click="editor.chain().focus().setTextAlign('center').run()"
-          class="tiptap-control group relative"
-          :class="{ 'tiptap-control-active': editor.isActive({ textAlign: 'center' }) }"
-        >
-          <Icon name="AlignCenter" class="h-4 w-4 stroke-2 shrink-0"/>
-          <div class="tooltip-top">Center</div>
-        </button>
-        <button
-          @click="editor.chain().focus().setTextAlign('right').run()"
-          class="tiptap-control group relative"
-          :class="{ 'tiptap-control-active': editor.isActive({ textAlign: 'right' }) }"
-        >
-          <Icon name="AlignRight" class="h-4 w-4 stroke-2 shrink-0"/>
-          <div class="tooltip-top">Align right</div>
-        </button>
-        <button
-          @click="editor.chain().focus().unsetAllMarks().clearNodes().run()"
-          class="tiptap-control group relative"
-        >
-          <Icon name="RemoveFormatting" class="h-4 w-4 stroke-2 shrink-0"/>
-          <div class="tooltip-top">Remove format</div>
-        </button>
-        <Dropdown :dropdownClass="'!max-w-none w-36'">
+          <Icon name="Code" class="h-4 w-4 stroke-2 shrink-0"/>
+          <div class="tooltip-top">{{ isCodeEditor ? 'Switch to rich-text' : 'Switch to code' }}</div>
+        </button>  
+        <Dropdown v-if="!isCodeEditor" :dropdownClass="'!max-w-none w-36'">
           <template #trigger>
             <button class="tiptap-control">
               <Icon name="MoreVertical" class="h-4 w-4 stroke-2 shrink-0"/>
@@ -153,9 +163,19 @@
           </template>
         </Dropdown>
       </div>
+      
     </div>
     <!-- TipTap Editor -->
-    <EditorContent :editor="editor"/>
+    <template v-if="!isCodeEditor">
+      <EditorContent :editor="editor"/>
+    </template>
+    <template v-else>
+      <CodeMirror
+        :modelValue="modelValue"
+        :format="format"
+        @update:modelValue="$emit('update:modelValue', $event)"
+      />
+    </template>
   </div>
   <!-- Inser image modal -->
   <Modal ref="insertImageModal" :customClass="'modal-file-browser'">
@@ -200,7 +220,7 @@
 </template>
 
 <script setup>
-import { ref, onBeforeUnmount, onMounted } from 'vue';
+import { ref, onBeforeUnmount, onMounted, defineAsyncComponent, watch } from 'vue';
 import { useEditor, EditorContent } from '@tiptap/vue-3';
 import { marked } from 'marked';
 import TurndownService from 'turndown';
@@ -213,6 +233,8 @@ import Dropdown from '@/components/utils/Dropdown.vue';
 import FileBrowser from '@/components/FileBrowser.vue';
 import Icon from '@/components/utils/Icon.vue';
 import Modal from '@/components/utils/Modal.vue';
+
+const CodeMirror = defineAsyncComponent(() => import('@/components/file/CodeMirror.vue'));
 
 const emit = defineEmits(['update:modelValue']);
 
@@ -234,12 +256,13 @@ const linkUrlPrev = ref('');
 const imageSelection = ref([]);
 const isEditorFocused = ref(false);
 const status = ref('loading');
+const isCodeEditor = ref(false);
 
-const turndown = new TurndownService({ headingStyle: 'atx' });
-turndown.addRule('keep-styled-elements', {
-  filter: (node, options) => node.getAttribute('style'),
-  replacement: (content, node, options) => `<${node.nodeName.toLowerCase()} style="${node.getAttribute('style')}">${content}</${node.nodeName.toLowerCase()}>`
-})
+const turndownService = new TurndownService({ headingStyle: 'atx' });
+turndownService.addRule('styled-or-classed', {
+  filter: (node, options)  => (node.getAttribute('style') || node.getAttribute('class')),
+  replacement: (content, node, options) => node.outerHTML
+});
 
 const setHeadline = () => {
   if (editor.value.isActive('heading', { level: 1 })) {
@@ -275,7 +298,7 @@ const exportContent = (content) => {
   if (props.imagePrefix) {
     htmlContent = githubImg.addPrefix(htmlContent, props.imagePrefix);
   }
-  return (props.format == 'markdown') ? turndown.turndown(htmlContent) : htmlContent;
+  return (props.format == 'markdown') ? turndownService.turndown(htmlContent) : htmlContent;
 };
 
 const setContent = async () => {
@@ -316,6 +339,16 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
-  editor.value.destroy();
+  if (editor.value) {
+    editor.value.destroy();
+  }
 });
+
+const toggleEditor = () => {
+  isCodeEditor.value = !isCodeEditor.value;
+  if (!isCodeEditor.value) {
+    setContent();
+  }
+};
+
 </script>

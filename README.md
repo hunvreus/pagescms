@@ -27,7 +27,7 @@ In a nutshell:
 
 The easiest way to get started is to use [the online version of Pages CMS](https://app.pagescms.org). You'll be able to log in with your GitHub account and get the latest version of Pages CMS.
 
-This online version is identical to what's in this repo and as mentioned above, we do not save any data on our servers (OAuth tokens are saved on the client side).
+This online version is identical to what's in this repo and as mentioned above, nothing is saved in the backend (OAuth tokens are saved on the client side).
 
 But you can also install your own version locally or deploy it (for free) on Cloudflare following the steps below.
 
@@ -83,3 +83,5 @@ Everything in this repo is released under the [MIT License](LICENSE).
 - [ ] Add onboarding wizard that assists the configuration step.
 - [ ] Add YAML schema validation for `.pages.yml`.
 - [ ] Add real-time feature to mitigate conflicting edits.
+- [ ] Add ability to enable code switch for rich-text
+- [ ] Add option to define insertable partials

@@ -19,6 +19,7 @@ export async function onRequest(context) {
     
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(response, errorText);
       throw new Error(`Error fetching access token: ${response.statusText}. GitHub says: ${errorText}`);
     }
 

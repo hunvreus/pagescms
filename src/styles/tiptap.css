@@ -1,8 +1,7 @@
-
 /* TipTap */
 
 .tiptap-controls {
-  @apply sticky top-[59px] z-20 p-3 opacity-100 hover:z-50;
+  @apply sticky top-[59px] z-20 p-3 opacity-100 hover:z-50 flex;
 }
 
 .tiptap-controls-wrapper {
@@ -17,9 +16,9 @@
   @apply !rounded-l-lg;
 }
 
-.tiptap-controls-wrapper > :last-child .tiptap-control {
+.tiptap-controls-wrapper > .tiptap-control:last-child,
+.tiptap-controls-wrapper > div:last-child .tiptap-control {
   @apply !rounded-r-lg;
-
 }
 
 .tiptap-control.tiptap-control-active {
@@ -34,7 +33,8 @@
   @apply bg-neutral-700 border-neutral-700 dark:bg-neutral-200 dark:border-neutral-200;
 }
 
-.tiptap-controls + div > .ProseMirror {
+.tiptap-controls + div > .ProseMirror,
+.tiptap-controls + div .cm-editor {
   @apply -mt-[58px] pt-[58px];
 }
 

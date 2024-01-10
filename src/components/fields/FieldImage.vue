@@ -1,42 +1,40 @@
 <template>
-  <template v-if="field.list === true">
-    <Draggable
-      class="grid grid-cols-4 gap-4 sm:grid-cols-5 xl:grid-cols-6"
-      v-model="internalModelValue"
-      :animation="100"
-      :item-key="'index'"
-      tag="ul"
-    >
-      <template #item="{element, index}">
-        <li v-if="element" class="relative w-full cursor-move">
-          <div class="bg-neutral-100 dark:bg-neutral-850 w-full pb-[100%] rounded-xl ring-1 ring-neutral-200 dark:ring-neutral-750 overflow-hidden relative">
-            <img v-if="previewUrls[element]" :src="previewUrls[element]" :alt="element" class="object-cover absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"/>
-            <div v-else class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              <div class="spinner-black"></div>
-            </div>
+  <Draggable
+    class="grid grid-cols-4 gap-4 sm:grid-cols-5 xl:grid-cols-6"
+    v-model="internalModelValue"
+    :animation="100"
+    :item-key="'index'"
+    tag="ul"
+  >
+    <template #item="{element, index}">
+      <li v-if="element" class="relative w-full cursor-move">
+        <div class="bg-neutral-100 dark:bg-neutral-850 w-full pb-[100%] rounded-xl ring-1 ring-neutral-200 dark:ring-neutral-750 overflow-hidden relative">
+          <img v-if="previewUrls[element]" :src="previewUrls[element]" :alt="element" class="object-cover absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"/>
+          <div v-else class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <div class="spinner-black"></div>
           </div>
-          <div class="absolute bottom-0 right-0 z-10 flex p-2">
-            <button class="btn-icon-sm !border-r-0 !rounded-r-none relative group" @click="removeImage(index)">
-              <Icon name="Trash2" class="h-4 w-4 stroke-2 shrink-0"/>
-              <div class="tooltip-top">Remove image</div>
-            </button>
-            <button class="btn-icon-sm !rounded-l-none relative group" @click="changeImage(index)">
-              <Icon name="Pencil" class="h-4 w-4 stroke-2 shrink-0"/>
-              <div class="tooltip-top">Change image</div>
-            </button>
-          </div>
-        </li>
-      </template>
-      <template #footer>
-        <li v-if="internalModelValue.length < props.listMax">
-          <button class="btn flex-col gap-y-2 aspect-square items-center justify-center w-full" @click="addImage()">
-            <Icon name="ImagePlus" class="h-6 w-6 stroke-2 shrink-0"/>
-            Add image
+        </div>
+        <div class="absolute bottom-0 right-0 z-10 flex p-2">
+          <button class="btn-icon-sm !border-r-0 !rounded-r-none relative group" @click="removeImage(index)">
+            <Icon name="Trash2" class="h-4 w-4 stroke-2 shrink-0"/>
+            <div class="tooltip-top">Remove image</div>
           </button>
-        </li>
-      </template>
-    </Draggable>
-  </template>
+          <button class="btn-icon-sm !rounded-l-none relative group" @click="changeImage(index)">
+            <Icon name="Pencil" class="h-4 w-4 stroke-2 shrink-0"/>
+            <div class="tooltip-top">Change image</div>
+          </button>
+        </div>
+      </li>
+    </template>
+    <template #footer>
+      <li v-if="internalModelValue.length < (props.list ? props.listMax : 1)">
+        <button class="btn flex-col gap-y-2 aspect-square items-center justify-center w-full" @click="addImage()">
+          <Icon name="ImagePlus" class="h-6 w-6 stroke-2 shrink-0"/>
+          Add image
+        </button>
+      </li>
+    </template>
+  </Draggable>
   <!-- File browser modal -->
   <Modal ref="selectImageModal" :customClass="'modal-file-browser'">
     <template #header>Select an image</template>

@@ -5,6 +5,10 @@
 import { reactive } from 'vue';
 import github from '@/services/github';
 
+// TTL for the cache (in milliseconds)
+// TODO: find the proper value for this
+const ttl = 60000;
+
 // We use the state object to coordinate data fetching (mainly to prevent fetching the same content multiple time) and cacching results.
 const state = reactive({
   urls: {},
@@ -18,6 +22,8 @@ const getRawUrl = async (owner, repo, branch, path, isPrivate = false) => {
     if (!state.urls[fullPath]) {
       const parentPath = path.split('/').slice(0, -1).join('/');
       const fullParentPath = `${owner}/${repo}/${branch}/${parentPath}`;
+      // The path should exist AND not have a value older than 1 minute (it's set to a timestamp when the request is made)
+      if (state.paths[fullParentPath] && state.paths[fullParentPath] < Date.now() - ttl) delete state.paths[fullParentPath];
       if (state.paths[fullParentPath]) return null;
       if (!state.requests[fullParentPath]) {
         state.requests[fullParentPath] = github.getContents(owner, repo, branch, parentPath, false);
@@ -25,7 +31,8 @@ const getRawUrl = async (owner, repo, branch, path, isPrivate = false) => {
       const files = await state.requests[fullParentPath];
       addRawUrls(owner, repo, branch, files);
       delete state.requests[fullParentPath];
-      state.paths[fullParentPath] = true;
+      // We set this not to true but to the timestamp of the request, so that we can invalidate the cache after a certain time.
+      state.paths[fullParentPath] = Date.now();
     }
     return state.urls[fullPath] || null;
   } else {
