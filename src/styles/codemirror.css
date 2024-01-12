@@ -7,7 +7,7 @@
 }
 
 .cm-editor.cm-focused {
-  @apply outline-none ring ring-1 border-neutral-950 ring-neutral-950 dark:border-white dark:ring-white;
+  @apply outline-none ring border-neutral-950 ring-neutral-950 dark:border-white dark:ring-white;
 }
 
 .cm-editor .cm-content {
@@ -82,9 +82,9 @@
 /* .cm-editor .cmt-link,
 .cm-editor .cmt-literal {} */
 
-.cm-editor .cmt-link.cmt-literal {
-  /* @apply underline; */
-}
+/* .cm-editor .cmt-link.cmt-literal {
+  @apply underline;
+} */
 
 /* .cm-editor .cmt-strikethrough {} */
 

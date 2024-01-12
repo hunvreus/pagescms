@@ -85,3 +85,4 @@ Everything in this repo is released under the [MIT License](LICENSE).
 - [ ] Add real-time feature to mitigate conflicting edits.
 - [ ] Add ability to enable code switch for rich-text
 - [ ] Add option to define insertable partials
+- [ ] Add 

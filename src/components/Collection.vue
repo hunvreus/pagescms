@@ -225,11 +225,25 @@ const viewContents = computed(() => {
   
   // Apply search filter
   if (view.search.trim()) {
-    const searchResults = searchIndex.search(`${view.search.trim()}`);
-    viewFiles = searchResults.map(result => {
-      return files.find(item => item.filename === result.ref);
-    });
-  }
+  const query = view.search.trim();
+  const terms = query.match(/"[^"]+"|\S+/g);
+
+  const validQuery = terms.map(term => {
+    const parts = term.split(':');
+    if (parts.length > 1) {
+      if (parts[1].trim() === '' || !view.config.fields.includes(parts[0])) {
+        return '';
+      }
+    }
+    return term;
+  }).filter(Boolean).join(' ');
+
+  
+  const searchResults = searchIndex.search(validQuery);
+  viewFiles = searchResults.map(result => {
+    return files.find(item => item.filename === result.ref);
+  });
+}
   
   // Apply sorting
   viewFiles = viewFiles.slice().sort((a, b) => {

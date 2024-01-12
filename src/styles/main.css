@@ -213,7 +213,7 @@ button.btn-icon-danger-sm {
 }
 
 .sidebar-overlay {
-  @apply invisible opacity-0 z-50 lg:z-10 fixed inset-0 bg-neutral-950 bg-opacity-20 dark:bg-opacity-60 overflow-y-auto h-screen w-screen z-100 transition-all;
+  @apply invisible opacity-0 lg:z-10 fixed inset-0 bg-neutral-950 bg-opacity-20 dark:bg-opacity-60 overflow-y-auto h-screen w-screen z-100 transition-all;
 }
 
 .sidebar-active .sidebar-overlay {
@@ -221,7 +221,7 @@ button.btn-icon-danger-sm {
 }
 
 .sidebar-content {
-  @apply fixed inset-y-0 z-10 w-72 flex flex-col invisible opacity-0 z-150 custom-shadow -translate-x-full lg:visible lg:opacity-100 lg:z-auto lg:translate-x-0 lg:shadow-none	transition-all;
+  @apply fixed inset-y-0 w-72 flex flex-col invisible opacity-0 z-150 custom-shadow -translate-x-full lg:visible lg:opacity-100 lg:z-auto lg:translate-x-0 lg:shadow-none	transition-all;
 }
 
 .sidebar-active .sidebar-content {
@@ -506,7 +506,7 @@ fieldset .field:last-child {
 }
 
 .modal-box {
-  @apply w-96 top-1/2 mx-auto custom-shadow rounded-2xl bg-white dark:bg-neutral-850 w-96 translate-y-4 sm:translate-y-0 sm:scale-95 transition-all;
+  @apply top-1/2 mx-auto custom-shadow rounded-2xl bg-white dark:bg-neutral-850 w-96 translate-y-4 sm:translate-y-0 sm:scale-95 transition-all;
 }
 
 .modal-header {

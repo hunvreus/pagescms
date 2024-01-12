@@ -1,6 +1,6 @@
 <template>
   <div>
-    <label class="relative block inline-flex items-center cursor-pointer">
+    <label class="relative inline-flex items-center cursor-pointer">
       <input
         class="sr-only peer"
         type="checkbox"

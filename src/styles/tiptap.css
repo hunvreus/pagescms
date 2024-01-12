@@ -46,7 +46,7 @@
 
 .tiptap-controls:active + div > .ProseMirror,
 .ProseMirror-focused {
-  @apply outline-none ring ring-1 border-neutral-950 ring-neutral-950 dark:border-white dark:ring-white;
+  @apply outline-none ring-1 border-neutral-950 ring-neutral-950 dark:border-white dark:ring-white;
 }
 
 .ProseMirror-focused .ProseMirror-selectednode {
@@ -135,9 +135,9 @@
   @apply underline;
 }
 
-.tiptap pre > code .ProseMirror-trailingBreak {
-  /* @apply !hidden; */
-}
+/* .tiptap pre > code .ProseMirror-trailingBreak {
+  @apply !hidden;
+} */
 
 .tiptap p > img + .ProseMirror-separator,
 .tiptap p > img + .ProseMirror-separator + .ProseMirror-trailingBreak {

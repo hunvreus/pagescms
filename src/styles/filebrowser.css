@@ -5,7 +5,7 @@
 }
 
 .fb-files .fb-files-item-content {
-  @apply ring ring-2 ring-transparent ring-inset transition-all;
+  @apply ring-2 ring-transparent ring-inset transition-all;
 }
 
 .fb-files .fb-files-item-content.selected {
@@ -110,7 +110,7 @@
 }
 
 .fb-files.fb-files-grid .fb-files-item-meta {
-  @apply text-xs text-neutral-400 dark:text-neutral-500 text-sm;
+  @apply text-sm text-neutral-400 dark:text-neutral-500;
 }
 
 .fb-files.fb-files-grid .fb-files-item-options {

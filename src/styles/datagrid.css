@@ -31,7 +31,7 @@ td textarea {
 }
 
 .datagrid td {
-  @apply align-middle border border-neutral-200 dark:border-neutral-750 border border-neutral-200 p-0 relative;
+  @apply align-middle border border-neutral-200 dark:border-neutral-750 p-0 relative;
 }
 
 .datagrid tr:first-child {
