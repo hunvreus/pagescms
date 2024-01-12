@@ -361,7 +361,7 @@ const setLayout = (mode = null) => {
   } else if (props.default_layout) {
     layout.value = props.default_layout;
   } else {
-    layout.value = 'list';
+    layout.value = 'grid';
   }
   router.replace({ query: { ...route.query, layout: layout.value } });
 };

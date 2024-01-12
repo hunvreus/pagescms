@@ -79,7 +79,7 @@
               <th class="actions">&nbsp;</th>
             </thead>
             <tbody>
-              <tr v-if="parentFolder">
+              <tr v-if="parentFolder" class="h-[47px]">
                 <td :colspan="view.config.fields.length + 1" class="folder">
                   <router-link :to="parentFolder" class="flex gap-x-2 items-center font-medium">
                     <Icon name="CornerLeftUp" class="h-4 w-4 stroke-2 shrink-0"/>
@@ -87,7 +87,7 @@
                   </router-link>
                 </td>
               </tr>
-              <tr v-for="item in viewContents.folders" :key="item.name">
+              <tr v-for="item in viewContents.folders" :key="item.name" class="h-[47px]">
                 <td :colspan="view.config.fields.length + 1" class="folder">
                   <router-link :to="{ name: $route.name, query: { ...$route.query, subfolder: item.path } }" class="flex gap-x-2 items-center font-medium">
                     <Icon name="Folder" class="h-4 w-4 stroke-2 shrink-0"/>
