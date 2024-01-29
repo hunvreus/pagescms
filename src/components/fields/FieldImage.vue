@@ -129,11 +129,13 @@ const addImage = () => {
 };
 
 const setImages = () => {
-  internalModelValue.value = props.list ? props.modelValue : [props.modelValue];
-  internalModelValue.value.forEach((imagePath, index) => {
-    internalModelValue.value[index] = removePrefix(imagePath);
-    getPreviewUrl(internalModelValue.value[index]);
-  });
+  if (props.modelValue) {
+    internalModelValue.value = props.list ? props.modelValue : [ props.modelValue ];
+    internalModelValue.value.forEach((imagePath, index) => {
+      internalModelValue.value[index] = removePrefix(imagePath);
+      getPreviewUrl(internalModelValue.value[index]);
+    });
+  }
 };
 
 onMounted(async () => {
