@@ -17,7 +17,7 @@ import { yaml } from "@codemirror/legacy-modes/mode/yaml"
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
-  format: { type: String, default: 'markdown' },
+  language: { type: String, default: 'markdown' },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -71,7 +71,7 @@ onMounted(() => {
       }
     }),
   ];
-  switch (props.format) {
+  switch (props.language) {
     case 'yaml':
     case 'yml':
       lang.value = 'yaml';
@@ -83,7 +83,7 @@ onMounted(() => {
     case 'typescript':
     case 'ts':
     case 'tsx':
-    lang.value = 'javascript';
+      lang.value = 'javascript';
       extensions.push(javascript());
       break;
     case 'json':

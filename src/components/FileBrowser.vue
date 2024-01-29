@@ -43,7 +43,7 @@
           <div class="tooltip-top">Go to parent</div>
         </button>
         
-        <button class="btn-icon-sm relative group ml-auto" @click="addFolder()">
+        <button class="btn-icon-sm relative group ml-auto" @click="openAddFolderModal()">
           <Icon name="FolderPlus" class="h-4 w-4 stroke-2 shrink-0"/>
           <div class="spinner-white-sm" v-if="status == 'creating-folder'"></div>
           <div class="tooltip-top">Add a folder</div>
@@ -125,6 +125,14 @@
         </ul>
       </div>
     </div>
+    <AddFolder
+      ref="addFolderComponent"
+      :owner="props.owner"
+      :repo="props.repo"
+      :branch="props.branch"
+      :path="path"
+      @folder-added="handleFolderAdded"
+    />
     <Rename
       ref="renameComponent"
       :owner="props.owner"
@@ -164,6 +172,7 @@ import github from '@/services/github';
 import Dropdown from '@/components/utils/Dropdown.vue';
 import Icon from '@/components/utils/Icon.vue';
 import Delete from '@/components/file/Delete.vue';
+import AddFolder from '@/components/file/AddFolder.vue';
 import Rename from '@/components/file/Rename.vue';
 import Upload from '@/components/file/Upload.vue';
 
@@ -171,7 +180,7 @@ const extensionCategories = {
   image: ['jpg', 'jpeg', 'png', 'gif', 'svg', 'bmp', 'tif', 'tiff'],
   document: ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'vxls', 'xlsx', 'txt', 'rtf'],
   video: ['mp4', 'avi', 'mov', 'wmv', 'flv'],
-  audit: ['mp3', 'wav', 'aac', 'ogg', 'flac'],
+  audio: ['mp3', 'wav', 'aac', 'ogg', 'flac'],
   compressed: ['zip', 'rar', '7z', 'tar', 'gz', 'tgz']
 }
 
@@ -184,9 +193,9 @@ const props = defineProps({
   owner: String,
   repo: String,
   branch: String,
-  default_path: String,
+  defaultPath: String,
   root: String,
-  default_layout: String,
+  defaultLayout: String,
   urlTracking: Boolean,
   hasBreadcrumb: Boolean,
   filterByCategories: Array,
@@ -202,6 +211,7 @@ const layout = ref('grid');
 const isDragging = ref(false);
 const selectedFiles = ref([]);
 const uploadComponent = ref(null);
+const addFolderComponent = ref(null);
 const renameComponent = ref(null);
 const renamePath = ref('');
 const deleteComponent = ref(null);
@@ -225,6 +235,14 @@ const handleFileDrop = async (event) => {
   isDragging.value = false;
   const files = event.dataTransfer.files;
   await uploadComponent.value.processFiles(files);
+  setContents();
+};
+
+function openAddFolderModal() {
+  addFolderComponent.value.openModal();
+}
+
+const handleFolderAdded = () => {
   setContents();
 };
 
@@ -358,27 +376,12 @@ const setLayout = (mode = null) => {
     layout.value = mode;
   } else if (route.query.layout) {
     layout.value = route.query.layout;
-  } else if (props.default_layout) {
-    layout.value = props.default_layout;
+  } else if (props.defaultLayout) {
+    layout.value = props.defaultLayout;
   } else {
     layout.value = 'grid';
   }
   router.replace({ query: { ...route.query, layout: layout.value } });
-};
-
-const addFolder = async () => {
-  const folderName = prompt('Enter a name for the new folder:');
-  if (folderName) {
-    status.value = 'creating-folder';
-    const data = await github.saveFile(props.owner, props.repo, props.branch, `${path.value}/${folderName}/.gitkeep`, '');
-    if (data) {
-      notifications.notify(`Folder "${folderName}" successfully created.`, 'success');
-      setContents();
-    } else {
-      notifications.notify(`Folder "${folderName}" couldn't be created.`, 'error');
-    }
-    status.value = '';
-  }
 };
 
 const checkAndRedirectPath = () => {

@@ -1,6 +1,10 @@
 url: 'https://localhost:8080'
-media: files
-media_prefix: '/'
+
+media:
+  path: src/public
+  prefix:
+    content: '/'
+    source: '/src/'
 
 content:
   - name: posts

@@ -86,6 +86,17 @@ export default function useSchema() {
     return config.content.find(item => item.name === name);
   };
 
+  // Safely access nested properties in an object
+  function safeAccess(obj, path) {
+    return path.split('.').reduce((acc, part) => {
+      if (part.endsWith(']')) {
+        const [arrayPath, index] = part.split('[');
+        return (acc[arrayPath] || [])[parseInt(index.replace(']', ''), 10)];
+      }
+      return acc && acc[part];
+    }, obj);
+  }
+
   const generateFilename = (pattern, schema, model) => {
     // Replace date placeholders
     pattern = pattern.replace(/\{year\}/g, moment().format('YYYY'))
@@ -94,45 +105,15 @@ export default function useSchema() {
                      .replace(/\{hour\}/g, moment().format('HH'))
                      .replace(/\{minute\}/g, moment().format('mm'))
                      .replace(/\{second\}/g, moment().format('ss'));
-
-    function findFieldInSchema(schema, fieldName) {
-      return schema.fields.find(field => field.name === fieldName);
-    }
-
-    // Safely access nested properties in an object
-    function safeAccess(obj, path) {
-      return path.split('.').reduce((acc, part) => {
-        if (part.endsWith(']')) {
-          const [arrayPath, index] = part.split('[');
-          return (acc[arrayPath] || [])[parseInt(index.replace(']', ''), 10)];
-        }
-        return acc && acc[part];
-      }, obj);
-    }
-
+  
+    // Replace `{primary}` with the actual name of the primary field
+    const primaryField = (schema.view && schema.view.primary) || (model.hasOwnProperty('title') ? 'title' : schema.fields[0]?.name); // To check if model.
+    pattern = pattern.replace(new RegExp(`\\{primary\\}`, 'g'), primaryField ? `{fields.${primaryField}}` : '');
+  
     // Replace field placeholders
-    return pattern.replace(/\{([^}]+)\}/g, (_, key) => {
-      let value;
-      if (key.startsWith('fields.')) {
-        key = key.replace('fields.', '');
-        const field = findFieldInSchema(schema, key);
-        if (!field) {
-          throw new Error(`Field '${key}' not found in schema`);
-        }
-        value = safeAccess(model, key);
-      } else {
-        const field = findFieldInSchema(schema, key);
-        if (!field) {
-          throw new Error(`Field '${key}' not found in schema`);
-        }
-        value = model[key];
-      }
-
-      if (value === undefined) {
-        throw new Error(`Field '${key}' not found in model`);
-      }
-
-      return slugify(transliterate(String(value)), { lower: true, strict: true });
+    return pattern.replace(/\{fields\.([^}]+)\}/g, (_, fieldName) => {
+      const value = safeAccess(model, fieldName);
+      return value ? slugify(transliterate(String(value)), { lower: true, strict: true }) : '';
     });
   };
 

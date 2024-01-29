@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import * as icons from "lucide-vue-next";
 // FileStack, FileText, Settings, Image, HelpCircle, ChevronsUpDown, ExternalLink, Check, Menu, ArrowLeft, MoreVertical, Grip, Trash2, ImagePlus, Pencil
-// Bold, Italic, Heding, Image, Link2, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, RemoveFormatting, X, Bell, Search, Folder, CornerLeftUp, SlidersHorizontal
+// Bold, Italic, Heding, Image, Link2, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, RemoveFormatting, X, Bell, Search, Folder, FolderPlus, CornerLeftUp, SlidersHorizontal, Ban
 // 
 
 const props = defineProps({

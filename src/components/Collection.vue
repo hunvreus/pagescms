@@ -6,7 +6,7 @@
     <template v-else-if="status == 'error'">
       <div class="error h-screen">
         <div class="text-center max-w-md">
-          <h1 class="font-semibold text-2xl mb-2">Something's not right.</h1>
+          <h1 class="font-semibold tracking-tight text-2xl mb-2">Something's not right.</h1>
           <p class="text-neutral-400 dark:text-neutral-500 mb-6">Your configuration is probably wrong: this collection is set to the "{{ schema.path }}" folder in this repository.</p>
           <div class="flex gap-x-2 justify-center">
             <router-link class="btn-primary" :to="{name: 'settings'}">Review settings</router-link>
@@ -17,12 +17,36 @@
     <template v-else-if="collection">
       <div class="max-w-screen-xl	mx-auto p-4 lg:p-8">
         <header class="flex gap-x-2 mb-8 items-center">
-          <h1 class="font-semibold text-2xl lg:text-4xl tracking-tight">{{ schema.label }}</h1>
-          <router-link :to="{ name: 'new' }" class="btn-primary ml-auto">Add an entry</router-link>
+          <h1 class="font-semibold tracking-tight text-2xl lg:text-4xl mr-auto">{{ schema.label }}</h1>
+          <Dropdown :dropdownClass="'!max-w-none w-52 !z-[21]'" v-if="schema.subfolders !== false">
+            <template #trigger>
+              <button class="btn-icon group-[.dropdown-active]:bg-neutral-100 dark:group-[.dropdown-active]:bg-neutral-850">
+                <Icon name="MoreVertical" class="h-4 w-4 stroke-2 shrink-0"/>
+              </button>
+            </template>
+            <template #content>
+              <ul>
+                <li>
+                  <a class="link w-full" :href="`https://github.com/${props.owner}/${props.repo}/blob/${props.branch}/${folder}`" target="_blank">
+                    <div class="truncate">See folder on GitHub</div>
+                    <Icon name="ExternalLink" class="h-4 w-4 stroke-2 shrink-0 ml-auto text-neutral-400 dark:text-neutral-500"/>
+                  </a>
+                </li>
+                <li><hr class="border-t border-neutral-150 dark:border-neutral-750 my-2"/></li>
+                <li><button class="link w-full" @click="openAddFolderModal()">Add a folder</button></li>
+              </ul>
+            </template>
+          </Dropdown>
+          <router-link :to="{ name: 'new', query: { folder: folder } }" class="btn-primary">Add an entry</router-link>
         </header>
 
         <div class="flex justify-between items-center mb-4 flex-row gap-x-2">
-          <input type="text" v-model="view.search" placeholder="Search by keywords" class="!rounded-full !px-5 w-full placeholder-neutral-400 dark:placeholder-neutral-500">
+          <div class="relative w-full">
+            <input type="text" v-model="view.search" placeholder="Search by keywords" class="w-full !pr-8 placeholder-neutral-400 dark:placeholder-neutral-500">
+            <div class="absolute right-3 top-1/2 -translate-y-1/2 opacity-50">
+              <Icon name="Search" class="h-4 w-4 stroke-2 shrink-0"/>
+            </div>
+          </div>
           <Dropdown :elementClass="'z-30'" :dropdownClass="'!max-w-none'">
             <template #trigger>
               <button class="btn-icon group-[.dropdown-active]:bg-neutral-100 dark:group-[.dropdown-active]:bg-neutral-850">
@@ -40,40 +64,23 @@
                 </li>
                 <li><hr class="border-t border-neutral-150 dark:border-neutral-750 my-2"/></li>
                 <li>
-                  <button class="link w-full" @click="view.sort_order = 'asc'">
+                  <button class="link w-full" @click="view.order = 'asc'">
                     Ascendant
-                    <Icon v-if="view.sort_order === 'asc'" name="Check" class="h-4 w-4 stroke-2 shrink-0 ml-auto"/>
+                    <Icon v-if="view.order === 'asc'" name="Check" class="h-4 w-4 stroke-2 shrink-0 ml-auto"/>
                   </button>
                 </li>
                 <li>
-                  <button class="link w-full" @click="view.sort_order = 'desc'">
+                  <button class="link w-full" @click="view.order = 'desc'">
                     Descendant
-                    <Icon v-if="view.sort_order === 'desc'" name="Check" class="h-4 w-4 stroke-2 shrink-0 ml-auto"/>
+                    <Icon v-if="view.order === 'desc'" name="Check" class="h-4 w-4 stroke-2 shrink-0 ml-auto"/>
                   </button>
                 </li>
               </ul>
             </template>
           </Dropdown>
         </div>
-
-        <div v-if="collection.length == 0" class="text-center rounded-xl bg-neutral-100 p-6">
-          <div class="max-w-md mx-auto">
-            <h2 class="font-semibold">This collection is empty</h2>
-            <p class="text-neutral-400">The "{{ schema.label }}" collection has no entry yet in the "{{ schema.path }}" folder.</p>
-          </div>
-          <div class="flex gap-x-2 justify-center mt-4">
-            <router-link :to="{ name: 'new' }" class="btn-primary-sm">Add an entry</router-link>
-          </div>
-        </div>
-        <div v-else-if="viewContents.files.length == 0" class="text-center p-6 max-w-md mx-auto">
-          <h2 class="font-medium">No results</h2>
-          <p class="text-neutral-400 dark:text-neutral-500">There are no results for your search terms. You can use wildcard (e.g. "keyword*") or field specific search (e.g. "title:keyword").</p>
-          <div class="flex gap-x-2 justify-center mt-4">
-            <button class="btn-sm" @click="view.search = ''">Clear search terms</button>
-          </div>
-        </div>
-        <template v-else>
-          <table class="table">
+        <template v-if="parentFolder || viewContents.folders || viewContents.files">
+          <table class="table mb-4">
             <thead>
               <th v-for="field in view.config.fields" :class="[ field == view.config.primary ? 'primary-field' : '' ]">{{ fieldsSchemas[field].label }}</th>
               <th class="actions">&nbsp;</th>
@@ -87,12 +94,33 @@
                   </router-link>
                 </td>
               </tr>
-              <tr v-for="item in viewContents.folders" :key="item.name" class="h-[47px]">
-                <td :colspan="view.config.fields.length + 1" class="folder">
-                  <router-link :to="{ name: $route.name, query: { ...$route.query, subfolder: item.path } }" class="flex gap-x-2 items-center font-medium">
+              <tr v-for="item in viewContents.folders" :key="item.name" v-if="schema.subfolders !== false">
+                <td class="folder">
+                  <router-link :to="{ name: $route.name, query: { ...$route.query, folder: item.path } }" class="flex gap-x-2 items-center font-medium">
                     <Icon name="Folder" class="h-4 w-4 stroke-2 shrink-0"/>
                     <div class="truncate">{{ item.name }}</div>
                   </router-link>
+                </td>
+                <td :colspan="view.config.fields.length" class="actions text-right">
+                  <div class="inline-flex">
+                    <Dropdown :dropdownClass="'!max-w-none w-52'">
+                      <template #trigger>
+                        <button class="btn-icon-sm group-[.dropdown-active]:bg-neutral-100 dark:group-[.dropdown-active]:bg-neutral-850">
+                          <Icon name="MoreVertical" class="h-4 w-4 stroke-2 shrink-0"/>
+                        </button>
+                      </template>
+                      <template #content>
+                        <ul>
+                          <li>
+                            <a class="link w-full" :href="`https://github.com/${props.owner}/${props.repo}/blob/${props.branch}/${item.path}`" target="_blank">
+                              <div class="truncate">See folder on GitHub</div>
+                              <Icon name="ExternalLink" class="h-4 w-4 stroke-2 shrink-0 ml-auto text-neutral-400 dark:text-neutral-500"/>
+                            </a>
+                          </li>
+                        </ul>
+                      </template>
+                    </Dropdown>
+                  </div>
                 </td>
               </tr>
               <tr v-for="item in viewContents.files" :key="item.filename">
@@ -102,7 +130,7 @@
                   </template>
                   <div v-else v-html="formatField(field, item.fields[field])"></div>
                 </td>
-                <td class="actions">
+                <td class="actions text-right">
                   <div class="inline-flex">
                     <router-link :to="{ name: 'edit', params: { name: name, path: item.path } }" class="btn-sm !border-r-0 !rounded-r-none">Edit</router-link>
                     <Dropdown :dropdownClass="'!max-w-none w-48'">
@@ -132,7 +160,33 @@
             </tbody>
           </table>
         </template>
+        <div v-if="contents.files.length == 0" class="text-center rounded-xl bg-neutral-100 dark:bg-neutral-850 p-6">
+          <div class="max-w-md mx-auto">
+            <h2 class="font-semibold tracking-tight">No entries</h2>
+            <p class="text-neutral-400">There are no entries yet for the "{{ schema.label }}" collection here.</p>
+          </div>
+          <div class="flex gap-x-2 justify-center mt-4">
+            <router-link :to="{ name: 'new', query: { folder: folder } }" class="btn-primary-sm">Add an entry</router-link>
+          </div>
+        </div>
+        <div v-else-if="viewContents.files.length == 0" class="text-center rounded-xl bg-neutral-100 dark:bg-neutral-850 p-6">
+          <div class="max-w-md mx-auto">
+            <h2 class="font-semibold tracking-tight">No results</h2>
+            <p class="text-neutral-400 dark:text-neutral-500">There are no results for your search terms. You can use wildcard (e.g. "keyword*") or field specific search (e.g. "title:keyword").</p>
+            <div class="flex gap-x-2 justify-center mt-4">
+              <button class="btn-sm" @click="view.search = ''">Clear search terms</button>
+            </div>
+          </div>
+        </div>
       </div>
+      <AddFolder
+        ref="addFolderComponent"
+        :owner="props.owner"
+        :repo="props.repo"
+        :branch="props.branch"
+        :path="folder"
+        @folder-added="handleFolderAdded"
+      />
       <Rename
         ref="renameComponent"
         :owner="props.owner"
@@ -163,6 +217,7 @@ import github from '@/services/github';
 import useYfm from '@/composables/useYfm';
 import Dropdown from '@/components/utils/Dropdown.vue';
 import Icon from '@/components/utils/Icon.vue';
+import AddFolder from '@/components/file/AddFolder.vue';
 import Rename from '@/components/file/Rename.vue';
 import Delete from '@/components/file/Delete.vue';
 
@@ -180,10 +235,17 @@ const props = defineProps({
 
 const renameComponent = ref(null);
 const renamePath = ref('');
+const addFolderComponent = ref(null);
 const deleteComponent = ref(null);
 const deletePath = ref('');
 const deleteSha = ref('');
 const collection = ref(null);
+const contents = computed(() => {
+  return {
+    files: collection.value.filter(item => item.type === 'blob'),
+    folders: collection.value.filter(item => item.type === 'tree')
+  };
+});
 const status = ref('loading');
 const schema = computed(() => props.config.content.find(item => item.name === props.name));
 const fields = computed(() => schema.value.fields.map(field => field.name));
@@ -195,16 +257,17 @@ const fieldsSchemas = computed(() => {
   return schemas;
 });
 const parentFolder = computed(() => {
-  if (!route.query.subfolder) return null;
-  const pathSegments = route.query.subfolder.split('/').filter(Boolean);
+  if (!route.query.folder) return null;
+  const pathSegments = route.query.folder.split('/').filter(Boolean);
   pathSegments.pop();
   const parentPath = pathSegments.join('/');
-
+  const query = { ...route.query, folder: parentPath !== schema.value.path ? parentPath : undefined };
   return {
     name: route.name,
-    query: { ...route.query, subfolder: (parentPath == schema.value.path) ? null : parentPath }
+    query: query
   };
 });
+const folder = computed(() => route.query.folder || schema.value.path);
 const view = reactive({
   config: {
     fields: [],
@@ -213,37 +276,34 @@ const view = reactive({
     filter: null,
   },
   sort: null,
-  sort_order: 'asc',
+  order: 'desc',
   filter: null,
   filter_value: null,
   search: '',
 });
 const viewContents = computed(() => {
-  let files = collection.value.filter(item => item.type === 'blob');
-  let folders = collection.value.filter(item => item.type === 'tree');
-  let viewFiles = files;
+  let viewFiles = [...contents.value.files];
   
   // Apply search filter
   if (view.search.trim()) {
-  const query = view.search.trim();
-  const terms = query.match(/"[^"]+"|\S+/g);
+    const query = view.search.trim();
+    const terms = query.match(/"[^"]+"|\S+/g);
 
-  const validQuery = terms.map(term => {
-    const parts = term.split(':');
-    if (parts.length > 1) {
-      if (parts[1].trim() === '' || !view.config.fields.includes(parts[0])) {
-        return '';
+    const validQuery = terms.map(term => {
+      const parts = term.split(':');
+      if (parts.length > 1) {
+        if (parts[1].trim() === '' || !view.config.fields.includes(parts[0])) {
+          return '';
+        }
       }
-    }
-    return term;
-  }).filter(Boolean).join(' ');
-
-  
-  const searchResults = searchIndex.search(validQuery);
-  viewFiles = searchResults.map(result => {
-    return files.find(item => item.filename === result.ref);
-  });
-}
+      return term;
+    }).filter(Boolean).join(' ');
+    
+    const searchResults = searchIndex.search(validQuery);
+    viewFiles = searchResults.map(result => {
+      return viewFiles.find(item => item.filename === result.ref);
+    });
+  }
   
   // Apply sorting
   viewFiles = viewFiles.slice().sort((a, b) => {
@@ -266,12 +326,12 @@ const viewContents = computed(() => {
       comparison = 1;
     }
 
-    return view.sort_order === 'desc' ? -comparison : comparison;
+    return view.order === 'desc' ? -comparison : comparison;
   });
 
   return {
     files: viewFiles,
-    folders,
+    folders: [...contents.value.folders],
   };
 });
 
@@ -312,6 +372,14 @@ const handleDeleted = () => {
   collection.value.splice(index, 1);
 };
 
+function openAddFolderModal() {
+  addFolderComponent.value.openModal();
+}
+
+const handleFolderAdded = () => {
+  setCollection();
+};
+
 let searchIndex;
 
 const setSearch = () => {
@@ -331,20 +399,22 @@ const setSearch = () => {
   });
 };
 
+// TODO: Add date in the default sorting
 const setView = () => {
   view.config.fields = (schema.value.view && schema.value.view.fields) || [ fields.value[0] ];
   view.config.primary = (schema.value.view && schema.value.view.primary) || (fields.value.includes('title') ? 'title' : fields.value[0]);
-  view.config.sort = (schema.value.view && schema.value.view.sort) || (collection.value[0] && collection.value[0].fields.date ? ['date', view.config.primary] : [view.config.primary]);
-  view.config.filter = (schema.value.view && schema.value.view.filter) || null;
+  view.config.sort = (schema.value.view && schema.value.view.sort) || (collection.value[0] && collection.value[0].fields?.date ? ['date', view.config.primary] : [view.config.primary]);
+  // view.config.filter = (schema.value.view && schema.value.view.filter) || null;
   view.sort = (schema.value.view && schema.value.view.default && schema.value.view.default.sort) || (view.config.sort && view.config.sort.length) ? view.config.sort[0] : null;
-  view.sort_order = (schema.value.view && schema.value.view.default && schema.value.view.default.sort_order) || 'desc';
+  view.order = (schema.value.view && schema.value.view.default && schema.value.view.default.order) || 'desc';
   view.search = (schema.value.view && schema.value.view.default && schema.value.view.default.search) || '';
 };
 
 const setCollection = async () => {
   status.value = 'loading';
 
-  const fullPath = route.query.subfolder ? route.query.subfolder : schema.value.path;
+  const fullPath = route.query.folder ? route.query.folder : schema.value.path;
+  const extension = schema.value.extension || 'md';
 
   const files = await github.getContents(props.owner, props.repo, props.branch, fullPath);
   if (!files) {
@@ -353,26 +423,22 @@ const setCollection = async () => {
   }
 
   collection.value = files.map(file => {
-    if (file.type === 'blob') {
+    if (file.type === 'blob' && file.name.endsWith(`.${extension}`)) {
       const parsed = loadYfm(file.object.text);
-      const item = {
+      const date = parsed.date ? new Date(parsed.date) : getDateFromFilename(file.name);
+      return {
         sha: file.object.oid,
         filename: file.name,
         path: file.path,
         content: file.object.text,
         fields: parsed,
         type: file.type,
+        ...(date && { fields: { ...parsed, date } }) // Add date if available
       };
-      
-      const date = parsed.date ? new Date(parsed.date) : getDateFromFilename(file.name);
-      if (date) {
-        item.fields.date = date; // TODO: Just for Jekyll?
-      }
-      
-      return item;
+    } else if (file.type === 'tree') {
+      return file;
     }
-    return file;
-  });
+  }).filter(item => item !== undefined);
 
   setView();
   setSearch();
@@ -396,7 +462,7 @@ watch(() => props.name, (newName, oldName) => {
   setCollection();
 });
 
-watch(() => route.query.subfolder, () => {
+watch(() => route.query.folder, () => {
   setCollection();
 });
 </script>

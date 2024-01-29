@@ -1,7 +1,7 @@
 <template>
   <CodeMirror
     :modelValue="modelValue"
-    :format="field.options.format"
+    :language="field.options?.format"
     @update:modelValue="$emit('update:modelValue', $event)"
   />
 </template>

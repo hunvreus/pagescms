@@ -1,5 +1,5 @@
 <template>
-  <main class="relative min-h-screen">
+  <main class="relative min-h-screen" v-if="config.media">
     <div class="max-w-screen-3xl mx-auto p-4 lg:p-8">
       <header class="flex gap-x-2">
         <h1 class="font-semibold text-2xl lg:text-4xl mb-8 tracking-tight">Media</h1>
@@ -8,8 +8,7 @@
         :owner="owner"
         :repo="repo"
         :branch="branch"
-        :root="config.media"
-        :default_layout="'grid'"
+        :root="config.media.input || config.media"
         :hasBreadcrumb="true"
       />
     </div>

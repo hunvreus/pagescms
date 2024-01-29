@@ -114,7 +114,7 @@
 }
 
 .fb-files.fb-files-grid .fb-files-item-options {
-  @apply absolute bottom-1 right-px z-10;
+  @apply absolute bottom-1 right-px;
 }
 
 .fb-files.fb-files-grid .fb-files-item-options-btn {

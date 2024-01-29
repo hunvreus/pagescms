@@ -65,7 +65,7 @@
 </template>
 
 <script setup>
-import { ref, inject, watch, onMounted, watchEffect } from 'vue';
+import { ref, inject, watch, onMounted } from 'vue';
 import Draggable from 'vuedraggable';
 import githubImg from '@/services/githubImg';
 import FileBrowser from '@/components/FileBrowser.vue';

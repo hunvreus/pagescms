@@ -7,7 +7,7 @@
 }
 
 .cm-editor.cm-focused {
-  @apply outline-none ring border-neutral-950 ring-neutral-950 dark:border-white dark:ring-white;
+  @apply outline-none ring-1 border-neutral-950 ring-neutral-950 dark:border-white dark:ring-white;
 }
 
 .cm-editor .cm-content {
@@ -26,7 +26,7 @@
 /* .cm-editor .cmt-atom {} */
 
 .cm-editor .cmt-comment {
-  @apply text-neutral-500;
+  @apply text-neutral-500 dark:text-neutral-400;
 }
 
 .cm-editor .cmt-atom,
@@ -50,7 +50,7 @@
 .cm-editor .cmt-operator,
 .cm-editor .cmt-separator,
 .cm-editor .cmt-bracket {
-  @apply text-neutral-400;
+  @apply text-neutral-400 dark:text-neutral-500;
 }
 
 .cm-editor .cmt-number,

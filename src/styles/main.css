@@ -252,10 +252,6 @@ button.btn-icon-danger-sm {
 
 /* Forms */
 
-.label {
-  @apply inline-block font-medium mb-2;
-}
-
 input[type='text'],
 input[type='password'],
 input[type='email'],
@@ -304,7 +300,9 @@ html.dark select {
   background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevrons-up-down"%3E%3Cpath d="m7 15 5 5 5-5"/%3E%3Cpath d="m7 9 5-5 5 5"/%3E%3C/svg%3E');
 }
 
-html.dark input[type='date'] {
+html.dark input[type='date'],
+html.dark input[type='datetime-local'],
+html.dark input[type='number'] {
   color-scheme: dark;
 }
 
@@ -348,7 +346,7 @@ fieldset .field:last-child {
 }
 
 .field-list-item {
-  @apply bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-750 p-1.5 flex gap-1 items-center rounded-xl mb-2;
+  @apply bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-750 p-1.5 flex gap-y-1 gap-x-2 items-center rounded-xl mb-2;
 }
 
 .field-list-item:last-child {

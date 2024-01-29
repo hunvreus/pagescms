@@ -5,7 +5,7 @@
   <template v-else-if="status == 'error'">
     <div class="error h-screen">
       <div class="text-center max-w-md">
-        <h1 class="font-semibold text-2xl mb-2">Uh oh. Something went wrong.</h1>
+        <h1 class="font-semibold text-2xl mb-2">Uh-oh! Something went wrong.</h1>
         <p class="text-neutral-400 mb-6">Make sure things are properly configured and that your connection is working.</p>
         <div class="flex gap-x-2 justify-center">
           <router-link class="btn-primary" :to="{name: 'settings'}">Review settings</router-link>
@@ -16,9 +16,34 @@
   <template v-else>
     <!-- Header (navigation + history + actions) -->
     <header class="z-50 sticky top-0 bg-white border-b border-neutral-200 dark:bg-neutral-950 dark:border-neutral-750 flex gap-x-1 lg:gap-x-2 items-center py-1 px-2 lg:py-2 lg:px-4">
-      <router-link v-if="schema && schema.type && (schema.type == 'collection')" :to="{ name: 'content', params: { name: name } }" class="btn-icon-secondary lg:py-2 lg:pr-4 lg:pl-2.5">
-        <Icon name="ArrowLeft" class="h-4 w-4 stroke-2 shrink-0"/>
-        <div class="hidden lg:block">{{ schema.label }}</div>
+      <router-link v-if="schema && schema.type && (schema.type == 'collection')" :to="{ name: 'content', params: { name: name }, ...(folder != schema.path ? { query: { folder: folder } } : {}) }">
+        <button class="!hidden lg:!inline-flex btn-secondary ">
+          <Icon name="ArrowLeft" class="h-4 w-4 stroke-2 shrink-0"/>
+          <span>{{ schema.label }}</span>
+          <ul v-if="subfolders.length > 0" class="flex gap-x-2 items-center">
+            <template v-if="subfolders.length > 2">
+              <li class="flex gap-x-2 items-center">
+                <span class="text-neutral-400 dark:text-neutral-500">/</span>
+                <span class="truncate max-w-20">...</span>
+              </li>
+              <li class="flex gap-x-2 items-center">
+                <span class="text-neutral-400 dark:text-neutral-500">/</span>
+                <Icon name="Folder" class="h-4 w-4 stroke-2 shrink-0"/>
+                <span class="truncate max-w-20">{{ subfolders.slice(-1)[0] }}</span>
+              </li>
+            </template>
+            <template v-else>
+              <li v-for="(subfolder, index) in subfolders" :key="index" class="flex gap-x-2 items-center">
+                <span class="text-neutral-400 dark:text-neutral-500">/</span>
+                <Icon name="Folder" class="h-4 w-4 stroke-2 shrink-0"/>
+                <span class="truncate max-w-20">{{ subfolder }}</span>
+              </li>
+            </template>
+          </ul>
+        </button>
+        <button class="lg:hidden btn-icon-secondary">
+          <Icon name="ArrowLeft" class="h-4 w-4 stroke-2 shrink-0"/>
+        </button>
       </router-link>
       <div class="flex gap-x-2 ml-auto items-center">
         <template v-if="sha">
@@ -65,11 +90,11 @@
       <template v-if="model || model === ''">
         <template v-if="mode === 'yfm'">
           <template v-if="schema && schema.fields">
-            <field v-for="field in schema.fields" :key="field.name" :field="field" :model="model"></field>
+            <field v-for="field in schema.fields" :key="field.name" :field="field" :model="model" ref="fieldRefs"></field>
           </template>
         </template>
         <template v-else-if="mode === 'code'">
-          <CodeMirror v-model="model" :format="extension"/>
+          <CodeMirror v-model="model" :language="extension"/>
         </template>
         <template v-else-if="mode === 'datagrid'">
           <div class="overflow-x-auto">
@@ -108,7 +133,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed, nextTick } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Base64 } from 'js-base64';
 import YAML from 'js-yaml';
@@ -147,12 +172,29 @@ const props = defineProps({
 const schema = ref(null);
 const mode = ref(props.editor);
 const file = ref(null);
+const folder = computed(() => {
+  if (props.isNew && route.query.folder) {
+    return route.query.folder;
+  } else if (props.path) {
+    const pathSegments = props.path.split('/');
+    pathSegments.pop();
+    return pathSegments.join('/');
+  } else {
+    return schema.value.path;
+  }
+});
+const subfolders = computed(() => {
+  const basePathSegments = schema.value.path.split('/').filter(Boolean);
+  const currentPathSegments = folder.value.split('/').filter(Boolean);
+  return currentPathSegments.slice(basePathSegments.length);
+});
 const extension = ref(null);
 const sha = ref(null);
 const model = ref(null);
 const initialModel = ref(null);
 const currentPath = ref(null);
 const newPath = ref(null);
+const fieldRefs = ref([]);
 const renameComponent = ref(null);
 const deleteComponent = ref(null);
 const status = ref('loading');
@@ -280,11 +322,28 @@ const setEditor = async () => {
   status.value = '';
 };
 
+const validateFields = () => {
+  let errors = [];
+  fieldRefs.value.forEach(fieldRef => {
+    errors.push(...fieldRef.validate());
+  });
+  return errors;
+};
+
 // TODO: if saving fails, it reloads the file and wipe out all the edits
 // TODO: prevent saving when no change happened and handle when Github API doesn't create a commit if no change
 // TODO: history doesn't reload when creating a copy
 // TODO: doesn't prevent duplicate name
 const save = async () => {
+  // We run validation first
+  const validationErrors = validateFields();
+  
+  if (validationErrors.length > 0) {
+    notifications.notify('Uh-oh! Some of your fields have issues. Please check for errors.', 'error');
+    return;
+  }
+
+  // If validation passed, we proceed with savin
   status.value = 'saving';
   let content;
 
@@ -302,11 +361,10 @@ const save = async () => {
   try {
     // For new files, we need to generate the filename
     // TODO: check that the file doesn't already exist, append number if so and warn the user
-    // TODO: deal with empty values? Untitled?
     if (!sha.value) {
-      const pattern = (schema.value && schema.value.filename) ? schema.value.filename : '{year}-{month}-{day}-{hour}-{fields.title}.md';
+      const pattern = (schema.value && schema.value.filename) ? schema.value.filename : '{year}-{month}-{day}-{hour}-{primary}.md';
       const filename = generateFilename(pattern, schema.value, model.value);
-      currentPath.value = `${schema.value.path}/${filename}`;
+      currentPath.value = `${folder.value}/${filename}`;
     }
 
     const saveData = await github.saveFile(props.owner, props.repo, props.branch, currentPath.value, Base64.encode(content), sha.value);
