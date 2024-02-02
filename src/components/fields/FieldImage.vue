@@ -27,7 +27,7 @@
       </li>
     </template>
     <template #footer>
-      <li v-if="internalModelValue.length < (props.list ? props.listMax : 1)">
+      <li v-if="internalModelValue.length < (props.field.list ? ( props.field.list?.max ?? Infinity ) : 1)">
         <button class="btn flex-col gap-y-2 aspect-square items-center justify-center w-full" @click="addImage()">
           <Icon name="ImagePlus" class="h-6 w-6 stroke-2 shrink-0"/>
           Add image
@@ -44,11 +44,15 @@
           :owner="repoStore.owner"
           :repo="repoStore.repo"
           :branch="repoStore.branch"
-          :root="props.options.root || repoStore.config.media || ''"
-          :filterByCategories="['image']"
+          :root="props.field.options?.input || repoStore.config.media.input"
+          :defaultPath="props.field.options?.path || repoStore.config.media.path"
+          :filterByCategories="props.field.options?.extensions ? undefined : [ 'image' ]"
+          :filterByExtensions="props.field.options?.extensions"
           :isSelectable="true"
-          :selected="activeImgIndex ? [internalModelValue[activeImgIndex]] : null"
+          :selected="activeImgIndex != null ? internalModelValue[activeImgIndex] : ''"
+          :selectMax="selectMax"
           @files-selected="imageSelection = $event"
+          ref="fileBrowserComponent"
         />
       </div>
       <footer class="flex justify-end text-sm gap-x-2 mt-4">
@@ -65,12 +69,15 @@
 </template>
 
 <script setup>
-import { ref, inject, watch, onMounted } from 'vue';
+import { ref, computed, inject, watch, onMounted } from 'vue';
 import Draggable from 'vuedraggable';
+import useSchema from '@/composables/useSchema';
 import githubImg from '@/services/githubImg';
 import FileBrowser from '@/components/FileBrowser.vue';
 import Icon from '@/components/utils/Icon.vue';
 import Modal from '@/components/utils/Modal.vue';
+
+const { sanitizeObject } = useSchema();
 
 const emit = defineEmits(['update:modelValue']);
 
@@ -80,8 +87,6 @@ const props = defineProps({
   field: Object,
   modelValue: [String, Array],
   list: { type: Boolean, default: false },
-  listMin: { type: Number, default: 0 },
-  listMax: { type: Number, default: Infinity },
   options: { type: Object, default: {} },
 });
 
@@ -90,8 +95,24 @@ const selectImageModal = ref(null);
 const previewUrls = ref({});
 const activeImgIndex = ref(null);
 const internalModelValue = ref([]);
-
-const prefix = props.field.prefix || repoStore.config.media_prefix || null;
+const fileBrowserComponent = ref(null);
+const prefixInput = ref(props.field.options?.input || repoStore.config.media.input || null);
+const prefixOutput = ref(props.field.options?.output || repoStore.config.media.output || null);
+const selectMax = computed(() => {
+  if (props.field.list) {
+    if (props.field.list.max) {
+      if (activeImgIndex.value !== null) {
+        return props.field.list.max - internalModelValue.value.length + 1;
+      } else {
+        return props.field.list.max - internalModelValue.value.length;
+      }
+    } else {
+      return undefined;
+    }
+  } else {
+    return 1;
+  }
+});
 
 const getPreviewUrl = async (path) => {
   if (!previewUrls[path]) {
@@ -100,39 +121,44 @@ const getPreviewUrl = async (path) => {
 };
 
 const confirmImageSelection = () => {
-  if (imageSelection.value[0]) {
-    if (activeImgIndex.value === null) {
-      internalModelValue.value.push(imageSelection.value[0]);
-    } else {
-      internalModelValue.value[activeImgIndex.value] = imageSelection.value[0];
-    }
-    getPreviewUrl(imageSelection.value[0]);
-    selectImageModal.value.closeModal();
+  if (imageSelection.value.length > 0) {
+    const insertIndex = activeImgIndex.value !== null ? activeImgIndex.value : internalModelValue.value.length;
+    internalModelValue.value.splice(insertIndex, activeImgIndex.value !== null ? 1 : 0, ...imageSelection.value);
+    imageSelection.value.forEach(selectedImage => {
+      getPreviewUrl(selectedImage);
+    });
     activeImgIndex.value = null;
-    imageSelection.value = null;
+    imageSelection.value = [];
+    fileBrowserComponent.value.selectFile();
+  } else if (activeImgIndex.value !== null) {
+    internalModelValue.value.splice(activeImgIndex.value, 1);
   }
+  selectImageModal.value.closeModal();
 };
 
 const removeImage = (index) => {
   internalModelValue.value.splice(index, 1);
-  previewUrls.value.splice(index, 1);
 };
 
 const changeImage = (index) => {
+  imageSelection.value = [ internalModelValue.value[index] ];
   activeImgIndex.value = index;
   selectImageModal.value.openModal();
 };
 
 const addImage = () => {
+  imageSelection.value = [];
   activeImgIndex.value = null;
   selectImageModal.value.openModal()
 };
 
-const setImages = () => {
+const setImages = () => {  
   if (props.modelValue) {
-    internalModelValue.value = props.list ? props.modelValue : [ props.modelValue ];
+    // We guarantee that internally the field only deals with lists
+    internalModelValue.value = props.field.list ? props.modelValue : [ props.modelValue ];
+    internalModelValue.value = internalModelValue.value.filter(entry => sanitizeObject(entry));
     internalModelValue.value.forEach((imagePath, index) => {
-      internalModelValue.value[index] = removePrefix(imagePath);
+      internalModelValue.value[index] = githubImg.swapPrefix(imagePath, prefixOutput.value, prefixInput.value);
       getPreviewUrl(internalModelValue.value[index]);
     });
   }
@@ -142,25 +168,12 @@ onMounted(async () => {
   setImages();
 });
 
-// TODO: refactor these two functions into githubImg?
-
-const addPrefix = (path) => {
-  return `${prefix}${path}`;
-};
-
-const removePrefix = (path) => {
-  if (path.startsWith(prefix) && !(prefix == '/' && path.startsWith('//'))) {
-    return path.replace(`${prefix}`, '');
-  }
-  return path;
-};
-
 watch(
   internalModelValue,
   (newValue) => {
     if (newValue) {
-      const modeValueWithPrefix = newValue.map(addPrefix);
-      if (props.list) {
+      const modeValueWithPrefix = newValue.map((path) => githubImg.swapPrefix(path, prefixInput.value, prefixOutput.value));
+      if (props.field.list) {
         emit('update:modelValue', modeValueWithPrefix);
       } else {
         emit('update:modelValue', modeValueWithPrefix[0]);

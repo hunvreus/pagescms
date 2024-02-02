@@ -164,10 +164,9 @@
 <script setup>
 // TODO: support initial path when opening file browser
 // TODO: support history
-import { ref, onMounted, watch, computed } from 'vue';
+import { ref, onMounted, watch, watchEffect, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import githubImg from '@/services/githubImg';
-import notifications from '@/services/notifications';
 import github from '@/services/github';
 import Dropdown from '@/components/utils/Dropdown.vue';
 import Icon from '@/components/utils/Icon.vue';
@@ -193,15 +192,15 @@ const props = defineProps({
   owner: String,
   repo: String,
   branch: String,
+  root: { type: String, default: '' },
   defaultPath: String,
-  root: String,
   defaultLayout: String,
-  urlTracking: Boolean,
   hasBreadcrumb: Boolean,
   filterByCategories: Array,
   filterByExtensions: Array,
   isSelectable: Boolean,
-  selected: String
+  selected: String,
+  selectMax: Number
 });
 
 const contents = ref(null);
@@ -271,15 +270,13 @@ const handleDeleted = () => {
 
 const selectToggle = (item) => {
   if (!props.isSelectable) return;
-  // if (selectedFiles.value.includes(item.path)) {
-  //   selectedFiles.value = selectedFiles.value.filter((i) => i !== item.path);
-  // } else {
-  //   selectedFiles.value.push(item.path);
-  // }
   if (selectedFiles.value.includes(item.path)) {
-    selectedFiles.value = [];
+    selectedFiles.value = selectedFiles.value.filter((i) => i !== item.path);
   } else {
-    selectedFiles.value = [ item.path ];
+    if (props.selectMax != null && selectedFiles.value.length >= props.selectMax) {
+      selectedFiles.value.shift();
+    }
+    selectedFiles.value.push(item.path);
   }
   emit('files-selected', selectedFiles.value);
 };
@@ -384,28 +381,55 @@ const setLayout = (mode = null) => {
   router.replace({ query: { ...route.query, layout: layout.value } });
 };
 
-const checkAndRedirectPath = () => {
-  if (props.root && !path.value.startsWith(props.root)) {
-    notifications.notify(`Root folder is set to "${props.root}".`, 'warning');
+const goTo = (destination) => {
+  if (destination === undefined) {
+    destination = props.defaultPath || props.root;
+  }
+  if (props.root && !destination.startsWith(props.root)) {
+    router.replace({ query: { ...route.query, 'fb-path': props.root } });
+    console.warn(`You tried to access "${destination}" but the root is set to "${props.root}". Redirecting to "${props.root}".`);
+  } else if (destination !== path.value) {
+    path.value = destination;
+    router.push({ query: { ...route.query, 'fb-path': destination } });
+  }
+};
+
+const selectFile = (file) => {
+  if (file) {
+    selectedFiles.value = [ file ];
+    const segments = file.split('/').filter(Boolean);
+    segments.pop();
+    const parentPath = segments.join('/');
+    goTo(parentPath);
+  } else {
+    selectedFiles.value = [];
     goTo();
   }
 };
 
-const goTo = (destination) => {
-  path.value = destination;
-};
-
 onMounted(async () => {
-  checkAndRedirectPath();
+  selectFile(props.selected);
   setLayout();
   await setContents();
 });
 
+watch(() => props.selected, (newValue, oldValue) => {
+  if (newValue != null) {
+    selectFile(newValue);
+  }
+});
+
 watch(path, async (newValue, oldValue) => {
   if (newValue !== oldValue) {
-    checkAndRedirectPath();
     await setContents();
   }
 });
 
+watch(() => route.query['fb-path'], (newValue) => {
+  if (newValue && newValue !== path.value) {
+    goTo(newValue);
+  }
+});
+
+defineExpose({ goTo, selectFile });
 </script>

@@ -362,12 +362,20 @@ const save = async () => {
     // For new files, we need to generate the filename
     // TODO: check that the file doesn't already exist, append number if so and warn the user
     if (!sha.value) {
-      const pattern = (schema.value && schema.value.filename) ? schema.value.filename : '{year}-{month}-{day}-{hour}-{primary}.md';
+      const pattern = (schema.value && schema.value.filename) ? schema.value.filename : '{year}-{month}-{day}-{primary}.md';
       const filename = generateFilename(pattern, schema.value, model.value);
       currentPath.value = `${folder.value}/${filename}`;
     }
 
-    const saveData = await github.saveFile(props.owner, props.repo, props.branch, currentPath.value, Base64.encode(content), sha.value);
+    const saveData = await github.saveFile(props.owner, props.repo, props.branch, currentPath.value, Base64.encode(content), sha.value, true);
+
+    if (!saveData) {
+      notifications.notify(`Failed to save the file "${currentPath.value}".`, 'error');
+      status.value = '';
+      return;
+    }
+
+    currentPath.value = saveData.content.path;
 
     // If we've just created the file, we update the history to point at the edit route
     if (!sha.value) {

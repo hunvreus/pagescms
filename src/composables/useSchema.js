@@ -13,17 +13,29 @@ export default function useSchema() {
     for (const field of fields) {
       if (field.list) {
         const listContent = Array.isArray(content[field.name]) ? content[field.name] : [];
-        model[field.name] = listContent.length > 0 
-          ? listContent.map(item => field.type === 'object' ? createModel(field.fields, item) : item) 
+        model[field.name] = listContent.length > 0
+          ? listContent.map(item => field.type === 'object' ? createModel(field.fields, item) : item)
           : [getDefaultValue(field)];
       } else {
-        model[field.name] = content.hasOwnProperty(field.name) 
-          ? content[field.name] 
-          : getDefaultValue(field);
+        if (content.hasOwnProperty(field.name)) {
+          const fieldValue = content[field.name];
+          // Check if the field value is an array while the field is not a list or an object
+          if (!field.list && field.type !== 'object' && Array.isArray(fieldValue)) {
+            model[field.name] = fieldValue.length > 0 ? fieldValue[0] : getDefaultValue(field);
+          } else if (typeof fieldValue === 'object' && field.type !== 'object') {
+            // Convert object to string
+            model[field.name] = fieldValue.toString();
+          } else {
+            model[field.name] = fieldValue;
+          }
+        } else {
+          model[field.name] = getDefaultValue(field);
+        }
       }
     }
     return model;
   };
+  
   
   // Returns the default feld value based on its value and type
   const getDefaultValue = (field) => {

@@ -26,21 +26,22 @@
             <div class="tooltip-top">Italic</div>
           </button>
           <button
-          @click="setHeadline()"
+            @click="setHeadline()"
             class="tiptap-control group relative"
           >
             <Icon name="Heading" class="h-4 w-4 stroke-2 shrink-0"/>
             <div class="tooltip-top">Heading</div>
           </button>
           <button
-            @click="insertImageModal.openModal()"
+            @click="imageSelection = []; selected = editor.isActive('image') ? githubImg.getRelativeUrl(repoStore.owner, repoStore.repo, repoStore.branch, editor.getAttributes('image').src) : null; imageModal.openModal();"
             class="tiptap-control group relative"
+            :class="{ 'tiptap-control-active': editor.isActive('image') }"
           >
             <Icon name="Image" class="h-4 w-4 stroke-2 shrink-0"/>
             <div class="tooltip-top">Image</div>
           </button>
           <button
-            @click="linkUrl = editor.isActive('link') ? editor.getAttributes('link').href : ''; linkUrlPrev = linkUrl; linkModal.openModal();"
+            @click="linkUrl = editor.isActive('link') ? editor.getAttributes('link').href : ''; newLinkUrl = linkUrl; linkModal.openModal();"
             class="tiptap-control group relative"
             :class="{ 'tiptap-control-active': editor.isActive('link') }"
           >
@@ -178,23 +179,27 @@
     </template>
   </div>
   <!-- Inser image modal -->
-  <Modal ref="insertImageModal" :customClass="'modal-file-browser'">
+  <Modal ref="imageModal" :customClass="'modal-file-browser'">
     <template #header>Insert an image</template>
     <template #content>
       <div class="relative">
         <FileBrowser
-          :owner="owner"
-          :repo="repo"
-          :branch="branch"
-          :root="root"
-          :filterByCategories="['image']"
+          :owner="repoStore.owner"
+          :repo="repoStore.repo"
+          :branch="repoStore.branch"
+          :root="props.options?.image?.input || repoStore.config.media.input"
+          :defaultPath="props.options?.image?.path || repoStore.config.media.path"
+          :filterByCategories="props.options?.image?.extensions ? undefined : [ 'image' ]"
+          :filterByExtensions="props.options?.image?.extensions"
+          :selected="selected"
           :isSelectable="true"
           @files-selected="imageSelection = $event"
+          ref="fileBrowserComponent"
         />
       </div>
       <footer class="flex justify-end text-sm gap-x-2 mt-4">
-        <button class="btn-secondary" @click="insertImageModal.closeModal()">Cancel</button>
-        <button class="btn-primary" @click="insertImage()">
+        <button class="btn-secondary" @click="imageModal.closeModal()">Cancel</button>
+        <button class="btn-primary" @click="insertImage(); fileBrowserComponent.selectFile();">
           Insert
         </button>
       </footer>
@@ -202,9 +207,9 @@
   </Modal>
   <!-- Link modal -->
   <Modal ref="linkModal">
-    <template #header>{{ linkUrlPrev === '' ? 'Add a link' : 'Update a link' }}</template>
+    <template #header>{{ linkUrl === '' ? 'Add a link' : 'Update a link' }}</template>
     <template #content>
-      <input class="w-full" type="url" placeholder="https://example.com" v-model="linkUrl"/>
+      <input class="w-full" type="url" placeholder="https://example.com" v-model="newLinkUrl"/>
       <footer class="flex justify-end text-sm gap-x-2 mt-4">
         <button class="btn-icon-danger mr-auto group relative" @click="editor.chain().focus().unsetLink().run();linkModal.closeModal();" :disabled="!editor.isActive('link')">
           <Icon name="Link2Off" class="h-4 w-4 stroke-2 shrink-0"/>
@@ -212,7 +217,7 @@
         </button>
         <button class="btn-secondary" @click="linkModal.closeModal()">Cancel</button>
         <button class="btn-primary" @click="setLink();">
-          {{ linkUrlPrev === '' ? 'Add' : 'Update' }}
+          {{ linkUrl === '' ? 'Add' : 'Update' }}
         </button>
       </footer>
     </template>
@@ -220,7 +225,7 @@
 </template>
 
 <script setup>
-import { ref, onBeforeUnmount, onMounted, defineAsyncComponent, watch } from 'vue';
+import { inject, ref, onBeforeUnmount, onMounted, defineAsyncComponent, watch } from 'vue';
 import { useEditor, EditorContent } from '@tiptap/vue-3';
 import { marked } from 'marked';
 import TurndownService from 'turndown';
@@ -228,6 +233,8 @@ import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image'
 import Link from '@tiptap/extension-link'
 import TextAlign from '@tiptap/extension-text-align'
+import notifications from '@/services/notifications';
+import github from '@/services/github';
 import githubImg from '@/services/githubImg';
 import Dropdown from '@/components/utils/Dropdown.vue';
 import FileBrowser from '@/components/FileBrowser.vue';
@@ -238,25 +245,31 @@ const CodeMirror = defineAsyncComponent(() => import('@/components/file/CodeMirr
 
 const emit = defineEmits(['update:modelValue']);
 
+const repoStore = inject('repoStore', { owner: null, repo: null, branch: null, config: null, details: null });
+
 const props = defineProps({
   owner: String,
   repo: String,
   branch: String,
-  root: String,
+  options: Object,
   modelValue: String,
-  imagePrefix: String,
   format: { type: String, default: 'markdown' },
   private: { type: Boolean, default: false },
 });
 
-const insertImageModal = ref(null);
 const linkModal = ref(null);
 const linkUrl = ref('');
-const linkUrlPrev = ref('');
+const newLinkUrl = ref('');
+const imageModal = ref(null);
 const imageSelection = ref([]);
+const selected = ref(null);
 const isEditorFocused = ref(false);
 const status = ref('loading');
 const isCodeEditor = ref(false);
+const prefixInput = ref(props.options?.input || repoStore.config.media.input || null);
+const prefixOutput = ref(props.options?.output || repoStore.config.media.output || null);
+const uploadPath = ref(props.options?.image?.path || repoStore.config.media.path || props.options?.image?.input || repoStore.config.media.input || '');
+const fileBrowserComponent = ref(null);
 
 const turndownService = new TurndownService({ headingStyle: 'atx' });
 turndownService.addRule('styled-or-classed', {
@@ -270,7 +283,7 @@ const setHeadline = () => {
   } else if (editor.value.isActive('heading', { level: 2 })) {
     editor.value.chain().focus().toggleHeading({ level: 3 }).run();
   } else if (editor.value.isActive('heading', { level: 3 })) {
-    editor.value.chain().focus().toggleHeading({ level: 3 }).run();
+    editor.value.chain().focus().toggleHeading({ level: 4 }).run();
   } else {
     editor.value.chain().focus().toggleHeading({ level: 1 }).run();
   }
@@ -278,26 +291,26 @@ const setHeadline = () => {
 
 const insertImage = async () => {
   if (imageSelection.value.length) {
-    const rawUrl = await githubImg.getRawUrl(props.owner, props.repo, props.branch, imageSelection.value[0], props.private);
-    editor.value.chain().focus().setImage({ src: rawUrl }).run();
+    imageSelection.value.forEach(async (selectedImage) => {
+      const rawUrl = await githubImg.getRawUrl(repoStore.owner, repoStore.repo, repoStore.branch, selectedImage, repoStore.details.private);
+      editor.value.chain().focus().setImage({ src: rawUrl }).run();
+    });
   }
-  insertImageModal.value.closeModal();
+  imageModal.value.closeModal();
 };
 
 const importContent = async (content) => {
   let htmlContent = (props.format == 'markdown') ? marked(content) : content;
-  if (props.imagePrefix) {
-    htmlContent = githubImg.removePrefix(htmlContent, props.imagePrefix);
-  }
-  htmlContent = await githubImg.relativeToRawUrls(props.owner, props.repo, props.branch, htmlContent, props.private);
+  htmlContent = githubImg.htmlSwapPrefix(htmlContent, prefixOutput.value, prefixInput.value);
+  htmlContent = await githubImg.relativeToRawUrls(repoStore.owner, repoStore.repo, repoStore.branch, htmlContent, repoStore.details.private);
+
   return htmlContent;
 };
 
 const exportContent = (content) => {
-  let htmlContent = githubImg.rawToRelativeUrls(props.owner, props.repo, props.branch, content);
-  if (props.imagePrefix) {
-    htmlContent = githubImg.addPrefix(htmlContent, props.imagePrefix);
-  }
+  let htmlContent = githubImg.rawToRelativeUrls(repoStore.owner, repoStore.repo, repoStore.branch, content);
+  htmlContent = githubImg.htmlSwapPrefix(htmlContent, prefixInput.value, prefixOutput.value);
+
   return (props.format == 'markdown') ? turndownService.turndown(htmlContent) : htmlContent;
 };
 
@@ -312,24 +325,83 @@ const setContent = async () => {
 
 const editor = useEditor({
   extensions: [
-    StarterKit,
+    StarterKit.configure({
+      dropcursor: { width: 2}
+    }),
     Image.configure({ inline: true }),
     Link.configure({
       openOnClick: false,
     }),
     TextAlign.configure({ types: ['heading', 'paragraph'], }),
   ],
+  editorProps: {
+    handleDrop: async function(view, event, slice, moved) {
+      if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length) {
+        const files = Array.from(event.dataTransfer.files);
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml', 'image/bmp', 'image/tif', 'image/tiff'];
+        const { schema } = view.state;
+        const coordinates = view.posAtCoords({ left: event.clientX, top: event.clientY });
+        let position = coordinates.pos;
+        for (const file of files) {
+          if (allowedTypes.includes(file.type)) {
+            const imagePath = await upload(file);
+            if (imagePath) {
+              const imageRawUrl = await githubImg.getRawUrl(repoStore.owner, repoStore.repo, repoStore.branch, imagePath, repoStore.details.private);
+              if (imageRawUrl) {
+                const node = schema.nodes.image.create({ src: imageRawUrl });
+                const transaction = view.state.tr.insert(position, node);
+                view.dispatch(transaction);
+                position += node.nodeSize;
+              }
+            }
+          } else {
+            notifications.notify('Only images can be uploaded (JPEG, PNG, GIF, SVG, TIFF and BMP).', 'error');
+          }
+        }
+        return true;
+      }
+      return false;
+    }
+  },
   onUpdate: ({ editor }) => {
     emit('update:modelValue', exportContent(editor.getHTML()));
   },
 });
 
+const upload = async (file) => {
+  if (file) {
+    let content = await readFileContent(file);
+    if (content) {
+      const notificationId = notifications.notify(`Uploading "${file.name}".`, 'processing', 0);
+      content = content.replace(/^(.+,)/, ''); // We strip out the info at the beginning of the file (mime type + encoding)
+      const data = await github.saveFile(repoStore.owner, repoStore.repo, repoStore.branch, `${uploadPath.value}/${file.name}`, content, null, true);
+      notifications.close(notificationId);
+      if (data) {
+        notifications.notify(`File '${file.name}' successfully uploaded.`, 'success');
+        return data.content.path;
+      } else {
+        notifications.notify(`File upload failed.`, 'error');
+        return;
+      }
+    }
+  }
+};
+
+const readFileContent = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.onerror = (e) => reject(e);
+    reader.readAsDataURL(file); // Reads the file as base64 encoded string
+  });
+};
+
 const setLink = () => {
-  if (linkUrl.value === '') {
+  if (newLinkUrl.value === '') {
     editor.value.chain().focus().extendMarkRange('link').unsetLink().run();
     linkModal.value.closeModal();
   } else {
-    editor.value.chain().focus().extendMarkRange('link').setLink({ href: linkUrl.value }).run()
+    editor.value.chain().focus().extendMarkRange('link').setLink({ href: newLinkUrl.value }).run()
     linkModal.value.closeModal();
   }
 };

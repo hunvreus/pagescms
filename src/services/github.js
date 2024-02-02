@@ -233,35 +233,83 @@ const getCommits = async (owner, repo, branch, path) => {
 };
 
 // Update a file if SHA is provided, otherwise create a new one
-const saveFile = async (owner, repo, branch, path, content, sha = null) => {
-  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
-  
-  const params = {
-    path: path,
-    message: sha ? `Update ${path} (via via Pages CMS)` : `Create ${path} (via Pages CMS)`,
-    content: content,
-    branch: branch,
-  };
-  
-  if (sha) {
-    params.sha = sha;
-  }
+// TODO: 
+const saveFile = async (owner, repo, branch, path, content, sha = null, retryCreate = false) => {
+  let attemptsMax = retryCreate ? 5 : 1; // Max attempts only apply if retryCreate is true
+  let attempt = 0;
+  let currentPath = path;
+  let siblingFiles = [];
+  let uniqueFilenameCounter = 1;
 
-  try {
-    const response = await axios.put(url, params, {
-      headers: {
-        Authorization: `Bearer ${token.value}`,
-      },
-    });
+  const generateUniqueFilename = (path, siblings, attempt) => {
+    const pathSegments = path.split('/').filter(Boolean);
+    const fileName = pathSegments.pop();
+    const parentPath = pathSegments.length > 0 ? pathSegments.join('/') : '';
+    const baseName = fileName.substring(0, fileName.lastIndexOf('.'));
+    const extension = fileName.substring(fileName.lastIndexOf('.'));
+    let newName;
 
-    return response.data;
-  } catch (error) {
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-      handleAuthError();
+    // If we've reached the max attempts, we append a timestamp to the filename to guarantee we can save the file.
+    // This may happen with rapid successive saves, and is due to GitHub's cache preventing us from getting siblings in real-time with getContents().
+    if (attempt === attemptsMax - 1) {
+      newName = `${baseName}-${Date.now()}${extension}`;
+      return parentPath ? `${parentPath}/${newName}` : newName;
     }
-    console.error('Failed to save the file:', error);
-    return null;
+
+    do {
+        newName = `${baseName}-${uniqueFilenameCounter}${extension}`;
+        uniqueFilenameCounter++;
+    } while (siblings.includes(newName));
+
+    return parentPath ? `${parentPath}/${newName}` : newName;
+  };
+
+  while (attempt < attemptsMax) {
+    // TODO: check if I need to use encodeURIComponent
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${currentPath}`;
+
+    try {
+      const params = {
+        message: sha ? `Update ${currentPath} (via Pages CMS)` : `Create ${currentPath} (via Pages CMS)`,
+        content: content,
+        branch: branch,
+      };
+      if (sha) params.sha = sha;
+
+      const response = await axios.put(url, params, {
+        headers: { Authorization: `Bearer ${token.value}` },
+      });
+
+      // Notify if the file was saved under a new name to avoid conflict
+      if (currentPath !== path) {
+        console.warn(`File "${path}" was renamed to "${currentPath}" to avoid naming conflict.`);
+      }
+      return response.data;
+    } catch (error) {
+      if (retryCreate) {
+        console.error(`Failed to save file "${path}" (attempt ${attempt + 1} of ${attemptsMax}):`, error);
+      } else {
+        console.error(`Failed to save file "${path}":`, error);
+      }
+      if (error.response && error.response.status === 422 && retryCreate) {
+        attempt++;
+        if (siblingFiles.length === 0) {
+          // Fetch sibling files only if not already fetched
+          const parentPath = path.substring(0, path.lastIndexOf('/') + 1);
+          const contents = await getContents(owner, repo, branch, parentPath, false);
+          siblingFiles = contents.map(file => file.name);
+        }
+        currentPath = generateUniqueFilename(path, siblingFiles, attempt);
+      } else {
+        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+          handleAuthError();
+        }
+        return null;
+      }
+    }
   }
+
+  return null;
 };
 
 const deleteFile = async (owner, repo, branch, path, sha) => {

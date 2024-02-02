@@ -6,7 +6,6 @@ import { reactive } from 'vue';
 import github from '@/services/github';
 
 // TTL for the cache (in milliseconds)
-// TODO: find the proper value for this
 const ttl = 60000;
 
 // We use the state object to coordinate data fetching (mainly to prevent fetching the same content multiple time) and cacching results.
@@ -15,6 +14,16 @@ const state = reactive({
   paths: {},
   requests: {}
 });
+
+const getRelativeUrl = (owner, repo, branch, path) => {
+  let relativePath = path;
+  if (path.startsWith('https://raw.githubusercontent.com/')) {
+    relativePath = path.replace(`https://raw.githubusercontent.com/${owner}/${repo}/${branch}/`, '');
+    relativePath = relativePath.split('?')[0];
+  }
+  
+  return relativePath;
+}
 
 const getRawUrl = async (owner, repo, branch, path, isPrivate = false) => {
   if (isPrivate) {
@@ -49,19 +58,20 @@ const addRawUrls = (owner, repo, branch, files) => {
 };
 
 const relativeToRawUrls = async (owner, repo, branch, html, isPrivate = false) => {
-  const matches = getImgSrcs(html);
+  let newHtml = html;
+  const matches = getImgSrcs(newHtml);
   for (const match of matches) {
     const src = match[1] || match[2];
     const quote = match[1] ? '"' : "'";
     if (!src.startsWith('/') && !src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('data:image/')) {  
       const rawUrl = await getRawUrl(owner, repo, branch, src, isPrivate);
       if (rawUrl) {
-        html = html.replace(`src=${quote}${src}${quote}`, `src=${quote}${rawUrl}${quote}`);
+        newHtml = newHtml.replace(`src=${quote}${src}${quote}`, `src=${quote}${rawUrl}${quote}`);
       }
     }
   }
   
-  return html;
+  return newHtml;
 }
 
 const rawToRelativeUrls = (owner, repo, branch, html) => {
@@ -77,6 +87,34 @@ const rawToRelativeUrls = (owner, repo, branch, html) => {
   }
 
   return html;
+}
+
+const swapPrefix = (path, from, to) => {
+  let newPath = path;
+  if (path != undefined && from != undefined && to != undefined) {
+    if (newPath.startsWith(from) && !(from == '/' && newPath.startsWith('//')) && !newPath.startsWith('http://') && !newPath.startsWith('https://') && !newPath.startsWith('data:image/')) {
+      newPath = newPath.replace(from, to);
+    }
+  }
+
+  return newPath;
+}
+
+const htmlSwapPrefix = (html, from, to) => {
+  let newHtml = html;
+  if (html != undefined && from != undefined && to != undefined) {
+    const matches = getImgSrcs(newHtml);
+    matches.forEach(match => {
+      const src = match[1] || match[2];
+      const quote = match[1] ? '"' : "'";
+      if (src.startsWith(from) && !(from == '/' && src.startsWith('//')) && !src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('data:image/')) {
+        const newSrc = src.replace(from, to);
+        newHtml = newHtml.replace(`src=${quote}${src}${quote}`, `src=${quote}${newSrc}${quote}`);
+      }
+    });
+  }
+
+  return newHtml;
 }
 
 const removePrefix = (html, prefix) => {
@@ -111,4 +149,4 @@ const getImgSrcs = (html) => {
   return [...html.matchAll(regex)];
 }
 
-export default { state, getRawUrl, addRawUrls, relativeToRawUrls, rawToRelativeUrls, removePrefix, addPrefix };
+export default { state, getRelativeUrl, getRawUrl, addRawUrls, relativeToRawUrls, rawToRelativeUrls, removePrefix, addPrefix, swapPrefix, htmlSwapPrefix };

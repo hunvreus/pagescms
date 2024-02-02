@@ -140,6 +140,7 @@
 } */
 
 .tiptap p > img + .ProseMirror-separator,
+.tiptap img.ProseMirror-separator,
 .tiptap p > img + .ProseMirror-separator + .ProseMirror-trailingBreak {
   @apply !hidden;
 }

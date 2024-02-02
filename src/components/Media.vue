@@ -8,7 +8,10 @@
         :owner="owner"
         :repo="repo"
         :branch="branch"
-        :root="config.media.input || config.media"
+        :root="config.media.input"
+        :defaultPath="config.media.default"
+        :filterByExtensions="config.media.extensions"
+        :filterByCategories="config.media.categories"
         :hasBreadcrumb="true"
       />
     </div>

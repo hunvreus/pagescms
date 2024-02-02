@@ -8,10 +8,11 @@
           class="notification adjust-dark"
           :class="[ `notification-${notification.type}` ]"
         >
-          <div class="notification-icon" v-if="[ 'success', 'error', 'warning' ].includes(notification.type)">
+          <div class="notification-icon" v-if="[ 'success', 'error', 'warning', 'processing' ].includes(notification.type)">
             <Icon v-if="notification.type == 'success'" name="Check" class="h-3 w-3 stroke-[3] shrink-0"/>
             <Icon v-else-if="notification.type == 'error'" name="X" class="h-3 w-3 stroke-[3] shrink-0"/>
             <Icon v-else-if="notification.type == 'warning'" name="Bell" class="h-3 w-3 stroke-[3] shrink-0"/>
+            <div v-else-if="notification.type == 'processing'" class="spinner-black !h-3 !w-3"></div>
           </div>
           <div class="notification-content">
             <div class="notification-message">{{ notification.message }}</div>

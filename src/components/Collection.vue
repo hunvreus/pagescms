@@ -42,8 +42,8 @@
 
         <div class="flex justify-between items-center mb-4 flex-row gap-x-2">
           <div class="relative w-full">
-            <input type="text" v-model="view.search" placeholder="Search by keywords" class="w-full !pr-8 placeholder-neutral-400 dark:placeholder-neutral-500">
-            <div class="absolute right-3 top-1/2 -translate-y-1/2 opacity-50">
+            <input type="text" v-model="view.search" placeholder="Search by keywords" class="w-full !pl-9 placeholder-neutral-400 dark:placeholder-neutral-500">
+            <div class="absolute left-2.5 lg:left-3 top-1/2 -translate-y-1/2 opacity-50">
               <Icon name="Search" class="h-4 w-4 stroke-2 shrink-0"/>
             </div>
           </div>
@@ -202,7 +202,7 @@
         :branch="props.branch"
         :path="deletePath"
         :sha="deleteSha"
-        @files-deleted="handleDeleted"
+        @file-deleted="handleDeleted"
       />
     </template>
   </main>

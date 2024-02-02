@@ -3,12 +3,7 @@
     :model-value="modelValue"
     @update:modelValue="$emit('update:modelValue', $event)"
     :format="(field.options && field.options.format) || 'markdown'"
-    :imagePrefix="(field.options && field.options.prefix) || repoStore.config.media_prefix || null"
-    :owner="repoStore.owner"
-    :repo="repoStore.repo"
-    :branch="repoStore.branch"
-    :root="(field.options && field.options.root) || repoStore.config.media || null"
-    :private="repoStore.details.private || true"
+    :options="field.options || null"
   />
   <ul v-if="errors.length" class="mt-2 text-sm text-red-500 dark:text-red-400">
     <li v-for="error in errors" :key="error" class="flex gap-x-1 items-center">
@@ -19,14 +14,12 @@
 </template>
 
 <script setup>
-import { ref, inject } from 'vue';
+import { ref } from 'vue';
 import { useFieldValidation } from '@/composables/useFieldValidation';
 import TipTap from '@/components/file/TipTap.vue';
 import Icon from '@/components/utils/Icon.vue';
 
 const { validateRequired, validatePattern, validateLength } = useFieldValidation();
-
-const repoStore = inject('repoStore', { owner: null, repo: null, branch: null, config: null, details: null });
 
 const props = defineProps({
   field: Object,

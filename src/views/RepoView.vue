@@ -116,7 +116,8 @@
         </template>
         <template v-else>
           <router-view v-slot="{ Component }">
-            <component :is="Component" :config="config" @file-saved="handleFileSaved"/>
+            <component :is="Component" :config="config" v-on="getEventListeners(Component)"/>
+            
           </router-view>
         </template>
       </div>
@@ -182,6 +183,17 @@ const createConfigFile = async () => {
     notifications.notify(`The configuration file (.pages.yml) couldn't be created. Try reloading the page.`, 'error', 0);
     status.value = '';
   }
+};
+
+const getEventListeners = (Component) => {
+  const listeners = {};
+  // For the Editor component, we add a listener on file saved to trigger a notification when updating
+  // the settings offering to apply the changes (see handleFileSaved below)
+  const componentName = Component.type.__name || Component.type.name;
+  if (componentName === 'Editor') {
+    listeners['file-saved'] = handleFileSaved;
+  }
+  return listeners;
 };
 
 const handleFileSaved = (filename) => {
@@ -252,6 +264,12 @@ const setRepo = async () => {
     router.push({ name: 'settings', params: { ...route.params } });
   } else {
     config.value = YAML.load(configFile);
+    if (config.value.media && typeof config.value.media === 'string') {
+      config.value.media = {
+        input: config.value.media,
+        output: `/${config.value.media}`,
+      };
+    }
   }
 
   status.value = '';

@@ -1,11 +1,11 @@
 <template>
   <div v-if="model && !field.hidden" class="field">
     <div class="flex gap-x-2 items-center mb-2">
-      <label class="font-medium" v-if="field.label">{{ field.label }}</label>
+      <label class="font-medium">{{ field.label || field.name }}</label>
       <div v-if="field.required" class="chip-secondary text-sm">Required</div>
     </div>
     <div v-if="field.description" class="description">{{ field.description }}</div>
-    <!-- List field -->
+    <!-- Default list handler -->
     <template v-if="field.list && !fieldListSupport">
       <Draggable
         class="field-list"
@@ -44,27 +44,15 @@
         </li>
       </ul>
     </template>
-    <!-- Single field -->
+    <!-- Single field or list supporting field -->
     <template v-else>
-      <template v-if="field.list">
-        <component
-          :is="fieldComponent"
-          :field="field"
-          :list="props.field.list || false"
-          :modelValue="model[field.name]"
-          @update:modelValue="model[field.name] = $event"
-          ref="fieldRef"
-        />
-      </template>
-      <template v-else>
-        <component
-          :is="fieldComponent"
-          :field="field"
-          :modelValue="model[field.name]"
-          @update:modelValue="model[field.name] = $event"
-          ref="fieldRef"
-        />
-      </template>
+      <component
+        :is="fieldComponent"
+        :field="field"
+        :modelValue="model[field.name]"
+        @update:modelValue="model[field.name] = $event"
+        ref="fieldRef"
+      />
     </template>
   </div>
 </template>

@@ -34,7 +34,6 @@
     "lunr": "^2.3.9",
     "marked": "^11.0.0",
     "moment": "^2.29.4",
-    "pinia": "^2.1.7",
     "slugify": "^1.6.6",
     "transliteration": "^2.3.5",
     "turndown": "^7.1.2",
