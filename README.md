@@ -5,8 +5,7 @@
 It allows you to edit your website's content directly on GitHub via a user-friendly interface.
 
 <p align="center">
-<img src="https://pagescms.org/media/screenshots/collection-light@2x.png#gh-light-mode-only">
-<img src="https://pagescms.org/media/screenshots/collection-dark@2x.png#gh-dark-mode-only">
+<img src="https://pagescms.org/media/screenshots/collection-dark@2x.png">
 </p>
 
 ## Documentation
