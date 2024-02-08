@@ -4,6 +4,10 @@
 
 It allows you to edit your website's content directly on GitHub via a user-friendly interface.
 
+<p align="center">
+<img src="https://pagescms.org/media/screenshots/collection-dark@2x.png">
+</p>
+
 ## Documentation
 
 For full documentation, go to [pagescms.org/docs](https://pagescms.org/docs)
@@ -70,26 +74,20 @@ Everything in this repo is released under the [MIT License](LICENSE).
 ## TODO
 
 - [ ] Support for 3rd party file services (AWS S3, Cloudflare R2, etc).
-- [ ] Create an embeddable widget or split view with preview of the actual app/website.
-- [ ] Add field validation in the editor.
-- [ ] Connect to build process (Cloudflare Pages and GitHub Pages).
-- [ ] Allow users to sign up with email (with no need for a GitHub account).
-- [ ] Add history support for the file browser.
-- [ ] Add proper MDX support
-- [ ] Add configurable search index and filters.
-- [ ] Allow to save search/filtering/ordering.
-- [ ] Add groups of single files.
-- [ ] Add support for other git services (e.g. Gitlab).
-- [ ] Add onboarding wizard that assists the configuration step.
-- [ ] Add YAML schema validation for `.pages.yml`.
-- [ ] Add real-time feature to mitigate conflicting edits.
-- [ ] Add ability to enable code switch for rich-text
-- [ ] Add option to define insertable partials
-- [ ] Global watch network issues (i.e. github.js?)
-- [ ] Add check on extension, size and type when uploading + consider moving to composable
-- [ ] add validation of file against schema (easy to break for JSON files for example)
-- [ ] add support for JSON/TOML frontmatter and TOML
-- [ ] Saved searches
-- [ ] Sort out date (shouldn't require field)
-- [ ] Prevent saving when no change happened and handle when Github API doesn't create a commit if no change
-- [ ] History doesn't reload when creating a copy
+- [ ] Create an embeddable widget or split view with preview.
+- [ ] Integrate build status.
+- [ ] Display build URL.
+- [ ] Allow users to sign up with email.
+- [ ] Add proper MDX support in Codemirror.
+- [ ] Add saved views (search, sort, order).
+- [ ] Add support for groups of collections/single files.
+- [ ] Add support for other git services (e.g. Gitlab, Bitbucket).
+- [ ] Add configuration wizard.
+- [ ] Add schema validation for `.pages.yml`.
+- [ ] Add merging/conflict resolution.
+- [ ] Add support for partials/weidget in rich-text.
+- [ ] Improve handling of network issues (e.g. Github API unreachable).
+- [ ] Add checks for extension, size and type in file upload (consider moving to a composable).
+- [ ] Add content file validation against schema.
+- [ ] Add support for JSON/TOML frontmatter and TOML files.
+- [ ] Improve date support (shouldn't require field in schema).
