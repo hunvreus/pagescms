@@ -327,7 +327,7 @@ fieldset {
   @apply w-full bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-750 p-3 rounded-2xl mb-2;
 }
 
-.field-list-item > fieldset {
+.field-list-item > div > fieldset {
   @apply border-0 p-0 mb-0;
 }
 

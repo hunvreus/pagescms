@@ -117,7 +117,6 @@
         <template v-else>
           <router-view v-slot="{ Component }">
             <component :is="Component" :config="config" v-on="getEventListeners(Component)"/>
-            
           </router-view>
         </template>
       </div>

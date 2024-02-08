@@ -233,7 +233,6 @@ const getCommits = async (owner, repo, branch, path) => {
 };
 
 // Update a file if SHA is provided, otherwise create a new one
-// TODO: 
 const saveFile = async (owner, repo, branch, path, content, sha = null, retryCreate = false) => {
   let attemptsMax = retryCreate ? 5 : 1; // Max attempts only apply if retryCreate is true
   let attempt = 0;
@@ -265,7 +264,6 @@ const saveFile = async (owner, repo, branch, path, content, sha = null, retryCre
   };
 
   while (attempt < attemptsMax) {
-    // TODO: check if I need to use encodeURIComponent
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${currentPath}`;
 
     try {

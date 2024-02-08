@@ -17,7 +17,7 @@
         :name="name"
         :config="config"
         :path="schema.path"
-        :editor="schema.editor"
+        :format="schema.format"
         :title="schema.label"
       />
     </template>

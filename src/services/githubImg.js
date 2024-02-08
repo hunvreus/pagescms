@@ -6,7 +6,7 @@ import { reactive } from 'vue';
 import github from '@/services/github';
 
 // TTL for the cache (in milliseconds)
-const ttl = 60000;
+const ttl = 10000;
 
 // We use the state object to coordinate data fetching (mainly to prevent fetching the same content multiple time) and cacching results.
 const state = reactive({

@@ -85,4 +85,11 @@ Everything in this repo is released under the [MIT License](LICENSE).
 - [ ] Add real-time feature to mitigate conflicting edits.
 - [ ] Add ability to enable code switch for rich-text
 - [ ] Add option to define insertable partials
-- [ ] Add 
+- [ ] Global watch network issues (i.e. github.js?)
+- [ ] Add check on extension, size and type when uploading + consider moving to composable
+- [ ] add validation of file against schema (easy to break for JSON files for example)
+- [ ] add support for JSON/TOML frontmatter and TOML
+- [ ] Saved searches
+- [ ] Sort out date (shouldn't require field)
+- [ ] Prevent saving when no change happened and handle when Github API doesn't create a commit if no change
+- [ ] History doesn't reload when creating a copy

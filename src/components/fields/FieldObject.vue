@@ -23,7 +23,6 @@ const fieldRefs = ref([]);
 const validate = () => {
   let errors = [];
 
-  // Handle list fields without internal support
   fieldRefs.value.forEach(fieldComponentInstance => {
     if (fieldComponentInstance && fieldComponentInstance.validate) {
       errors = errors.concat(fieldComponentInstance.validate());

@@ -27,7 +27,6 @@ function openFileInput() {
   fileInput.value.click();
 }
 
-// TODO: move to a composable and add checks (size + type)
 const handleFileInput = async (event) => {
   const files = event.target.files;
   await processFiles(files);

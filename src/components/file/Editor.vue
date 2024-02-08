@@ -13,6 +13,17 @@
       </div>
     </div>
   </template>
+  <template v-else-if="status == 'no-file'">
+    <div class="error h-screen">
+      <div class="text-center max-w-md">
+        <h1 class="font-semibold text-2xl mb-2">The file is missing.</h1>
+        <p class="text-neutral-400 mb-6">There is no file yet at <code class="text-sm bg-neutral-100 dark:bg-neutral-850 rounded-lg p-1">{{ schema.path }}</code>. Do you want to create one?</p>
+        <div class="flex gap-x-2 justify-center">
+          <button class="btn-primary" @click="createSingleFile(schema.path)">Create the file</button>
+        </div>
+      </div>
+    </div>
+  </template>
   <template v-else>
     <!-- Header (navigation + history + actions) -->
     <header class="z-50 sticky top-0 bg-white border-b border-neutral-200 dark:bg-neutral-950 dark:border-neutral-750 flex gap-x-1 lg:gap-x-2 items-center py-1 px-2 lg:py-2 lg:px-4">
@@ -88,7 +99,7 @@
     <main class="mx-auto p-4 lg:p-8" :class="{ 'max-w-4xl': mode !== 'datagrid'}">
       <h1 v-if="displayTitle" class="font-semibold text-2xl lg:text-4xl mb-8">{{ displayTitle }}</h1>
       <template v-if="model || model === ''">
-        <template v-if="mode === 'yfm'">
+        <template v-if="['yfm', 'yaml', 'json'].includes(mode)">
           <template v-if="schema && schema.fields">
             <field v-for="field in schema.fields" :key="field.name" :field="field" :model="model" ref="fieldRefs"></field>
           </template>
@@ -136,10 +147,9 @@
 import { ref, onMounted, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Base64 } from 'js-base64';
-import YAML from 'js-yaml';
 import notifications from '@/services/notifications';
 import github from '@/services/github';
-import useYfm from '@/composables/useYfm';
+import useYaml from '@/composables/useYaml';
 import useSchema from '@/composables/useSchema';
 import CodeMirror from '@/components/file/CodeMirror.vue';
 import Datagrid from '@/components/file/Datagrid.vue';
@@ -152,7 +162,7 @@ import Rename from '@/components/file/Rename.vue';
 
 const route = useRoute();
 const router = useRouter();
-const { loadYfm } = useYfm();
+const { readYfm, writeYfm, readYaml, writeYaml } = useYaml();
 const { createModel, sanitizeObject, getSchemaByName, generateFilename } = useSchema();
 
 const emit = defineEmits(['file-saved']);
@@ -165,12 +175,12 @@ const props = defineProps({
   path: String,
   config: Object,
   title: String,
-  editor: String,
+  format: String,
   isNew: Boolean
 });
 
 const schema = ref(null);
-const mode = ref(props.editor);
+const mode = ref(props.format);
 const file = ref(null);
 const folder = computed(() => {
   if (props.isNew && route.query.folder) {
@@ -204,6 +214,18 @@ const isModelChanged = computed(() => {
   return JSON.stringify(model.value) !== JSON.stringify(initialModel.value);
 });
 
+const createSingleFile = async (path) => {
+  status.value = 'loading';
+  const data = await github.saveFile(props.owner, props.repo, props.branch, path, '');
+  if (data) {
+    notifications.notify(`The file (${path}) was successfully created.`, 'success');
+    await setEditor();
+    status.value = '';
+  } else {
+    notifications.notify(`The file (${path}) couldn't be created. Try reloading the page.`, 'error', 0);
+  }
+};
+
 const handleRenamed = ({ renamedPath, renamedSha }) => {
   // Updating path/history to continue editing
   status.value = 'handling-renamed';
@@ -221,7 +243,7 @@ const handleDeleted = () => {
 
 const resetEditor = () => {
   schema.value = null;
-  mode.value = props.editor;
+  mode.value = props.format;
   file.value = null;
   extension.value = null;
   sha.value = null;
@@ -254,64 +276,89 @@ const setEditor = async () => {
   
   let content = '';
 
-  // Fetch the file (edit or copy)
+  schema.value = (props.name) ? getSchemaByName(props.config, props.name) : null;  
+
   if (props.path) {
     file.value = await github.getFile(props.owner, props.repo, props.branch, props.path);
     if (!file.value) {
-      notifications.notify(`Failed to retrieve the file at "${props.path}".`, 'error');
-      status.value = 'error';
+      if (schema.value.type === 'single') {
+        status.value = 'no-file';
+      } else {
+        notifications.notify(`Failed to retrieve the file at "${props.path}".`, 'error');
+        status.value = 'error';
+      }
       return;
     } else {
       sha.value = (props.isNew) ? null : file.value.sha;
       content = Base64.decode(file.value.content);
     }
   }
-  
-  schema.value = (props.name) ? getSchemaByName(props.config, props.name) : null;  
 
-  // If there's no editor defined, we infer it from the schema
-  if (!props.editor) {
-    if (file.value) {
-      const parts = file.value.name.split('.');
-      if (parts.length > 1 && !(parts.length === 2 && parts[0] === '')) {
-        extension.value = parts.pop().toLowerCase();
-      }
+  if (file.value) {
+    const parts = file.value.name.split('.');
+    if (parts.length > 1 && !(parts.length === 2 && parts[0] === '')) {
+      extension.value = parts.pop().toLowerCase();
     }
+  }
 
-    if (schema.value && schema.value.fields) {
-      mode.value = 'yfm';
-    } else if (extension.value) {
+  if (props.format) {
+    mode.value = props.format;
+  } else {
+    mode.value = 'raw'; // Default mode
+    const codeExtensions = ['yaml', 'yml', 'javascript', 'js', 'jsx', 'typescript', 'ts', 'tsx', 'json', 'html', 'htm', 'markdown', 'md', 'mdx'];
+    if (schema.value && schema.value.fields && extension.value) {
+      // If there's no format defined amd a schema, we infer it from the extension
       switch (extension.value) {
         case 'md':
         case 'markdown':
         case 'mdx':
         case 'html':
         case 'htm':
-        case 'yaml':
-        case 'yml':
-        case 'json':
+          mode.value = schema.value.fields.some(field => field.name === 'body') ? 'yfm' : 'code';
+          break;
         case 'js':
         case 'ts':
         case 'tsx':
           mode.value = 'code';
           break;
-        case 'csv':
-          mode.value = 'datagrid';
+        case 'yaml':
+        case 'yml':
+          mode.value = 'yaml';
+          break;
+        case 'json':
+          mode.value = 'json';
           break;
         default:
           mode.value = 'raw';
           break;   
       }
-    } else {
-      mode.value = 'raw';
+    } else if (codeExtensions.includes(extension.value)) {
+      mode.value = 'code';
+    } else if (extension.value === 'csv' ) {
+      mode.value = 'datagrid';
     }
-  } else {
-    mode.value = props.editor;
   }
 
-  if (mode.value == 'yfm') {
-    // We combine the content schema and content value to create the model
-    const contentObject = (content) ? loadYfm(content) : {};
+  let contentObject = {};
+  switch (mode.value) {
+    case 'yfm':
+      contentObject = (content) ? readYfm(content) : {};
+      break;
+    case 'yaml':
+      contentObject = (content) ? readYaml(content) : {};
+      break;
+    case 'json':
+      contentObject = (content) ? JSON.parse(content) : {};
+      break;
+  }
+
+  // For YAML and JSON files, if schema.list is true we wrap the model and fields into an extra "listWrapper" object
+  if (['yaml', 'json'].includes(mode.value) && schema.value && schema.value.fields && schema.value.list) {
+    schema.value.fields = [{ name: 'listWrapper', type: 'object', list: true, label: false, fields: schema.value.fields }];
+    contentObject = { listWrapper: contentObject };
+  }
+  
+  if (['yfm', 'yaml', 'json'].includes(mode.value) && schema.value && schema.value.fields) {
     model.value = createModel(schema.value.fields, contentObject);
   } else {
     model.value = content;
@@ -330,10 +377,6 @@ const validateFields = () => {
   return errors;
 };
 
-// TODO: if saving fails, it reloads the file and wipe out all the edits
-// TODO: prevent saving when no change happened and handle when Github API doesn't create a commit if no change
-// TODO: history doesn't reload when creating a copy
-// TODO: doesn't prevent duplicate name
 const save = async () => {
   // We run validation first
   const validationErrors = validateFields();
@@ -345,22 +388,27 @@ const save = async () => {
 
   // If validation passed, we proceed with savin
   status.value = 'saving';
-  let content;
+  let content = model.value;
 
-  if (mode.value === 'yfm') {
-    let body = model.value.body;
-    let yaml = JSON.parse(JSON.stringify(model.value));
-    delete yaml.body;
-    sanitizeObject(yaml);
-    let yamlDumped = YAML.dump(yaml);
-    content = `---\n${yamlDumped}---\n${body}`;
-  } else {
-    content = model.value;
+  // For YAML and JSON files with schema.list set to true, we've wrapped the model and fields into an extra "listWrapper" object
+  if (['yaml', 'json'].includes(mode.value) && schema.value && schema.value.fields && schema.value.list) {
+    content = model.value.listWrapper;
+  }
+
+  switch (mode.value) {
+    case 'yfm':
+      sanitizeObject(content);
+      content = writeYfm(content);
+      break;
+    case 'yaml':
+      content = writeYaml(content);
+      break;
+    case 'json':
+      content = JSON.stringify(content, null, 2);
+      break;
   }
   
   try {
-    // For new files, we need to generate the filename
-    // TODO: check that the file doesn't already exist, append number if so and warn the user
     if (!sha.value) {
       const pattern = (schema.value && schema.value.filename) ? schema.value.filename : '{year}-{month}-{day}-{primary}.md';
       const filename = generateFilename(pattern, schema.value, model.value);

@@ -1,6 +1,6 @@
 <template>
   <div v-if="model && !field.hidden" class="field">
-    <div class="flex gap-x-2 items-center mb-2">
+    <div class="flex gap-x-2 items-center mb-2" v-if="field.label !== false">
       <label class="font-medium">{{ field.label || field.name }}</label>
       <div v-if="field.required" class="chip-secondary text-sm">Required</div>
     </div>

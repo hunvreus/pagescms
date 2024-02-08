@@ -7,7 +7,7 @@
       <div class="error h-screen">
         <div class="text-center max-w-md">
           <h1 class="font-semibold tracking-tight text-2xl mb-2">Something's not right.</h1>
-          <p class="text-neutral-400 dark:text-neutral-500 mb-6">Your configuration is probably wrong: this collection is set to the "{{ schema.path }}" folder in this repository.</p>
+          <p class="text-neutral-400 dark:text-neutral-500 mb-6">Your configuration is probably wrong: this collection is set to the <code class="text-sm bg-neutral-100 dark:bg-neutral-850 rounded-lg p-1">{{ schema.path }}</code> folder in this repository.</p>
           <div class="flex gap-x-2 justify-center">
             <router-link class="btn-primary" :to="{name: 'settings'}">Review settings</router-link>
           </div>
@@ -214,7 +214,7 @@ import { useRoute } from 'vue-router';
 import lunr from 'lunr';
 import moment from 'moment';
 import github from '@/services/github';
-import useYfm from '@/composables/useYfm';
+import useYaml from '@/composables/useYaml';
 import Dropdown from '@/components/utils/Dropdown.vue';
 import Icon from '@/components/utils/Icon.vue';
 import AddFolder from '@/components/file/AddFolder.vue';
@@ -222,7 +222,7 @@ import Rename from '@/components/file/Rename.vue';
 import Delete from '@/components/file/Delete.vue';
 
 const route = useRoute();
-const { loadYfm } = useYfm();
+const { readYfm } = useYaml();
 
 const props = defineProps({
   owner: String,
@@ -399,12 +399,10 @@ const setSearch = () => {
   });
 };
 
-// TODO: Add date in the default sorting
 const setView = () => {
   view.config.fields = (schema.value.view && schema.value.view.fields) || [ fields.value[0] ];
   view.config.primary = (schema.value.view && schema.value.view.primary) || (fields.value.includes('title') ? 'title' : fields.value[0]);
   view.config.sort = (schema.value.view && schema.value.view.sort) || (collection.value[0] && collection.value[0].fields?.date ? ['date', view.config.primary] : [view.config.primary]);
-  // view.config.filter = (schema.value.view && schema.value.view.filter) || null;
   view.sort = (schema.value.view && schema.value.view.default && schema.value.view.default.sort) || (view.config.sort && view.config.sort.length) ? view.config.sort[0] : null;
   view.order = (schema.value.view && schema.value.view.default && schema.value.view.default.order) || 'desc';
   view.search = (schema.value.view && schema.value.view.default && schema.value.view.default.search) || '';
@@ -424,7 +422,7 @@ const setCollection = async () => {
 
   collection.value = files.map(file => {
     if (file.type === 'blob' && file.name.endsWith(`.${extension}`)) {
-      const parsed = loadYfm(file.object.text);
+      const parsed = readYfm(file.object.text);
       const date = parsed.date ? new Date(parsed.date) : getDateFromFilename(file.name);
       return {
         sha: file.object.oid,

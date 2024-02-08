@@ -162,8 +162,6 @@
 </template>
 
 <script setup>
-// TODO: support initial path when opening file browser
-// TODO: support history
 import { ref, onMounted, watch, watchEffect, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import githubImg from '@/services/githubImg';
