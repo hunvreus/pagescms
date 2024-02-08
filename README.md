@@ -70,7 +70,7 @@ Everything in this repo is released under the [MIT License](LICENSE).
 ## TODO
 
 - [ ] Support for 3rd party file services (AWS S3, Cloudflare R2, etc).
-- [ ] Create an embeddable widget/split view with preview.
+- [ ] Create an embeddable widget or split view with preview of the actual app/website.
 - [ ] Add field validation in the editor.
 - [ ] Connect to build process (Cloudflare Pages and GitHub Pages).
 - [ ] Allow users to sign up with email (with no need for a GitHub account).
