@@ -306,31 +306,16 @@ const setEditor = async () => {
   } else {
     mode.value = 'raw'; // Default mode
     const codeExtensions = ['yaml', 'yml', 'javascript', 'js', 'jsx', 'typescript', 'ts', 'tsx', 'json', 'html', 'htm', 'markdown', 'md', 'mdx'];
-    if (schema.value && schema.value.fields && extension.value) {
-      // If there's no format defined amd a schema, we infer it from the extension
-      switch (extension.value) {
-        case 'md':
-        case 'markdown':
-        case 'mdx':
-        case 'html':
-        case 'htm':
-          mode.value = schema.value.fields.some(field => field.name === 'body') ? 'yfm' : 'code';
-          break;
-        case 'js':
-        case 'ts':
-        case 'tsx':
-          mode.value = 'code';
-          break;
-        case 'yaml':
-        case 'yml':
-          mode.value = 'yaml';
-          break;
-        case 'json':
-          mode.value = 'json';
-          break;
-        default:
-          mode.value = 'raw';
-          break;   
+    
+    if (schema.value && schema.value.fields) {
+      if (extension.value && ['yaml', 'yml'].includes(extension.value)) {
+        mode.value = 'yaml';
+      } else if (extension.value === 'json') {
+        mode.value = 'json';
+      } else if (schema.value.fields.some(field => field.name === 'body')) {
+        mode.value = 'yfm';
+      } else if (codeExtensions.includes(extension.value)) {
+        mode.value = 'code';
       }
     } else if (codeExtensions.includes(extension.value)) {
       mode.value = 'code';

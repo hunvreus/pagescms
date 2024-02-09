@@ -141,7 +141,8 @@
 
 .tiptap p > img + .ProseMirror-separator,
 .tiptap img.ProseMirror-separator,
-.tiptap p > img + .ProseMirror-separator + .ProseMirror-trailingBreak {
+.tiptap p > img + .ProseMirror-separator + .ProseMirror-trailingBreak,
+.tiptap pre code .ProseMirror-trailingBreak {
   @apply !hidden;
 }
 

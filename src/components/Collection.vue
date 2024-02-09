@@ -287,19 +287,26 @@ const viewContents = computed(() => {
   // Apply search filter
   if (view.search.trim()) {
     const query = view.search.trim();
-    const terms = query.match(/"[^"]+"|\S+/g);
+    let searchResults = [];
 
-    const validQuery = terms.map(term => {
-      const parts = term.split(':');
-      if (parts.length > 1) {
-        if (parts[1].trim() === '' || !view.config.fields.includes(parts[0])) {
-          return '';
-        }
+    // Limit the edit distance for fuzzy search to avoid OOM crash
+    const limitedQuery = query.replace(/~(\d+)/g, (match, p1) => {
+      const maxEditDistance = 10;
+      const limitedEditDistance = Math.min(parseInt(p1, 10), maxEditDistance);
+      if (limitedEditDistance < parseInt(p1, 10)) {
+        console.warn(`Fuzzy search edit distance limited to ${maxEditDistance}.`);
       }
-      return term;
-    }).filter(Boolean).join(' ');
+      return `~${limitedEditDistance}`;
+    });
     
-    const searchResults = searchIndex.search(validQuery);
+    try {
+      searchResults = searchIndex.search(limitedQuery);
+    } catch (error) {
+      if (!(error instanceof lunr.QueryParseError)) {
+        throw error;
+      }
+    }
+
     viewFiles = searchResults.map(result => {
       return viewFiles.find(item => item.filename === result.ref);
     });

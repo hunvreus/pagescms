@@ -11,7 +11,7 @@
 </template>
 
 <script setup>
-import { computed, defineProps, defineEmits } from 'vue';
+import { computed } from 'vue';
 import moment from 'moment';
 
 const props = defineProps({
