@@ -331,6 +331,10 @@ const editor = useEditor({
     Image.configure({ inline: true }),
     Link.configure({
       openOnClick: false,
+      HTMLAttributes: {
+        rel: null,
+        target: null,
+      }
     }),
     TextAlign.configure({ types: ['heading', 'paragraph'], }),
   ],
