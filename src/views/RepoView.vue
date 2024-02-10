@@ -70,8 +70,7 @@
                   <template v-if="config && config.content && config.content.length">
                     <li v-for="item in config.content" :key="item.name">
                       <router-link :to="{ name: 'content', params: { name: item.name } }" @click="isSidebarActive = false" class="link">
-                        <Icon v-if="item.type == 'collection'" name="FileStack" class="h-6 w-6 stroke-[1.5] shrink-0"/>
-                        <Icon v-else name="FileText" class="h-6 w-6 stroke-[1.5] shrink-0"/>
+                        <Icon :name="item.icon" :fallback="item.type == 'collection' ? 'FileStack' : 'FileText'" class="h-6 w-6 stroke-[1.5] shrink-0"/>
                         {{ item.label }}
                       </router-link>
                     </li>
@@ -253,7 +252,6 @@ const setRepo = async () => {
 
   const configFile = await github.getFile(props.owner, props.repo, props.branch, '.pages.yml', true);
   
-  // TODO: add a config wizard that auto-detects the collections
   if (configFile === undefined || configFile === null) {
     notifications.notify('No configuration file (.pages.yml) in the repository.', 'warning');
     status.value = 'error-no-config';
