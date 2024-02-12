@@ -1,0 +1,115 @@
+
+.prose > * {
+  @apply first:!mt-0;
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
+  @apply font-semibold tracking-tight;
+}
+
+.prose h1,
+.prose h2,
+.prose h3 {
+  @apply mt-12 mb-4;
+}
+
+.prose h1 {
+  @apply text-4xl lg:text-5xl;
+}
+
+.prose h2 {
+  @apply text-2xl lg:text-3xl;
+}
+
+.prose h3 {
+  @apply text-lg lg:text-xl;
+}
+
+.prose h4,
+.prose h5,
+.prose h6 {
+  @apply text-base my-4;
+}
+
+.prose p,
+.prose blockquote,
+.prose ul,
+.prose ol {
+  @apply my-4 first:mt-0;
+}
+
+.prose code {
+  @apply text-sm bg-neutral-100 text-neutral-500 dark:bg-neutral-850 dark:text-neutral-400 rounded-lg py-1 px-1.5;
+}
+
+.prose pre code {
+  @apply p-3 block break-words whitespace-pre-wrap;
+}
+
+.prose ul,
+.prose ol {
+  @apply pl-5 mb-4;
+}
+
+.prose ul li,
+.prose ol li {
+  @apply my-2 last:mb-0 first:mt-0;
+}
+
+.prose ul li > p,
+.prose ol li > p {
+  @apply m-0;
+}
+
+.prose ul li ul,
+.prose ul li ol,
+.prose ol li ul,
+.prose ol li ol {
+  @apply my-2;
+}
+
+.prose ul {
+  @apply list-disc;
+}
+
+.prose ol {
+  @apply list-decimal;
+}
+
+.prose a {
+  @apply underline hover:no-underline;
+}
+
+.prose strong,
+.prose b {
+  @apply font-medium;
+}
+
+.prose p > img + .ProseMirror-separator,
+.prose p > img + .ProseMirror-separator + .ProseMirror-trailingBreak {
+  @apply !hidden;
+}
+
+.prose blockquote {
+  @apply pl-4 ml-1 border-l-2 border-l-neutral-300 dark:border-l-neutral-600;
+}
+
+.prose img,
+.prose svg,
+.prose video,
+.prose canvas,
+.prose audio,
+.prose iframe,
+.prose embed,
+.prose object {
+  @apply inline-block;
+}
+
+.prose table {
+  @apply table;
+}
