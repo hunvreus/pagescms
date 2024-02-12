@@ -80,7 +80,7 @@ Everything in this repo is released under the [MIT License](LICENSE).
 - [ ] Allow users to sign up with email.
 - [ ] Add proper MDX support in Codemirror.
 - [ ] Add saved views (search, sort, order).
-- [ ] Add support for groups of collections/single files.
+- [ ] Add support for groups of collections/files.
 - [ ] Add support for other git services (e.g. Gitlab, Bitbucket).
 - [ ] Add configuration wizard.
 - [ ] Add schema validation for `.pages.yml`.

@@ -292,7 +292,7 @@ const setEditor = async () => {
   if (props.path) {
     file.value = await github.getFile(props.owner, props.repo, props.branch, props.path);
     if (!file.value) {
-      if (schema.value.type === 'single') {
+      if (schema.value.type === 'file') {
         status.value = 'no-file';
       } else {
         notifications.notify(`Failed to retrieve the file at "${props.path}".`, 'error');

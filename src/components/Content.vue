@@ -9,7 +9,7 @@
         :config="config"
       />
     </template>
-    <template v-else-if="schema && schema.type == 'single'">
+    <template v-else-if="schema && schema.type == 'file'">
       <Editor
         :owner="owner"
         :repo="repo"
