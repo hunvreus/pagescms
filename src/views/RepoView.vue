@@ -273,7 +273,6 @@ const setRepo = async () => {
     router.push({ name: 'settings', params: { ...route.params } });
   } else {
     config.value = YAML.load(configFile);
-    console.log(configFile);
     if (config.value.media && typeof config.value.media === 'string') {
       config.value.media = {
         input: config.value.media,
