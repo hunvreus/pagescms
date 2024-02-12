@@ -69,7 +69,8 @@ const router = createRouter({
           props: route => ({
             ...route.params,
             path: '.pages.yml',
-            title: 'Settings'
+            title: 'Settings',
+            description: 'Settings are saved in a `.pages.yml` file at the root of your repository. [Read the documentation](https://pagescms.org/docs/configuration).',
           })
         },
         {

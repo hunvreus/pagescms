@@ -98,6 +98,7 @@
     <!-- Fields -->
     <main class="mx-auto p-4 lg:p-8" :class="{ 'max-w-4xl': mode !== 'datagrid'}">
       <h1 v-if="displayTitle" class="font-semibold text-2xl lg:text-4xl mb-8">{{ displayTitle }}</h1>
+      <div v-if="sanitizedDescription" v-html="sanitizedDescription" class="mb-8 prose"></div>
       <template v-if="model || model === ''">
         <template v-if="['yfm', 'yaml', 'json'].includes(mode)">
           <template v-if="schema && schema.fields">
@@ -147,6 +148,8 @@
 import { ref, onMounted, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Base64 } from 'js-base64';
+import { marked } from 'marked';
+import insane from 'insane';
 import notifications from '@/services/notifications';
 import github from '@/services/github';
 import useYaml from '@/composables/useYaml';
@@ -175,6 +178,7 @@ const props = defineProps({
   path: String,
   config: Object,
   title: String,
+  description: String,
   format: String,
   isNew: Boolean
 });
@@ -212,6 +216,13 @@ const displayTitle = ref('');
 
 const isModelChanged = computed(() => {
   return JSON.stringify(model.value) !== JSON.stringify(initialModel.value);
+});
+
+const sanitizedDescription = computed(() => {
+  if (!props.description) return null;
+  let html = marked(props.description);
+  html = html.replace(/<a /g, '<a target="_blank" rel="noopener noreferrer" ');
+  return insane(html);
 });
 
 const createSingleFile = async (path) => {

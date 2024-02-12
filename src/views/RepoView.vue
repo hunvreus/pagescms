@@ -81,7 +81,7 @@
                       Media
                     </router-link>
                   </li>
-                  <li v-if="status !== 'error-no-config'">
+                  <li v-if="(status !== 'error-no-config') && (!config || (config && config.settings !== false))">
                     <router-link :to="{ name: 'settings' }" @click="isSidebarActive = false" class="link">
                       <Icon name="Settings" class="h-6 w-6 stroke-[1.5] shrink-0"/>
                       Settings
@@ -109,6 +109,17 @@
               <p class="text-neutral-400 dark:text-neutral-500 mb-6">You need to add a <code class="text-sm bg-neutral-100 dark:bg-neutral-850 rounded-lg p-1">.pages.yml</code> file to this repository/branch to configure it.</p>
               <div class="flex gap-x-2 justify-center">
                 <button class="btn-primary" @click="createConfigFile()">Create a configuration file</button>
+              </div>
+            </div>
+          </div>
+        </template>
+        <template v-if="status == 'error-no-valid'">
+          <div class="error h-screen">
+            <div class="text-center max-w-md">
+              <h1 class="font-semibold text-2xl mb-2">Nothing to see here.</h1>
+              <p class="text-neutral-400 dark:text-neutral-500 mb-6">Your current settings prevent you from doing anything.</p>
+              <div class="flex gap-x-2 justify-center">
+                <a class="btn-primary" :href="`https://github.com/${props.owner}/${props.repo}/blob/${props.branch}/.pages.yml`" target="_blank">Review settings on GitHub</a>
               </div>
             </div>
           </div>
@@ -256,16 +267,30 @@ const setRepo = async () => {
     notifications.notify('No configuration file (.pages.yml) in the repository.', 'warning');
     status.value = 'error-no-config';
     return;
-  } else if (!configFile) {
+  } else if (!configFile || !configFile.trim()) {
+    // TODO: add proper schema validation
     notifications.notify('Your settings are empty, redirecting you to the settings page.', 'warning');
     router.push({ name: 'settings', params: { ...route.params } });
   } else {
     config.value = YAML.load(configFile);
+    console.log(configFile);
     if (config.value.media && typeof config.value.media === 'string') {
       config.value.media = {
         input: config.value.media,
         output: `/${config.value.media}`,
       };
+    }
+    // If the user is on the settings page and config.value.settings === false, we redirect to the content page
+    if (route.name === 'settings' && config.value.settings === false) {
+      if (config.value?.content?.length > 0) {
+        router.push({ name: 'content', params: { ...route.params, name: config.value.content[0].name } });
+      } else if (config.value && config.value.media) {
+        router.push({ name: 'media' });
+      } else {
+        notifications.notify('No valid route to display.', 'warning');
+        status.value = 'error-no-valid';
+        return;
+      }
     }
   }
 

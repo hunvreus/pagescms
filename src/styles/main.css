@@ -2,6 +2,7 @@
 @import './datagrid.css';
 @import './filebrowser.css';
 @import './tiptap.css';
+@import './prose.css';
 
 @tailwind base;
 @tailwind components;

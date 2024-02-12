@@ -3,7 +3,7 @@
     ref="textarea"
     class="input w-full"
     :class="{ 'overflow-y-hidden': autoresize }"
-    :rows="field.options?.rows ? field.options.rows : 20"
+    :rows="field.options?.rows ? field.options.rows : 5"
     :maxlength="field.options?.maxlength"
     :value="modelValue"
     @input="handleInput"
