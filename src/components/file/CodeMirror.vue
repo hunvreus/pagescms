@@ -14,10 +14,12 @@ import { json } from '@codemirror/lang-json';
 import { html } from '@codemirror/lang-html';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { yaml } from "@codemirror/legacy-modes/mode/yaml"
+import { linter } from "@codemirror/lint";
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
   language: { type: String, default: 'markdown' },
+  validation: { type: Array, default: [] }
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -71,6 +73,9 @@ onMounted(() => {
       }
     }),
   ];
+  if (props.validation !== undefined) {
+    extensions.push(linter((view) => props.validation));
+  }
   switch (props.language) {
     case 'yaml':
     case 'yml':

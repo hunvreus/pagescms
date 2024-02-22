@@ -1,7 +1,9 @@
 <template>
+  <!-- Loading screen -->
   <template v-if="status == 'loading'">
     <div class="loading"></div>
   </template>
+  <!-- Config error -->
   <template v-if="status == 'error'">
     <div class="error">
       <div class="text-center max-w-md">
@@ -13,9 +15,11 @@
       </div>
     </div>
   </template>
+  <!-- File browser -->
   <template v-else>
     <div class="fb">
       <header class="fb-header flex mb-4 gap-x-2">
+        <!-- Breadcrumb -->
         <ol v-if="breadcrumb" class="fb-breadcrumb flex items-center">
           <li v-if="path != root">
             <button @click="goTo(root)" class="fb-parent-link group relative btn-icon-sm !rounded-r-none">
@@ -38,23 +42,24 @@
             </li>
           </template>
         </ol>
+        <!-- Go to parent -->
         <button v-else-if="path != root" @click="goTo(parentPath)" class="fb-parent-link group relative btn-icon-sm">
           <Icon name="CornerLeftUp" class="h-4 w-4 stroke-2 shrink-0"/>
           <div class="tooltip-top">Go to parent</div>
         </button>
-        
+        <!-- Add a folder -->
         <button class="btn-icon-sm relative group ml-auto" @click="openAddFolderModal()">
           <Icon name="FolderPlus" class="h-4 w-4 stroke-2 shrink-0"/>
           <div class="spinner-white-sm" v-if="status == 'creating-folder'"></div>
           <div class="tooltip-top">Add a folder</div>
         </button>
-
+        <!-- Upload a file -->
         <button class="btn-sm" @click="uploadComponent.openFileInput()">
           <Icon name="Upload" class="h-4 w-4 stroke-2 shrink-0"/>
           Upload file
           <div class="spinner-white-sm" v-if="status == 'uploading'"></div>
         </button>
-        
+        <!-- Toggle layout -->
         <div class="fb-view flex">
           <button @click="setLayout('list')" class="fb-view-list group btn-icon-sm !rounded-r-none relative" :disabled="layout == 'list'" :class="{ '!bg-neutral-200 dark:!bg-neutral-700': (layout == 'list') }">
             <Icon name="LayoutList" class="h-4 w-4 stroke-2 shrink-0"/>
@@ -66,16 +71,16 @@
           </button>
         </div>
       </header>
-
-      <div :class="[ (status == 'processing') ? 'processing' : '' ]">
-        <ul
-          class="fb-files"
-          :class="[ (layout == 'grid') ? 'fb-files-grid' : 'fb-files-list', isDragging ? 'fb-files-dragging' : '' ]"
-          @dragover.prevent="isDragging = true"
-          @dragleave.prevent="isDragging = false"
-          @drop.prevent="handleFileDrop"
-        >
+      <!-- Content -->
+      <div
+        class="fb-files-wrapper" :class="[ (status == 'processing') ? 'processing' : '', isDragging ? 'fb-files-wrapper-dragging' : ''  ]"
+        @dragover.prevent="isDragging = true"
+        @dragleave.prevent="isDragging = false"
+        @drop.prevent="handleFileDrop"
+      >
+        <ul v-if="filteredContents.length > 0" class="fb-files" :class="[ (layout == 'grid') ? 'fb-files-grid' : 'fb-files-list' ]">
           <li v-for="item in filteredContents" :key="item.name" class="fb-files-item" :class="[ `fb-files-item-${item.type}` ]">
+            <!-- Folders -->
             <template v-if="item.type == 'dir'">
               <button @click="goTo(item.path)" class="fb-files-item-content fb-files-item-link">
                 <div class="fb-files-item-icon">
@@ -84,11 +89,12 @@
                 <div class="fb-files-item-name">{{ item.name }}</div>
               </button>
             </template>
+            <!-- Files -->
             <template v-else>
               <div class="fb-files-item-content" @click="selectToggle(item)" :class="[ (selectedFiles.includes(item.path)) ? 'selected' : '', isSelectable ? 'cursor-pointer' : '' ]">
                 <input v-if="isSelectable" type="checkbox" v-model="selectedFiles" :value="item.path" class="fb-files-item-checkbox"/>
                 <div v-if="item.kind == 'image'" class="fb-files-item-image">
-                  <img :src="item.download_url"/>
+                  <Image :path="item.path"/>
                 </div>
                 <div v-else class="fb-files-item-icon">
                   <Icon name="File" width="100%" height="100%"/>
@@ -97,6 +103,7 @@
                 <div class="fb-files-item-meta">
                   <div class="fb-files-item-meta-size">{{ $filters.fileSize(item.size) }}</div>
                 </div>
+                <!-- Options -->
                 <div class="fb-files-item-options">
                   <Dropdown :dropdownClass="'!max-w-none w-48'">
                     <template #trigger>
@@ -123,6 +130,19 @@
             </template>
           </li>
         </ul>
+        <!-- Empty folder -->
+        <div v-else class="text-center rounded-xl bg-neutral-100 dark:bg-neutral-850 p-6">
+          <div class="max-w-md mx-auto">
+            <h2 class="font-semibold tracking-tight">Empty folder</h2>
+            <p class="text-neutral-400 dark:text-neutral-500"><template v-if="filteredExtensions.length > 0">There are no maching files in this folder ({{ filteredExtensions.join(', ') }})</template><template v-else>There are no files in this folder</template>. You can drag-and-drop files here or use the "Upload file" button to add files.</p>
+          </div>
+        </div>
+        <div class="fb-drag-message">
+          <div class="flex gap-x-2 font-medium items-center">
+            <Icon name="Import" class="h-6 w-6 stroke-[1.5] shrink-0"/>
+            <span>Drop your files here</span>
+          </div>
+        </div>
       </div>
     </div>
     <AddFolder
@@ -162,7 +182,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, watchEffect, computed } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import githubImg from '@/services/githubImg';
 import github from '@/services/github';
@@ -170,9 +190,11 @@ import Dropdown from '@/components/utils/Dropdown.vue';
 import Icon from '@/components/utils/Icon.vue';
 import Delete from '@/components/file/Delete.vue';
 import AddFolder from '@/components/file/AddFolder.vue';
+import Image from '@/components/file/Image.vue';
 import Rename from '@/components/file/Rename.vue';
 import Upload from '@/components/file/Upload.vue';
 
+// Categories for filtering
 const extensionCategories = {
   image: ['jpg', 'jpeg', 'png', 'gif', 'svg', 'bmp', 'tif', 'tiff'],
   document: ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'vxls', 'xlsx', 'txt', 'rtf'],
@@ -279,23 +301,23 @@ const selectToggle = (item) => {
   emit('files-selected', selectedFiles.value);
 };
 
-const filteredContents = computed(() => {
-  let filteredExtensions = [];
+const filteredExtensions = computed(() => {
   if (props.filterByExtensions) {
-    filteredExtensions = props.filterByExtensions;
+    return props.filterByExtensions;
+  } else if (props.filterByCategories) {
+    return props.filterByCategories.reduce((acc, category) => acc.concat(extensionCategories[category]), []);
   }
-  if (props.filterByCategories) {
-    props.filterByCategories.forEach((category) => {
-      filteredExtensions = filteredExtensions.concat(extensionCategories[category]);
-    });
-  }
+  return [];
+});
+
+const filteredContents = computed(() => {
   if (contents.value) {
-    if (filteredExtensions.length === 0) return contents.value;
+    if (filteredExtensions.value.length === 0) return contents.value;
     return contents.value.filter((item) => {
       if (item.type === 'dir') {
         return true;
       }
-      if (filteredExtensions.includes(item.extension)) {
+      if (filteredExtensions.value.includes(item.extension)) {
         return true;
       }
       return false;
@@ -322,20 +344,22 @@ const breadcrumb = computed(() => {
 
 const setContents = async () => {
   status.value = 'loading';
-  const fullPath = `${props.owner}/${props.repo}/${props.branch}/${path.value}`;
+  let fullPath = `${props.owner}/${props.repo}/${props.branch}`;
+  fullPath = path.value ? `${fullPath}/${path.value}` : fullPath;
   let contentsData = null;
-
-  if (githubImg.state.requests[fullPath] || githubImg.state.paths[fullPath]) {
-    contentsData = await github.getContents(props.owner, props.repo, props.branch, path.value, false);
-  } else {
+  // Since we're fetching the folder's content, we update the githubImg cache at the same time
+  if (!githubImg.state.requests[fullPath]) {
     githubImg.state.requests[fullPath] = github.getContents(props.owner, props.repo, props.branch, path.value, false);
-    contentsData = await githubImg.state.requests[fullPath];
-    githubImg.addRawUrls(props.owner, props.repo, props.branch, contentsData);
-    delete githubImg.state.requests[fullPath];
-    githubImg.state.paths[fullPath] = true;
   }
-
+  contentsData = await githubImg.state.requests[fullPath];
+  delete githubImg.state.requests[fullPath];
   if (contentsData) {
+    // We update the githubImg cache
+    githubImg.state.cache[fullPath] = { time: Date.now(), files: {} };
+    contentsData.forEach(file => {
+      githubImg.state.cache[fullPath].files[file.name] = file.download_url;
+    });
+    // We build the contents of our current folder
     contents.value = contentsData.map((item) => {
       let extension = '';
       let kind = 'other';
@@ -350,8 +374,7 @@ const setContents = async () => {
 
       return { ...item, extension, kind };
     });
-    
-    // Sort by type first and name second
+    // We sort by type first and name second
     contents.value = contents.value.sort((a, b) => { 
       if (a.type !== b.type) {
         return a.type === 'dir' ? -1 : 1;
@@ -401,11 +424,17 @@ const selectFile = (file) => {
     goTo(parentPath);
   } else {
     selectedFiles.value = [];
-    goTo();
   }
 };
 
 onMounted(async () => {
+  if (props.defaultPath) {
+    goTo(props.defaultPath);
+  } else if (route.query['fb-path']) {  
+    goTo(route.query['fb-path']);
+  } else {
+    goTo(props.root);
+  }
   selectFile(props.selected);
   setLayout();
   await setContents();
@@ -424,7 +453,7 @@ watch(path, async (newValue, oldValue) => {
 });
 
 watch(() => route.query['fb-path'], (newValue) => {
-  if (newValue && newValue !== path.value) {
+  if (newValue !== path.value) {
     goTo(newValue);
   }
 });

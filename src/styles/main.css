@@ -35,7 +35,7 @@ html.dark .custom-shadow {
 /* Chip */
 
 .chip {
-  @apply inline-flex items-center gap-x-2 rounded-full py-0.5 px-2 text-xs capitalize;
+  @apply inline-flex items-center gap-x-2 rounded-full py-0.5 px-2 text-xs font-medium capitalize;
 }
 
 .chip-primary {
@@ -321,7 +321,7 @@ html.dark input[type='checkbox']:checked {
 }
 
 .description {
-  @apply text-sm mb-2 -mt-1 text-neutral-400;
+  @apply text-sm mb-2 -mt-1 text-neutral-400 dark:text-neutral-500;
 }
 
 fieldset {
@@ -576,6 +576,11 @@ fieldset .field:last-child {
   @apply max-w-[1px] w-full truncate;
 }
 
+.table th.field-type-string div,
+.table td.field-type-string div {
+  @apply max-w-[12rem] w-full truncate;
+}
+
 .table th.primary-field,
 .table td.primary-field,
 .table th.actions,
@@ -586,6 +591,14 @@ fieldset .field:last-child {
 
 .table td.primary-field {
   @apply font-medium;
+}
+
+.table td.field-type-image > div {
+  @apply !w-8 !h-8 !pb-0 !rounded-lg;
+}
+
+.table td.field-type-boolean {
+  @apply text-xs;
 }
 
 /* Image preview */

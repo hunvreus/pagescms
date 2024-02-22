@@ -36,13 +36,7 @@
           </div>
         </template>
       </Draggable>
-      <button @click="addEntry" class="btn text-sm">Add an entry</button>
-      <ul v-if="listValidationErrors.length" class="mt-2 text-sm text-red-500 dark:text-red-400">
-        <li v-for="(error, index) in listValidationErrors" :key="index" class="flex gap-x-1 items-center">
-          <Icon name="Ban" class="h-3 w-3 stroke-[2.5]"/>
-          {{ error }}
-        </li>
-      </ul>
+      <button v-if="!field.list?.max || model[field.name].length < field.list.max" @click="addEntry" class="btn text-sm">Add an entry</button>
     </template>
     <!-- Single field or list supporting field -->
     <template v-else>
@@ -54,13 +48,21 @@
         ref="fieldRef"
       />
     </template>
+    <ul v-if="field.list && listErrors.length" class="mt-2 text-sm text-red-500 dark:text-red-400">
+      <li v-for="(error, index) in listErrors" :key="index" class="flex gap-x-1 items-center">
+        <Icon name="Ban" class="h-3 w-3 stroke-[2.5]"/>
+        {{ error }}
+      </li>
+    </ul>
   </div>
 </template>
 
 <script setup>
+// TODO: add schema path to each field (for traceability)
 import { ref, computed } from 'vue';
 import Draggable from 'vuedraggable';
 import useSchema from '@/composables/useSchema';
+import useFieldValidation from '@/composables/useFieldValidation';
 import Icon from '@/components/utils/Icon.vue';
 import FieldString from '@/components/fields/FieldString.vue';
 import FieldNumber from '@/components/fields/FieldNumber.vue';
@@ -74,6 +76,7 @@ import FieldCode from '@/components/fields/FieldCode.vue';
 import FieldRichText from '@/components/fields/FieldRichText.vue';
 
 const { getDefaultValue, sanitizeObject } = useSchema();
+const { validateListRange } = useFieldValidation();
 
 const fieldComponents = {
   string: { component: FieldString },
@@ -95,7 +98,8 @@ const props = defineProps({
 
 const fieldRefs = ref([]);
 const fieldRef = ref(null);
-const listValidationErrors = ref([]);
+const fieldErrors = ref([]);
+const listErrors = ref([]);
 
 const fieldComponent = computed(() => {
   return (fieldComponents[props.field.type] && fieldComponents[props.field.type].component) ? fieldComponents[props.field.type].component : FieldText;
@@ -115,41 +119,34 @@ const removeItem = (index) => {
 };
 
 const validate = () => {
-  let errors = [];
-  listValidationErrors.value = [];
+  let allErrors = [];
+  fieldErrors.value = [];
+  listErrors.value = [];
 
   if (fieldListSupport.value || !props.field.list) {
-    // Validate simple field or field with list support
+    // Validate single field and field list with list support
     if (fieldRef.value && fieldRef.value.validate) {
-      errors = errors.concat(fieldRef.value.validate());
+      fieldErrors.value = fieldRef.value.validate()
     }
   } else {
     // Handle list fields without internal support
     fieldRefs.value.forEach(fieldComponentInstance => {
       if (fieldComponentInstance && fieldComponentInstance.validate) {
-        errors = errors.concat(fieldComponentInstance.validate());
+        const validationErrors = fieldComponentInstance.validate();
+        if (validationErrors.length) fieldErrors.value = fieldErrors.value.concat(validationErrors);
       }
     });
   }
 
-  // Sanitize and validate the list for min/max
+  // List range validation
   if (props.field.list) {
-    const sanitizedList = props.model[props.field.name].filter(entry => sanitizeObject(entry));
-    const listLength = sanitizedList.length;
-
-    if (props.field.list.min && listLength < props.field.list.min) {
-      const errorMsg = `At least ${props.field.list.min} entries are required.`;
-      errors.push(errorMsg);
-      listValidationErrors.value.push(errorMsg);
-    }
-    if (props.field.list.max && listLength > props.field.list.max) {
-      const errorMsg = `No more than ${props.field.list.max} entries are allowed.`;
-      errors.push(errorMsg);
-      listValidationErrors.value.push(errorMsg);
-    }
+    listErrors.value = validateListRange(props.field, props.model[props.field.name]);
   }
 
-  return errors;
+  if (fieldErrors.value.length) allErrors = allErrors.concat(fieldErrors.value);
+  if (listErrors.value.length) allErrors = allErrors.concat(listErrors.value);
+
+  return allErrors;
 };
 
 defineExpose({ validate });

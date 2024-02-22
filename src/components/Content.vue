@@ -53,9 +53,13 @@ const props = defineProps({
 const schema = computed(() => getSchemaByName(props.config, props.name));
 
 const redirectName = () => {
-  if (route.name == 'content-root') {
-    router.push({ name: 'content', params: { owner: props.owner, repo: props.repo, branch: props.branch, name: props.config.content[0].name } });
-  }
+  // if (route.name == 'content-root') {
+  //   if (props.config?.content?.[0]?.name) {
+  //     router.push({ name: 'content', params: { name: props.config.content?.[0]?.name } });
+  //   } else {
+  //     router.push({ name: 'media' });
+  //   }
+  // }
 };
 
 onMounted(async () => {

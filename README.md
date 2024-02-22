@@ -91,3 +91,4 @@ Everything in this repo is released under the [MIT License](LICENSE).
 - [ ] Add content file validation against schema.
 - [ ] Add support for JSON/TOML frontmatter and TOML files.
 - [ ] Improve date support (shouldn't require field in schema).
+- [ ] Consider a store (Pinia) to save and cache data (config schema, collections, raw URLs...).

@@ -49,7 +49,7 @@
 
 <script setup>
 import { ref, computed, watch, inject } from 'vue';
-import _ from 'lodash';
+import { debounce } from 'lodash';
 import Icon from '@/components/utils/Icon.vue';
 import notifications from '@/services/notifications';
 import github from '@/services/github';
@@ -65,7 +65,7 @@ const isCurrentRepo = (item) => {
   return repoStore && repoStore.owner && repoStore.repo && (item.full_name === `${repoStore.owner}/${repoStore.repo}`);
 };
 
-const debouncedSearchRepos = _.debounce(
+const debouncedSearchRepos = debounce(
   async () => {
     if (query.value === '') {
       results.value = [];

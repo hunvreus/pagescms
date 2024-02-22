@@ -1,6 +1,6 @@
 <template>
   <select class="select w-full" :value="modelValue" @change="$emit('update:modelValue', $event.target.value)">
-    <option v-for="option in processedOptions" :key="option.value" :value="option.value">
+    <option v-for="option in normalizedOptions" :key="option.value" :value="option.value">
       {{ option.label }}
     </option>
   </select>
@@ -14,7 +14,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { useFieldValidation } from '@/composables/useFieldValidation';
+import useFieldValidation from '@/composables/useFieldValidation';
 import Icon from '@/components/utils/Icon.vue';
 
 const { validateRequired } = useFieldValidation();
@@ -33,8 +33,7 @@ const props = defineProps({
 
 const errors = ref([]);
 
-// Process options to handle both string and object formats
-const processedOptions = computed(() => {
+const normalizedOptions = computed(() => {
   return props.field.options.values.map(option => {
     if (typeof option === 'string') {
       return { value: option, label: option };
@@ -46,8 +45,8 @@ const processedOptions = computed(() => {
 const validate = () => {
   errors.value = [];
   const requiredError = validateRequired(props.field, props.modelValue);
-  if (requiredError) errors.value.push(requiredError);
-
+  if (requiredError.length) errors.value = errors.value.concat(requiredError);
+  
   return errors.value;
 };
 

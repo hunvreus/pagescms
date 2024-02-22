@@ -1,5 +1,5 @@
 /**
- * Interface with the GitHub API and handle the OAuth token.
+ * Interface with the GitHub API (including the storage of the OAuth token).
  */
 
 import { ref } from 'vue';
@@ -19,12 +19,25 @@ const clearToken = () => {
   localStorage.removeItem('token');
 };
 
-// Not a fan of that (and the dependencies it creates), but couldn't think of another way
 const handleAuthError = () => {
-  notifications.notify('Your GitHub token is invalid or has expired. Please log in again.', 'error', 0);
+  notifications.notify('Your GitHub token is invalid or has expired. Please log in again.', 'error', { delay: 0 }); // TODO: find a way to remove the notifications dependency
   clearToken();
   router.push({ name: 'login' });
 };
+
+const handleError = (message, action, error) => {
+  switch (error.response?.status) {
+    case 401:
+      notifications.notify('Your GitHub token is invalid or has expired. Please log in again.', 'error', { delay: 0 }); // TODO: find a way to remove the notifications dependency
+      clearToken();
+      router.push({ name: 'login' });
+      break;
+    case 403:
+      notifications.notify('Your do not have permissiopermissions are insuffici do not have permission to to  not allowed to perform this action.', 'error');
+      break;
+  }
+  console.error(errorMessage, error);
+}
 
 const getProfile = async () => {
   try {
@@ -47,6 +60,7 @@ const getProfile = async () => {
 };
 
 const searchRepos = async (query, writeAccessOnly = false) => {
+  // TODO: only show valid repos (PAT)
   if (!query) return { items: [] };
   try {
     const response = await axios.get('https://api.github.com/search/repositories', {
@@ -113,7 +127,7 @@ const getBranches = async (owner, name) => {
 
 const getContents = async (owner, repo, branch = 'HEAD', path = '', useGraphql = true) => {
   if (useGraphql) {
-    // The GraphQL query gives us the list of files along with each of their content
+    // The GraphQL query list the files AND their content (unlike the REST query)
     try {
       const response = await axios.post(
         'https://api.github.com/graphql',
@@ -248,16 +262,17 @@ const saveFile = async (owner, repo, branch, path, content, sha = null, retryCre
     const extension = fileName.substring(fileName.lastIndexOf('.'));
     let newName;
 
-    // If we've reached the max attempts, we append a timestamp to the filename to guarantee we can save the file.
-    // This may happen with rapid successive saves, and is due to GitHub's cache preventing us from getting siblings in real-time with getContents().
+    // Once we reach the max attempts, we switch to appending a timestamp to guarantee we
+    // can save the file. This may happen with rapid successive saves, and is due to GitHub's
+    // cache preventing us from getting siblings in real-time with getContents().
     if (attempt === attemptsMax - 1) {
       newName = `${baseName}-${Date.now()}${extension}`;
       return parentPath ? `${parentPath}/${newName}` : newName;
     }
 
     do {
-        newName = `${baseName}-${uniqueFilenameCounter}${extension}`;
-        uniqueFilenameCounter++;
+      newName = `${baseName}-${uniqueFilenameCounter}${extension}`;
+      uniqueFilenameCounter++;
     } while (siblings.includes(newName));
 
     return parentPath ? `${parentPath}/${newName}` : newName;
@@ -339,12 +354,11 @@ const deleteFile = async (owner, repo, branch, path, sha) => {
 
 // /!\ THE FOLLOWING IS A BIT OF A WTF... But hear me out.
 // We can't easily rename a file via the GitHub API. We could copy the file with a new path and
-// then delete the original, but we'd then lose the commit history. So we need to resort to a rather
+// then delete the original, but we'd then lose the commit history. So we resort to a rather
 // barbaric approach, chaining 5 sequential API calls. More about the why and how:
 // https://stackoverflow.com/questions/31563444/rename-a-file-with-github-api
 // https://medium.com/@obodley/renaming-a-file-using-the-git-api-fed1e6f04188
 // https://www.levibotelho.com/development/commit-a-file-with-the-github-api/
-
 const renameFile = async (owner, repo, branch, oldPath, newPath) => {
   // Step 1: Get the current branch commit SHA
   const getCurrentBranchSHA = async () => {
@@ -450,7 +464,9 @@ const renameFile = async (owner, repo, branch, oldPath, newPath) => {
 
 const logout = async () => {
   try {
-    await axios.get('/auth/revoke?token=' + token.value);
+    if (!token.value.startsWith('github_pat_')) {
+      await axios.get('/auth/revoke?token=' + token.value);
+    }
     clearToken();
   } catch (error) {
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {

@@ -9,7 +9,7 @@
     <Dropdown :dropdownClass="'!max-w-none !lg:max-w-full min-w-36'">
       <template #trigger>
         <button class="btn-secondary group-[.dropdown-active]:bg-neutral-100 dark:group-[.dropdown-active]:bg-neutral-850" :class="[ elementClass ]">
-          <div class="truncate"><span class="hidden lg:inline">Updated </span>{{ moment(commits[0].commit.author.date).fromNow() }}</div>
+          <div class="truncate"><span class="hidden lg:inline">Updated </span>{{ $filters.fromNow(commits[0].commit.author.date) }}</div>
         </button>
       </template>
       <template #content>
@@ -18,7 +18,7 @@
               <a :href="commit.html_url" :title="commit.commit.message" target="_blank" class="link">
                 <img v-if="commit.author" :src="commit.author.avatar_url" class="h-5 w-5 rounded-full hidden lg:block"/>
                 <div class="truncate">
-                  <span class="truncate">{{ moment(commit.commit.author.date).fromNow() }}</span>
+                  <span class="truncate">{{ $filters.fromNow(commit.commit.author.date) }}</span>
                 </div>
                 <Icon name="ExternalLink" class="h-4 w-4 stroke-2 shrink-0 ml-auto text-neutral-400 dark:text-neutral-500"/>
               </a>
@@ -38,7 +38,6 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue';
-import moment from 'moment';
 import github from '@/services/github';
 import Dropdown from '@/components/utils/Dropdown.vue';
 import Icon from '@/components/utils/Icon.vue';

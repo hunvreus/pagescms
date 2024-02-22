@@ -1,18 +1,21 @@
-<template>  
+<template>
+  <!-- Loading screen -->
   <template v-if="status == 'loading'">
     <div class="loading"></div>
   </template>
+  <!-- Config error -->
   <template v-else-if="status == 'error'">
     <div class="error h-screen">
       <div class="text-center max-w-md">
         <h1 class="font-semibold text-2xl mb-2">Uh-oh! Something went wrong.</h1>
         <p class="text-neutral-400 mb-6">Make sure things are properly configured and that your connection is working.</p>
         <div class="flex gap-x-2 justify-center">
-          <router-link class="btn-primary" :to="{name: 'settings'}">Review settings</router-link>
+          <router-link class="btn-primary" :to="{ name: 'settings' }">Review settings</router-link>
         </div>
       </div>
     </div>
   </template>
+  <!-- File missing error -->
   <template v-else-if="status == 'no-file'">
     <div class="error h-screen">
       <div class="text-center max-w-md">
@@ -24,6 +27,7 @@
       </div>
     </div>
   </template>
+  <!-- Editor -->
   <template v-else>
     <!-- Header (navigation + history + actions) -->
     <header class="z-50 sticky top-0 bg-white border-b border-neutral-200 dark:bg-neutral-950 dark:border-neutral-750 flex gap-x-1 lg:gap-x-2 items-center py-1 px-2 lg:py-2 lg:px-4">
@@ -66,7 +70,7 @@
             :sha="sha"
           />
         </template>
-        <button class="btn-primary" @click.prevent="save" :disabled="sha && !isModelChanged">
+        <button class="btn-primary" @click.prevent="save" :disabled="(sha && !isModelChanged) || (status === 'validating-config')">
           Save
           <div class="spinner-white-sm" v-if="status == 'saving'"></div>
         </button>
@@ -98,15 +102,18 @@
     <!-- Fields -->
     <main class="mx-auto p-4 lg:p-8" :class="{ 'max-w-4xl': mode !== 'datagrid'}">
       <h1 v-if="displayTitle" class="font-semibold text-2xl lg:text-4xl mb-8">{{ displayTitle }}</h1>
-      <div v-if="sanitizedDescription" v-html="sanitizedDescription" class="mb-8 prose"></div>
+      <div v-if="displayDescription" v-html="displayDescription" class="mb-8 prose"></div>
       <template v-if="model || model === ''">
-        <template v-if="['yfm', 'yaml', 'json'].includes(mode)">
+        <template v-if="['yaml-frontmatter', 'json-frontmatter', 'toml-frontmatter', 'yaml', 'json', 'toml'].includes(mode)">
           <template v-if="schema && schema.fields">
             <field v-for="field in schema.fields" :key="field.name" :field="field" :model="model" ref="fieldRefs"></field>
           </template>
+          <template v-else>
+            <CodeMirror v-model="model" :language="extension" :validation="schemaValidation"/>
+          </template>
         </template>
         <template v-else-if="mode === 'code'">
-          <CodeMirror v-model="model" :language="extension"/>
+          <CodeMirror v-model="model" :language="extension" :validation="schemaValidation"/>
         </template>
         <template v-else-if="mode === 'datagrid'">
           <div class="overflow-x-auto">
@@ -145,14 +152,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue';
+import { ref, onMounted, watch, computed, inject } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Base64 } from 'js-base64';
-import { marked } from 'marked';
-import insane from 'insane';
+import { debounce } from 'lodash';
+import YAML from 'yaml';
 import notifications from '@/services/notifications';
 import github from '@/services/github';
-import useYaml from '@/composables/useYaml';
+import config from '@/services/config';
+import frontmatter from '@/services/frontmatter';
 import useSchema from '@/composables/useSchema';
 import CodeMirror from '@/components/file/CodeMirror.vue';
 import Datagrid from '@/components/file/Datagrid.vue';
@@ -165,10 +173,11 @@ import Rename from '@/components/file/Rename.vue';
 
 const route = useRoute();
 const router = useRouter();
-const { readYfm, writeYfm, readYaml, writeYaml } = useYaml();
-const { createModel, sanitizeObject, getSchemaByName, generateFilename } = useSchema();
+const { createModel, sanitizeObject, getSchemaByName, generateFilename, renderDescription } = useSchema();
 
 const emit = defineEmits(['file-saved']);
+
+const repoStore = inject('repoStore', { owner: null, repo: null, branch: null, config: null, details: null });
 
 const props = defineProps({
   owner: String,
@@ -213,16 +222,30 @@ const renameComponent = ref(null);
 const deleteComponent = ref(null);
 const status = ref('loading');
 const displayTitle = ref('');
-
-const isModelChanged = computed(() => {
-  return JSON.stringify(model.value) !== JSON.stringify(initialModel.value);
+const checkValidation = ref(undefined);
+const schemaValidation = computed(() => {
+  if (route.name === 'settings') {
+    return checkValidation.value ? checkValidation.value : repoStore.config?.validation;
+  } else {
+    return undefined;
+  }
 });
 
-const sanitizedDescription = computed(() => {
-  if (!props.description) return null;
-  let html = marked(props.description);
-  html = html.replace(/<a /g, '<a target="_blank" rel="noopener noreferrer" ');
-  return insane(html);
+const isModelChanged = computed(() => {
+  return JSON.stringify(sanitizeObject(model.value)) !== JSON.stringify(sanitizeObject(initialModel.value));
+});
+
+const displayDescription = computed(() => {
+  let markdownDescription = '';
+  if (props.description) {
+    markdownDescription = props.description;
+  } else if (schema.value?.description) {
+    markdownDescription = schema.value?.description;
+  } else {
+    return '';
+  }
+  
+  return renderDescription(markdownDescription);
 });
 
 const createSingleFile = async (path) => {
@@ -233,7 +256,7 @@ const createSingleFile = async (path) => {
     await setEditor();
     status.value = '';
   } else {
-    notifications.notify(`The file (${path}) couldn't be created. Try reloading the page.`, 'error', 0);
+    notifications.notify(`The file (${path}) couldn't be created. Try reloading the page.`, 'error', { delay: 0 });
   }
 };
 
@@ -272,7 +295,7 @@ const setDisplayTitle = () => {
     displayTitle.value = props.title;
   } else if (sha.value) {
     // Editing a file
-    displayTitle.value = (model.value && model.value.title) ? `Editing "${ model.value.title }"` : 'Editing file';
+    displayTitle.value = model.value?.title ? `Editing "${ model.value.title }"` : 'Editing file';
   } else if (props.path) {
     // Making a copy of a file
     displayTitle.value = `Copy of "${ model.value.title }"`;
@@ -284,11 +307,12 @@ const setDisplayTitle = () => {
 
 const setEditor = async () => {
   resetEditor();
-  
   let content = '';
 
+  // Retrieve the schema
   schema.value = (props.name) ? getSchemaByName(props.config, props.name) : null;  
 
+  // Retrieve the file
   if (props.path) {
     file.value = await github.getFile(props.owner, props.repo, props.branch, props.path);
     if (!file.value) {
@@ -305,6 +329,7 @@ const setEditor = async () => {
     }
   }
 
+  // Set the extension
   if (file.value) {
     const parts = file.value.name.split('.');
     if (parts.length > 1 && !(parts.length === 2 && parts[0] === '')) {
@@ -312,8 +337,11 @@ const setEditor = async () => {
     }
   }
 
+  // Define the editor's mode
   if (props.format) {
     mode.value = props.format;
+  } else if (schema.value && schema.value.format) {
+    mode.value = schema.value.format;
   } else {
     mode.value = 'raw'; // Default mode
     const codeExtensions = ['yaml', 'yml', 'javascript', 'js', 'jsx', 'typescript', 'ts', 'tsx', 'json', 'html', 'htm', 'markdown', 'md', 'mdx'];
@@ -323,8 +351,10 @@ const setEditor = async () => {
         mode.value = 'yaml';
       } else if (extension.value === 'json') {
         mode.value = 'json';
+      } else if (extension.value === 'toml') {
+        mode.value = 'toml';
       } else if (schema.value.fields.some(field => field.name === 'body')) {
-        mode.value = 'yfm';
+        mode.value = 'yaml-frontmatter';
       } else if (codeExtensions.includes(extension.value)) {
         mode.value = 'code';
       }
@@ -336,16 +366,36 @@ const setEditor = async () => {
   }
 
   let contentObject = {};
-  switch (mode.value) {
-    case 'yfm':
-      contentObject = (content) ? readYfm(content) : {};
-      break;
-    case 'yaml':
-      contentObject = (content) ? readYaml(content) : {};
-      break;
-    case 'json':
-      contentObject = (content) ? JSON.parse(content) : {};
-      break;
+  try {
+    switch (mode.value) {
+      case 'yaml-frontmatter':
+      case 'json-frontmatter':
+      case 'toml-frontmatter':
+        contentObject = (content) ? frontmatter.parse(content, { format: mode.value } ) : {};
+        break;
+      case 'yaml':
+        contentObject = (content) ? YAML.parse(content, { strict: false }) : {};
+        break;
+      case 'json':
+        contentObject = (content) ? JSON.parse(content) : {};
+        break;
+      case 'toml':
+        contentObject = (content) ? TOML.parse(content) : {};
+        break;
+    }
+  } catch (error) {
+    console.error('Error parsing frontmatter:', error);
+    const options = {
+      delay: 10000,
+      actions: [{
+        label: 'Review settings',
+        handler: () => router.push({ name: 'settings' }),
+        primary: true
+      }]
+    };
+    notifications.notify(`Failed to parse the file at "${props.path}", your settings may be wrong. Switching to raw editor.`, 'error', options);
+    // We can't parse the content, we switch to the raw editor.
+    mode.value = 'raw';
   }
 
   // For YAML and JSON files, if schema.list is true we wrap the model and fields into an extra "listWrapper" object
@@ -354,7 +404,7 @@ const setEditor = async () => {
     contentObject = { listWrapper: contentObject };
   }
   
-  if (['yfm', 'yaml', 'json'].includes(mode.value) && schema.value && schema.value.fields) {
+  if (['yaml-frontmatter', 'json-frontmatter', 'toml-frontmatter', 'yaml', 'json', 'toml'].includes(mode.value) && schema.value && schema.value.fields) {
     model.value = createModel(schema.value.fields, contentObject);
   } else {
     model.value = content;
@@ -366,51 +416,58 @@ const setEditor = async () => {
 };
 
 const validateFields = () => {
+  status.value = 'validating';
   let errors = [];
   fieldRefs.value.forEach(fieldRef => {
     errors.push(...fieldRef.validate());
   });
+  status.value = '';
+  
   return errors;
 };
 
 const save = async () => {
   // We run validation first
   const validationErrors = validateFields();
-  
   if (validationErrors.length > 0) {
+    console.log(validationErrors);
     notifications.notify('Uh-oh! Some of your fields have issues. Please check for errors.', 'error');
     return;
   }
-
-  // If validation passed, we proceed with savin
+  // We're good to go
   status.value = 'saving';
-  let content = model.value;
-
+  let content = JSON.parse(JSON.stringify(model.value));
   // For YAML and JSON files with schema.list set to true, we've wrapped the model and fields into an extra "listWrapper" object
   if (['yaml', 'json'].includes(mode.value) && schema.value && schema.value.fields && schema.value.list) {
     content = model.value.listWrapper;
   }
-
+  // Sanitize the object and stringify it
+  content = sanitizeObject(content);
   switch (mode.value) {
-    case 'yfm':
-      sanitizeObject(content);
-      content = writeYfm(content);
+    case 'yaml-frontmatter':
+    case 'json-frontmatter':
+    case 'toml-frontmatter':
+      content = frontmatter.stringify(content, { format: mode.value });
       break;
     case 'yaml':
-      content = writeYaml(content);
+      content = YAML.stringify(content);
       break;
     case 'json':
       content = JSON.stringify(content, null, 2);
       break;
+    case 'toml':
+      content = TOML.stringify(content, null, 2);
+      break;
   }
   
   try {
+    // If it's a new file, we need to generate a filename
     if (!sha.value) {
       const pattern = (schema.value && schema.value.filename) ? schema.value.filename : '{year}-{month}-{day}-{primary}.md';
       const filename = generateFilename(pattern, schema.value, model.value);
       currentPath.value = `${folder.value}/${filename}`;
     }
-
+    // Saving the file
     const saveData = await github.saveFile(props.owner, props.repo, props.branch, currentPath.value, Base64.encode(content), sha.value, true);
 
     if (!saveData) {
@@ -435,6 +492,10 @@ const save = async () => {
     setDisplayTitle();
     notifications.notify(`Saved "${currentPath.value}"`, 'success');
     emit('file-saved', currentPath.value);
+    if (route.name === 'settings') {
+      // We've updated the configuration, we need to reload it
+      await config.set(props.owner, props.repo, props.branch);
+    }
     status.value = '';
   } catch (error) {
     notifications.notify(`Failed to save the file "${currentPath.value}"`, 'error');
@@ -452,4 +513,26 @@ watch(() => route.path, async () => {
     await setEditor();
   }
 });
+
+const checkConfig = debounce(
+  async () => {
+    ({ validation: checkValidation.value } = await config.parse(props.owner, props.repo, props.branch, model.value));
+    status.value = '';
+  },
+  500
+);
+
+watch(() => model.value, (newValue, oldValue) => {
+  if (route.name === 'settings') {
+    if (JSON.stringify(newValue) === JSON.stringify(initialModel.value)) {
+      checkValidation.value = undefined;
+      status.value = '';
+    } else {
+      status.value = 'validating-config';
+      checkConfig();
+    }
+  }
+}, { deep: true });
+
 </script>
+

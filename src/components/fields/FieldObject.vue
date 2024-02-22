@@ -22,7 +22,6 @@ const fieldRefs = ref([]);
 
 const validate = () => {
   let errors = [];
-
   fieldRefs.value.forEach(fieldComponentInstance => {
     if (fieldComponentInstance && fieldComponentInstance.validate) {
       errors = errors.concat(fieldComponentInstance.validate());

@@ -187,8 +187,8 @@
           :owner="repoStore.owner"
           :repo="repoStore.repo"
           :branch="repoStore.branch"
-          :root="props.options?.image?.input || repoStore.config.media.input"
-          :defaultPath="props.options?.image?.path || repoStore.config.media.path"
+          :root="props.options?.image?.input ?? repoStore.config.object.media.input"
+          :defaultPath="props.options?.image?.path ?? repoStore.config.object.media.path"
           :filterByCategories="props.options?.image?.extensions ? undefined : [ 'image' ]"
           :filterByExtensions="props.options?.image?.extensions"
           :selected="selected"
@@ -270,9 +270,9 @@ const selected = ref(null);
 const isEditorFocused = ref(false);
 const status = ref('loading');
 const isCodeEditor = ref(false);
-const prefixInput = ref(props.options?.input || repoStore.config.media.input || null);
-const prefixOutput = ref(props.options?.output || repoStore.config.media.output || null);
-const uploadPath = ref(props.options?.image?.path || repoStore.config.media.path || props.options?.image?.input || repoStore.config.media.input || '');
+const prefixInput = ref(props.options?.input ?? repoStore.config.object.media.input ?? null);
+const prefixOutput = ref(props.options?.output ?? repoStore.config.object.media.output ?? null);
+const uploadPath = ref(props.options?.image?.path ?? repoStore.config.object.media.path ?? props.options?.image?.input ?? repoStore.config.object.media.input ?? '');
 const fileBrowserComponent = ref(null);
 
 const turndownService = new TurndownService({ headingStyle: 'atx' });
@@ -382,13 +382,15 @@ const editor = useEditor({
   },
 });
 
+// TODO: move to Upload component
 const upload = async (file) => {
   if (file) {
     let content = await readFileContent(file);
     if (content) {
-      const notificationId = notifications.notify(`Uploading "${file.name}".`, 'processing', 0);
+      const notificationId = notifications.notify(`Uploading "${file.name}".`, 'processing', { delay: 0 });
       content = content.replace(/^(.+,)/, ''); // We strip out the info at the beginning of the file (mime type + encoding)
-      const data = await github.saveFile(repoStore.owner, repoStore.repo, repoStore.branch, `${uploadPath.value}/${file.name}`, content, null, true);
+      const fullPath = uploadPath.value ? `${uploadPath.value}/${file.name}` : file.name;
+      const data = await github.saveFile(repoStore.owner, repoStore.repo, repoStore.branch, fullPath, content, null, true);
       notifications.close(notificationId);
       if (data) {
         notifications.notify(`File '${file.name}' successfully uploaded.`, 'success');

@@ -18,7 +18,7 @@
 
 <script setup>
 import { ref } from 'vue';
-import { useFieldValidation } from '@/composables/useFieldValidation';
+import useFieldValidation from '@/composables/useFieldValidation';
 import Icon from '@/components/utils/Icon.vue';
 
 const { validateRequired, validatePattern, validateRange } = useFieldValidation();
@@ -32,15 +32,13 @@ const errors = ref([]);
 
 const validate = () => {
   errors.value = [];
-
   const requiredError = validateRequired(props.field, props.modelValue);
   const patternError = validatePattern(props.field, props.modelValue);
   const rangeError = validateRange(props.field, props.modelValue);
-
-  if (requiredError) errors.value.push(requiredError);
-  if (patternError) errors.value.push(patternError);
-  if (rangeError) errors.value.push(rangeError);
-
+  if (requiredError.length) errors.value = errors.value.concat(requiredError);
+  if (patternError.length) errors.value = errors.value.concat(patternError);
+  if (rangeError.length) errors.value = errors.value.concat(rangeError);
+  
   return errors.value;
 };
 

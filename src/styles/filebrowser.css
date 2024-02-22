@@ -1,7 +1,15 @@
 /* File browser */
 
-.fb-files.fb-files-dragging {
-  @apply bg-neutral-100 dark:bg-neutral-850;
+.fb-files-wrapper {
+  @apply relative;
+}
+
+.fb-files-wrapper .fb-drag-message {
+  @apply invisible opacity-0 transition-all absolute inset-0 flex items-center justify-center pointer-events-none bg-neutral-100 dark:bg-neutral-850 p-6 rounded-xl z-10;
+}
+
+.fb-files-wrapper.fb-files-wrapper-dragging .fb-drag-message {
+  @apply visible opacity-100;
 }
 
 .fb-files .fb-files-item-content {
@@ -10,14 +18,6 @@
 
 .fb-files .fb-files-item-content.selected {
   @apply ring-neutral-950 dark:ring-white;
-}
-
-.fb-files .fb-files-item-image {
-  @apply relative bg-neutral-100 dark:bg-neutral-850 overflow-hidden;
-}
-
-.fb-files .fb-files-item-image img {
-  @apply object-cover absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2;
 }
 
 /* File browser: list layout */
@@ -38,8 +38,8 @@
   @apply w-4 h-4 stroke-2 shrink-0;
 }
 
-.fb-files.fb-files-list .fb-files-item-image {
-  @apply w-4 h-4;
+.fb-files.fb-files-list .fb-files-item-image > div {
+  @apply w-4 h-4 !rounded-sm;
 }
 
 .fb-files.fb-files-list .fb-files-item-name {
@@ -97,8 +97,8 @@
   @apply mb-2;
 }
 
-.fb-files.fb-files-grid .fb-files-item-image {
-  @apply w-full pb-[66.66%] rounded-xl ring-1 ring-neutral-200 dark:ring-neutral-700;
+.fb-files.fb-files-grid .fb-files-item-image > div {
+  @apply !pb-[66.66%];
 }
 
 .fb-files.fb-files-grid .fb-files-item-icon  {

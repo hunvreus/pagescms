@@ -20,7 +20,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import notifications from '@/services/notifications';
 import github from '@/services/github';
 import Modal from '@/components/utils/Modal.vue';
@@ -36,13 +36,15 @@ const props = defineProps({
 
 const addFolderModal = ref(null);
 const folderName = ref('');
+const fullPath = computed(() => props.path ? `${props.path}/${folderName.value}` : folderName.value);
 const status = ref('');
 
 const folderNameEntry = async () => {
   status.value = 'adding-folder';
-  const data = await github.saveFile(props.owner, props.repo, props.branch, `${props.path}/${folderName.value}/.gitkeep`, '');
+
+  const data = await github.saveFile(props.owner, props.repo, props.branch, `${fullPath.value}/.gitkeep`, '');
   if (data) {
-    emits('folder-added', { path: `${props.path}/${folderName.value}` });
+    emits('folder-added', { path: `${fullPath.value}` });
     notifications.notify(`Folder "${folderName.value}" successfully created.`, 'success');
     addFolderModal.value.closeModal();
   } else {

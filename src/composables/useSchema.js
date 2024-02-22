@@ -2,9 +2,11 @@
  * Helper functions for the schema defined in .pages.yml
  */
 
-import moment from 'moment';
+import dayjs from 'dayjs';
 import slugify from 'slugify';
 import { transliterate } from 'transliteration';
+import { marked } from 'marked';
+import insane from 'insane';
 
 export default function useSchema() {
   // Create a model from a list of fields and corresponding values
@@ -36,7 +38,6 @@ export default function useSchema() {
     return model;
   };
   
-  
   // Returns the default feld value based on its value and type
   const getDefaultValue = (field) => {
     if (field.default !== undefined) {
@@ -48,38 +49,34 @@ export default function useSchema() {
       case 'boolean':
         return false;
       case 'date':
-        return moment().format('YYYY-MM-DD');
+        return dayjs().format('YYYY-MM-DD');
       default:
         return '';
     }
   };
   
   // Traverse the object and remove all empty/null/undefined values
-  const sanitizeObject = (obj) => {
-    Object.keys(obj).forEach((key) => {
-      const val = obj[key]
-      if (!!val && typeof val === 'object') {
-        const keys = Object.keys(val)
-        if (!keys.length || keys.every((key) => !val[key])) {
-          delete obj[key]
+  const sanitizeObject = (object) => {
+    const objectCopy = JSON.parse(JSON.stringify(object));
+    Object.keys(objectCopy).forEach((key) => {
+      const val = objectCopy[key];
+      if (val && typeof val === 'object') {
+        objectCopy[key] = sanitizeObject(val); // Recursively sanitize the object
+        if (!Object.keys(objectCopy[key]).length) {
+          delete objectCopy[key]; // Delete the key if the sanitized object is empty
         }
-        else if (!sanitizeObject(val)) {
-          delete obj[key]
-        }
-      }
-      else if (!val && typeof val != 'boolean') {
-        delete obj[key]
+      } else if (val === null || val === undefined || val === '') {
+        delete objectCopy[key]; // Delete keys with null, undefined, or empty string values
       }
     });
-
-    return !!Object.keys(obj).length;
+  
+    return objectCopy;
   };
 
   // Retrieve the deepest matching content schema in the config for a file
   const getSchemaByPath = (config, path) => {
-    // Normalize the file path
+    if (!config || !config.content) return null;
     const normalizedPath = `/${path}/`.replace(/\/\/+/g, '/');
-  
     // Sort the entries by the depth of their path, and normalize them
     const matches = config.content
       .map(item => {
@@ -88,14 +85,20 @@ export default function useSchema() {
       })
       .filter(item => normalizedPath.startsWith(item.path))
       .sort((a, b) => b.path.length - a.path.length);
-  
-    // Return the first item in the sorted array which will be the deepest match, or undefined if no match
-    return matches[0];
+    // Return the first item in the sorted array which will be the deepest match, or undefined if no match.
+    const schema = matches[0];
+
+    // We deep clone the object to avoid mutating config if schema is modified.
+    return schema ? JSON.parse(JSON.stringify(schema)) : null;
   };
 
   // Retrieve the matching schema for a type
   const getSchemaByName = (config, name) => {
-    return config.content.find(item => item.name === name);
+    if (!config || !config.content) return null;
+    const schema = config.content.find(item => item.name === name);
+
+    // We deep clone the object to avoid mutating config if schema is modified.
+    return schema ? JSON.parse(JSON.stringify(schema)) : null;
   };
 
   // Safely access nested properties in an object
@@ -111,12 +114,12 @@ export default function useSchema() {
 
   const generateFilename = (pattern, schema, model) => {
     // Replace date placeholders
-    pattern = pattern.replace(/\{year\}/g, moment().format('YYYY'))
-                     .replace(/\{month\}/g, moment().format('MM'))
-                     .replace(/\{day\}/g, moment().format('DD'))
-                     .replace(/\{hour\}/g, moment().format('HH'))
-                     .replace(/\{minute\}/g, moment().format('mm'))
-                     .replace(/\{second\}/g, moment().format('ss'));
+    pattern = pattern.replace(/\{year\}/g, dayjs().format('YYYY'))
+                     .replace(/\{month\}/g, dayjs().format('MM'))
+                     .replace(/\{day\}/g, dayjs().format('DD'))
+                     .replace(/\{hour\}/g, dayjs().format('HH'))
+                     .replace(/\{minute\}/g, dayjs().format('mm'))
+                     .replace(/\{second\}/g, dayjs().format('ss'));
   
     // Replace `{primary}` with the actual name of the primary field
     const primaryField = (schema.view && schema.view.primary) || (model.hasOwnProperty('title') ? 'title' : schema.fields[0]?.name); // To check if model.
@@ -129,5 +132,12 @@ export default function useSchema() {
     });
   };
 
-  return { createModel, getDefaultValue, sanitizeObject, getSchemaByPath, getSchemaByName, generateFilename };
+  const renderDescription = (markdown) => {
+    let html = marked(markdown);
+    html = insane(html);
+    html = html.replace(/<a /g, '<a target="_blank" rel="noopener noreferrer" ');
+    return html;
+  };
+
+  return { createModel, getDefaultValue, sanitizeObject, getSchemaByPath, getSchemaByName, safeAccess, generateFilename, renderDescription };
 }

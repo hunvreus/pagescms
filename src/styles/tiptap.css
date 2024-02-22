@@ -1,7 +1,7 @@
 /* TipTap */
 
 .tiptap-controls {
-  @apply sticky top-[59px] z-20 p-3 opacity-100 hover:z-50 flex;
+  @apply sticky top-[55px] lg:top-[59px] z-20 p-3 opacity-100 hover:z-50 flex;
 }
 
 .tiptap-controls-wrapper {
@@ -35,7 +35,7 @@
 
 .tiptap-controls + div > .ProseMirror,
 .tiptap-controls + div .cm-editor {
-  @apply -mt-[58px] pt-[58px];
+  @apply -mt-[54px] pt-[54px] lg:-mt-[58px] lg:pt-[58px];
 }
 
 /* ProseMirror */

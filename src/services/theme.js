@@ -1,3 +1,7 @@
+/**
+ * Manage user's theme preference.
+ */
+
 const systemTheme = () => window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 const userTheme = () => localStorage.getItem('userTheme');
 

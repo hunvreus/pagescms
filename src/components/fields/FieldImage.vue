@@ -8,12 +8,7 @@
   >
     <template #item="{element, index}">
       <li v-if="element" class="relative w-full cursor-move">
-        <div class="bg-neutral-100 dark:bg-neutral-850 w-full pb-[100%] rounded-xl ring-1 ring-neutral-200 dark:ring-neutral-750 overflow-hidden relative">
-          <img v-if="previewUrls[element]" :src="previewUrls[element]" :alt="element" class="object-cover absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"/>
-          <div v-else class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-            <div class="spinner-black"></div>
-          </div>
-        </div>
+        <Image :path="element"/>
         <div class="absolute bottom-0 right-0 z-10 flex p-2">
           <button class="btn-icon-sm !border-r-0 !rounded-r-none relative group" @click="removeImage(index)">
             <Icon name="Trash2" class="h-4 w-4 stroke-2 shrink-0"/>
@@ -29,7 +24,7 @@
     <template #footer>
       <li v-if="internalModelValue.length < (props.field.list ? ( props.field.list?.max ?? Infinity ) : 1)">
         <button class="btn flex-col gap-y-2 aspect-square items-center justify-center w-full" @click="addImage()">
-          <Icon name="ImagePlus" class="h-6 w-6 stroke-2 shrink-0"/>
+          <Icon name="ImagePlus" class="h-6 w-6 stroke-[1.5] shrink-0"/>
           Add image
         </button>
       </li>
@@ -44,8 +39,8 @@
           :owner="repoStore.owner"
           :repo="repoStore.repo"
           :branch="repoStore.branch"
-          :root="props.field.options?.input || repoStore.config.media.input"
-          :defaultPath="props.field.options?.path || repoStore.config.media.path"
+          :root="props.field.options?.input ?? repoStore.config.object.media.input"
+          :defaultPath="props.field.options?.path ?? repoStore.config.object.media.path"
           :filterByCategories="props.field.options?.extensions ? undefined : [ 'image' ]"
           :filterByExtensions="props.field.options?.extensions"
           :isSelectable="true"
@@ -69,6 +64,7 @@
 </template>
 
 <script setup>
+// TODO: review the need for the validate() method (unclear if it's needed)
 import { ref, computed, inject, watch, onMounted } from 'vue';
 import Draggable from 'vuedraggable';
 import useSchema from '@/composables/useSchema';
@@ -76,6 +72,7 @@ import githubImg from '@/services/githubImg';
 import FileBrowser from '@/components/FileBrowser.vue';
 import Icon from '@/components/utils/Icon.vue';
 import Modal from '@/components/utils/Modal.vue';
+import Image from '@/components/file/Image.vue';
 
 const { sanitizeObject } = useSchema();
 
@@ -90,14 +87,11 @@ const props = defineProps({
   options: { type: Object, default: {} },
 });
 
-const imageSelection = ref([]);
-const selectImageModal = ref(null);
-const previewUrls = ref({});
-const activeImgIndex = ref(null);
 const internalModelValue = ref([]);
-const fileBrowserComponent = ref(null);
-const prefixInput = ref(props.field.options?.input || repoStore.config.media.input || null);
-const prefixOutput = ref(props.field.options?.output || repoStore.config.media.output || null);
+const imageSelection = ref([]);
+const activeImgIndex = ref(null);
+const prefixInput = ref(props.field.options?.input ?? repoStore.config.object.media.input ?? null);
+const prefixOutput = ref(props.field.options?.output ?? repoStore.config.object.media.output ?? null);
 const selectMax = computed(() => {
   if (props.field.list) {
     if (props.field.list.max) {
@@ -113,20 +107,13 @@ const selectMax = computed(() => {
     return 1;
   }
 });
-
-const getPreviewUrl = async (path) => {
-  if (!previewUrls[path]) {
-    previewUrls.value[path] = await githubImg.getRawUrl(repoStore.owner, repoStore.repo, repoStore.branch, path, repoStore.details.private);
-  }
-};
+const selectImageModal = ref(null);
+const fileBrowserComponent = ref(null);
 
 const confirmImageSelection = () => {
   if (imageSelection.value.length > 0) {
     const insertIndex = activeImgIndex.value !== null ? activeImgIndex.value : internalModelValue.value.length;
     internalModelValue.value.splice(insertIndex, activeImgIndex.value !== null ? 1 : 0, ...imageSelection.value);
-    imageSelection.value.forEach(selectedImage => {
-      getPreviewUrl(selectedImage);
-    });
     activeImgIndex.value = null;
     imageSelection.value = [];
     fileBrowserComponent.value.selectFile();
@@ -154,12 +141,12 @@ const addImage = () => {
 
 const setImages = () => {  
   if (props.modelValue) {
-    // We guarantee that internally the field only deals with lists
+    // For simplicity, we internally deal with an array whether it's a list or not
     internalModelValue.value = props.field.list ? props.modelValue : [ props.modelValue ];
     internalModelValue.value = internalModelValue.value.filter(entry => sanitizeObject(entry));
     internalModelValue.value.forEach((imagePath, index) => {
+      // For displaying images, we need the input value of the paths
       internalModelValue.value[index] = githubImg.swapPrefix(imagePath, prefixOutput.value, prefixInput.value);
-      getPreviewUrl(internalModelValue.value[index]);
     });
   }
 };
@@ -172,11 +159,12 @@ watch(
   internalModelValue,
   (newValue) => {
     if (newValue) {
-      const modeValueWithPrefix = newValue.map((path) => githubImg.swapPrefix(path, prefixInput.value, prefixOutput.value));
+      // For saving the value, we swap the prefix from input to output
+      const modelValueOutput = newValue.map((path) => githubImg.swapPrefix(path, prefixInput.value, prefixOutput.value));
       if (props.field.list) {
-        emit('update:modelValue', modeValueWithPrefix);
+        emit('update:modelValue', modelValueOutput);
       } else {
-        emit('update:modelValue', modeValueWithPrefix[0]);
+        emit('update:modelValue', modelValueOutput[0]);
       }
     }
   },
