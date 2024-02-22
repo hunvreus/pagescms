@@ -21,8 +21,10 @@ export default function useSchema() {
       } else {
         if (content.hasOwnProperty(field.name)) {
           const fieldValue = content[field.name];
-          // Check if the field value is an array while the field is not a list or an object
-          if (!field.list && field.type !== 'object' && Array.isArray(fieldValue)) {
+          if (fieldValue === null) {
+            model[field.name] = getDefaultValue(field);
+          } else if (!field.list && field.type !== 'object' && Array.isArray(fieldValue)) {
+            // Check if the field value is an array while the field is not a list or an object
             model[field.name] = fieldValue.length > 0 ? fieldValue[0] : getDefaultValue(field);
           } else if (typeof fieldValue === 'object' && field.type !== 'object') {
             // Convert object to string

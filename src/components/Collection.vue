@@ -88,7 +88,7 @@
           <table class="table mb-4">
             <!-- Header s-->
             <thead>
-              <th v-for="field in view.config.fields" :class="[ field == view.config.primary ? 'primary-field' : '', `field-type-${fieldsSchemas[field]?.type}` ]">{{ fieldsSchemas[field].label }}</th>
+              <th v-for="field in view.config.fields" :class="[ field == view.config.primary ? 'primary-field' : '', `field-type-${fieldsSchemas[field]?.type}` ]">{{ fieldsSchemas[field]?.label }}</th>
               <th class="actions">&nbsp;</th>
             </thead>
             <tbody>
