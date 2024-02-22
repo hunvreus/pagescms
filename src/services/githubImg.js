@@ -49,7 +49,7 @@ const getRawUrl = async (owner, repo, branch, path, isPrivate = false) => {
       delete state.requests[parentFullPath];
     }
     
-    return state.cache[parentFullPath].files[filename];
+    return state.cache[parentFullPath]?.files?.[filename];
   } else {
     return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${encodeURI(path)}`;
   }
