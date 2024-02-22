@@ -484,7 +484,7 @@ const setCollection = async () => {
     if (file.type === 'blob' && (extension.value === '' || file.name.endsWith(`.${extension.value}`))) {
       let parsed;
       try {
-        parsed = frontmatter.parse(file.object.text, { format: format.value });
+        parsed = frontmatter.parse(file.object.text, { format: format.value, delimiters: schema.value.delimiters });
       } catch (error) {
         console.error(`Error parsing frontmatter for file "${file.path}":`, error);
         errorCount++;

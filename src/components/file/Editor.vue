@@ -3,19 +3,19 @@
   <template v-if="status == 'loading'">
     <div class="loading"></div>
   </template>
-  <!-- Config error -->
-  <template v-else-if="status == 'error'">
+  <!-- File missing error (collection) -->
+  <template v-else-if="status == 'no-file-collection'">
     <div class="error h-screen">
       <div class="text-center max-w-md">
-        <h1 class="font-semibold text-2xl mb-2">Uh-oh! Something went wrong.</h1>
-        <p class="text-neutral-400 mb-6">Make sure things are properly configured and that your connection is working.</p>
+        <h1 class="font-semibold text-2xl mb-2">Nope, file's not here.</h1>
+        <p class="text-neutral-400 mb-6">It may have moved or been deleted. Make sure as well things are properly configured and that your connection is working.</p>
         <div class="flex gap-x-2 justify-center">
-          <router-link class="btn-primary" :to="{ name: 'settings' }">Review settings</router-link>
+          <router-link class="btn-primary" :to="{ name: 'content' }">Take me out of here</router-link>
         </div>
       </div>
     </div>
   </template>
-  <!-- File missing error -->
+  <!-- File missing error (single file) -->
   <template v-else-if="status == 'no-file'">
     <div class="error h-screen">
       <div class="text-center max-w-md">
@@ -319,8 +319,7 @@ const setEditor = async () => {
       if (schema.value.type === 'file') {
         status.value = 'no-file';
       } else {
-        notifications.notify(`Failed to retrieve the file at "${props.path}".`, 'error');
-        status.value = 'error';
+        status.value = 'no-file-collection';
       }
       return;
     } else {
@@ -371,7 +370,7 @@ const setEditor = async () => {
       case 'yaml-frontmatter':
       case 'json-frontmatter':
       case 'toml-frontmatter':
-        contentObject = (content) ? frontmatter.parse(content, { format: mode.value } ) : {};
+        contentObject = (content) ? frontmatter.parse(content, { format: mode.value, delimiters: schema.value.delimiters } ) : {};
         break;
       case 'yaml':
         contentObject = (content) ? YAML.parse(content, { strict: false }) : {};
@@ -422,7 +421,7 @@ const validateFields = () => {
     errors.push(...fieldRef.validate());
   });
   status.value = '';
-  
+
   return errors;
 };
 
@@ -430,7 +429,6 @@ const save = async () => {
   // We run validation first
   const validationErrors = validateFields();
   if (validationErrors.length > 0) {
-    console.log(validationErrors);
     notifications.notify('Uh-oh! Some of your fields have issues. Please check for errors.', 'error');
     return;
   }
@@ -447,7 +445,7 @@ const save = async () => {
     case 'yaml-frontmatter':
     case 'json-frontmatter':
     case 'toml-frontmatter':
-      content = frontmatter.stringify(content, { format: mode.value });
+      content = frontmatter.stringify(content, { format: mode.value, delimiters: schema.value.delimiters });
       break;
     case 'yaml':
       content = YAML.stringify(content);

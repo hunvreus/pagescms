@@ -10,8 +10,8 @@ const parse = (content = '', options = {}) => {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
   const format = options.format || 'yaml-frontmatter';
-  const delimiter = setDelimiter(options.delimiter, options.format);
-  const frontmatterRegex = new RegExp(`^(${escapeRegExp(delimiter[0])}(?:\\n|\\r)?([\\s\\S]+?)(?:\\n|\\r)?${escapeRegExp(delimiter[1])})\\n*([\\s\\S]*)`);
+  const delimiters = setDelimiter(options.delimiters, options.format);
+  const frontmatterRegex = new RegExp(`^(${escapeRegExp(delimiters[0])}(?:\\n|\\r)?([\\s\\S]+?)(?:\\n|\\r)?${escapeRegExp(delimiters[1])})\\n*([\\s\\S]*)`);
   const match = frontmatterRegex.exec(content);
 
   let object;
@@ -36,43 +36,44 @@ const parse = (content = '', options = {}) => {
 
 const stringify = (object = {}, options = {}) => {
   const format = options.format || 'yaml-frontmatter';
-  const delimiter = setDelimiter(options.delimiter, options.format);
-  const body = object.body || '';
-  delete object.body;
+  const delimiters = setDelimiter(options.delimiters, options.format);
+  let objectCopy = JSON.parse(JSON.stringify(object));
+  const body = objectCopy.body || '';
+  delete objectCopy.body;
 
   let frontmatterContent;
   switch (format.toLowerCase()) {
     case 'toml-frontmatter':
-      frontmatterContent = TOML.stringify(object, { newline: '\n'}).trim();
+      frontmatterContent = TOML.stringify(objectCopy, { newline: '\n'}).trim();
       break;
     case 'json-frontmatter':
-      frontmatterContent = JSON.stringify(object, null, 2);
+      frontmatterContent = JSON.stringify(objectCopy, null, 2);
       break;
     case 'yaml-frontmatter':
     default:
-      frontmatterContent = YAML.stringify(object);
+      frontmatterContent = YAML.stringify(objectCopy);
   }
 
-  return `${delimiter[0]}\n${frontmatterContent}\n${delimiter[1]}\n${body}`;
+  return `${delimiters[0]}\n${frontmatterContent.trim()}\n${delimiters[1]}\n${body}`;
 };
 
-const setDelimiter = (delimiter, format) => {
-  if (delimiter === undefined) {
+const setDelimiter = (delimiters, format) => {
+  if (delimiters === undefined) {
     switch (format) {
       case 'toml-frontmatter':
-        delimiter = '+++';
+        delimiters = '+++';
         break;
       case 'json-frontmatter':
       case 'yaml-frontmatter':
       default:
-        delimiter = '---';
+        delimiters = '---';
     }
   }
-  if (typeof delimiter === 'string') {
-    delimiter = [delimiter, delimiter];
+  if (typeof delimiters === 'string') {
+    delimiters = [delimiters, delimiters];
   }
   
-  return delimiter;
+  return delimiters;
 };
 
 export default { parse, stringify };

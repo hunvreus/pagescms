@@ -213,7 +213,7 @@ const setRepo = async () => {
   // Check if the repo exists and retrieve the repo details (private/public, branches, etc)
   const repoDetails = await github.getRepo(props.owner, props.repo);
   if (!repoDetails) {
-    notifications.notify(`The repo "${props.owner}/${props.repo}" doesn't exist.`, 'error');
+    notifications.notify(`The repo "${props.owner}/${props.repo}" doesn't exist.`, 'error', { delay: 10000 });
     router.push({ name: 'home' });
     return;
   } else {

@@ -18,7 +18,7 @@ addErrors(ajv);
 const ajvValidate = ajv.compile(validationSchema);
 
 // Validate a parsed config against our schema (src/assets/validationSchema.js)
-const validate = (document, filterOneOf = false) => {
+const validate = (document, filterOneOf = true) => {
   const valid = ajvValidate(document.toJSON());
   const errors = ajvValidate.errors ? JSON.parse(JSON.stringify(ajvValidate.errors)) : null;
   let validation = [];
@@ -28,19 +28,22 @@ const validate = (document, filterOneOf = false) => {
       const yamlPath = error.instancePath ? error.instancePath.substring(1).split('/').map(segment => isNaN(segment) ? segment : parseInt(segment, 10)) : [];
       const yamlNode = document.getIn(yamlPath, true);
       let range;
+      let message;
       if (error.keyword === 'additionalProperties') {
         // For additionalProperties errors, we need the key range
         const parentNode = yamlNode && yamlNode.items && yamlNode.items.find(item => item.key.value === error.params.additionalProperty)
         range = parentNode ? parentNode.key.range : null;
+        message = `This field (${error.params.additionalProperty}) is not valid and will be ignored.`;
       } else {
         range = yamlNode && yamlNode.range ? yamlNode.range : null;
+        message = error.message;
       }
 
       return {
         severity: (error.keyword === 'additionalProperties') ? 'warning' : 'error',
         from: range ? range[0] : null,
         to: range ? range[1] : null,
-        message: error.message,
+        message: message,
         ajv: error,
       };
     });
@@ -57,7 +60,7 @@ const validate = (document, filterOneOf = false) => {
 // Retrieve, parse and validate the repo config (.pages.yml), then save it in state
 const set = async (owner, repo, branch) => {
   const file = await github.getFile(owner, repo, branch, '.pages.yml');
-
+  
   if (!file) {
     flush(owner, repo, branch);
     return;

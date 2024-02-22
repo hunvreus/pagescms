@@ -50,8 +50,7 @@ const validationSchema = {
             "required": {
               "input": "Property 'input' is required.",
               "output": "Property 'output' is required."
-            },
-            "additionalProperties": "No additional properties are allowed in 'media'."
+            }
           }
         }
       ],
@@ -72,7 +71,6 @@ const validationSchema = {
     }
   },
   "additionalProperties": false,
-  "errorMessage": "Only 'media', 'content', and 'settings' properties are allowed.",
   "definitions": {
     "contentObject": {
       "type": "object",
@@ -173,18 +171,34 @@ const validationSchema = {
                   "errorMessage": "Property 'default.order' must be 'asc' or 'desc' if specified."
                 }
               },
-              "additionalProperties": false,
-              "errorMessage": "No additional properties are allowed in 'view.default'."
+              "additionalProperties": false
             }
           },
-          "additionalProperties": false,
-          "errorMessage": "No additional properties are allowed in 'view'."
+          "additionalProperties": false
         },
         "format": {
           "type": ["string", "null"],
           "enum": ["yaml-frontmatter", "json-frontmatter", "toml-frontmatter", "yaml", "json", "toml", "datagrid", "code", "raw"],
           "errorMessage": "Property 'format' must be one of the specified formats: yaml-frontmatter, json-frontmatter, toml-frontmatter, yaml, json, toml, datagrid, code, raw."
         },
+        "delimiters": {
+          "oneOf": [
+            {
+              "type": "string",
+              "errorMessage": "If specified as a string, 'delimiters' must be a single string value."
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 2,
+              "maxItems": 2,
+              "errorMessage": "If specified as an array, 'delimiters' must contain exactly two string values."
+            }
+          ],
+          "errorMessage": "Property 'delimiters' must be either a string or an array of 2 strings."
+        },        
         "subfolders": {
           "type": ["boolean", "null"],
           "errorMessage": "Property 'subfolders' must be a boolean value if specified."
@@ -208,7 +222,7 @@ const validationSchema = {
           "path": "Property 'path' is required.",
           "fields": "Property 'fields' is required."
         },
-        "additionalProperties": "No additional properties are allowed in content objects."
+        "type": "Each content entry must be an object with 'name', 'label', 'type', 'path' and 'fields' attributes."
       }
     },
     "fieldObject": {
@@ -230,7 +244,8 @@ const validationSchema = {
               "enum": [false],
               "errorMessage": "Property 'label' can only be false to indicate absence of label."
             }
-          ]
+          ],
+          "errorMessage": "Property 'label' must be either `false` or a string."
         },
         "description": {
           "type": ["string", "null"],
@@ -300,8 +315,7 @@ const validationSchema = {
               "errorMessage": {
                 "required": {
                   "regex": "Property 'pattern.regex' is required when 'pattern' is an object."
-                },
-                "additionalProperties": "No additional properties are allowed in 'pattern'."
+                }
               }
             }
           ],
@@ -326,8 +340,7 @@ const validationSchema = {
         "required": {
           "name": "Property 'name' is required for each field.",
           "type": "Property 'type' is required for each field."
-        },
-        "additionalProperties": "No additional properties are allowed in field objects."
+        }
       }
     }
   }
