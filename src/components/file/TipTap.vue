@@ -33,6 +33,7 @@
             <div class="tooltip-top">Heading</div>
           </button>
           <button
+            v-if="repoStore.config.object.media !== undefined || (props.options?.input !== undefined && props.options?.output !== undefined)"
             @click="imageSelection = []; selected = editor.isActive('image') ? githubImg.getRelativeUrl(repoStore.owner, repoStore.repo, repoStore.branch, editor.getAttributes('image').src) : null; imageModal.openModal();"
             class="tiptap-control group relative"
             :class="{ 'tiptap-control-active': editor.isActive('image') }"
@@ -131,9 +132,6 @@
                 </button>
               </li>
               <li>
-                
-              </li>
-              <li>
                 <button class="link w-full"
                   @click="editor.chain().focus().toggleBlockquote().run()"
                   :disabled="!editor.can().chain().focus().toggleBlockquote().run()"
@@ -187,8 +185,8 @@
           :owner="repoStore.owner"
           :repo="repoStore.repo"
           :branch="repoStore.branch"
-          :root="props.options?.image?.input ?? repoStore.config.object.media.input"
-          :defaultPath="props.options?.image?.path ?? repoStore.config.object.media.path"
+          :root="props.options?.image?.input ?? repoStore.config.object.media?.input"
+          :defaultPath="props.options?.image?.path ?? repoStore.config.object.media?.path"
           :filterByCategories="props.options?.image?.extensions ? undefined : [ 'image' ]"
           :filterByExtensions="props.options?.image?.extensions"
           :selected="selected"
@@ -270,9 +268,9 @@ const selected = ref(null);
 const isEditorFocused = ref(false);
 const status = ref('loading');
 const isCodeEditor = ref(false);
-const prefixInput = ref(props.options?.input ?? repoStore.config.object.media.input ?? null);
-const prefixOutput = ref(props.options?.output ?? repoStore.config.object.media.output ?? null);
-const uploadPath = ref(props.options?.image?.path ?? repoStore.config.object.media.path ?? props.options?.image?.input ?? repoStore.config.object.media.input ?? '');
+const prefixInput = ref(props.options?.input ?? repoStore.config.object.media?.input ?? null);
+const prefixOutput = ref(props.options?.output ?? repoStore.config.object.media?.output ?? null);
+const uploadPath = ref(props.options?.path ?? repoStore.config.object.media?.path ?? props.options?.input ?? repoStore.config.object.media?.input ?? '');
 const fileBrowserComponent = ref(null);
 
 const turndownService = new TurndownService({ headingStyle: 'atx' });
