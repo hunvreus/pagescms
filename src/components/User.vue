@@ -1,9 +1,9 @@
 <template>
-  <Dropdown :elementClass="'dropdown-top flex-shrink'" :dropdownClass="'!max-w-none w-32'">
+  <Dropdown :elementClass="'dropdown-top flex-shrink'" :dropdownClass="'!max-w-none w-32 !right-auto left-0'">
     <template #trigger>
       <button v-if="profile" class="btn max-w-[12.5rem] group-x[.dropdown-active]:bg-neutral-100 dark:group-[.dropdown-active]:bg-neutral-850">
         <img class="h-6 w-6 shrink-0 rounded-full -ml-1 lg:-ml-1.5" :src="profile.avatar_url" alt="Profile picture"/>
-        <div class="text-left font-medium truncate">{{ profile.name }}</div>
+        <div class="text-left font-medium truncate">{{ profile.name || profile.login }}</div>
         <Icon name="ChevronsUpDown" class="h-4 w-4 stroke-2 shrink-0 -mr-1 lg:-mr-1.5"/>
       </button>
     </template>
