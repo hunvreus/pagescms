@@ -386,8 +386,8 @@ const formatField = (field, value) => {
   if (!fieldSchema) return value;
   switch (fieldSchema.type) {
     case 'image':
-      const prefixInput = fieldSchema.options?.input ?? props.config.media.input ?? null;
-      const prefixOutput = fieldSchema.options?.output ?? props.config.media.output ?? null;
+      const prefixInput = fieldSchema.options?.input ?? props.config.media?.input ?? null;
+      const prefixOutput = fieldSchema.options?.output ?? props.config.media?.output ?? null;
       const imgPath = Array.isArray(value) ? value[0] : value;
       return githubImg.swapPrefix(imgPath, prefixOutput, prefixInput);
     case 'date':
@@ -486,7 +486,7 @@ const setCollection = async () => {
       try {
         parsed = frontmatter.parse(file.object.text, { format: format.value, delimiters: schema.value.delimiters });
       } catch (error) {
-        console.error(`Error parsing frontmatter for file "${file.path}":`, error);
+        console.warn(`Error parsing frontmatter for file "${file.path}":`, error);
         errorCount++;
       }
       return {

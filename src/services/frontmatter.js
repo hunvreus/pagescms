@@ -40,21 +40,28 @@ const stringify = (object = {}, options = {}) => {
   let objectCopy = JSON.parse(JSON.stringify(object));
   const body = objectCopy.body || '';
   delete objectCopy.body;
-
+  
   let frontmatterContent;
-  switch (format.toLowerCase()) {
-    case 'toml-frontmatter':
-      frontmatterContent = TOML.stringify(objectCopy, { newline: '\n'}).trim();
-      break;
-    case 'json-frontmatter':
-      frontmatterContent = JSON.stringify(objectCopy, null, 2);
-      break;
-    case 'yaml-frontmatter':
-    default:
-      frontmatterContent = YAML.stringify(objectCopy);
+  if (Object.keys(objectCopy).length === 0) {
+    // If the object is empty, we just return an empty frontmatter
+    frontmatterContent = '';
+  } else {
+    switch (format.toLowerCase()) {
+      case 'toml-frontmatter':
+        frontmatterContent = TOML.stringify(objectCopy, { newline: '\n'}).trim();
+        break;
+      case 'json-frontmatter':
+        frontmatterContent = JSON.stringify(objectCopy, null, 2);
+        break;
+      case 'yaml-frontmatter':
+      default:
+        frontmatterContent = YAML.stringify(objectCopy);
+    }
+    frontmatterContent = `${frontmatterContent.trim()}\n`; // Make sure it ends with a newline
   }
-
-  return `${delimiters[0]}\n${frontmatterContent.trim()}\n${delimiters[1]}\n${body}`;
+  
+  
+  return `${delimiters[0]}\n${frontmatterContent}${delimiters[1]}\n${body}`;
 };
 
 const setDelimiter = (delimiters, format) => {
