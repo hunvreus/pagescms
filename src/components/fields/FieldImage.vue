@@ -39,8 +39,8 @@
           :owner="repoStore.owner"
           :repo="repoStore.repo"
           :branch="repoStore.branch"
-          :root="props.field.options?.input ?? repoStore.config.object.media.input"
-          :defaultPath="props.field.options?.path ?? repoStore.config.object.media.path"
+          :root="props.field.options?.input ?? repoStore.config.object.media?.input"
+          :defaultPath="props.field.options?.path ?? repoStore.config.object.media?.path"
           :filterByCategories="props.field.options?.extensions ? undefined : [ 'image' ]"
           :filterByExtensions="props.field.options?.extensions"
           :isSelectable="true"
@@ -90,8 +90,8 @@ const props = defineProps({
 const internalModelValue = ref([]);
 const imageSelection = ref([]);
 const activeImgIndex = ref(null);
-const prefixInput = ref(props.field.options?.input ?? repoStore.config.object.media.input ?? null);
-const prefixOutput = ref(props.field.options?.output ?? repoStore.config.object.media.output ?? null);
+const prefixInput = ref(props.field.options?.input ?? repoStore.config.object.media?.input ?? null);
+const prefixOutput = ref(props.field.options?.output ?? repoStore.config.object.media?.output ?? null);
 const selectMax = computed(() => {
   if (props.field.list) {
     if (props.field.list.max) {
