@@ -366,21 +366,27 @@ const setEditor = async () => {
 
   let contentObject = {};
   try {
-    switch (mode.value) {
-      case 'yaml-frontmatter':
-      case 'json-frontmatter':
-      case 'toml-frontmatter':
-        contentObject = (content) ? frontmatter.parse(content, { format: mode.value, delimiters: schema.value.delimiters } ) : {};
-        break;
-      case 'yaml':
-        contentObject = (content) ? YAML.parse(content, { strict: false }) : {};
-        break;
-      case 'json':
-        contentObject = (content) ? JSON.parse(content) : {};
-        break;
-      case 'toml':
-        contentObject = (content) ? TOML.parse(content) : {};
-        break;
+    // TODO: Move all YAML/JSON/TOML logic to one service
+    if (!content.trim()) {
+      contentObject = {};
+    } else {
+      switch (mode.value) {
+        case 'yaml-frontmatter':
+        case 'json-frontmatter':
+        case 'toml-frontmatter':
+          contentObject = frontmatter.parse(content, { format: mode.value, delimiters: schema.value.delimiters });
+          break;
+        case 'yaml':
+          contentObject = YAML.parse(content, { strict: false });
+          break;
+        case 'json':
+          contentObject = JSON.parse(content);
+          break;
+        case 'toml':
+          const tomlObject = TOML.parse(content, 1.0, '\n', false);
+          contentObject = JSON.parse(JSON.stringify(tomlObject));
+          break;
+      }
     }
   } catch (error) {
     console.error('Error parsing frontmatter:', error);
@@ -441,21 +447,26 @@ const save = async () => {
   }
   // Sanitize the object and stringify it
   content = sanitizeObject(content);
-  switch (mode.value) {
-    case 'yaml-frontmatter':
-    case 'json-frontmatter':
-    case 'toml-frontmatter':
-      content = frontmatter.stringify(content, { format: mode.value, delimiters: schema.value.delimiters });
-      break;
-    case 'yaml':
-      content = YAML.stringify(content);
-      break;
-    case 'json':
-      content = JSON.stringify(content, null, 2);
-      break;
-    case 'toml':
-      content = TOML.stringify(content, null, 2);
-      break;
+  if (Object.keys(content).length === 0) {
+    // If the object is empty, we just return an empty string
+    content = '';
+  } else {
+    switch (mode.value) {
+      case 'yaml-frontmatter':
+      case 'json-frontmatter':
+      case 'toml-frontmatter':
+        content = frontmatter.stringify(content, { format: mode.value, delimiters: schema.value.delimiters });
+        break;
+      case 'yaml':
+        content = YAML.stringify(content);
+        break;
+      case 'json':
+        content = JSON.stringify(content, null, 2);
+        break;
+      case 'toml':
+        content = TOML.stringify(content, null, 2);
+        break;
+    }
   }
   
   try {

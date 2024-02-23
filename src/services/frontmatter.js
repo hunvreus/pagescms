@@ -15,19 +15,24 @@ const parse = (content = '', options = {}) => {
   const match = frontmatterRegex.exec(content);
 
   let object;
-  
-  switch (format) {
-    case 'toml-frontmatter':
-      const tomlObject = match[2] ? TOML.parse(match[2], 1.0, '\n', false) : {};
-      object = JSON.parse(JSON.stringify(tomlObject));
-      break;
-    case 'json-frontmatter':
-      object = match[2] ? JSON.parse(match[2]) : {};
-      break;
-    case 'yaml-frontmatter':
-    default:
-      object = match[2] ? YAML.parse(match[2], { strict: false, uniqueKeys: false }) : {};
+  if (!match[2].trim()) {
+    // Empty frontmatter
+    object = {};
+  } else {
+    switch (format) {
+      case 'toml-frontmatter':
+        const tomlObject = TOML.parse(match[2], 1.0, '\n', false);
+        object = JSON.parse(JSON.stringify(tomlObject));
+        break;
+      case 'json-frontmatter':
+        object = JSON.parse(match[2]);
+        break;
+      case 'yaml-frontmatter':
+      default:
+        object = YAML.parse(match[2], { strict: false, uniqueKeys: false });
+    }
   }
+  
   object['body'] = match[3] || '';
   object['body'] = object['body'].replace(/^\n/, '');
 

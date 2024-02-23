@@ -25,7 +25,7 @@ const { validateRequired, validatePattern, validateRange } = useFieldValidation(
 
 const props = defineProps({
   field: Object,
-  modelValue: String
+  modelValue: [ String, Number ]
 });
 
 const errors = ref([]);
