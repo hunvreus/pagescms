@@ -79,7 +79,7 @@
                       </router-link>
                     </li>
                   </template>
-                  <li v-if="repoStore.config?.object?.media">
+                  <li v-if="repoStore.config?.object?.media != null && repoStore.config?.object?.media.input != null && repoStore.config?.object?.media.output != null">
                     <router-link :to="{ name: 'media' }" @click="isSidebarActive = false" class="link">
                       <Icon name="Image" class="h-6 w-6 stroke-[1.5] shrink-0"/>
                       Media
