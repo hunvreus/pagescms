@@ -53,8 +53,8 @@ const stringify = (contentObject = {}, options = {}) => {
   const body = contentObjectCopy.body || '';
   delete contentObjectCopy.body;
   let frontmatter = serialize(contentObjectCopy, format.split('-')[0]);
-  frontmatter = (frontmatter.trim()) ? frontmatter.trim() + '\n' : '';
-  console.log('frontmatter', frontmatter);
+  frontmatter = (frontmatter.trim()) ? frontmatter.trim() + '\n' : ''; // Make sure we don't have extra newlines
+  
   return `${delimiters[0]}\n${frontmatter}${delimiters[1]}\n${body}`;
 };
 

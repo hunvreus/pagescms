@@ -85,7 +85,6 @@
         </div>
         <!-- Content table -->
         <template v-if="parentFolder || viewContents.folders || viewContents.files">
-          <pre>{{ format }}</pre>
           <table class="table mb-4">
             <!-- Header s-->
             <thead>
@@ -95,7 +94,7 @@
             <tbody>
               <!-- Go to parent -->
               <tr v-if="parentFolder" class="h-[47px]">
-                <td :colspan="view.config.fields.length + 1" class="folder">
+                <td colspan="100%" class="folder">
                   <router-link :to="parentFolder" class="flex gap-x-2 items-center font-medium">
                     <Icon name="CornerLeftUp" class="h-4 w-4 stroke-2 shrink-0"/>
                     ..
@@ -103,33 +102,12 @@
                 </td>
               </tr>
               <!-- Subfolders -->
-              <tr v-for="item in viewContents.folders" :key="item.name" v-if="schema.subfolders !== false">
-                <td :colspan="view.config.fields.length" class="folder">
+              <tr v-for="item in viewContents.folders" :key="item.name" v-if="schema.subfolders !== false" class="h-[47px]">
+                <td colspan="100%" class="folder">
                   <router-link :to="{ name: $route.name, query: { ...$route.query, folder: item.path } }" class="flex gap-x-2 items-center font-medium">
                     <Icon name="Folder" class="h-4 w-4 stroke-2 shrink-0"/>
                     <div class="truncate">{{ item.name }}</div>
                   </router-link>
-                </td>
-                <td class="actions text-right">
-                  <div class="inline-flex">
-                    <Dropdown :dropdownClass="'!max-w-none w-52'">
-                      <template #trigger>
-                        <button class="btn-icon-sm group-[.dropdown-active]:bg-neutral-100 dark:group-[.dropdown-active]:bg-neutral-850">
-                          <Icon name="MoreVertical" class="h-4 w-4 stroke-2 shrink-0"/>
-                        </button>
-                      </template>
-                      <template #content>
-                        <ul>
-                          <li>
-                            <a class="link w-full" :href="`https://github.com/${props.owner}/${props.repo}/blob/${props.branch}/${item.path}`" target="_blank">
-                              <div class="truncate">See folder on GitHub</div>
-                              <Icon name="ExternalLink" class="h-4 w-4 stroke-2 shrink-0 ml-auto text-neutral-400 dark:text-neutral-500"/>
-                            </a>
-                          </li>
-                        </ul>
-                      </template>
-                    </Dropdown>
-                  </div>
                 </td>
               </tr>
               <!-- Entry -->
@@ -246,6 +224,8 @@ import AddFolder from '@/components/file/AddFolder.vue';
 import Rename from '@/components/file/Rename.vue';
 import Delete from '@/components/file/Delete.vue';
 import Image from '@/components/file/Image.vue';
+
+const serializedTypes = ['yaml-frontmatter', 'json-frontmatter', 'toml-frontmatter', 'yaml', 'json', 'toml'];
 
 const route = useRoute();
 const { getDateFromFilename } = useSchema();
@@ -409,7 +389,7 @@ const formatField = (field, value) => {
       const prefixInput = fieldSchema.options?.input ?? props.config.media?.input ?? null;
       const prefixOutput = fieldSchema.options?.output ?? props.config.media?.output ?? null;
       const imgPath = Array.isArray(value) ? value[0] : value;
-      return githubImg.swapPrefix(imgPath, prefixOutput, prefixInput, 'to');
+      return githubImg.swapPrefix(imgPath, prefixOutput, prefixInput, true);
     case 'date':
       const defaultInputFormat = fieldSchema.options?.time ? 'YYYY-MM-DDTHH:mm' : 'YYYY-MM-DD';
       const outputFormat = fieldSchema.options?.time ? 'MMM D, YYYY - HH:mm' : 'MMM D, YYYY';
@@ -501,23 +481,25 @@ const setCollection = async () => {
   let errorCount = 0;
   collection.value = files.map(file => {
     if (file.type === 'blob' && (extension.value === '' || file.name.endsWith(`.${extension.value}`))) {
-      let parsed = {};
-      try {
-        parsed = serialization.parse(file.object.text, { format: format.value, delimiters: schema.value.delimiters });
-      } catch (error) {
-        console.warn(`Error parsing frontmatter for file "${file.path}":`, error);
-        errorCount++;
+      let contentObject = {};
+      if (serializedTypes.includes(format.value) && schema.value?.fields) {
+        try {
+          contentObject = serialization.parse(file.object.text, { format: format.value, delimiters: schema.value.delimiters });
+        } catch (error) {
+          console.warn(`Error parsing frontmatter for file "${file.path}":`, error);
+          errorCount++;
+        }
       }
       if (!schema.value.fields || schema.value.fields.length === 0) {
         // If no fields are defined in the schema, we fake a filename field
-        parsed.filename = file.name;
+        contentObject.filename = file.name;
       }
-      if (!parsed.date && (!schema.value.filename || schema.value.filename.startsWith('{year}-{month}-{day}'))) {
+      if (!contentObject.date && (!schema.value.filename || schema.value.filename.startsWith('{year}-{month}-{day}'))) {
         // If we couldn't get a date from the content and filenames have a date, we extract it
         const filenameDate = getDateFromFilename(file.name);
         if (filenameDate) {
           const dateFormat = fieldsSchemas.value['date']?.options?.format ?? 'YYYY-MM-DD';
-          parsed.date = dayjs(filenameDate.string, 'YYYY-MM-DD').format(dateFormat);
+          contentObject.date = dayjs(filenameDate.string, 'YYYY-MM-DD').format(dateFormat);
         }
       }
 
@@ -526,7 +508,7 @@ const setCollection = async () => {
         filename: file.name,
         path: file.path,
         content: file.object.text,
-        fields: parsed,
+        fields: contentObject,
         type: file.type,
       };
     } else if (file.type === 'tree') {

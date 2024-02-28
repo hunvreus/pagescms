@@ -17,8 +17,8 @@
             <Dropdown>
               <template #trigger>
                 <button class="btn group-[.dropdown-active]:bg-neutral-100 dark:group-[.dropdown-active]:bg-neutral-850 w-full">
-                  <div class="flex items-center gap-x-3 w-full truncate">
-                    <img class="h-10 w-10 rounded-lg -ml-1 lg:-ml-1.5" :src="'https://github.com/' + props.owner + '.png'" alt="Owner's avatar"/>
+                  <div class="flex items-center gap-x-3 w-full truncate -ml-1 lg:-ml-1.5">
+                    <img class="h-10 w-10 rounded-lg" :src="'https://github.com/' + props.owner + '.png'" alt="Owner's avatar"/>
                     <div class="text-left overflow-hidden">
                       <div class="font-medium truncate">{{ props.repo }}</div>
                       <div class="truncate text-xs">{{ props.branch }}</div>

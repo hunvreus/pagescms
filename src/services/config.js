@@ -26,7 +26,7 @@ addErrors(ajv);
 const ajvValidate = ajv.compile(validationSchema);
 
 // Validate a parsed config against our schema (src/assets/validationSchema.js)
-const validate = (document, filterOneOf = false, filterIf = false) => {
+const validate = (document, filterOneOf = false, filterIf = true) => {
   const valid = ajvValidate(document.toJSON());
   const errors = ajvValidate.errors ? JSON.parse(JSON.stringify(ajvValidate.errors)) : null;
   let validation = [];
@@ -96,7 +96,7 @@ const set = async (owner, repo, branch) => {
       entry.object = entry.document.toJSON();
 
       // Normalize `media`
-      if (entry.object.media != null) {
+      if (entry.object?.media != null) {
         if (typeof entry.object.media === 'string') {
           // Ensure media.input is a relative path and set
           const relativePath = entry.object.media.replace(/^\/|\/$/g, '');
@@ -117,7 +117,7 @@ const set = async (owner, repo, branch) => {
       }
 
       // Normalize `content`
-      if (entry.object.content?.length > 0) {
+      if (entry.object?.content?.length > 0) {
         entry.object.content = entry.object.content.map(item => {
           if (item.path != null) {
             item.path = item.path.replace(/^\/|\/$/g, '');

@@ -303,7 +303,8 @@ const insertImage = async () => {
 
 const importContent = async (content) => {
   let htmlContent = (props.format == 'markdown') ? marked(content) : content;
-  htmlContent = githubImg.htmlSwapPrefix(htmlContent, prefixOutput.value, prefixInput.value, 'to');
+  htmlContent = githubImg.htmlSwapPrefix(htmlContent, prefixOutput.value, prefixInput.value, true);
+  // TODO: find a way to display spinner while the files are being loaded.
   htmlContent = await githubImg.relativeToRawUrls(repoStore.owner, repoStore.repo, repoStore.branch, htmlContent, repoStore.details.private);
 
   return htmlContent;

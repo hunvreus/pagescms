@@ -571,8 +571,7 @@ fieldset .field:last-child {
 }
 
 .table th.primary-field,
-.table td.primary-field,
-.table td.folder {
+.table td.primary-field {
   @apply max-w-[1px] w-full truncate;
 }
 
@@ -590,7 +589,7 @@ fieldset .field:last-child {
 }
 
 .table td.primary-field {
-  @apply font-medium;
+  @apply font-medium max-lg:!pl-0;
 }
 
 .table td.field-type-image > div {

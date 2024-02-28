@@ -171,6 +171,8 @@ import Delete from '@/components/file/Delete.vue';
 import History from '@/components/file/History.vue';
 import Rename from '@/components/file/Rename.vue';
 
+const serializedTypes = ['yaml-frontmatter', 'json-frontmatter', 'toml-frontmatter', 'yaml', 'json', 'toml'];
+
 const route = useRoute();
 const router = useRouter();
 const { createModel, sanitizeObject, getSchemaByName, generateFilename, renderDescription } = useSchema();
@@ -317,33 +319,33 @@ const setEditor = async () => {
       content = Base64.decode(file.value.content);
     }
   }
-    
-  let contentObject = {};
-  try {
-    // Parse the content into an object
-    contentObject = serialization.parse(content, { format: mode.value, delimiters: schema.value.delimiters });
-  } catch (error) {
-    console.error('Error parsing frontmatter:', error);
-    const options = {
-      delay: 10000,
-      actions: [{
-        label: 'Review settings',
-        handler: () => router.push({ name: 'settings' }),
-        primary: true
-      }]
-    };
-    notifications.notify(`Failed to parse the file at "${props.path}", your settings may be wrong. Switching to raw editor.`, 'error', options);
-    // We can't parse the content, we switch to the raw editor.
-    mode.value = 'raw';
-  }
-
-  // For YAML and JSON files, if schema.list is true we wrap the model and fields into an extra "listWrapper" object
-  if (['yaml', 'json', 'toml'].includes(mode.value) && schema.value && schema.value.fields && schema.value.list) {
-    schema.value.fields = [{ name: 'listWrapper', type: 'object', list: true, label: false, fields: schema.value.fields }];
-    contentObject = { listWrapper: contentObject };
-  }
   
-  if (['yaml-frontmatter', 'json-frontmatter', 'toml-frontmatter', 'yaml', 'json', 'toml'].includes(mode.value) && schema.value && schema.value.fields) {
+  if (serializedTypes.includes(mode.value) && schema.value?.fields) {
+    let contentObject = {};
+    try {
+      // Parse the content into an object
+      contentObject = serialization.parse(content, { format: mode.value, delimiters: schema.value.delimiters });
+    } catch (error) {
+      console.error('Error parsing frontmatter:', error);
+      const options = {
+        delay: 10000,
+        actions: [{
+          label: 'Review settings',
+          handler: () => router.push({ name: 'settings' }),
+          primary: true
+        }]
+      };
+      notifications.notify(`Failed to parse the file at "${props.path}", your settings may be wrong. Switching to raw editor.`, 'error', options);
+      // We can't parse the content, we switch to the raw editor.
+      mode.value = 'raw';
+    }
+    
+    // For YAML and JSON files, if schema.list is true we wrap the model and fields into an extra "listWrapper" object
+    if (['yaml', 'json', 'toml'].includes(mode.value) && schema.value.list) {
+      schema.value.fields = [{ name: 'listWrapper', type: 'object', list: true, label: false, fields: schema.value.fields }];
+      contentObject = { listWrapper: contentObject };
+    }
+
     model.value = createModel(schema.value.fields, contentObject);
   } else {
     model.value = content;
@@ -374,14 +376,21 @@ const save = async () => {
   }
   // We're good to go
   status.value = 'saving';
-  let content = JSON.parse(JSON.stringify(model.value));
-  // For YAML and JSON files with schema.list set to true, we've wrapped the model and fields into an extra "listWrapper" object
-  if (['yaml', 'json', 'toml'].includes(mode.value) && schema.value && schema.value.fields && schema.value.list) {
-    content = model.value.listWrapper;
+
+  let content = '';
+  if (serializedTypes.includes(mode.value) && schema.value?.fields) {
+    let contentObject = JSON.parse(JSON.stringify(model.value));
+    // For YAML and JSON files with schema.list set to true, we've wrapped the model and fields into an extra "listWrapper" object
+    if (['yaml', 'json', 'toml'].includes(mode.value) && schema.value.list) {
+      contentObject = contentObject.listWrapper;
+    }
+    // Sanitize the object and stringify it
+    contentObject = sanitizeObject(contentObject);
+
+    content = serialization.stringify(contentObject, { format: mode.value, delimiters: schema.value?.delimiters });
+  } else {
+    content = model.value;
   }
-  // Sanitize the object and stringify it
-  content = sanitizeObject(content);
-  content = serialization.stringify(content, { format: mode.value, delimiters: schema.value.delimiters });
   
   try {
     // If it's a new file, we need to generate a filename

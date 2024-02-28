@@ -74,7 +74,7 @@ onMounted(() => {
     }),
   ];
   if (props.validation !== undefined) {
-    extensions.push(linter((view) => props.validation));
+    extensions.push(linter((view) => props.validation.filter(item => item.message)));
   }
   switch (props.language) {
     case 'yaml':
