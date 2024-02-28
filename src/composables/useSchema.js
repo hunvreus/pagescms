@@ -124,7 +124,7 @@ export default function useSchema() {
                      .replace(/\{second\}/g, dayjs().format('ss'));
   
     // Replace `{primary}` with the actual name of the primary field
-    const primaryField = (schema.view && schema.view.primary) || (model.hasOwnProperty('title') ? 'title' : schema.fields[0]?.name); // To check if model.
+    const primaryField = (schema.view && schema.view.primary) || (model.hasOwnProperty('title') ? 'title' : schema.fields?.[0]?.name); // To check if model.
     pattern = pattern.replace(new RegExp(`\\{primary\\}`, 'g'), primaryField ? `{fields.${primaryField}}` : '');
   
     // Replace field placeholders
@@ -134,6 +134,21 @@ export default function useSchema() {
     });
   };
 
+  function getDateFromFilename(filename) {
+    const pattern = /^(\d{4})-(\d{2})-(\d{2})-/;
+    const match = filename.match(pattern);
+  
+    if (match) {
+      const [ , year, month, day ] = match;
+      const date = new Date(`${year}-${month}-${day}`);
+      if (!isNaN(date.getTime())) {
+        return { year, month, day, string: `${year}-${month}-${day}` };
+      }
+    }
+
+    return undefined;
+  }
+
   const renderDescription = (markdown) => {
     let html = marked(markdown);
     html = insane(html);
@@ -141,5 +156,5 @@ export default function useSchema() {
     return html;
   };
 
-  return { createModel, getDefaultValue, sanitizeObject, getSchemaByPath, getSchemaByName, safeAccess, generateFilename, renderDescription };
+  return { createModel, getDefaultValue, sanitizeObject, getSchemaByPath, getSchemaByName, safeAccess, generateFilename, getDateFromFilename, renderDescription };
 }

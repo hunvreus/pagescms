@@ -10,7 +10,15 @@ import validationSchema from '@/assets/validationSchema.js';
 import YAML from 'yaml';
 import github from '@/services/github';
 
-// TODO: implement an invalidation mechanism for the cache (espcially for updates)
+const CONFIG_VERSION = '1.0'; // We increment this when there are schema logic changes
+const CONFIG_CACHE = (import.meta.env?.VITE_CONFIG_CACHE === 'false') ? false : true;
+// Flush the cache if disabled or if the version doesn't match
+const currentVersion = localStorage.getItem('configVersion') || '0';
+if (!CONFIG_CACHE || currentVersion !== CONFIG_VERSION) {
+  console.warn('Invalidating config cache.');
+  localStorage.removeItem('config');
+  localStorage.setItem('configVersion', CONFIG_VERSION);
+}
 const state = reactive(JSON.parse(localStorage.getItem('config')) || {});
 
 const ajv = new Ajv({ allErrors: true, allowUnionTypes: true });
@@ -18,7 +26,7 @@ addErrors(ajv);
 const ajvValidate = ajv.compile(validationSchema);
 
 // Validate a parsed config against our schema (src/assets/validationSchema.js)
-const validate = (document, filterOneOf = true) => {
+const validate = (document, filterOneOf = false, filterIf = false) => {
   const valid = ajvValidate(document.toJSON());
   const errors = ajvValidate.errors ? JSON.parse(JSON.stringify(ajvValidate.errors)) : null;
   let validation = [];
@@ -54,26 +62,30 @@ const validate = (document, filterOneOf = true) => {
       return !error.ajv.schemaPath.includes('/oneOf/') || error.ajv.schemaPath.endsWith('/oneOf');
     });
   }
+  if (filterIf) {
+    validation = validation.filter(error => {
+      return error.ajv.keyword !== 'if';
+    });
+  }
   return validation;
 };
 
 // Retrieve, parse and validate the repo config (.pages.yml), then save it in state
 const set = async (owner, repo, branch) => {
   const file = await github.getFile(owner, repo, branch, '.pages.yml');
-  
   if (!file) {
+    // No config file, we flush the cache if it exists
     flush(owner, repo, branch);
     return;
   }
-
   let entry = state[`${owner}/${repo}/${branch}`];
   if (!entry || entry.sha !== file.sha) {
+    // We only parse and validate if the file has changed
     entry = {
       sha: file.sha,
       content: Base64.decode(file.content),
       validation: [],
     };
-    
     if (entry.content.trim() === '') {
       // We skip parsing and validation if the file is empty
       entry.document = null;
@@ -82,17 +94,72 @@ const set = async (owner, repo, branch) => {
     } else {
       ({ document: entry.document, validation: entry.validation } = parse(owner, repo, branch, entry.content));
       entry.object = entry.document.toJSON();
+
+      // Normalize `media`
       if (entry.object.media != null) {
         if (typeof entry.object.media === 'string') {
-          // We need to ensure media,input is a relative path
+          // Ensure media.input is a relative path and set
           const relativePath = entry.object.media.replace(/^\/|\/$/g, '');
           entry.object.media = {
             input: relativePath,
             output: `/${relativePath}`,
           };
-        } else if (entry.object.media.input != null) {
-          entry.object.media.input = entry.object.media.input.replace(/^\/|\/$/g, '');
+        } else {
+          if (entry.object.media.input != null) {
+            // Make sure input is relative
+            entry.object.media.input = entry.object.media.input.replace(/^\/|\/$/g, '');
+          }
+          if (entry.object.media.output != null && entry.object.media.output !== '/') {
+            // Make sure output doesn't have a trailing slash
+            entry.object.media.output = entry.object.media.output.replace(/\/$/, '');
+          }
         }
+      }
+
+      // Normalize `content`
+      if (entry.object.content?.length > 0) {
+        entry.object.content = entry.object.content.map(item => {
+          if (item.path != null) {
+            item.path = item.path.replace(/^\/|\/$/g, '');
+          }
+          if (item.filename == null && item.type === 'collection') {
+            item.filename = '{year}-{month}-{day}-{primary}.md';
+          }
+          if (item.extension == null) {
+            const filename = item.type === 'file' ? item.path : item.filename;
+            item.extension = /(?:\.([^.]+))?$/.exec(filename)[1];
+          }
+          if (item.format == null) {
+            item.format = 'raw';
+            const codeExtensions = ['yaml', 'yml', 'javascript', 'js', 'jsx', 'typescript', 'ts', 'tsx', 'json', 'html', 'htm', 'markdown', 'md', 'mdx'];
+            if (item.fields?.length > 0) {
+              switch (item.extension) {
+                case 'json':
+                  item.format = 'json';
+                  break;
+                case 'toml':
+                  item.format = 'toml';
+                  break;
+                case 'yaml':
+                case 'yml':
+                  item.format = 'yaml';
+                  break;
+                default:
+                  // TODO: should we default to this or only consider 'markdown', 'md', 'mdx' and 'html'
+                  // This may catch things like csv or xml for example, which is acceptable IMHO (e.g. sitemap.xml)
+                  item.format = 'yaml-frontmatter';
+                  break;
+              }
+              
+            } else if (codeExtensions.includes(item.extension)) {
+              item.format = 'code';
+            } else if (item.extension === 'csv') {
+              // If you read this: datagrid is still a tad rough around the edges
+              item.format = 'datagrid';
+            }
+          }
+          return item;
+        });
       }
     }
   }

@@ -20,7 +20,7 @@ const validationSchema = {
             "output": {
               "type": "string",
               "pattern": "^/?[^/].*[^/]$|^/?$",
-              "errorMessage": "Property 'input' must be a valid path with no trailing slash."
+              "errorMessage": "Property 'output' must be a valid path with no trailing slash."
             },
             "path": {
               "type": "string",
@@ -45,16 +45,10 @@ const validationSchema = {
             }
           },
           "required": ["input", "output"],
-          "additionalProperties": false,
-          "errorMessage": {
-            "required": {
-              "input": "Property 'input' is required.",
-              "output": "Property 'output' is required."
-            }
-          }
+          "additionalProperties": false
         }
       ],
-      "errorMessage": "Property 'media' must be a string or an object with specific properties (see documentation)."
+      "errorMessage": "Property 'media' must be a string or an object with at least 'input' and 'output' properties."
     },
     "content": {
       "type": "array",
@@ -82,7 +76,7 @@ const validationSchema = {
         },
         "label": {
           "type": "string",
-          "errorMessage": "Property 'label' is required and must be a string."
+          "errorMessage": "Property 'label' must be a string."
         },
         "description": {
           "type": ["string", "null"],
@@ -212,15 +206,13 @@ const validationSchema = {
           "errorMessage": "Property 'fields' must be an array of field objects with at least one element."
         }
       },
-      "required": ["name", "label", "type", "path", "fields"],
+      "required": ["name", "type", "path"],
       "additionalProperties": false,
       "errorMessage": {
         "required": {
           "name": "Property 'name' is required.",
-          "label": "Property 'label' is required.",
           "type": "Property 'type' is required.",
           "path": "Property 'path' is required.",
-          "fields": "Property 'fields' is required."
         },
         "type": "Each content entry must be an object with 'name', 'label', 'type', 'path' and 'fields' attributes."
       }

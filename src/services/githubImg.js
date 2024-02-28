@@ -90,20 +90,36 @@ const rawToRelativeUrls = (owner, repo, branch, html) => {
 }
 
 // Swaps path prefixes (used for input/output path conversion)
-const swapPrefix = (path, from, to) => {
+// `relative` can be `from` or `to` and indicates which path is (must be) relative
+const swapPrefix = (path, from, to, relative = 'from') => {
   if (from === to) return path;
   let newPath = path;
   if (path != null && from != null && to != null) {
     if (newPath.startsWith(from) && !(from == '/' && newPath.startsWith('//')) && !newPath.startsWith('http://') && !newPath.startsWith('https://') && !newPath.startsWith('data:image/')) {
+      if (from === '' && to !== '' && !newPath.startsWith('/') && relative === 'from') newPath = `/${newPath}`; // From empty relative path
       newPath = newPath.replace(from, to);
+      if (from !== '' && to === '' && newPath.startsWith('/') && relative === 'to') newPath = newPath.substring(1); // To empty relative path
     }
   }
 
   return newPath;
 }
 
+const imageString = '/media/images/picture.png';
+const swapStrings = [
+  { from: '/media', to: ''},
+  { from: '', to: '/media'},
+  { from: '', to: 'media'},
+  { from: 'media', to: ''},
+];
+
+for (const swap of swapStrings) {
+  console.log('swapPrefix', imageString, swap.from, swap.to, swapPrefix(imageString, swap.from, swap.to));
+}
+
 // Swaps path prefixes (used for input/output path conversion) in an HTML string
-const htmlSwapPrefix = (html, from, to) => {
+// `relative` can be `from` or `to` and indicates which path is (must be) relative
+const htmlSwapPrefix = (html, from, to, relative = 'from') => {
   if (from === to) return html;
   let newHtml = html;
   if (html != null && from != null && to != null) {
@@ -112,7 +128,9 @@ const htmlSwapPrefix = (html, from, to) => {
       const src = match[1] || match[2];
       const quote = match[1] ? '"' : "'";
       if (src.startsWith(from) && !(from == '/' && src.startsWith('//')) && !src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('data:image/')) {
+        if (from === '' && to !== '' && !src.startsWith('/') && relative === 'from') src = `/${src}`; // From empty relative path
         const newSrc = src.replace(from, to);
+        if (from !== '' && to === '' && newSrc.startsWith('/') && relative === 'to') newSrc = newSrc.substring(1); // To empty relative path
         newHtml = newHtml.replace(`src=${quote}${src}${quote}`, `src=${quote}${newSrc}${quote}`);
       }
     });

@@ -8,6 +8,7 @@
   >
     <template #item="{element, index}">
       <li v-if="element" class="relative w-full cursor-move">
+        {{ element }}
         <Image :path="element"/>
         <div class="absolute bottom-0 right-0 z-10 flex p-2">
           <button class="btn-icon-sm !border-r-0 !rounded-r-none relative group" @click="removeImage(index)">
@@ -146,7 +147,7 @@ const setImages = () => {
     internalModelValue.value = internalModelValue.value.filter(entry => sanitizeObject(entry));
     internalModelValue.value.forEach((imagePath, index) => {
       // For displaying images, we need the input value of the paths
-      internalModelValue.value[index] = githubImg.swapPrefix(imagePath, prefixOutput.value, prefixInput.value);
+      internalModelValue.value[index] = githubImg.swapPrefix(imagePath, prefixOutput.value, prefixInput.value, 'to');
     });
   }
 };

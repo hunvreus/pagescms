@@ -8,7 +8,7 @@
     <div class="error">
       <div class="text-center max-w-md">
         <h1 class="font-semibold text-2xl mb-2">Something's not right.</h1>
-        <p class="text-neutral-400 dark:text-neutral-500 mb-6">Your configuration is probably wrong: <code class="text-sm bg-neutral-100 dark:bg-neutral-850 rounded-lg p-1">media</code> is set to "{{ root }}", which may not be an actual folder in this repository.</p>
+        <p class="text-neutral-400 dark:text-neutral-500 mb-6">Either your <code class="text-sm bg-neutral-100 dark:bg-neutral-850 rounded-lg p-1">media</code> settings are wrong or you may need to create the <code class="text-sm bg-neutral-100 dark:bg-neutral-850 rounded-lg p-1">{{ root }}</code> folder in this repository.</p>
         <div class="flex gap-x-2 justify-center">
           <router-link class="btn-primary" :to="{name: 'settings'}">Review settings</router-link>
         </div>

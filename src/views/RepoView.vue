@@ -17,7 +17,7 @@
             <Dropdown>
               <template #trigger>
                 <button class="btn group-[.dropdown-active]:bg-neutral-100 dark:group-[.dropdown-active]:bg-neutral-850 w-full">
-                  <div class="flex items-center gap-x-3 w-full">
+                  <div class="flex items-center gap-x-3 w-full truncate">
                     <img class="h-10 w-10 rounded-lg -ml-1 lg:-ml-1.5" :src="'https://github.com/' + props.owner + '.png'" alt="Owner's avatar"/>
                     <div class="text-left overflow-hidden">
                       <div class="font-medium truncate">{{ props.repo }}</div>
@@ -71,15 +71,15 @@
               <li>
                 <ul role="list" class="space-y-1" v-if="owner && repo && branch && !['error-no-config', 'error-empty-repo'].includes(status)">
                   <!-- Collections and files from the content configuration -->
-                  <template v-if="repoStore.config?.object?.content?.length && configValidationErrors.length === 0">
+                  <template v-if="repoStore.config?.object?.content?.length">
                     <li v-for="item in repoStore.config.object.content" :key="item.name">
                       <router-link :to="{ name: 'content', params: { name: item.name } }" @click="isSidebarActive = false" class="link">
                         <Icon :name="item.icon" :fallback="item.type == 'collection' ? 'FileStack' : 'FileText'" class="h-6 w-6 stroke-[1.5] shrink-0"/>
-                        {{ item.label }}
+                        {{ item.label || item.name }}
                       </router-link>
                     </li>
                   </template>
-                  <li v-if="repoStore.config?.object?.media && configValidationErrors.length === 0">
+                  <li v-if="repoStore.config?.object?.media">
                     <router-link :to="{ name: 'media' }" @click="isSidebarActive = false" class="link">
                       <Icon name="Image" class="h-6 w-6 stroke-[1.5] shrink-0"/>
                       Media
@@ -131,6 +131,7 @@
           </div>
         </template>
         <template v-else>
+          <!-- <pre>{{ config.state }}</pre> -->
           <router-view v-slot="{ Component }">
             <component :is="Component" :config="repoStore.config?.object"/>
           </router-view>

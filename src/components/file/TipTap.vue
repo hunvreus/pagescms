@@ -303,7 +303,7 @@ const insertImage = async () => {
 
 const importContent = async (content) => {
   let htmlContent = (props.format == 'markdown') ? marked(content) : content;
-  htmlContent = githubImg.htmlSwapPrefix(htmlContent, prefixOutput.value, prefixInput.value);
+  htmlContent = githubImg.htmlSwapPrefix(htmlContent, prefixOutput.value, prefixInput.value, 'to');
   htmlContent = await githubImg.relativeToRawUrls(repoStore.owner, repoStore.repo, repoStore.branch, htmlContent, repoStore.details.private);
 
   return htmlContent;

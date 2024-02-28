@@ -9,7 +9,7 @@
       <div class="error h-screen">
         <div class="text-center max-w-md">
           <h1 class="font-semibold tracking-tight text-2xl mb-2">Something's not right.</h1>
-          <p class="text-neutral-400 dark:text-neutral-500 mb-6">Your configuration is probably wrong: this collection is set to the <code class="text-sm bg-neutral-100 dark:bg-neutral-850 rounded-lg p-1">{{ schema.path }}</code> folder in this repository.</p>
+          <p class="text-neutral-400 dark:text-neutral-500 mb-6">Either your settings for the <code class="text-sm bg-neutral-100 dark:bg-neutral-850 rounded-lg p-1">{{ schema.name }}</code> collection are wrong or you may need to create the <code class="text-sm bg-neutral-100 dark:bg-neutral-850 rounded-lg p-1">{{ schema.path }}</code> folder in this repository.</p>
           <div class="flex gap-x-2 justify-center">
             <router-link class="btn-primary" :to="{name: 'settings'}">Review settings</router-link>
           </div>
@@ -21,7 +21,7 @@
       <div class="max-w-screen-xl	mx-auto p-4 lg:p-8">
         <!-- Header: label, add an entry and more (i.e. see folder on GitHub, add a folder) -->
         <header class="flex gap-x-2 mb-8 items-center">
-          <h1 class="font-semibold tracking-tight text-2xl lg:text-4xl mr-auto">{{ schema.label }}</h1>
+          <h1 class="font-semibold tracking-tight text-2xl lg:text-4xl mr-auto">{{ schema.label || schema.name }}</h1>
           <Dropdown :dropdownClass="'!max-w-none w-52 !z-[21]'" v-if="schema.subfolders !== false">
             <template #trigger>
               <button class="btn-icon group-[.dropdown-active]:bg-neutral-100 dark:group-[.dropdown-active]:bg-neutral-850">
@@ -85,6 +85,7 @@
         </div>
         <!-- Content table -->
         <template v-if="parentFolder || viewContents.folders || viewContents.files">
+          <pre>{{ format }}</pre>
           <table class="table mb-4">
             <!-- Header s-->
             <thead>
@@ -180,7 +181,7 @@
         <div v-if="contents.files.length == 0" class="text-center rounded-xl bg-neutral-100 dark:bg-neutral-850 p-6">
           <div class="max-w-md mx-auto">
             <h2 class="font-semibold tracking-tight">No entries</h2>
-            <p class="text-neutral-400">There are no entries yet for the "{{ schema.label }}" collection here.</p>
+            <p class="text-neutral-400">There are no entries yet for the "{{ schema.label || schema.name }}" collection here.</p>
           </div>
           <div class="flex gap-x-2 justify-center mt-4">
             <router-link :to="{ name: 'new', query: { folder: folder } }" class="btn-primary-sm">Add an entry</router-link>
@@ -234,9 +235,10 @@ import lunr from 'lunr';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 dayjs.extend(customParseFormat);
+import useSchema from '@/composables/useSchema';
 import github from '@/services/github';
 import githubImg from '@/services/githubImg';
-import frontmatter from '@/services/frontmatter';
+import serialization from '@/services/serialization';
 import notifications from '@/services/notifications';
 import Dropdown from '@/components/utils/Dropdown.vue';
 import Icon from '@/components/utils/Icon.vue';
@@ -246,6 +248,7 @@ import Delete from '@/components/file/Delete.vue';
 import Image from '@/components/file/Image.vue';
 
 const route = useRoute();
+const { getDateFromFilename } = useSchema();
 
 const props = defineProps({
   owner: String,
@@ -271,6 +274,13 @@ const contents = computed(() => {
   };
 });
 const schema = computed(() => props.config.content.find(item => item.name === props.name));
+const schemaFields = computed(() => {
+  let fieldsArray = schema.value.fields ? JSON.parse(JSON.stringify(schema.value.fields)) : [{ name: 'filename', label: 'Filename', type: 'string' }];
+  if (collection.value?.[0]?.fields?.date) {
+    fieldsArray.push({ name: 'date', label: 'Date', type: 'date' });
+  }
+  return fieldsArray;
+});
 const format = computed(() => schema.value.format || 'yaml-frontmatter');
 const extension = computed(() => {
   if (schema.value.filename) {
@@ -280,10 +290,10 @@ const extension = computed(() => {
     return 'md';
   }
 });
-const fields = computed(() => schema.value.fields.map(field => field.name));
+const fields = computed(() => schemaFields.value.map(field => field.name));
 const fieldsSchemas = computed(() => {
   const schemas = {};
-  schema.value.fields.forEach(field => {
+  schemaFields.value.forEach(field => {
     schemas[field.name] = field;
   });
   return schemas;
@@ -348,19 +358,29 @@ const viewContents = computed(() => {
   }
   
   // Apply sorting
+  const dateFormat = fieldsSchemas.value['date']?.options?.format || 'YYYY-MM-DD';
   viewFiles = viewFiles.slice().sort((a, b) => {
     const sortKey = view.sort;
-    // Default value when sortKey is not present or fields is undefined.
-    const defaultValue = '';
-    // Check if fields is defined and has the sortKey
-    let valA = (a.fields && a.fields[sortKey] !== undefined) ? a.fields[sortKey] : defaultValue;
-    let valB = (b.fields && b.fields[sortKey] !== undefined) ? b.fields[sortKey] : defaultValue;
-    // Convert booleans to integers to help with comparison with null/undefined
-    if (typeof valA === 'boolean') valA = valA ? 2 : 1;
-    if (typeof valB === 'boolean') valB = valB ? 2 : 1;
-    // Convert to lowercase if the value is a string
-    if (typeof valA === 'string') valA = valA.toLowerCase();
-    if (typeof valB === 'string') valB = valB.toLowerCase();
+    const fieldSchema = fieldsSchemas.value[sortKey];
+    let valA = a.fields?.[sortKey];
+    let valB = b.fields?.[sortKey];
+    // Handle dates
+    if (fieldSchema?.type === 'date') {
+      const dayA = dayjs(valA, dateFormat);
+      const dayB = dayjs(valB, dateFormat);
+      if (!dayA.isValid() && !dayB.isValid()) return 0;
+      if (!dayA.isValid()) return 1;
+      if (!dayB.isValid()) return -1;
+      valA = dayA.valueOf();
+      valB = dayB.valueOf();
+    } else {
+      // Convert booleans to integers to help with comparison with null/undefined
+      if (typeof valA === 'boolean') valA = valA ? 2 : 1;
+      if (typeof valB === 'boolean') valB = valB ? 2 : 1;
+      // Convert to lowercase if the value is a string
+      if (typeof valA === 'string') valA = valA.toLowerCase();
+      if (typeof valB === 'string') valB = valB.toLowerCase();
+    }
     let comparison = 0;
     if (valA < valB) {
       comparison = -1;
@@ -389,14 +409,13 @@ const formatField = (field, value) => {
       const prefixInput = fieldSchema.options?.input ?? props.config.media?.input ?? null;
       const prefixOutput = fieldSchema.options?.output ?? props.config.media?.output ?? null;
       const imgPath = Array.isArray(value) ? value[0] : value;
-      return githubImg.swapPrefix(imgPath, prefixOutput, prefixInput);
+      return githubImg.swapPrefix(imgPath, prefixOutput, prefixInput, 'to');
     case 'date':
       const defaultInputFormat = fieldSchema.options?.time ? 'YYYY-MM-DDTHH:mm' : 'YYYY-MM-DD';
       const outputFormat = fieldSchema.options?.time ? 'MMM D, YYYY - HH:mm' : 'MMM D, YYYY';
       const inputFormat = fieldSchema.options?.format || defaultInputFormat;
       const dateObject = dayjs(value, inputFormat);
       if (!dateObject.isValid()) {
-        // TODO: convert to standard date and override in collection directly for sorting purpose
         console.warn(`Date for field '${field}' is saved in the wrong format or invalid:`, value);
         return '';
       }
@@ -439,13 +458,13 @@ const handleFolderAdded = () => {
   setCollection();
 };
 
+// TODO: support configurable fields and offer full file indexing if no valid fields
 let searchIndex;
-
 const setSearch = () => {
   // TODO: add configurable fields for indexing
   searchIndex = lunr(function () {
     this.ref('filename');
-    schema.value.fields.forEach(field => {
+    schemaFields.value.forEach(field => {
       this.field(field.name);
     });
     collection.value.forEach(doc => {
@@ -460,9 +479,9 @@ const setSearch = () => {
 };
 
 const setView = () => {
-  view.config.fields = (schema.value.view && schema.value.view.fields) || [ fields.value[0] ];
   view.config.primary = (schema.value.view && schema.value.view.primary) || (fields.value.includes('title') ? 'title' : fields.value[0]);
-  view.config.sort = (schema.value.view && schema.value.view.sort) || (collection.value[0] && collection.value[0].fields?.date ? ['date', view.config.primary] : [view.config.primary]);
+  view.config.fields = (schema.value.view && schema.value.view.fields) || (collection.value[0]?.fields?.date ? [ view.config.primary, 'date' ] : [view.config.primary]);
+  view.config.sort = (schema.value.view && schema.value.view.sort) || (collection.value[0]?.fields?.date ? ['date', view.config.primary] : [view.config.primary]);
   view.sort = (schema.value.view && schema.value.view.default && schema.value.view.default.sort) || (view.config.sort && view.config.sort.length) ? view.config.sort[0] : null;
   view.order = (schema.value.view && schema.value.view.default && schema.value.view.default.order) || 'desc';
   view.search = (schema.value.view && schema.value.view.default && schema.value.view.default.search) || '';
@@ -482,13 +501,26 @@ const setCollection = async () => {
   let errorCount = 0;
   collection.value = files.map(file => {
     if (file.type === 'blob' && (extension.value === '' || file.name.endsWith(`.${extension.value}`))) {
-      let parsed;
+      let parsed = {};
       try {
-        parsed = frontmatter.parse(file.object.text, { format: format.value, delimiters: schema.value.delimiters });
+        parsed = serialization.parse(file.object.text, { format: format.value, delimiters: schema.value.delimiters });
       } catch (error) {
         console.warn(`Error parsing frontmatter for file "${file.path}":`, error);
         errorCount++;
       }
+      if (!schema.value.fields || schema.value.fields.length === 0) {
+        // If no fields are defined in the schema, we fake a filename field
+        parsed.filename = file.name;
+      }
+      if (!parsed.date && (!schema.value.filename || schema.value.filename.startsWith('{year}-{month}-{day}'))) {
+        // If we couldn't get a date from the content and filenames have a date, we extract it
+        const filenameDate = getDateFromFilename(file.name);
+        if (filenameDate) {
+          const dateFormat = fieldsSchemas.value['date']?.options?.format ?? 'YYYY-MM-DD';
+          parsed.date = dayjs(filenameDate.string, 'YYYY-MM-DD').format(dateFormat);
+        }
+      }
+
       return {
         sha: file.object.oid,
         filename: file.name,
