@@ -304,6 +304,7 @@ const view = reactive({
   search: '',
 });
 // Content actually displayed, taking into account search & sort
+// TODO: add validation of fields in config (sort, fields, etc.), both here and in the settings editor
 const viewContents = computed(() => {
   let viewFiles = [...contents.value.files];
   

@@ -130,12 +130,20 @@ const removeImage = (index) => {
 const changeImage = (index) => {
   imageSelection.value = [ internalModelValue.value[index] ];
   activeImgIndex.value = index;
+  if (fileBrowserComponent.value) {
+    // If the file browser is already mounted, we refresh its content
+    fileBrowserComponent.value.setContents();
+  }
   selectImageModal.value.openModal();
 };
 
 const addImage = () => {
   imageSelection.value = [];
   activeImgIndex.value = null;
+  if (fileBrowserComponent.value) {
+    // If the file browser is already mounted, we refresh its content
+    fileBrowserComponent.value.setContents();
+  }
   selectImageModal.value.openModal()
 };
 
