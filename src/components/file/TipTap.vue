@@ -437,5 +437,4 @@ const toggleEditor = () => {
     setContent();
   }
 };
-
 </script>

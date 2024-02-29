@@ -210,9 +210,7 @@
 import { ref, reactive, onMounted, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import lunr from 'lunr';
-import dayjs from 'dayjs';
-import customParseFormat from 'dayjs/plugin/customParseFormat';
-dayjs.extend(customParseFormat);
+import moment from 'moment';
 import useSchema from '@/composables/useSchema';
 import github from '@/services/github';
 import githubImg from '@/services/githubImg';
@@ -346,8 +344,8 @@ const viewContents = computed(() => {
     let valB = b.fields?.[sortKey];
     // Handle dates
     if (fieldSchema?.type === 'date') {
-      const dayA = dayjs(valA, dateFormat);
-      const dayB = dayjs(valB, dateFormat);
+      const dayA = moment(valA, dateFormat);
+      const dayB = moment(valB, dateFormat);
       if (!dayA.isValid() && !dayB.isValid()) return 0;
       if (!dayA.isValid()) return 1;
       if (!dayB.isValid()) return -1;
@@ -394,7 +392,7 @@ const formatField = (field, value) => {
       const defaultInputFormat = fieldSchema.options?.time ? 'YYYY-MM-DDTHH:mm' : 'YYYY-MM-DD';
       const outputFormat = fieldSchema.options?.time ? 'MMM D, YYYY - HH:mm' : 'MMM D, YYYY';
       const inputFormat = fieldSchema.options?.format || defaultInputFormat;
-      const dateObject = dayjs(value, inputFormat);
+      const dateObject = moment(value, inputFormat);
       if (!dateObject.isValid()) {
         console.warn(`Date for field '${field}' is saved in the wrong format or invalid:`, value);
         return '';
@@ -499,7 +497,7 @@ const setCollection = async () => {
         const filenameDate = getDateFromFilename(file.name);
         if (filenameDate) {
           const dateFormat = fieldsSchemas.value['date']?.options?.format ?? 'YYYY-MM-DD';
-          contentObject.date = dayjs(filenameDate.string, 'YYYY-MM-DD').format(dateFormat);
+          contentObject.date = moment(filenameDate.string, 'YYYY-MM-DD').format(dateFormat);
         }
       }
 

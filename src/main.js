@@ -1,15 +1,13 @@
 import './styles/main.css'
 
 import { createApp } from 'vue'
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-dayjs.extend(relativeTime);
+import moment from 'moment';
 import App from './App.vue'
 import router from './router'
 
 function fromNow(value) {
   if (value) {
-    return dayjs(String(value)).fromNow();
+    return moment(String(value)).fromNow();
   }
   return '';
 }
