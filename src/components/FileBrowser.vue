@@ -458,5 +458,5 @@ watch(() => route.query['fb-path'], (newValue) => {
   }
 });
 
-defineExpose({ goTo, selectFile });
+defineExpose({ goTo, selectFile, setContents });
 </script>

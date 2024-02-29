@@ -157,6 +157,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { Base64 } from 'js-base64';
 import { debounce } from 'lodash';
 import YAML from 'yaml';
+import moment from 'moment';
 import notifications from '@/services/notifications';
 import github from '@/services/github';
 import config from '@/services/config';
@@ -175,7 +176,7 @@ const serializedTypes = ['yaml-frontmatter', 'json-frontmatter', 'toml-frontmatt
 
 const route = useRoute();
 const router = useRouter();
-const { createModel, sanitizeObject, getSchemaByName, generateFilename, renderDescription } = useSchema();
+const { createModel, sanitizeObject, getSchemaByName, generateFilename, renderDescription, getDateFromFilename } = useSchema();
 
 const emit = defineEmits(['file-saved']);
 
@@ -320,6 +321,7 @@ const setEditor = async () => {
     }
   }
   
+  // TODO: skip some of this parsing when the file is new
   if (serializedTypes.includes(mode.value) && schema.value?.fields) {
     let contentObject = {};
     try {
@@ -335,7 +337,7 @@ const setEditor = async () => {
           primary: true
         }]
       };
-      notifications.notify(`Failed to parse the file at "${props.path}", your settings may be wrong. Switching to raw editor.`, 'error', options);
+      notifications.notify(`Failed to parse the file at "${props.path}", your settings may be wrong.`, 'error', options);
       // We can't parse the content, we switch to the raw editor.
       mode.value = 'raw';
     }
@@ -346,10 +348,23 @@ const setEditor = async () => {
       contentObject = { listWrapper: contentObject };
     }
 
+    // If it's an existing file and the schema has a date, but we couldn't get a date from the content and filenames have a date, we extract it
+    
+    const dateField = schema.value.fields.find(field => field.name === 'date');
+    if (dateField && file.value?.name && !contentObject.date && (!schema.value.filename || schema.value.filename.startsWith('{year}-{month}-{day}'))) {
+      const filenameDate = getDateFromFilename(file.value.name);
+      if (filenameDate) {
+        const dateFormat = dateField.options?.format ?? 'YYYY-MM-DD';
+        contentObject.date = moment(filenameDate.string, 'YYYY-MM-DD').format(dateFormat);
+      }
+    }
+
     model.value = createModel(schema.value.fields, contentObject);
   } else {
     model.value = content;
   }
+
+  
 
   initialModel.value = JSON.parse(JSON.stringify(model.value));
   setDisplayTitle();

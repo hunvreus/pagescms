@@ -34,7 +34,7 @@
           </button>
           <button
             v-if="repoStore.config.object.media !== undefined || (props.options?.input !== undefined && props.options?.output !== undefined)"
-            @click="imageSelection = []; selected = editor.isActive('image') ? githubImg.getRelativeUrl(repoStore.owner, repoStore.repo, repoStore.branch, editor.getAttributes('image').src) : null; imageModal.openModal();"
+            @click="handleImageModal"
             class="tiptap-control group relative"
             :class="{ 'tiptap-control-active': editor.isActive('image') }"
           >
@@ -223,6 +223,7 @@
 </template>
 
 <script setup>
+// TODO: add syntax highlighting, fix tables and prevent <p> in <li>
 import { inject, ref, onBeforeUnmount, onMounted, defineAsyncComponent } from 'vue';
 import { useEditor, EditorContent } from '@tiptap/vue-3';
 import { marked } from 'marked';
@@ -291,6 +292,16 @@ const setHeadline = () => {
   }
 };
 
+const handleImageModal = () => {
+  imageSelection.value = [];
+  selected.value = editor.value.isActive('image') ? githubImg.getRelativeUrl(repoStore.owner, repoStore.repo, repoStore.branch, editor.value.getAttributes('image').src) : null;
+  if (fileBrowserComponent.value) {
+    // If the file browser is already mounted, we refresh its content
+    fileBrowserComponent.value.setContents();
+  }
+  imageModal.value.openModal();
+};
+
 const insertImage = async () => {
   if (imageSelection.value.length) {
     imageSelection.value.forEach(async (selectedImage) => {
@@ -313,7 +324,7 @@ const importContent = async (content) => {
 const exportContent = (content) => {
   let htmlContent = githubImg.rawToRelativeUrls(repoStore.owner, repoStore.repo, repoStore.branch, content);
   htmlContent = githubImg.htmlSwapPrefix(htmlContent, prefixInput.value, prefixOutput.value);
-
+  
   return (props.format == 'markdown') ? turndownService.turndown(htmlContent) : htmlContent;
 };
 

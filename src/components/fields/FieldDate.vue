@@ -1,9 +1,4 @@
 <template>
-  <ul>
-    <li>saveFormat: {{ saveFormat }}</li>
-    <li>modelValue: {{ modelValue }}</li>
-    <li>formattedValue: {{ formattedValue }}</li>
-  </ul>
   <input
     class="input w-full"
     :type="inputType"
@@ -47,14 +42,14 @@ const formattedValue = computed(() => {
   if (!props.modelValue) return '';
   const dateObject = moment(props.modelValue, saveFormat.value);
   if (!dateObject.isValid()) {
-    console.warn(`Date for field '${props.field.name}' is saved in the wrong format or invalid: value is ${props.modelValue} and format is ${saveFormat.value}.`);
+    console.warn(`Date for field '${props.field.name}' is saved in the wrong format or invalid: value is '${props.modelValue}' and format is '${saveFormat.value}'.`);
     return '';
   }
   
   return dateObject.format(inputFormat.value);
 });
 
-// TODO: clean this up and add validate() method
+// TODO: add validate() method and enforce better sanitization of the value
 // Update modelValue from the input field, converting back to the save format
 const updateModelValue = (value) => {
   let [year, month, day] = value.split('-');
@@ -64,8 +59,6 @@ const updateModelValue = (value) => {
   const safeDate = moment(`${year}-${month}-${day}`, inputFormat.value);
   if (safeDate.isValid()) {
     emit('update:modelValue', safeDate.format(saveFormat.value));
-  } else {
-    console.warn(`Date input for field '${props.field.name}' is in the wrong format or invalid: value is ${value} and format is ${saveFormat.value}.`);
   }
 };
 </script>

@@ -96,7 +96,7 @@ const swapPrefix = (path, from, to, relative = false) => {
   if (from === to) {
     newPath = path;
   } else if (path.startsWith(from) && !(from == '/' && path.startsWith('//')) && !path.startsWith('http://') && !path.startsWith('https://') && !path.startsWith('data:image/')) {
-    if (from === '' && to !== '' && !path.startsWith('/')) {
+    if (from === '' && to !== '/' && !path.startsWith('/')) {
       newPath = `${to}/${path}`;
     } else {
       newPath = path.replace(from, to);
@@ -123,7 +123,7 @@ const htmlSwapPrefix = (html, from, to, relative = false) => {
       if (from === to) {
         newSrc = src;
       } else if (src.startsWith(from) && !(from == '/' && src.startsWith('//')) && !src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('data:image/')) {
-        if (from === '' && to !== '' && !src.startsWith('/')) {
+        if (from === '' && to !== '/' && !src.startsWith('/')) {
           newSrc = `${to}/${src}`;
         } else {
           newSrc = src.replace(from, to);

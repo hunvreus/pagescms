@@ -233,7 +233,7 @@ const validationSchema = {
           "type": "Property 'type' is required.",
           "path": "Property 'path' is required.",
         },
-        "type": "Each content entry must be an object with 'name', 'label', 'type', 'path' and 'fields' attributes."
+        "type": "Each content entry must be an object with 'name', 'type' and 'path' attributes."
       }
     },
     "fieldObject": {
