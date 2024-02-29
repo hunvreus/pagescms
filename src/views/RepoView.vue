@@ -178,8 +178,8 @@ const repoPickerModal = ref(null);
 const isSidebarActive = ref(false);
 
 const repoStore = reactive({
-  owner: props.owner,
-  repo: props.repo,
+  owner: props.owner?.toLowerCase(),
+  repo: props.repo?.toLowerCase(),
   branch: props.branch,
   config: computed(() => config.state[`${repoStore.owner}/${repoStore.repo}/${repoStore.branch}`]),
   details: null
@@ -190,7 +190,7 @@ const configValidationErrors = computed(() => repoStore.config.validation.filter
 
 const createConfigFile = async () => {
   status.value = 'loading';
-  const data = await github.saveFile(props.owner, props.repo, props.branch, '.pages.yml', '');
+  const data = await github.saveFile(repoStore.owner, repoStore.repo, repoStore.branch, '.pages.yml', '');
   if (data) {
     notifications.notify(`The configuration file (.pages.yml) was successfully created.`, 'success');
     await setRepo();
@@ -206,15 +206,15 @@ const setRepo = async () => {
   // TODO: move all of this to the router and prevent fetching repo details and config when redirecting.
   status.value = 'loading';
   branches.value = null;
-  repoStore.owner = props.owner;
-  repoStore.repo = props.repo;
+  repoStore.owner = props.owner?.toLowerCase();
+  repoStore.repo = props.repo?.toLowerCase();
   repoStore.branch = props.branch;
   repoStore.details = null;
   
   // Check if the repo exists and retrieve the repo details (private/public, branches, etc)
-  const repoDetails = await github.getRepo(props.owner, props.repo);
+  const repoDetails = await github.getRepo(repoStore.owner, props.repo);
   if (!repoDetails) {
-    notifications.notify(`The repo "${props.owner}/${props.repo}" doesn't exist.`, 'error', { delay: 10000 });
+    notifications.notify(`The repo "${repoStore.owner}/${props.repo}" doesn't exist.`, 'error', { delay: 10000 });
     router.push({ name: 'home' });
     return;
   } else {
@@ -222,7 +222,7 @@ const setRepo = async () => {
   }
 
   // We retrieve the list of branches
-  const repoBranches = await github.getBranches(props.owner, props.repo);
+  const repoBranches = await github.getBranches(repoStore.owner, props.repo);
   branches.value = repoBranches;
 
   if (repoBranches.length === 0) {
@@ -243,7 +243,7 @@ const setRepo = async () => {
   }
 
   // Set the configuration for this repo/branch
-  await config.set(props.owner, props.repo, props.branch);
+  await config.set(repoStore.owner, repoStore.repo, repoStore.branch);
 
   // We potentially redirect the user based on the config we fetched  
   if (!repoStore.config ) {

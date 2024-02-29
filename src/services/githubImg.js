@@ -18,7 +18,8 @@ const state = reactive({
 const getRelativeUrl = (owner, repo, branch, path) => {
   let relativePath = path;
   if (path.startsWith('https://raw.githubusercontent.com/')) {
-    relativePath = path.replace(`https://raw.githubusercontent.com/${owner}/${repo}/${branch}/`, '');
+    const pattern = new RegExp(`^https://raw\\.githubusercontent\\.com/${owner}/${repo}/${branch}/`, 'i');
+    relativePath = path.replace(pattern, '');
     relativePath = relativePath.split('?')[0];
   }
   
@@ -80,8 +81,10 @@ const rawToRelativeUrls = (owner, repo, branch, html) => {
     const src = match[1] || match[2];
     const quote = match[1] ? '"' : "'";
     if (src.startsWith('https://raw.githubusercontent.com/')) {
-      let relativePath = src.replace(`https://raw.githubusercontent.com/${owner}/${repo}/${branch}/`, '');
+      let relativePath = src.replace(new RegExp(`https://raw\\.githubusercontent\\.com/${owner}/${repo}/${branch}/`, 'gi'), '');
       relativePath = relativePath.split('?')[0];
+      // TODO: check if I need to encodeURI or decodeURI one of them
+      // TODO: check if I need to ignore case in other places
       html = html.replace(`src=${quote}${src}${quote}`, `src=${quote}${relativePath}${quote}`);
     }
   }
