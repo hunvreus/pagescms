@@ -1,6 +1,6 @@
 <template>
-  <template v-if="props.field.type === 'image'">
-    <Image :path="formattedValue" :relative="false" :field="props.field"/>
+  <template v-if="props.field.type === 'image' && formattedValue">
+    <Image :path="formattedValue"/>
   </template>
   <template v-else-if="props.field.type === 'boolean'">
     <div class="!inline" :class="props.value ? 'chip-primary' : 'chip-secondary'">{{ props.value ? 'True' : 'False' }}</div>
@@ -14,6 +14,9 @@
 import { inject, computed } from 'vue';
 import moment from 'moment';
 import Image from '@/components/file/Image.vue';
+import githubImg from '@/services/githubImg';
+
+const repoStore = inject('repoStore', { config: null });
 
 const props = defineProps({
   field: Object,
@@ -33,7 +36,10 @@ const formattedValue = computed(() => {
     }
     return dateObject.format(outputFormat);
   } else if (props.field.type === 'image') {
-    return Array.isArray(props.value) ? props.value[0] : props.value; 
+    const imagePath = Array.isArray(props.value) ? props.value[0] : props.value; 
+    const prefixInput = props.field.options?.input ?? repoStore.config.media?.input ?? null;
+    const prefixOutput = props.field.options?.output ?? repoStore.config.media?.output ?? null;
+    return githubImg.swapPrefix(imagePath, prefixOutput, prefixInput, true);
   } else {
     return props.value;
   }

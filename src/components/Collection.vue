@@ -119,7 +119,9 @@
                     </router-link>
                   </template>
                   <template v-else>
-                    <View :field="fieldsSchemas[field]" :value="item.fields?.[field]"/>
+                    <div>
+                      <View :field="fieldsSchemas[field]" :value="item.fields?.[field]"/>
+                    </div>
                   </template>
                 </td>
                 <td class="actions text-right">
