@@ -131,7 +131,6 @@
           </div>
         </template>
         <template v-else>
-          <!-- <pre>{{ config.state }}</pre> -->
           <router-view v-slot="{ Component }">
             <component :is="Component" :config="repoStore.config?.object"/>
           </router-view>

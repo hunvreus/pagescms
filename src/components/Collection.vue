@@ -114,15 +114,12 @@
               <tr v-for="item in viewContents.files" :key="item.filename">
                 <td v-for="field in view.config.fields" :class="[ field == view.config.primary ? 'primary-field' : '', `field-type-${fieldsSchemas[field]?.type}` ]">
                   <template v-if="field == view.config.primary">
-                    <router-link :to="{ name: 'edit', params: { name: name, path: item.path } }" v-html="formatField(field, item.fields?.[field])"></router-link>
+                    <router-link :to="{ name: 'edit', params: { name: name, path: item.path } }">
+                      <View :field="fieldsSchemas[field]" :value="item.fields?.[field]"/>
+                    </router-link>
                   </template>
-                  <template v-else-if="item.fields?.[field]">
-                    <template v-if="fieldsSchemas[field]?.type === 'image'">
-                      <Image :path="formatField(field, item.fields?.[field])"/>
-                    </template>
-                    <template v-else>
-                      <div v-html="formatField(field, item.fields?.[field])"></div>
-                    </template>
+                  <template v-else>
+                    <View :field="fieldsSchemas[field]" :value="item.fields?.[field]"/>
                   </template>
                 </td>
                 <td class="actions text-right">
@@ -221,7 +218,7 @@ import Icon from '@/components/utils/Icon.vue';
 import AddFolder from '@/components/file/AddFolder.vue';
 import Rename from '@/components/file/Rename.vue';
 import Delete from '@/components/file/Delete.vue';
-import Image from '@/components/file/Image.vue';
+import View from '@/components/file/View.vue';
 
 const serializedTypes = ['yaml-frontmatter', 'json-frontmatter', 'toml-frontmatter', 'yaml', 'json', 'toml'];
 
@@ -375,37 +372,6 @@ const viewContents = computed(() => {
     folders: [...contents.value.folders],
   };
 });
-
-const formatField = (field, value) => {
-  // TODO: Refactor this into the field components or useSchema, and add support for nested fields
-  if (value == null) {
-    return '';
-  }
-  const fieldSchema = fieldsSchemas.value[field];
-  if (!fieldSchema) return value;
-  switch (fieldSchema.type) {
-    case 'image':
-      const prefixInput = fieldSchema.options?.input ?? props.config.media?.input ?? null;
-      const prefixOutput = fieldSchema.options?.output ?? props.config.media?.output ?? null;
-      const imgPath = Array.isArray(value) ? value[0] : value;
-      return githubImg.swapPrefix(imgPath, prefixOutput, prefixInput, true);
-    case 'date':
-      const defaultInputFormat = fieldSchema.options?.time ? 'YYYY-MM-DDTHH:mm' : 'YYYY-MM-DD';
-      const outputFormat = fieldSchema.options?.time ? 'MMM D, YYYY - HH:mm' : 'MMM D, YYYY';
-      const inputFormat = fieldSchema.options?.format || defaultInputFormat;
-      const dateObject = moment(value, inputFormat);
-      if (!dateObject.isValid()) {
-        console.warn(`Date for field '${field}' is saved in the wrong format or invalid:`, value);
-        return '';
-      }
-      return dateObject.format(outputFormat);
-    case 'boolean':
-      const chipClass = value ? 'chip-primary' : 'chip-secondary';
-      return `<div class="!inline ${chipClass}">${value ? 'True' : 'False'}</div>`;
-    default:
-      return value;
-  }
-};
 
 function openRenameModal(item) {
   renamePath.value = item.path;

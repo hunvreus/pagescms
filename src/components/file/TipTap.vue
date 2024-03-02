@@ -274,7 +274,7 @@ const prefixOutput = ref(props.options?.output ?? repoStore.config.object.media?
 const uploadPath = ref(props.options?.path ?? repoStore.config.object.media?.path ?? props.options?.input ?? repoStore.config.object.media?.input ?? '');
 const fileBrowserComponent = ref(null);
 
-const turndownService = new TurndownService({ headingStyle: 'atx' });
+const turndownService = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
 turndownService.addRule('styled-or-classed', {
   filter: (node, options)  => (node.getAttribute('style') || node.getAttribute('class')),
   replacement: (content, node, options) => node.outerHTML

@@ -156,7 +156,6 @@ import { ref, onMounted, watch, computed, inject } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Base64 } from 'js-base64';
 import { debounce } from 'lodash';
-import YAML from 'yaml';
 import moment from 'moment';
 import notifications from '@/services/notifications';
 import github from '@/services/github';
