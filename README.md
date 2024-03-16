@@ -70,25 +70,3 @@ Cloudflare has very generous free tiers and can also host your actual website. I
 ## License
 
 Everything in this repo is released under the [MIT License](LICENSE).
-
-## TODO
-
-- [ ] Support for 3rd party file services (AWS S3, Cloudflare R2, etc).
-- [ ] Create an embeddable widget or split view with preview.
-- [ ] Integrate build status.
-- [ ] Display build URL.
-- [ ] Allow users to sign up with email.
-- [ ] Add proper MDX support in Codemirror.
-- [ ] Add saved views (search, sort, order).
-- [ ] Add support for groups of collections/files.
-- [ ] Add support for other git services (e.g. Gitlab, Bitbucket).
-- [ ] Add configuration wizard.
-- [ ] Add schema validation for `.pages.yml`.
-- [ ] Add merging/conflict resolution.
-- [ ] Add support for partials/weidget in rich-text.
-- [ ] Improve handling of network issues (e.g. Github API unreachable).
-- [ ] Add checks for extension, size and type in file upload (consider moving to a composable).
-- [ ] Add content file validation against schema.
-- [ ] Add support for JSON/TOML frontmatter and TOML files.
-- [ ] Improve date support (shouldn't require field in schema).
-- [ ] Consider a store (Pinia) to save and cache data (config schema, collections, raw URLs...).
