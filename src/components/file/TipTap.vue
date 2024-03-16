@@ -276,7 +276,7 @@ const fileBrowserComponent = ref(null);
 
 const turndownService = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
 turndownService.addRule('styled-or-classed', {
-  filter: (node, options)  => (node.getAttribute('style') || node.getAttribute('class')),
+  filter: (node, options)  => ((node.nodeName === 'IMG' && (node.getAttribute('width') || node.getAttribute('height'))) || node.getAttribute('style') || node.getAttribute('class')),
   replacement: (content, node, options) => node.outerHTML
 });
 
@@ -342,7 +342,17 @@ const editor = useEditor({
     StarterKit.configure({
       dropcursor: { width: 2}
     }),
-    Image.configure({ inline: true }),
+    Image.extend({
+      addAttributes() {
+        return {
+          ...this.parent?.(),
+          class: { default: null },
+          style: { default: null },
+          width: { default: null },
+          height: { default: null }
+        };
+      }
+    }).configure({ inline: true }),
     Link.configure({
       openOnClick: false,
       HTMLAttributes: {
