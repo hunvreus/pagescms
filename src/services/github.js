@@ -8,6 +8,9 @@ import router from '@/router';
 import notifications from '@/services/notifications';
 
 const token = ref(localStorage.getItem('token') || null);
+const profile = ref(null);
+
+// TODO: rework this to be called (and cached) at the App.js level
 
 const setToken = (value) => {
   token.value = value;
@@ -40,8 +43,30 @@ const handleError = (message, action, error) => {
 }
 
 const getProfile = async () => {
+  if (profile.value) return profile.value;
   try {
     const response = await axios.get('https://api.github.com/user', {
+      params: {
+        timestamp: Date.now(),
+      },
+      headers: {
+        Authorization: `Bearer ${token.value}`,
+      },
+    });
+    profile.value = response.data;
+    return profile.value;
+  } catch (error) {
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      handleAuthError();
+    }
+    console.error('Failed to fetch user:', error);
+    return null;
+  }
+};
+
+const getOrganizations = async () => {
+  try {
+    const response = await axios.get('https://api.github.com/user/orgs', {
       params: {
         timestamp: Date.now(),
       },
@@ -54,7 +79,7 @@ const getProfile = async () => {
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
       handleAuthError();
     }
-    console.error('Failed to fetch user:', error);
+    console.error('Failed to fetch user\'s organizations:', error);
     return null;
   }
 };
@@ -100,6 +125,30 @@ const getRepo = async (owner, name) => {
       handleAuthError();
     }
     console.error('Failed to retrieve the repository details:', error);
+    return null;
+  }
+};
+
+const copyRepoTemplate = async (templateOwner, templateRepo, name, owner = null) => {
+  try {
+    const url = `https://api.github.com/repos/${templateOwner}/${templateRepo}/generate`;
+    const body = {
+      private: true,
+      name: name
+    };
+    if (owner) body.owner = owner;
+    const response = await axios.post(url, body, {
+      headers: {
+        Authorization: `Bearer ${token.value}`
+      },
+    });
+
+    return response.data;
+  } catch (error) {
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      handleAuthError();
+    }
+    console.error(`Failed to create a repository from the "${templateOwner}/${templateRepo}" template:`, error);
     return null;
   }
 };
@@ -197,15 +246,14 @@ const getContents = async (owner, repo, branch = 'HEAD', path = '', useGraphql =
   }
 };
 
-const getFile = async (owner, repo, branch, path, raw = false) => {
+const getFile = async (owner, repo, branch = null, path, raw = false) => {
   try {
     const accept = raw ? 'application/vnd.github.v3.raw' : 'application/vnd.github.v3+json';
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+    let params = { timestamp: Date.now() };
+    if (branch) params.ref = branch;
     const response = await axios.get(url, {
-      params: {
-        ref: branch,
-        timestamp: Date.now()
-      },
+      params,
       headers: {
         Accept: accept,
         Authorization: `Bearer ${token.value}`
@@ -477,4 +525,4 @@ const logout = async () => {
   }
 };
 
-export default { token, setToken, clearToken, getProfile, searchRepos, getRepo, getBranches, getContents, getFile, getCommits, saveFile, renameFile, deleteFile, logout };
+export default { token, profile, setToken, clearToken, getProfile, getOrganizations, searchRepos, getRepo, copyRepoTemplate, getBranches, getContents, getFile, getCommits, saveFile, renameFile, deleteFile, logout };

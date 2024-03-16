@@ -50,6 +50,8 @@ export default function useSchema() {
         return createModel(field.fields, {});
       case 'boolean':
         return false;
+      case 'number':
+        return null;
       case 'date':
         return moment().format('YYYY-MM-DD');
       default:

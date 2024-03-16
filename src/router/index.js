@@ -5,7 +5,7 @@ import Editor from '@/components/file/Editor.vue'
 import Media from '@/components/Media.vue'
 import LoginView from '@/views/LoginView.vue'
 import RepoView from '@/views/RepoView.vue'
-import SelectRepoView from '@/views/SelectRepoView.vue'
+import HomeView from '@/views/HomeView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -13,7 +13,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: SelectRepoView
+      component: HomeView
     },
     {
       name: 'repo-no-branch',

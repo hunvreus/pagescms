@@ -163,6 +163,10 @@ onMounted(async () => {
   setImages();
 });
 
+watch(() => props.modelValue, (newValue, oldValue) => {
+  setImages();
+});
+
 watch(
   internalModelValue,
   (newValue) => {
@@ -178,4 +182,5 @@ watch(
   },
   { deep: true }
 );
+
 </script>

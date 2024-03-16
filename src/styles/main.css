@@ -251,6 +251,20 @@ button.btn-icon-danger-sm {
   @apply bg-neutral-100 dark:bg-neutral-850;
 }
 
+/* Tabs */
+
+.tabs {
+  @apply flex gap-x-8 font-medium text-neutral-400 dark:text-neutral-500;
+}
+
+.tabs > button {
+  @apply hover:text-neutral-950 dark:hover:text-white border-b-2 border-transparent transition-colors py-1;
+}
+
+.tabs > button.active {
+  @apply text-neutral-950 dark:text-white border-b-neutral-950 dark:border-b-white;
+}
+
 /* Forms */
 
 input[type='text'],

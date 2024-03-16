@@ -1,8 +1,8 @@
-<template>
-  <template v-if="props.field.type === 'image' && formattedValue">
+<template>  
+  <template v-if="props.field?.type === 'image' && formattedValue">
     <Image :path="formattedValue"/>
   </template>
-  <template v-else-if="props.field.type === 'boolean'">
+  <template v-else-if="props.field?.type === 'boolean'">
     <div class="!inline" :class="props.value ? 'chip-primary' : 'chip-secondary'">{{ props.value ? 'True' : 'False' }}</div>
   </template>
   <template v-else>
@@ -36,9 +36,9 @@ const formattedValue = computed(() => {
     }
     return dateObject.format(outputFormat);
   } else if (props.field.type === 'image') {
-    const imagePath = Array.isArray(props.value) ? props.value[0] : props.value; 
-    const prefixInput = props.field.options?.input ?? repoStore.config.media?.input ?? null;
-    const prefixOutput = props.field.options?.output ?? repoStore.config.media?.output ?? null;
+    const imagePath = Array.isArray(props.value) ? props.value[0] : props.value;
+    const prefixInput = props.field.options?.input ?? repoStore.config.object.media?.input ?? null;
+    const prefixOutput = props.field.options?.output ?? repoStore.config.object.media?.output ?? null;
     return githubImg.swapPrefix(imagePath, prefixOutput, prefixInput, true);
   } else {
     return props.value;

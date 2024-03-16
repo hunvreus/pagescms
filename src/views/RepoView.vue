@@ -34,7 +34,7 @@
                   <li><div class="font-medium text-xs pb-1 px-3 text-neutral-400 dark:text-neutral-500">Owner</div></li>
                   <li>
                     <a class="link w-full" :href="`https://github.com/${props.owner}`" target="_blank">
-                      <div class="truncate">{{ props.owner }}</div>
+                      <span class="truncate">{{ props.owner }}</span>
                       <Icon name="ExternalLink" class="h-4 w-4 stroke-2 shrink-0 ml-auto text-neutral-400 dark:text-neutral-500"/>
                     </a>
                   </li>
@@ -42,7 +42,7 @@
                   <li><div class="font-medium text-xs pb-1 px-3 text-neutral-400 dark:text-neutral-500">Repository</div></li>
                   <li>
                     <a class="link w-full" :href="`https://github.com/${props.owner}/${props.repo}`" target="_blank">
-                      <div class="truncate">{{ props.repo }}</div>
+                      <span class="truncate">{{ props.repo }}</span>
                       <Icon name="ExternalLink" class="h-4 w-4 stroke-2 shrink-0 ml-auto text-neutral-400 dark:text-neutral-500"/>
                     </a>
                   </li>
@@ -54,7 +54,7 @@
                       @click="isSidebarActive = false"
                       class="link w-full"
                     >
-                      {{ branch }}
+                      <span class="truncate">{{ branch }}</span>
                       <Icon v-if="branch == props.branch" name="Check" class="h-4 w-4 stroke-2 shrink-0 ml-auto"/>
                     </router-link>
                   </li>
@@ -141,7 +141,7 @@
     <Modal ref="repoPickerModal" :customClass="'modal-repo-picker'">
       <template #header>Change repository</template>
       <template #content>
-        <RepoPicker/>
+        <RepoMenu :customClass="'max-h-[calc(100vh-14rem)]'"/>
       </template>
     </Modal>
   </template>
@@ -157,7 +157,7 @@ import About from '@/components/About.vue';
 import Icon from '@/components/utils/Icon.vue';
 import Dropdown from '@/components/utils/Dropdown.vue';
 import Modal from '@/components/utils/Modal.vue';
-import RepoPicker from '@/components/RepoPicker.vue';
+import RepoMenu from '@/components/repo/RepoMenu.vue';
 import User from '@/components/User.vue';
 
 const route = useRoute();

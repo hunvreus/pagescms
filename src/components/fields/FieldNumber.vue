@@ -3,7 +3,7 @@
     class="input w-full"
     type="number"
     :value="modelValue"
-    @input="$emit('update:modelValue', $event.target.value)"
+    @input="updateModelValue($event.target.value)"
     :min="props.field.options?.min || null"
     :max="props.field.options?.max || null"
     :step="props.field.options?.step || null"
@@ -23,10 +23,17 @@ import Icon from '@/components/utils/Icon.vue';
 
 const { validateRequired, validatePattern, validateRange } = useFieldValidation();
 
+const emit = defineEmits(['update:modelValue']);
+
 const props = defineProps({
   field: Object,
   modelValue: [ String, Number ]
 });
+
+const updateModelValue = (value) => {
+  const numericValue = value === "" ? null : parseFloat(value);
+  emit('update:modelValue', isNaN(numericValue) ? null : numericValue);
+};
 
 const errors = ref([]);
 

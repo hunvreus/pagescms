@@ -158,7 +158,7 @@
         <div v-if="contents.files.length == 0" class="text-center rounded-xl bg-neutral-100 dark:bg-neutral-850 p-6">
           <div class="max-w-md mx-auto">
             <h2 class="font-semibold tracking-tight">No entries</h2>
-            <p class="text-neutral-400">There are no entries yet for the "{{ schema.label || schema.name }}" collection here.</p>
+            <p class="text-neutral-400 dark:text-neutral-500">There are no entries yet for the "{{ schema.label || schema.name }}" collection here.</p>
           </div>
           <div class="flex gap-x-2 justify-center mt-4">
             <router-link :to="{ name: 'new', query: { folder: folder } }" class="btn-primary-sm">Add an entry</router-link>
@@ -253,7 +253,8 @@ const contents = computed(() => {
 const schema = computed(() => props.config.content.find(item => item.name === props.name));
 const schemaFields = computed(() => {
   let fieldsArray = schema.value.fields ? JSON.parse(JSON.stringify(schema.value.fields)) : [{ name: 'filename', label: 'Filename', type: 'string' }];
-  if (collection.value?.[0]?.fields?.date) {
+  // TODO: this is weak as the first entry may NOT have a date in the filename
+  if (collection.value?.[0]?.fields?.date && !fieldsArray.find(field => field.name === 'date')) {
     fieldsArray.push({ name: 'date', label: 'Date', type: 'date' });
   }
   return fieldsArray;

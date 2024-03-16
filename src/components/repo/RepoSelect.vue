@@ -6,7 +6,7 @@
       <Icon v-else name="Search" class="h-4 w-4 stroke-2 shrink-0"/>
     </div>
   </div>
-  <div class="max-h-[calc(100vh-12.5rem)] h-[352px] mt-3 overflow-auto custom-scrollbar" :class="[ (status == 'searching') ? 'processing' : '' ]">
+  <div class="h-[352px] mt-3 overflow-auto custom-scrollbar" :class="[ (status == 'searching') ? 'processing' : '', props.customClass ]">
     <ul v-if="query && results && results.length" class="flex flex-col gap-y-2">
       <li v-for="result in results">
         <div v-if="!(result.permissions && result.permissions.push) || isCurrentRepo(result)" class="link-text cursor-not-allowed" :class="[ isCurrentRepo(result) ? 'bg-neutral-100 dark:bg-neutral-750' : '' ]">
@@ -22,7 +22,7 @@
             </div>
           </div>
         </div>
-        <router-link v-else :to="{ path: '/' + result.full_name + '/' + result.default_branch }" class="link">
+        <router-link v-else :to="{ path: '/' + result.full_name + '/' + result.default_branch }" class="link w-full">
           <div class="truncate">
             <div class="flex gap-x-2 items-center">
               <div class="truncate font-medium">{{ result.full_name }}</div>
@@ -36,13 +36,17 @@
         </router-link>
       </li>
     </ul>
-    <div v-else-if="keywords && results && results.length == 0" class="text-center p-6">
-      <div class="font-medium">We couldn't find any matching repository.</div>
-      <div class="text-neutral-400 dark:text-neutral-500">Try and fill in the complete name of the repo (e.g. "vuejs/vue").</div>
+    <div v-else-if="keywords && results && results.length == 0" class="text-center rounded-xl bg-neutral-100 dark:bg-neutral-850 p-6 h-full flex items-center">
+      <div>
+        <h2 class="font-semibold tracking-tight">We couldn't find any matching repository.</h2>
+        <p class="text-neutral-400 dark:text-neutral-500">Try and fill in the complete name of the repo (e.g. "vuejs/vue").</p>
+      </div>
     </div>
-    <div v-else class="text-center p-6">
-      <div class="font-medium">Find your GitHub repository.</div>
-      <div class="text-neutral-400 dark:text-neutral-500">Search by organization and repository name . You need write permissions on the repository.</div>
+    <div v-else class="text-center rounded-xl bg-neutral-100 dark:bg-neutral-850 p-6 h-full flex items-center">
+      <div>
+        <h2 class="font-semibold tracking-tight">Find your GitHub repository.</h2>
+        <p class="text-neutral-400 dark:text-neutral-500">Search by organization and repository name. You need write permissions on the repository.</p>
+      </div>
     </div>
   </div>
 </template>
@@ -60,6 +64,10 @@ const keywords = ref('');
 const results = ref([]);
 const status = ref('');
 const query = computed(() => keywords.value.trim());
+
+const props = defineProps({
+  customClass: { type: String, default: '' }
+});
 
 const isCurrentRepo = (item) => {
   return repoStore && repoStore.owner && repoStore.repo && (item.full_name === `${repoStore.owner}/${repoStore.repo}`);
