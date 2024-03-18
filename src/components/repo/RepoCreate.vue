@@ -1,6 +1,6 @@
 <template>
-  <div class="h-[352px] mb-3 overflow-auto custom-scrollbar" :class="[ (status == 'searching') ? 'processing' : '', props.customClass ]">
-    <ul class="flex flex-col gap-y-2">
+  <div class="h-[336px] mb-3 overflow-auto custom-scrollbar" :class="[ (status == 'searching') ? 'processing' : '', props.componentClass ]">
+    <ul class="flex flex-col gap-y-1">
       <li v-for="template in templates">
         <button class="link w-full" @click="selectedRepo = template.repository; repoName = template.suggested" :class="[ template.repository === selectedRepo ? 'bg-neutral-100 dark:bg-neutral-750' : '' ]">
           <div v-html="template.icon" class="w-12 mr-2"></div>
@@ -79,7 +79,7 @@ const organizations = ref(null);
 const templates = ref(repoTemplates);
 
 const props = defineProps({
-  customClass: { type: String, default: '' }
+  componentClass: { type: String, default: '' }
 });
 
 const createRepo = async () => {

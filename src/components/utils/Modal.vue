@@ -1,8 +1,8 @@
 <template>
   <Teleport to="body">
-    <div @click="closeModal" class="modal-overlay" :class="[ isOpen ? 'modal-active' : '', props.customClass ]">
+    <div @click="closeModal" class="modal-overlay" :class="[ isOpen ? 'modal-active' : '', props.componentClass ]">
       <div class="modal-wrapper">
-        <div v-if="isInitialized" class="modal-box adjust-dark" @click.stop>
+        <div v-if="isInitialized" class="modal-box adjust-dark" :class="[ props.boxClass ]" @click.stop>
           <header class="modal-header">
             <div class="modal-title">
               <slot name="header"></slot>
@@ -25,7 +25,8 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import Icon from '@/components/utils/Icon.vue';
 
 const props = defineProps({
-  customClass: { type: String, default: '' }
+  componentClass: { type: String, default: '' },
+  boxClass: { type: String, default: '' },
 });
 
 const isOpen = ref(false);

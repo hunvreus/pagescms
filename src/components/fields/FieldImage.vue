@@ -31,7 +31,7 @@
     </template>
   </Draggable>
   <!-- File browser modal -->
-  <Modal ref="selectImageModal" :customClass="'modal-file-browser'">
+  <Modal ref="selectImageModal" :componentClass="'modal-file-browser'">
     <template #header>Select an image</template>
     <template #content>
       <div class="relative">

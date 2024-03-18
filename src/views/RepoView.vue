@@ -29,25 +29,23 @@
               </template>
               <template #content>
                 <ul>
-                  <li><button @click.prevent="repoPickerModal.openModal(); isSidebarActive = false;" class="link w-full">Change repository</button></li>
-                  <li><hr class="border-t border-neutral-150 dark:border-neutral-750 my-2"/></li>
-                  <li><div class="font-medium text-xs pb-1 px-3 text-neutral-400 dark:text-neutral-500">Owner</div></li>
+                  <li><div class="font-medium text-xs pb-1 px-3 text-neutral-400 dark:text-neutral-500">Owner & Repository</div></li>
                   <li>
                     <a class="link w-full" :href="`https://github.com/${props.owner}`" target="_blank">
                       <span class="truncate">{{ props.owner }}</span>
                       <Icon name="ExternalLink" class="h-4 w-4 stroke-2 shrink-0 ml-auto text-neutral-400 dark:text-neutral-500"/>
                     </a>
                   </li>
-                  <li><hr class="border-t border-neutral-150 dark:border-neutral-750 my-2"/></li>
-                  <li><div class="font-medium text-xs pb-1 px-3 text-neutral-400 dark:text-neutral-500">Repository</div></li>
                   <li>
                     <a class="link w-full" :href="`https://github.com/${props.owner}/${props.repo}`" target="_blank">
                       <span class="truncate">{{ props.repo }}</span>
                       <Icon name="ExternalLink" class="h-4 w-4 stroke-2 shrink-0 ml-auto text-neutral-400 dark:text-neutral-500"/>
                     </a>
                   </li>
-                  <li><hr class="border-t border-neutral-150 dark:border-neutral-750 my-2"/></li>
-                  <li><div class="font-medium text-xs pb-1 px-3 text-neutral-400 dark:text-neutral-500">Branch</div></li>
+                  <li><hr class="border-t border-neutral-150 dark:border-neutral-750 my-1"/></li>
+                  <li><button @click.prevent="repoMenuModal.openModal(); isSidebarActive = false;" class="link w-full">Change repository</button></li>
+                  <li><hr class="border-t border-neutral-150 dark:border-neutral-750 my-1"/></li>
+                  <li><div class="font-medium text-xs pb-1 px-3 text-neutral-400 dark:text-neutral-500">Branches</div></li>
                   <li v-if="branches.length">
                     <router-link
                       v-for="branch in branches" :to="{ name: route.name, params: {...route.params, branch: branch }}"
@@ -55,12 +53,14 @@
                       class="link w-full"
                     >
                       <span class="truncate">{{ branch }}</span>
-                      <Icon v-if="branch == props.branch" name="Check" class="h-4 w-4 stroke-2 shrink-0 ml-auto"/>
+                      <Icon v-if="branch === props.branch" name="Check" class="h-4 w-4 stroke-2 shrink-0 ml-auto"/>
                     </router-link>
                   </li>
                   <li v-else>
                     <div class="py-2 px-3 text-neutral-400 dark:text-neutral-500">No branch</div>
                   </li>
+                  <li><hr class="border-t border-neutral-150 dark:border-neutral-750 my-1"/></li>
+                  <li><button @click.prevent="branchesModal.openModal(); isSidebarActive = false;" class="link w-full">Manage branches</button></li>
                 </ul>
               </template>
             </Dropdown>
@@ -137,11 +137,20 @@
         </template>
       </div>
     </div>
-    <!-- Repo picker modal -->
-    <Modal ref="repoPickerModal" :customClass="'modal-repo-picker'">
+    <!-- Branches modal -->
+    <Modal ref="branchesModal" :componentClass="'modal-branches'" :boxClass="'!w-[500px]'">
+      <template #header>Manage branches</template>
+      <template #content>
+        <div class="relative">
+          <Branches :componentClass="'max-h-[calc(100vh-14rem)]'"/>
+        </div>
+      </template>
+    </Modal>
+    <!-- Repo menu modal -->
+    <Modal ref="repoMenuModal" :componentClass="'modal-repo-menu'">
       <template #header>Change repository</template>
       <template #content>
-        <RepoMenu :customClass="'max-h-[calc(100vh-14rem)]'"/>
+        <RepoMenu :componentClass="'max-h-[calc(100vh-14rem)]'"/>
       </template>
     </Modal>
   </template>
@@ -158,6 +167,7 @@ import Icon from '@/components/utils/Icon.vue';
 import Dropdown from '@/components/utils/Dropdown.vue';
 import Modal from '@/components/utils/Modal.vue';
 import RepoMenu from '@/components/repo/RepoMenu.vue';
+import Branches from '@/components/Branches.vue';
 import User from '@/components/User.vue';
 
 const route = useRoute();
@@ -171,9 +181,10 @@ const props = defineProps({
   name: String
 });
 
-const branches = ref(null);
+const branches = ref([]);
 const status = ref('loading');
-const repoPickerModal = ref(null);
+const branchesModal = ref(null);
+const repoMenuModal = ref(null);
 const isSidebarActive = ref(false);
 
 const repoStore = reactive({
@@ -204,7 +215,7 @@ const createConfigFile = async () => {
 const setRepo = async () => {
   // TODO: move all of this to the router and prevent fetching repo details and config when redirecting.
   status.value = 'loading';
-  branches.value = null;
+  branches.value = [];
   repoStore.owner = props.owner?.toLowerCase();
   repoStore.repo = props.repo?.toLowerCase();
   repoStore.branch = props.branch;
@@ -222,8 +233,7 @@ const setRepo = async () => {
 
   // We retrieve the list of branches
   const repoBranches = await github.getBranches(repoStore.owner, props.repo);
-  branches.value = repoBranches;
-
+  const repoBranchesNames = repoBranches.map(branch => branch.name);
   if (repoBranches.length === 0) {
     // Empty repository
     notifications.notify('Your repository is empty.', 'warning');
@@ -234,11 +244,31 @@ const setRepo = async () => {
     notifications.notify(`No branch provided. Redirecting you to the default branch ("${repoDetails.default_branch}").`, 'warning');
     router.push({ name: 'content-root', params: { ...route.params, branch: repoDetails.default_branch } });
     return;
-  } else if (!repoBranches.includes(props.branch)) {
-    // Branch doesn't exists, switch to the default one
-    notifications.notify(`The branch "${props.branch}" doesn't exist. Redirecting you to the default branch ("${repoDetails.default_branch}").`, 'error');
-    router.push({ name: route.name, params: { ...route.params, branch: repoDetails.default_branch } });
-    return;
+  } else {
+    // We construct the list of branches to display (max 5)
+    branches.value.push(repoDetails.default_branch);
+    if (repoDetails.default_branch !== props.branch) {
+      if (repoBranchesNames.includes(props.branch)) {
+        branches.value.push(props.branch);
+      } else {
+        let invalidBranch = true;
+        if (repoBranches.length === 100) {
+          // If we have more than 100 branches we need to try and fetch that specific branch
+          const branch = await github.getBranch(repoStore.owner, repoStore.repo, props.branch);
+          if (branch) invalidBranch = false; 
+        }
+        if (invalidBranch) {
+          // Branch doesn't exists, switch to the default one
+          notifications.notify(`The branch "${props.branch}" doesn't exist. Redirecting you to the default branch ("${repoDetails.default_branch}").`, 'error');
+          router.push({ name: route.name, params: { ...route.params, branch: repoDetails.default_branch } });
+          return;
+        } else {
+          branches.value.push(props.branch);
+        }
+      }      
+    }
+    const otherBranches = repoBranchesNames.filter(branch => ![props.branch, repoDetails.default_branch].includes(branch));
+    branches.value = branches.value.concat(otherBranches).slice(0, 5);
   }
 
   // Set the configuration for this repo/branch

@@ -6,8 +6,8 @@
       <Icon v-else name="Search" class="h-4 w-4 stroke-2 shrink-0"/>
     </div>
   </div>
-  <div class="h-[352px] mt-3 overflow-auto custom-scrollbar" :class="[ (status == 'searching') ? 'processing' : '', props.customClass ]">
-    <ul v-if="query && results && results.length" class="flex flex-col gap-y-2">
+  <div class="h-[336px] mt-3 overflow-auto custom-scrollbar" :class="[ (status == 'searching') ? 'processing' : '', props.componentClass ]">
+    <ul v-if="query && results && results.length" class="flex flex-col gap-y-1">
       <li v-for="result in results">
         <div v-if="!(result.permissions && result.permissions.push) || isCurrentRepo(result)" class="link-text cursor-not-allowed" :class="[ isCurrentRepo(result) ? 'bg-neutral-100 dark:bg-neutral-750' : '' ]">
           <div class="truncate w-full" :class="[ isCurrentRepo(result) ? '' : 'opacity-50' ]">
@@ -66,7 +66,7 @@ const status = ref('');
 const query = computed(() => keywords.value.trim());
 
 const props = defineProps({
-  customClass: { type: String, default: '' }
+  componentClass: { type: String, default: '' }
 });
 
 const isCurrentRepo = (item) => {

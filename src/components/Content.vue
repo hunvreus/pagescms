@@ -21,6 +21,17 @@
         :title="schema.label || schema.name"
       />
     </template>
+    <template v-else>
+      <div class="error h-screen">
+        <div class="text-center max-w-md">
+          <h1 class="font-semibold tracking-tight text-2xl mb-2">Something's not right.</h1>
+          <p class="text-neutral-400 dark:text-neutral-500 mb-6">This route doesn't match anything valid in your configuration. Your settings may be wrong.</p>
+          <div class="flex gap-x-2 justify-center">
+            <router-link class="btn-primary" :to="{name: 'settings'}">Review settings</router-link>
+          </div>
+        </div>
+      </div>
+    </template>
   </template>
   <template v-else>
     <router-view v-slot="{ Component }">

@@ -457,13 +457,22 @@ fieldset .field:last-child {
   @apply -translate-x-1/2 left-1/2;
 }
 
+.tooltip-right {
+  @apply tooltip right-2 translate-x-full group-hover:right-0;
+}
+
 .tooltip-bottom {
   @apply tooltip top-full group-hover:mt-0 mt-1;
 }
 
 .tooltip-top,
-.tooltip-top-right {
+.tooltip-top-right,
+.tooltip-top-left {
   @apply tooltip bottom-full group-hover:mb-0 mb-1;
+}
+
+.tooltip-top-left {
+  @apply left-0;
 }
 
 .tooltip-top-right {
@@ -552,10 +561,9 @@ fieldset .field:last-child {
 
 /* Repo picker modal */
 
-.modal-repo-picker .modal-box {
+.modal-repo-menu .modal-box {
   @apply !w-[500px];
-}
-
+}s
 
 /* Table */
 

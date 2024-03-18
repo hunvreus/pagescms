@@ -4,10 +4,10 @@
     <button :class="{ 'active': tab === 'create' }" @click="tab = 'create'">Create a new repository</button>
   </div>
   <template v-if="tab === 'create'">
-    <RepoCreate :customClass="customClass"/>
+    <RepoCreate :componentClass="componentClass"/>
   </template>
   <template v-else>
-    <RepoSelect :customClass="customClass"/>
+    <RepoSelect :componentClass="componentClass"/>
   </template>
 </template>
 
@@ -17,7 +17,7 @@ import RepoSelect from '@/components/repo/RepoSelect.vue';
 import RepoCreate from '@/components/repo/RepoCreate.vue';
 
 const props = defineProps({
-  customClass: {
+  componentClass: {
     type: String,
     default: ''
   }

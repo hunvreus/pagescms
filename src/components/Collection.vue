@@ -36,7 +36,7 @@
                     <Icon name="ExternalLink" class="h-4 w-4 stroke-2 shrink-0 ml-auto text-neutral-400 dark:text-neutral-500"/>
                   </a>
                 </li>
-                <li><hr class="border-t border-neutral-150 dark:border-neutral-750 my-2"/></li>
+                <li><hr class="border-t border-neutral-150 dark:border-neutral-750 my-1"/></li>
                 <li><button class="link w-full" @click="openAddFolderModal()">Add a folder</button></li>
               </ul>
             </template>
@@ -66,7 +66,7 @@
                     <Icon v-if="view.sort === sortField" name="Check" class="h-4 w-4 stroke-2 shrink-0 ml-auto"/>
                   </button>
                 </li>
-                <li><hr class="border-t border-neutral-150 dark:border-neutral-750 my-2"/></li>
+                <li><hr class="border-t border-neutral-150 dark:border-neutral-750 my-1"/></li>
                 <li>
                   <button class="link w-full" @click="view.order = 'asc'">
                     Ascendant
@@ -141,7 +141,7 @@
                               <Icon name="ExternalLink" class="h-4 w-4 stroke-2 shrink-0 ml-auto text-neutral-400 dark:text-neutral-500"/>
                             </a>
                           </li>
-                          <li><hr class="border-t border-neutral-150 dark:border-neutral-750 my-2"/></li>
+                          <li><hr class="border-t border-neutral-150 dark:border-neutral-750 my-1"/></li>
                           <li><button class="link w-full" @click="openRenameModal(item)">Rename</button></li>
                           <li><router-link :to="{ name: 'new', params: { path: item.path } }" class="link w-full">Make a copy</router-link></li>
                           <li><button class="link-danger w-full" @click="openDeleteModal(item)">Delete</button></li>
@@ -212,7 +212,6 @@ import lunr from 'lunr';
 import moment from 'moment';
 import useSchema from '@/composables/useSchema';
 import github from '@/services/github';
-import githubImg from '@/services/githubImg';
 import serialization from '@/services/serialization';
 import notifications from '@/services/notifications';
 import Dropdown from '@/components/utils/Dropdown.vue';

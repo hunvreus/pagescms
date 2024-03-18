@@ -176,8 +176,8 @@
       />
     </template>
   </div>
-  <!-- Inser image modal -->
-  <Modal ref="imageModal" :customClass="'modal-file-browser'">
+  <!-- Insert image modal -->
+  <Modal ref="imageModal" :componentClass="'modal-file-browser'">
     <template #header>Insert an image</template>
     <template #content>
       <div class="relative">
