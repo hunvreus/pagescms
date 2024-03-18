@@ -32,13 +32,13 @@
                   <li><div class="font-medium text-xs pb-1 px-3 text-neutral-400 dark:text-neutral-500">Owner & Repository</div></li>
                   <li>
                     <a class="link w-full" :href="`https://github.com/${props.owner}`" target="_blank">
-                      <span class="truncate">{{ props.owner }}</span>
+                      <span class="truncate" :title="props.owner">{{ props.owner }}</span>
                       <Icon name="ExternalLink" class="h-4 w-4 stroke-2 shrink-0 ml-auto text-neutral-400 dark:text-neutral-500"/>
                     </a>
                   </li>
                   <li>
                     <a class="link w-full" :href="`https://github.com/${props.owner}/${props.repo}`" target="_blank">
-                      <span class="truncate">{{ props.repo }}</span>
+                      <span class="truncate" :title="props.repo">{{ props.repo }}</span>
                       <Icon name="ExternalLink" class="h-4 w-4 stroke-2 shrink-0 ml-auto text-neutral-400 dark:text-neutral-500"/>
                     </a>
                   </li>
@@ -52,7 +52,7 @@
                       @click="isSidebarActive = false"
                       class="link w-full"
                     >
-                      <span class="truncate">{{ branch }}</span>
+                      <span class="truncate" :title="branch">{{ branch }}</span>
                       <Icon v-if="branch === props.branch" name="Check" class="h-4 w-4 stroke-2 shrink-0 ml-auto"/>
                     </router-link>
                   </li>

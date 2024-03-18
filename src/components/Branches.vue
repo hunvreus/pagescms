@@ -35,7 +35,7 @@
                 <Icon name="ShieldAlert" class="h-4 w-4 stroke-2 shrink-0"/>
                 <div class="tooltip-right">Protected</div>
               </div>
-              <div class="truncate font-medium">{{ branch.name }}</div>
+              <div class="truncate font-medium" :title="branch.name">{{ branch.name }}</div>
               <Icon v-if="branch.name === repoStore.branch" name="Check" class="h-4 w-4 stroke-2 shrink-0 ml-auto"/>
             </div>
           </router-link>

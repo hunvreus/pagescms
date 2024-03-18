@@ -12,7 +12,7 @@
         <div v-if="!(result.permissions && result.permissions.push) || isCurrentRepo(result)" class="link-text cursor-not-allowed" :class="[ isCurrentRepo(result) ? 'bg-neutral-100 dark:bg-neutral-750' : '' ]">
           <div class="truncate w-full" :class="[ isCurrentRepo(result) ? '' : 'opacity-50' ]">
             <div class="flex gap-x-2 items-center">
-              <div class="truncate font-medium">{{ result.full_name }}</div>
+              <div class="truncate font-medium" :title="result.full_name">{{ result.full_name }}</div>
               <div v-if="result.private" class="chip-primary">Private</div>
               <Icon v-if="isCurrentRepo(result)" name="Check" class="h-4 w-4 stroke-2 shrink-0 ml-auto"/>
             </div>
@@ -25,7 +25,7 @@
         <router-link v-else :to="{ path: '/' + result.full_name + '/' + result.default_branch }" class="link w-full">
           <div class="truncate">
             <div class="flex gap-x-2 items-center">
-              <div class="truncate font-medium">{{ result.full_name }}</div>
+              <div class="truncate font-medium" :title="result.full_name">{{ result.full_name }}</div>
               <div v-if="result.private" class="chip-primary">Private</div>
             </div>
             <div class="text-sm text-neutral-400 dark:text-neutral-500 truncate mt-1">

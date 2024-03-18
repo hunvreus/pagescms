@@ -33,14 +33,14 @@
           <li>
             <button class="link w-full" @click="owner = profile">
               <img class="h-6 w-6 shrink-0 rounded-md" :src="profile.avatar_url" alt="Profile picture"/>
-              <div class="text-left font-medium truncate">{{ profile.name || profile.login }}</div>
+              <div class="text-left font-medium truncate" :title="profile.name || profile.login">{{ profile.name || profile.login }}</div>
               <Icon v-if="owner.login === profile.login" name="Check" class="h-4 w-4 stroke-2 shrink-0 ml-auto"/>
             </button>
           </li>
           <li v-for="organization in organizations">
             <button class="link w-full" @click="owner = organization">
               <img class="h-6 w-6 shrink-0 rounded-md" :src="organization.avatar_url" alt="Profile picture"/>
-              <div class="text-left font-medium truncate">{{ organization.login }}</div>
+              <div class="text-left font-medium truncate" :title="organization.login">{{ organization.login }}</div>
               <Icon v-if="owner.login === organization.login" name="Check" class="h-4 w-4 stroke-2 shrink-0 ml-auto"/>
             </button>
           </li>
