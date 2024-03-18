@@ -19,7 +19,7 @@
     <!-- Branches -->
     <div class="flex items-center gap-x-2">
       <div class="relative w-full">
-        <input v-model="name" type="text" placeholder="Search for branches by name" class="input w-full !pr-8 placeholder-neutral-400 dark:placeholder-neutral-500"/>
+        <input v-model="name" type="text" placeholder="Search branches by name" class="input w-full !pr-8 placeholder-neutral-400 dark:placeholder-neutral-500"/>
         <div class="absolute right-3 top-1/2 -translate-y-1/2 opacity-50">
           <Icon name="Search" class="h-4 w-4 stroke-2 shrink-0"/>
         </div>
