@@ -164,7 +164,7 @@ onMounted(async () => {
 });
 
 watch(() => props.modelValue, (newValue, oldValue) => {
-  setImages();
+  if (JSON.stringify(newValue) !== JSON.stringify(oldValue)) setImages();
 });
 
 watch(
