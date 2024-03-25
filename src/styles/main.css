@@ -361,11 +361,15 @@ fieldset .field:last-child {
 }
 
 .field-list-item {
-  @apply bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-750 p-1.5 flex gap-y-1 gap-x-2 items-center rounded-xl mb-2;
+  @apply bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-750 px-3 py-1.5 flex gap-y-1 gap-x-3 items-center rounded-xl mb-2;
 }
 
 .field-list-item:last-child {
   @apply mb-0;
+}
+
+.field-type-object .field-list-item {
+  @apply px-3 py-4;
 }
 
 /* Spinner */
