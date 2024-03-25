@@ -163,9 +163,9 @@ onMounted(async () => {
   setImages();
 });
 
-// watch(() => props.modelValue, (newValue, oldValue) => {
-//   setImages();
-// });
+watch(() => props.modelValue, (newValue, oldValue) => {
+  if (JSON.stringify(newValue) !== JSON.stringify(oldValue)) setImages();
+});
 
 watch(
   internalModelValue,

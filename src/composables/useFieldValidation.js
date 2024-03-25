@@ -33,7 +33,7 @@ export default function useFieldValidation() {
       regex = new RegExp(pattern);
       message = 'This field does not match the required pattern.';
     } else if (pattern && typeof pattern === 'object' && pattern.regex) {
-      regex = new RegExp(pattern.regex);j
+      regex = new RegExp(pattern.regex);
       message = pattern.message || 'This field does not match the required pattern.';
     }
 
