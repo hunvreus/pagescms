@@ -61,26 +61,13 @@
 // TODO: add schema path to each field (for traceability)
 import { ref, computed } from 'vue';
 import Draggable from 'vuedraggable';
+import fieldRegistry from '@/fields/fieldRegistry';
 import useSchema from '@/composables/useSchema';
 import useFieldValidation from '@/composables/useFieldValidation';
 import Icon from '@/components/utils/Icon.vue';
 
 const { getDefaultValue } = useSchema();
 const { validateListRange } = useFieldValidation();
-
-// Load default and custom field components
-const defaultFieldComponents = import.meta.glob('@/components/fields/*/Edit*.vue', { eager: true });
-const customFieldComponents = import.meta.glob('@/customFields/*/Edit*.vue', { eager: true });
-
-const componentMap = {};
-
-for (const path in { ...defaultFieldComponents, ...customFieldComponents}) {
-  const typeName = path.split('/').at(-2);
-  componentMap[typeName] = {
-    component: defaultFieldComponents[path].default,
-    listSupport: path.endsWith('.list.vue')
-  }
-}
 
 const props = defineProps({
   field: Object,
@@ -93,11 +80,11 @@ const fieldErrors = ref([]);
 const listErrors = ref([]);
 
 const fieldComponent = computed(() => {
-    return componentMap[props.field.type]?.component || null;
+  return fieldRegistry[props.field.type]?.EditComponent || fieldRegistry['text']?.EditComponent || null;
 });
 
 const fieldListSupport = computed(() => {
-    return componentMap[props.field.type]?.listSupport;
+  return fieldRegistry[props.field.type]?.supportsList || false;
 });
 
 const addEntry = () => {

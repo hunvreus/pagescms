@@ -115,12 +115,30 @@
                 <td v-for="field in view.config.fields" :class="[ field == view.config.primary ? 'primary-field' : '', `field-type-${fieldsSchemas[field]?.type}` ]">
                   <template v-if="field == view.config.primary">
                     <router-link :to="{ name: 'edit', params: { name: name, path: item.path } }">
-                      <View :field="fieldsSchemas[field]" :value="item.fields?.[field]"/>
+                      <template v-if="fieldRegistry[fieldsSchemas[field]?.type]?.ViewComponent">
+                        <component
+                          :is="fieldRegistry[fieldsSchemas[field]?.type]?.ViewComponent"
+                          :field="fieldsSchemas[field]"
+                          :value="item.fields?.[field]"
+                        />
+                      </template>
+                      <template v-else>
+                        {{ item.fields?.[field] }}
+                      </template>
                     </router-link>
                   </template>
                   <template v-else>
                     <div>
-                      <View :field="fieldsSchemas[field]" :value="item.fields?.[field]"/>
+                      <template v-if="fieldRegistry[fieldsSchemas[field]?.type]?.ViewComponent">
+                        <component
+                          :is="fieldRegistry[fieldsSchemas[field]?.type]?.ViewComponent"
+                          :field="fieldsSchemas[field]"
+                          :value="item.fields?.[field]"
+                        />
+                      </template>
+                      <template v-else>
+                        {{ item.fields?.[field] }}
+                      </template>
                     </div>
                   </template>
                 </td>
@@ -210,6 +228,7 @@ import { ref, reactive, onMounted, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import lunr from 'lunr';
 import moment from 'moment';
+import fieldRegistry from '@/fields/fieldRegistry';
 import useSchema from '@/composables/useSchema';
 import github from '@/services/github';
 import serialization from '@/services/serialization';
@@ -219,7 +238,6 @@ import Icon from '@/components/utils/Icon.vue';
 import AddFolder from '@/components/file/AddFolder.vue';
 import Rename from '@/components/file/Rename.vue';
 import Delete from '@/components/file/Delete.vue';
-import View from '@/components/file/View.vue';
 
 const serializedTypes = ['yaml-frontmatter', 'json-frontmatter', 'toml-frontmatter', 'yaml', 'json', 'toml'];
 
@@ -336,36 +354,20 @@ const viewContents = computed(() => {
   }
   
   // Apply sorting
-  const dateFormat = fieldsSchemas.value['date']?.options?.format || 'YYYY-MM-DD';
   viewFiles = viewFiles.slice().sort((a, b) => {
+    let comparison = 0;
     const sortKey = view.sort;
     const fieldSchema = fieldsSchemas.value[sortKey];
     let valA = a.fields?.[sortKey];
     let valB = b.fields?.[sortKey];
-    // Handle dates
-    if (fieldSchema?.type === 'date') {
-      const dayA = moment(valA, dateFormat);
-      const dayB = moment(valB, dateFormat);
-      if (!dayA.isValid() && !dayB.isValid()) return 0;
-      if (!dayA.isValid()) return 1;
-      if (!dayB.isValid()) return -1;
-      valA = dayA.valueOf();
-      valB = dayB.valueOf();
+    const sortFunction = fieldRegistry[fieldSchema?.type]?.sortFunction;
+    if (sortFunction !== undefined) {
+      comparison = sortFunction(valA, valB, fieldSchema);
     } else {
-      // Convert booleans to integers to help with comparison with null/undefined
-      if (typeof valA === 'boolean') valA = valA ? 2 : 1;
-      if (typeof valB === 'boolean') valB = valB ? 2 : 1;
-      // Convert to lowercase if the value is a string
-      if (typeof valA === 'string') valA = valA.toLowerCase();
-      if (typeof valB === 'string') valB = valB.toLowerCase();
+      valA = valA != null ? String(valA) : '';
+      valB = valB != null ? String(valB) : '';
+      comparison = valA.localeCompare(valB, undefined, { sensitivity: 'base', ignorePunctuation: true });
     }
-    let comparison = 0;
-    if (valA < valB) {
-      comparison = -1;
-    } else if (valA > valB) {
-      comparison = 1;
-    }
-
     return view.order === 'desc' ? -comparison : comparison;
   });
 
