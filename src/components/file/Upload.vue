@@ -51,11 +51,15 @@ const upload = async (file) => {
       const data = await github.saveFile(props.owner, props.repo, props.branch, fullPath, content, null, true);
       notifications.close(notificationId);
       if (data) {
-        notifications.notify(`File '${file.name}' successfully uploaded.`, 'success');
-        emits('uploaded', file);
+        if (data.content.path === fullPath) {
+          notifications.notify(`File '${file.name}' successfully uploaded.`, 'success');
+        } else {
+          notifications.notify(`File '${file.name}' successfully uploaded but renamed to '${data.content.name}'.`, 'success');
+        }
+        emits('uploaded', data);
       } else {
         notifications.notify(`File upload failed.`, 'error');
-        emits('error', file);
+        emits('error', data);
       }
     }
   }

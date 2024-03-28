@@ -15,7 +15,7 @@ const state = reactive({
 });
 
 // Get the relative URL of a file
-const getRelativeUrl = (owner, repo, branch, path) => {
+const getRelativeUrl = (owner, repo, branch, path, encode = true) => {
   let relativePath = path;
   if (path.startsWith('https://raw.githubusercontent.com/')) {
     const pattern = new RegExp(`^https://raw\\.githubusercontent\\.com/${owner}/${repo}/${branch}/`, 'i');
@@ -23,14 +23,15 @@ const getRelativeUrl = (owner, repo, branch, path) => {
     relativePath = relativePath.split('?')[0];
   }
   
-  return relativePath;
+  return encode ? encodePath(relativePath) : relativePath;
 }
 
 // Get the raw URL of a file
-const getRawUrl = async (owner, repo, branch, path, isPrivate = false) => {
+const getRawUrl = async (owner, repo, branch, path, isPrivate = false, decode = false) => {
+  const decodedPath = decode ? decodeURIComponent(path) : path;
   if (isPrivate) {
-    const filename = path.split('/').pop();
-    const parentPath = path.split('/').slice(0, -1).join('/');
+    const filename = decodedPath.split('/').pop();
+    const parentPath = decodedPath.split('/').slice(0, -1).join('/');
     const parentFullPath = `${owner}/${repo}/${branch}/${parentPath}`;
     if (!state.cache[parentFullPath]?.files?.[filename] || (Date.now() - (state.cache[parentFullPath]?.time || 0) > ttl)) {
       // If the file isn't in cache or if the cache is stale, we refresh it
@@ -52,19 +53,38 @@ const getRawUrl = async (owner, repo, branch, path, isPrivate = false) => {
     
     return state.cache[parentFullPath]?.files?.[filename];
   } else {
-    return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${encodeURI(path)}`;
+    // TODO: Check if encodeURI is sufficient here or if we need to use something like encodePath
+    return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${encodeURI(decodedPath)}`;
   }
 };
 
+// Converts raw.githubusercontent.com URLs to relative URLs in an HTML string (for storage)
+const rawToRelativeUrls = (owner, repo, branch, html, encode = true) => {
+  const matches = getImgSrcs(html);
+  for (const match of matches) {
+    const src = match[1] || match[2];
+    const quote = match[1] ? '"' : "'";
+    if (src.startsWith('https://raw.githubusercontent.com/')) {
+      let relativePath = src.replace(new RegExp(`https://raw\\.githubusercontent\\.com/${owner}/${repo}/${branch}/`, 'gi'), '');
+      relativePath = relativePath.split('?')[0];
+      if (!encode) relativePath = decodeURIComponent(relativePath); // The path is already encoded in the GitHub URL
+      // TODO: check if I need to ignore case in other places
+      html = html.replace(`src=${quote}${src}${quote}`, `src=${quote}${relativePath}${quote}`);
+    }
+  }
+
+  return html;
+}
+
 // Converts relative URLs to raw.githubusercontent.com URLs in an HTML string (for display)
-const relativeToRawUrls = async (owner, repo, branch, html, isPrivate = false) => {
+const relativeToRawUrls = async (owner, repo, branch, html, isPrivate = false, decode = false) => {
   let newHtml = html;
   const matches = getImgSrcs(newHtml);
   for (const match of matches) {
     const src = match[1] || match[2];
     const quote = match[1] ? '"' : "'";
     if (!src.startsWith('/') && !src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('data:image/')) {  
-      const rawUrl = await getRawUrl(owner, repo, branch, decodeURI(src), isPrivate);
+      const rawUrl = await getRawUrl(owner, repo, branch, src, isPrivate, true); // We assume we're dealing with HTML content where the image paths are encoded
       if (rawUrl) {
         newHtml = newHtml.replace(`src=${quote}${src}${quote}`, `src=${quote}${rawUrl}${quote}`);
       }
@@ -74,26 +94,9 @@ const relativeToRawUrls = async (owner, repo, branch, html, isPrivate = false) =
   return newHtml;
 }
 
-// Converts raw.githubusercontent.com URLs to relative URLs in an HTML string (for storage)
-const rawToRelativeUrls = (owner, repo, branch, html) => {
-  const matches = getImgSrcs(html);
-  for (const match of matches) {
-    const src = match[1] || match[2];
-    const quote = match[1] ? '"' : "'";
-    if (src.startsWith('https://raw.githubusercontent.com/')) {
-      let relativePath = src.replace(new RegExp(`https://raw\\.githubusercontent\\.com/${owner}/${repo}/${branch}/`, 'gi'), '');
-      relativePath = relativePath.split('?')[0];
-      // TODO: check if I need to encodeURI or decodeURI one of them
-      // TODO: check if I need to ignore case in other places
-      html = html.replace(`src=${quote}${src}${quote}`, `src=${quote}${relativePath}${quote}`);
-    }
-  }
-
-  return html;
-}
-
 // Swaps path prefixes (used for input/output path conversion).
 const swapPrefix = (path, from, to, relative = false) => {
+  // TODO: do I need to handle encoding/decoding?
   if (path == null || from == null || to == null) return path;
   let newPath;
   if (from === to) {
@@ -115,6 +118,7 @@ const swapPrefix = (path, from, to, relative = false) => {
 
 // Swaps path prefixes (used for input/output path conversion) in an HTML string.
 const htmlSwapPrefix = (html, from, to, relative = false) => {
+  // TODO: do I need to handle encoding/decoding?
   if (from === to) return html;
   let newHtml = html;
   if (html != null && from != null && to != null) {
@@ -138,6 +142,11 @@ const htmlSwapPrefix = (html, from, to, relative = false) => {
   }
 
   return newHtml;
+}
+
+// Encode the segments of a path
+const encodePath = (path) => {
+  return path.split('/').map(encodeURIComponent).join('/');
 }
 
 // Get all img srcs from an HTML string
