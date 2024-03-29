@@ -440,7 +440,7 @@ const save = async () => {
     emit('file-saved', currentPath.value);
     if (route.name === 'settings') {
       // We've updated the configuration, we need to reload it
-      await config.set(props.owner, props.repo, props.branch);
+      await config.set(repoStore.owner, repoStore.repo, repoStore.branch);
     }
     status.value = '';
   } catch (error) {
@@ -481,4 +481,3 @@ watch(() => model.value, (newValue, oldValue) => {
 }, { deep: true });
 
 </script>
-
