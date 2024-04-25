@@ -448,7 +448,10 @@ const setCollection = async () => {
   }
 
   let errorCount = 0;
-  collection.value = files.map(file => {
+  const excludedFiles = schema.value.exclude || [];
+  collection.value = files.filter(file => {
+    return !excludedFiles.includes(file.name);
+  }).map(file => {
     if (file.type === 'blob' && (extension.value === '' || file.name.endsWith(`.${extension.value}`))) {
       let contentObject = {};
       if (serializedTypes.includes(format.value) && schema.value?.fields) {

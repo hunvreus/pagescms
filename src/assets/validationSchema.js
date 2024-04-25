@@ -92,6 +92,10 @@ const validationSchema = {
           "type": ["string", "null"],
           "errorMessage": "Property 'description' must be a string if specified."
         },
+        "icon": {
+          "type": "string",
+          "errorMessage": "Property 'icon' must be a string."
+        },
         "type": {
           "type": "string",
           "enum": ["collection", "file"],
@@ -105,6 +109,13 @@ const validationSchema = {
         "filename": {
           "type": ["string", "null"],
           "errorMessage": "Property 'filename' must be a string if specified."
+        },
+        "exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "errorMessage": "Property 'exclude' must be an array of file paths (strings) to exclude."
         },
         "list": {
           "type": ["object", "boolean"],
