@@ -1,8 +1,8 @@
 # Pages CMS
 
-[Pages CMS](https://pagescms.org) is an Open Source Content Management System built for static websites (Jekyll, Next.js, VuePress, Hugo, etc).
+[Pages CMS](https://pagescms.org) is an Open Source Content Management System for GitHub. It is particularly well suited for static site generators (e.g. Jekyll, Next.js, VuePress, Hugo).
 
-It allows you to edit your website's content directly on GitHub via a user-friendly interface.
+It offers a user-friendly interface to edit the content of your website or app directly on GitHub.
 
 <p align="center">
 <img src="https://pagescms.org/media/screenshots/collection-dark@2x.png">
@@ -10,62 +10,96 @@ It allows you to edit your website's content directly on GitHub via a user-frien
 
 ## Documentation
 
-For full documentation, go to [pagescms.org/docs](https://pagescms.org/docs)
+Go to [pagescms.org/docs](https://pagescms.org/docs).
 
-## How it works
+## Built with
 
-Pages CMS is built as a [Vue.js](https://vuejs.org/) app with a few serverless functions to handle the Github login.
+- [Next.js](https://nextjs.org/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [shadcn/ui](https://ui.shadcn.com/)
+- [drizzle](https://orm.drizzle.team/)
+- [Vercel](https://vercel.com/)
+- [Turso](https://turso.tech/)
+- [Resend](https://resend.com/)
 
-It is intended to be deployed with [Cloudflare Pages](https://pages.cloudflare.com/), using [Cloudflare Workers](https://workers.cloudflare.com/) (referred to as functions [functions](https://developers.cloudflare.com/pages/functions/)) for the serverless code.
-
-In a nutshell:
-
-- The serverless functions are just facilitating the OAuth dance (and logout) between the client and GitHub. The GitHub OAuth token is actually stored in the client.
-- Once logged in, the Vue app lets you select the repo (and branch) where your content may be at.
-- You can configure each repo/branch by adding a `.pages.yml` that describes the content structure and related settings (e.g. media folder).
-- The Vue app acts as a user-friendly interface on top of the GitHub API to manage content related files in your repo. With it you can search and filter collections, create/edit/delete entries, upload media...
-
-## Get started
-
-### Use online
+## Use online
 
 The easiest way to get started is to use [the online version of Pages CMS](https://app.pagescms.org). You'll be able to log in with your GitHub account and get the latest version of Pages CMS.
 
-This online version is identical to what's in this repo and as mentioned above, nothing is saved in the backend (OAuth tokens are saved on the client side).
+This online version is identical to what's in this repo, but you can also install your own version locally or deploy it (for free) on Vercel following the steps below.
 
-But you can also install your own version locally or deploy it (for free) on Cloudflare following the steps below.
+## Install and Deploy
 
-### Install locally
+### Create a GitHub App
 
-To get a local version up and running:
+Whether you're installing Pages CMS locally or deploying it online, you will need a GitHub App.
 
-1. **Install dependencies**: `npm install`.
-1. **Create a GitHub OAuth app**: 0n GitHub, go to [your Developer Settings](https://github.com/settings/developers) and [create a New OAuth App](https://github.com/settings/applications/new) (or alternatively create one for one of your organizations). You can use the following settings for your development environment:
-    - Application name: `Pages CMS (dev)`
-    - Homepage URL: `https://pagescms.org`
-    - Authorization callback URL: `http://localhost:8788/auth/callback`
-1. **Create a file for environment variables**: copy `.dev.vars.exmple` into `.dev.vars` and replace `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` with the values you got for your GitHub OAuth app. You shouldn't have to modify `BASE_URL`.
-1. **Run it**: `npm run dev`. This should [run the app locally with Wrangler](https://developers.cloudflare.com/pages/functions/local-development/) (allowing us to run the serverless functions locally).
-1. **Visit [localhost:8788](http://localhost:8788)**.
+You can either create it under your personal account (https://github.com/settings/apps) or under one of your organizations (https://github.com/organizations/<org-name>/settings/apps).
 
-### Deploy on Cloudflare
+You will need to fill in the following information:
 
-1. **Prerequisite**: you'll need a [Cloudflare](https://cloudflare.com) account (it's free). Once you have one:
-1. **Create a [Cloudflare Pages](https://developers.cloudflare.com/pages/) app**:
-    1. From your account dashboard, go to `Workers & Pages`, then click on `Create application` and select the `Pages` tab.
-    1. From there you can connect your GitHub account and select the repo you want to deploy (assuming you've [forked pages-cms/pages-cms](https://github.com/pages-cms/pages-cms/fork)).
-    1. Cloudflare will give you a public URL (e.g. https://pages-cms-123.pages.dev).
-1. **Create a GitHub OAuth app**: same as for local, go to [your Developer Settings](https://github.com/settings/developers) and [create a New OAuth App](https://github.com/settings/applications/new) (or alternatively create one for one of your organizations) with the following settings:
-    - **Application name**: `Pages CMS`
-    - **Homepage URL**: `https://pagescms.org`
-    - **Authorization callback URL**: `https://pages-cms-123.pages.dev/auth/callback` (replace `https://pages-cms-123.pages.dev` with whatever URL Cloudflare generated for you, or the custom domain you set up)
-1. **Add the environment variables to Cloudflare**:
-    1. Go back to your Cloudflare Pages app, click on the `Settings` tab and select `Environment variables` in the sidebar.
-    1. Fill in `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` with the values you got from GitHub.
-    1. You will also need to set `BASE_URL` to the URL that was given to you when you create the Cloudflare Pages app (e.g.  `https://pages-cms-123.pages.dev`).
-1. **Open the app link** (e.g. `https://pages-cms-123.pages.dev`).
+- **GitHub App name**: use "Pages CMS" or whatever you think is appropriate (e.g. "Pages CMS (dev)").
+- **Homepage URL**: whatever you want, https://pagescms.org will do.
+- **Identifying and authorizing users**:
+    - Callback URL: the URL for `/api/auth/github`:
+        - `http://localhost:3000/api/auth/github` for development,
+        - something like `https://my-vercel-url.vercel.app/api/auth/github` (or whatever custom domain you're using) if you're deploying on Vercel.
+    - Expire user authorization tokens: no.
+    - Request user authorization (OAuth) during installation: yes.
+    - Enable Device Flow: no.
+- **Post installation**:
+    - Setup URL (optional): leave empty.
+    - Redirect on update: no.
+- **Webhook**:
+    - Active: yes.
+    - Webhook URL: the (public) URL for `/api/webhook/github`:
+        - for development, you'll need to use something like [ngrok](https://ngrok.com/). You'll end up with something like `https://your-unique-subdomain.ngrok-free.app/api/webhook/github`.
+        - something like `https://my-vercel-url.vercel.app/api/webhook/github` (or whatever custom domain you're using) if you're deploying on Vercel.
+    - Secret: generate a random string (for example with `openssl rand -base64 32` on MacOS/Linux)
+- **Permissions**:
+    - Repository permissions:
+        - Administration: Read & Write
+        - Contents: Read & Write
+        - Metadata: Read only
+    - Organization permissions: nothing.
+    - Account permissions: nothing.
+- **Subscribe to events**:
+    - Installation target
+    - Repository (you'll probably need to add this after creating the GitHub App)
+- **Where can this GitHub App be installed?**: you'll want to select "Any account" unless you intend to only use Pages CMS on the account this GitHub App is created under.
 
-Cloudflare has very generous free tiers and can also host your actual website. It's a great alternative to GitHub Pages, Netlify or Vercel.
+### Environment variables
+
+Variable | Comments
+--- | ---
+`BASE_URL` | Base URL for your app (e.g. `http://localhost:3000` for development, something like `https://my-vercel-url.vercel.app` on Vercel).
+`CRYPTO_KEY` | Used to encrypt/decrypt GitHub tokens in the database. On MacOS/Linux*, you can use `openssl rand -base64 32`.
+`GITHUB_APP_ID` | GitHub App ID from your GitHub App details page.
+`GITHUB_APP_NAME` | Machine name for your GitHub App (e.g. `pages-cms`), should be the slug the URL of your GitHub App details page.
+`GITHUB_APP_PRIVATE_KEY` | PEM file you can download upong creation of the GitHub App.
+`GITHUB_APP_WEBHOOK_SECRET` | The secret you picked for your webhook. This is used to ensure the request is coming from GitHub.
+`GITHUB_APP_CLIENT_ID` | GitHub App Client ID from your GitHub App details page.
+`GITHUB_APP_CLIENT_SECRET` | GitHub App Client Secret you generate on theGitHub App details page.
+`RESEND_API_KEY` | You'll get that when you create a (free) [Resend](https://resend.com) account to handle emails.
+`SQLITE_URL` | `file:./local.db` for development, `libsql://pages-cms-username.turso.io` for example if you use [Turso](https://turso.tech) (you should, Turso is great).
+`SQLITE_AUTH_TOKEN` | Leave blank for development, otherwise use the token provided by [Turso](https://turso.tech) (if that's what you use).
+
+### Local development
+
+We assume you've already created the GitHub App and have a running tunnel for the GitHub App Webhook (using [ngrok](https://ngrok.com/) for example):
+
+1. **Install the dependencies**: `npm install`
+2. **Update your environment variables**: copy `.env.example` to `.env` and fill in the values according to your setting (see section above).
+3. **Create the database**: `npm run db:migrate`
+4. **Run it**: `npm run dev`
+
+### Deploy on Vercel
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fpages-cms%2Fpages-cms%2Ftree%2Fmain&project-name=pages-cms&repository-name=pages-cms&redirect-url=https%3A%2F%2Fpagescms.org&env=BASE_URL,CRYPTO_KEY,GITHUB_APP_ID,GITHUB_APP_NAME,GITHUB_APP_PRIVATE_KEY,GITHUB_APP_WEBHOOK_SECRET,GITHUB_APP_CLIENT_ID,GITHUB_APP_CLIENT_SECRET,RESEND_API_KEY,SQLITE_URL,SQLITE_AUTH_TOKEN)
+
+1. **Create a SQLite database**: I recommend using [Turso](https://turso.tech), because it's free (and pretty awesome). You'll need to 
+2. **Create the Vercel project**: you can use the deploy button above or fork this repo and [deploy it yourself](https://vercel.com/docs/deployments/overview). You will need to define all of the environment variables listed in the section above.
+3. **Update your GitHub OAuth app**: you'll probably need to go back to your GitHub App settings to update some of the settings once you have the Vercel URL (e.g. "Callback URL" and "Webhook URL").
 
 ## License
 

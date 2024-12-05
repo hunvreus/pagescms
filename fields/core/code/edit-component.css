@@ -1,0 +1,47 @@
+.cm-editor {
+  @apply !bg-background rounded-md border pr-[10px] pl-[6px] py-1 text-sm ring-offset-background;
+}
+
+.cm-editor .cm-content {
+  @apply min-h-[8rem];
+}
+
+.cm-editor.cm-focused {
+  @apply outline-none ring-2 ring-ring ring-offset-2;
+}
+
+.cm-tooltip {
+  @apply !border text-xs text-foreground !bg-popover shadow-md rounded-md px-3 py-2;
+}
+
+.cm-diagnostic {
+  @apply !border-0 !p-0 mb-2 last:mb-0 !flex !gap-x-2;
+}
+
+.cm-diagnostic::before {
+  content: '●';
+}
+
+.cm-diagnostic-error::before {
+  @apply text-red-500;
+}
+
+.cm-diagnostic-warning::before {
+  @apply text-amber-500;
+}
+
+.cm-lintRange-error {
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="6" height="3">%3Cpath%20d%3D%22m0%202.5%20l2%20-1.5%20l1%200%20l2%201.5%20l1%200%22%20stroke%3D%22%23ef4444%22%20fill%3D%22none%22%20stroke-width%3D%22.7%22%2F%3E</svg>') !important;
+}
+
+html.dark .cm-lintRange-error {
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="6" height="3">%3Cpath%20d%3D%22m0%202.5%20l2%20-1.5%20l1%200%20l2%201.5%20l1%200%22%20stroke%3D%22%23f87171%22%20fill%3D%22none%22%20stroke-width%3D%22.7%22%2F%3E</svg>') !important;
+}
+
+.cm-lintRange-warning {
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="6" height="3">%3Cpath%20d%3D%22m0%202.5%20l2%20-1.5%20l1%200%20l2%201.5%20l1%200%22%20stroke%3D%22%23f59e0b%22%20fill%3D%22none%22%20stroke-width%3D%22.7%22%2F%3E</svg>') !important;
+}
+
+html.dark  .cm-lintRange-warning {
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="6" height="3">%3Cpath%20d%3D%22m0%202.5%20l2%20-1.5%20l1%200%20l2%201.5%20l1%200%22%20stroke%3D%22%23fbbf24%22%20fill%3D%22none%22%20stroke-width%3D%22.7%22%2F%3E</svg>') !important;
+}
