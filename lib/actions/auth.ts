@@ -36,10 +36,10 @@ const handleEmailSignIn = async (prevState: any, formData: FormData) => {
 
 	const verificationToken = await createLoginToken(email as string);
 	const baseUrl = process.env.BASE_URL
-		? process.env.BASE_URL
-		: process.env.VERCEL_PROJECT_PRODUCTION_URL
-			? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-			: "";
+    ? process.env.BASE_URL
+    : process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : "http://localhost:3000";
 	const verificationLink = `${baseUrl}/api/auth/email/${verificationToken}`;
 
 	const resend = new Resend(process.env.RESEND_API_KEY);

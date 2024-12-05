@@ -7,7 +7,7 @@ import { InviteEmailTemplate } from "@/components/email/invite";
 import { Resend } from "resend";
 import { db } from "@/db";
 import { and, eq} from "drizzle-orm";
-import { collaboratorTable, subscriptionTable } from "@/db/schema";
+import { collaboratorTable } from "@/db/schema";
 import { z } from "zod";
 
 const handleAddCollaborator = async (prevState: any, formData: FormData) => {
@@ -34,14 +34,6 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
 
 		const email = emailValidation.data;
 
-		const subscription = await db.query.subscriptionTable.findFirst({
-			where: and(
-				eq(subscriptionTable.owner, owner),
-				eq(subscriptionTable.status, "active"),
-			),
-		});
-		if (!subscription) throw new Error(`No active subscription found for "${owner}".`);
-
 		const uniqueCollaborators = await db
 			.selectDistinct({ email: collaboratorTable.email })
 			.from(collaboratorTable)
@@ -49,8 +41,6 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
 
 		const isExistingCollaborator = uniqueCollaborators.find((collaborator) => collaborator.email === email);
 		const collaboratorCount = uniqueCollaborators.length;
-
-		if (!isExistingCollaborator && collaboratorCount >= subscription.invites) throw new Error("Maximum number of collaborators reached for this subscription.");
 
 		const token = await getUserToken();
   	if (!token) throw new Error("Token not found");
@@ -74,7 +64,7 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
 			? process.env.BASE_URL
 			: process.env.VERCEL_PROJECT_PRODUCTION_URL
 				? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-				: "";
+				: "http://localhost:3000";
 
 		const resend = new Resend(process.env.RESEND_API_KEY);
 

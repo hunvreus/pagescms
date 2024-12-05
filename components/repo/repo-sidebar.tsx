@@ -7,9 +7,8 @@ import { User } from "@/components/user";
 import { RepoDropdown } from "@/components/repo/repo-dropdown";
 import { RepoNav } from "@/components/repo/repo-nav";
 import { About } from "@/components/about";
-import { Upgrade } from "@/components/upgrade";
-import { ArrowLeft, CircleArrowUp } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 
 const RepoSidebar = ({
   onClick
@@ -28,14 +27,6 @@ const RepoSidebar = ({
           <ArrowLeft className="h-4 w-4 mr-1.5" />
           All projects
         </Link>
-        {!account?.subscription && 
-          <Upgrade owner={repo.owner}>
-            <Button variant="ghost" size="xs" className="ml-auto">
-              <CircleArrowUp className="h-4 w-4 mr-1.5" />
-              Upgrade
-            </Button>
-          </Upgrade>
-        }
       </header>
       <div className="px-3 pt-1">
         <RepoDropdown onClick={onClick} />

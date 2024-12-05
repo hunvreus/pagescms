@@ -6,22 +6,13 @@ import { db } from "@/db";
 import {
   collaboratorTable,
   githubUserTokenTable,
-  githubInstallationTokenTable,
-  subscriptionTable
+  githubInstallationTokenTable
 } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { User } from "@/types/user";
 
 const getToken = cache(async (user: User, owner: string, repo: string) => {
   if (user.githubId) return await getUserToken();
-
-  const subscription = await db.query.subscriptionTable.findFirst({
-    where: and(
-      eq(subscriptionTable.owner, owner),
-      eq(subscriptionTable.status, "active"),
-    ),
-  });
-  if (!subscription) throw new Error(`No active subscription found for "${owner}".`);
 
   const permission = await db.query.collaboratorTable.findFirst({
     where: and(
