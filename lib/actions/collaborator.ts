@@ -64,7 +64,7 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
 			? process.env.BASE_URL
 			: process.env.VERCEL_PROJECT_PRODUCTION_URL
 				? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-				: "http://localhost:3000";
+				: "";
 
 		const resend = new Resend(process.env.RESEND_API_KEY);
 
