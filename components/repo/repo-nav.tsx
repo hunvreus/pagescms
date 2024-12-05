@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useConfig } from "@/contexts/config-context";
+import { useUser } from "@/contexts/user-context";
 import { cn } from "@/lib/utils";
 import { FileStack, FileText, Image as ImageIcon, Settings, Users } from "lucide-react";
 
@@ -39,6 +40,7 @@ const RepoNav = ({
   onClick?: () => void;
 }) => {
   const { config } = useConfig();
+  const { user } = useUser();
   const pathname = usePathname();
 
   const items = useMemo(() => {
@@ -72,7 +74,7 @@ const RepoNav = ({
         }
       : null;
 
-    const collaboratorsItem = configObject && Object.keys(configObject).length !== 0
+    const collaboratorsItem = configObject && Object.keys(configObject).length !== 0 && user?.githubId
       ? {
           key: "collaborators",
           icon: <Users className="h-5 w-5 mr-2" />,
