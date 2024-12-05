@@ -72,7 +72,6 @@ You will need to fill in the following information:
 
 Variable | Comments
 --- | ---
-`BASE_URL` | Base URL for your app (e.g. `http://localhost:3000` for development, something like `https://my-vercel-url.vercel.app` on Vercel).
 `CRYPTO_KEY` | Used to encrypt/decrypt GitHub tokens in the database. On MacOS/Linux*, you can use `openssl rand -base64 32`.
 `GITHUB_APP_ID` | GitHub App ID from your GitHub App details page.
 `GITHUB_APP_NAME` | Machine name for your GitHub App (e.g. `pages-cms`), should be the slug the URL of your GitHub App details page.
@@ -83,6 +82,7 @@ Variable | Comments
 `RESEND_API_KEY` | You'll get that when you create a (free) [Resend](https://resend.com) account to handle emails.
 `SQLITE_URL` | `file:./local.db` for development, `libsql://pages-cms-username.turso.io` for example if you use [Turso](https://turso.tech) (you should, Turso is great).
 `SQLITE_AUTH_TOKEN` | Leave blank for development, otherwise use the token provided by [Turso](https://turso.tech) (if that's what you use).
+`BASE_URL` | **OPTIONAL**. If you're deploying to Vercel or working locally, you won't need that. If you're deploying elsewhere, you'll need to specify the base URL for the app (e.g. `https://mycustomdomain.com`).
 
 ### Local development
 
