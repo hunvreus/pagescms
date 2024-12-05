@@ -5,7 +5,7 @@
 It offers a user-friendly interface to edit the content of your website or app directly on GitHub.
 
 <p align="center">
-<img src="https://pagescms.org/media/screenshots/collection-dark@2x.png">
+<img src="https://pagescms.org/media/screenshots/pagescms-nextjs.png">
 </p>
 
 ## Documentation
