@@ -97,11 +97,18 @@ We assume you've already created the GitHub App and have a running tunnel for th
 
 ### Deploy on Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fpages-cms%2Fpages-cms%2Ftree%2Fmain&project-name=pages-cms&repository-name=pages-cms&redirect-url=https%3A%2F%2Fpagescms.org&env=CRYPTO_KEY,GITHUB_APP_ID,GITHUB_APP_NAME,GITHUB_APP_PRIVATE_KEY,GITHUB_APP_WEBHOOK_SECRET,GITHUB_APP_CLIENT_ID,GITHUB_APP_CLIENT_SECRET,RESEND_API_KEY,SQLITE_URL,SQLITE_AUTH_TOKEN)
+1. **Create a SQLite database**: I recommend using [Turso](https://turso.tech), because it's free (and pretty awesome)
+2. **Deploy to Vercel**: at this stage you have 2 choices:
+    1. **Create a fork**: this is preferably IMHO as it will allow you to receive updates. **Make sure you define all of the environment variables listed above.
+    2. **Use the deploy button**:
+    
+    [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fpages-cms%2Fpages-cms%2Ftree%2Fmain&project-name=pages-cms&repository-name=pages-cms&redirect-url=https%3A%2F%2Fpagescms.org&env=CRYPTO_KEY,GITHUB_APP_ID,GITHUB_APP_NAME,GITHUB_APP_PRIVATE_KEY,GITHUB_APP_WEBHOOK_SECRET,GITHUB_APP_CLIENT_ID,GITHUB_APP_CLIENT_SECRET,RESEND_API_KEY,SQLITE_URL,SQLITE_AUTH_TOKEN)
 
-1. **Create a SQLite database**: I recommend using [Turso](https://turso.tech), because it's free (and pretty awesome). You'll need to 
-2. **Create the Vercel project**: you can use the deploy button above or fork this repo and [deploy it yourself](https://vercel.com/docs/deployments/overview). You will need to define all of the environment variables listed in the section above.
 3. **Update your GitHub OAuth app**: you'll probably need to go back to your GitHub App settings to update some of the settings once you have the Vercel URL (e.g. "Callback URL" and "Webhook URL").
+
+### Self-host
+
+There are [plenty of other options](https://nextjs.org/docs/app/building-your-application/deploying#self-hosting): Fly.io, Digital Ocean, Render, SST, etc.
 
 ## License
 
