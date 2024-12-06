@@ -59,7 +59,7 @@ export function CollectionView({
     // TODO: use function to get nested fields
     const fields = (schema.view?.fields && schema.view?.fields.length > 0)
       ? schema.view.fields.map((name: string) => schema.fields?.find((field: any) => field.name === name))
-      : schema.fields;
+      : schema.fields?.filter((field: any) => field?.type !== 'object');
     if (fields) {
       return fields.filter((field: any) => field != null);
     } else {
