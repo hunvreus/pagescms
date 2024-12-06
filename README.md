@@ -99,7 +99,7 @@ We assume you've already created the GitHub App and have a running tunnel for th
 
 1. **Create a SQLite database**: I recommend using [Turso](https://turso.tech), because it's free (and pretty awesome)
 2. **Deploy to Vercel**: at this stage you have 2 choices:
-    1. **Create a fork**: deploy a fork of the [`pages-cms/pages-cms`](https://github.com/pages-cms/pages-cms). This is preferably if you to get updates. **Make sure you define all of the environment variables listed above.
+    1. **Create a fork**: fork the `pages-cms/pages-cms` repo in your account and deploy that fork. This will allow you to get updates. **Make sure you define all of the environment variables listed above**.
     2. **Use the deploy button**:
     
         [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fpages-cms%2Fpages-cms%2Ftree%2Fmain&project-name=pages-cms&repository-name=pages-cms&redirect-url=https%3A%2F%2Fpagescms.org&env=CRYPTO_KEY,GITHUB_APP_ID,GITHUB_APP_NAME,GITHUB_APP_PRIVATE_KEY,GITHUB_APP_WEBHOOK_SECRET,GITHUB_APP_CLIENT_ID,GITHUB_APP_CLIENT_SECRET,RESEND_API_KEY,SQLITE_URL,SQLITE_AUTH_TOKEN)
