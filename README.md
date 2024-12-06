@@ -12,7 +12,7 @@ It offers a user-friendly interface to edit the content of your website or app d
 </picture>
 </a>
 
-*[Watch the demo](https://youtu.be/MLpt12a8JRM)*
+*[Watch the demo ▶](https://youtu.be/MLpt12a8JRM)*
 
 ## Documentation
 
