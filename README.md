@@ -4,11 +4,15 @@
 
 It offers a user-friendly interface to edit the content of your website or app directly on GitHub.
 
+<a href="https://youtu.be/MLpt12a8JRM" target="_blank">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://pagescms.org/media/screenshots/nextjs-edit-with-bg-dark@2x.png">
-  <source media="(prefers-color-scheme: light)" srcset="https://pagescms.org/media/screenshots/nextjs-edit-with-bg-light@2x.png">
-  <img src="https://pagescms.org/media/screenshots/nextjs-edit-with-bg-light@2x.png">
+<source media="(prefers-color-scheme: dark)" srcset="https://pagescms.org/media/screenshots/nextjs-edit-with-bg-dark@2x.png">
+<source media="(prefers-color-scheme: light)" srcset="https://pagescms.org/media/screenshots/nextjs-edit-with-bg-light@2x.png">
+<img src="https://pagescms.org/media/screenshots/nextjs-edit-with-bg-light@2x.png">
 </picture>
+</a>
+
+*[Watch the demo](https://youtu.be/MLpt12a8JRM)*
 
 ## Documentation
 
