@@ -72,7 +72,7 @@
     "lucia": "^3.2.0",
     "lucide-react": "^0.378.0",
     "marked": "^12.0.2",
-    "next": "14.2.3",
+    "next": "^14.2.20",
     "next-themes": "^0.3.0",
     "octokit": "^4.0.2",
     "react": "^18.3.1",
