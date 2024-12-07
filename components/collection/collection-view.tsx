@@ -11,7 +11,7 @@ import {
   sortFiles
 } from "@/lib/utils/file";
 import { viewComponents } from "@/fields/registry";
-import { getSchemaByName, getPrimaryField, getFieldByPath } from "@/lib/schema";
+import { getSchemaByName, getPrimaryField, getFieldByPath, safeAccess } from "@/lib/schema";
 import { EmptyCreate } from "@/components/empty-create";
 import { FileOptions } from "@/components/file-options";
 import { CollectionTable } from "./collection-table";
@@ -67,10 +67,7 @@ export function CollectionView({
       } else {
         pathAndFieldArray = schema.fields
           .filter((field: any) => field?.type !== 'object')
-          .map((field: any) => ({
-            path: field.name,
-            field: field
-          }));
+          .map((field: any) => ({ path: field.name, field: field }));
       }
     } else {
       pathAndFieldArray.push({
@@ -133,7 +130,7 @@ export function CollectionView({
   }, []);
 
   const columns = useMemo(() => {
-    let tableColumns;
+    let tableColumns: any;
     tableColumns = viewFields.map((pathAndField: any) => {
       const path = pathAndField.path;
       const field = pathAndField.field;
@@ -141,7 +138,7 @@ export function CollectionView({
       
       return {
         accessorKey: path,
-        accessorFn: (originalRow: any) => originalRow.object?.[field.name],
+        accessorFn: (originalRow: any) => safeAccess(originalRow.object, path),
         header: field?.label ?? field.name,
         meta: { className: field.name === primaryField ? "truncate w-full min-w-[12rem] max-w-[1px]" : "" },
         cell: ({ cell, row }: { cell: any, row: any }) => {
@@ -201,10 +198,10 @@ export function CollectionView({
       ? "name"
       : (
           schema.view?.default?.sort
-          || (viewFields.includes("date") && "date")
+          || (viewFields.find((item: any) => item.field.name === "date") && "date")
           || primaryField
         );
-    
+
     return {
       sorting: [{
         id: sortId,
@@ -221,9 +218,6 @@ export function CollectionView({
   }, [schema, primaryField, viewFields]);
 
   const filesData = useMemo(() => data.filter((item: any) => item.type === "file"), [data]);
-
-  console.log('viewFields', viewFields)
-  console.log('filesData', filesData)
   
   const foldersData = useMemo(() => data.filter((item: any) => item.type === "dir"), [data]);
 

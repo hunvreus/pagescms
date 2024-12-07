@@ -12,12 +12,11 @@ const ViewComponent = ({
   value: string | string[],
   field: Field
 }) => {
-  if (!value) return null;
-
+  const firstValue = Array.isArray(value) ? value[0] : value;
+  if (firstValue == null) return null;
+  const extraValuesCount = Array.isArray(value) ? value.length - 1 : 0;
   const inputFormat = field.options?.time ? "yyyy-MM-dd'T'HH:mm" : "yyyy-MM-dd";
   const outputFormat = field.options?.time ? "MMM d, yyyy - HH:mm" : "MMM d, yyyy";
-  const firstValue = Array.isArray(value) ? value[0] : value;
-  const extraValuesCount = Array.isArray(value) ? value.length - 1 : 0;
 
   const formatDate = useMemo(() => (date: string) => {
     const parsedDate = parse(date, inputFormat, new Date());
@@ -31,7 +30,7 @@ const ViewComponent = ({
   return (
     <span className="flex items-center gap-x-1.5">
       <span className="inline-flex rounded-full border px-2 py-0.5 text-sm font-medium items-center gap-x-1.5">
-        <CalendarIcon className="w-4 h-4 shrink-0"/>
+        <CalendarIcon className="w-3 h-3 shrink-0"/>
         <span className="text-ellipsis overflow-hidden whitespace-nowrap">
           {formatDate(firstValue)}
         </span>

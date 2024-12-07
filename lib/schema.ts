@@ -306,5 +306,6 @@ export {
   getDateFromFilename,
   nestFieldArrays,
   unnestFieldArrays,
-  generateZodSchema
+  generateZodSchema,
+  safeAccess
 };
