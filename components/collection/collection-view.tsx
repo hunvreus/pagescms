@@ -122,7 +122,9 @@ export function CollectionView({
           const FieldComponent = viewComponents?.[field.type];
           const CellView = FieldComponent 
             ? <FieldComponent value={cellValue} field={field}/>
-            : cellValue;
+            : Array.isArray(cellValue)
+              ? cellValue.join(', ')
+              : cellValue;
           if (field.name === primaryField) {
             return (
               <Link

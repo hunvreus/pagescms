@@ -7,8 +7,6 @@ import { defaultValues, schemas } from "@/fields/registry";
 import { z } from "zod";
 import { Field } from "@/types/field";
 import { format } from "date-fns";
-// import { marked } from "marked";
-// import insane from "insane";
 
 const deepMap = (
   contentObject: Record<string, any>,
@@ -283,15 +281,6 @@ function getDateFromFilename(filename: string) {
   return undefined;
 }
 
-// Safely render a markdown description as HTML
-// TODO: should we enable this back?
-const renderDescription = (markdown: string) => {
-  // let html = marked(markdown);
-  // html = insane(html);
-  // html = html.replace(/<a /g, "<a target=\"_blank\" rel=\"noopener noreferrer\" ");
-  // return html;
-};
-
 export {
   deepMap,
   initializeState,
@@ -305,6 +294,5 @@ export {
   getDateFromFilename,
   nestFieldArrays,
   unnestFieldArrays,
-  generateZodSchema,
-  renderDescription
+  generateZodSchema
 };

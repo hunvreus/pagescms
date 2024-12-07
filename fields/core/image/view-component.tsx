@@ -11,7 +11,8 @@ const ViewComponent = ({
   value: string;
   field: Field;
 }) => {
-  
+  const extraValuesCount = value && Array.isArray(value) ? value.length - 1 : 0;
+
   const path = useMemo(() => {
     return !value
       ? null
@@ -20,7 +21,16 @@ const ViewComponent = ({
         : value;
   }, [value]);
 
-  return <Thumbnail path={path} className="w-8 rounded-md"/>;
+  return (
+    <span className="flex items-center gap-x-1.5">
+      <Thumbnail path={path} className="w-8 rounded-md"/>
+      {extraValuesCount > 0 && (
+        <span className="text-muted-foreground text-xs">
+          +{extraValuesCount}
+        </span>
+      )}
+    </span>
+  );
 }
 
 export { ViewComponent };
