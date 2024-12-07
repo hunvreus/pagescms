@@ -232,6 +232,18 @@ function safeAccess(obj: Record<string, any>, path: string) {
   }, obj);
 }
 
+// Get a field by its path
+function getFieldByPath(schema: Field[], path: string): Field | undefined {
+  const [first, ...rest] = path.split('.');
+  const field = schema.find(f => f.name === first);
+  
+  return !field ? undefined
+    : rest.length === 0 ? field
+    : field.type === 'object' && field.fields ? getFieldByPath(field.fields, rest.join('.'))
+    : undefined;
+}
+
+// Get the primary field for a schema
 const getPrimaryField = (schema: Record<string, any>) => {
   return schema?.view?.primary
     || schema?.fields?.find((item: any) => item.name === "title")
@@ -288,7 +300,7 @@ export {
   sanitizeObject,
   getSchemaByPath,
   getSchemaByName,
-  safeAccess,
+  getFieldByPath,
   getPrimaryField,
   generateFilename,
   getDateFromFilename,

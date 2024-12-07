@@ -16,8 +16,6 @@ const Installations = () => {
     );
   }
 
-  console.log(user.accounts);
-
   return (
     <ul>
       {user.accounts.map(account =>

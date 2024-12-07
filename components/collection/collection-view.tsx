@@ -11,7 +11,7 @@ import {
   sortFiles
 } from "@/lib/utils/file";
 import { viewComponents } from "@/fields/registry";
-import { getSchemaByName, getPrimaryField } from "@/lib/schema";
+import { getSchemaByName, getPrimaryField, getFieldByPath } from "@/lib/schema";
 import { EmptyCreate } from "@/components/empty-create";
 import { FileOptions } from "@/components/file-options";
 import { CollectionTable } from "./collection-table";
@@ -56,19 +56,44 @@ export function CollectionView({
   if (schema.type !== "collection") throw new Error(`"${name}" is not a collection.`);
 
   const viewFields = useMemo(() => {
-    // TODO: use function to get nested fields
-    const fields = (schema.view?.fields && schema.view?.fields.length > 0)
-      ? schema.view.fields.map((name: string) => schema.fields?.find((field: any) => field.name === name))
-      : schema.fields?.filter((field: any) => field?.type !== 'object');
-    if (fields) {
-      return fields.filter((field: any) => field != null);
-    } else {
-      let defaultFields = [{ name: "name", type: "string", label: "Name" }];
-      if (schema.filename.startsWith("{year}-{month}-{day}")) {
-        defaultFields.push({ name: "date", type: "date", label: "Date" });
+    let pathAndFieldArray: any[] = [];
+    if (schema.fields) {
+      if (schema.view?.fields && schema.view?.fields.length > 0) {
+        // If we have a list of fields defined for the view
+        schema.view.fields.forEach((path: string) => {
+          const field = getFieldByPath(schema.fields, path);
+          if (field) pathAndFieldArray.push({ path: path, field: field });
+        });
+      } else {
+        pathAndFieldArray = schema.fields
+          .filter((field: any) => field?.type !== 'object')
+          .map((field: any) => ({
+            path: field.name,
+            field: field
+          }));
       }
-      return defaultFields;
+    } else {
+      pathAndFieldArray.push({
+        path: "name",
+        field: {
+          label: "Name",
+          name: "name",
+          type: "string"
+        }
+      });
+      if (schema.filename.startsWith("{year}-{month}-{day}")) {
+        pathAndFieldArray.push({
+          path: "date",
+          field: {
+            label: "Date",
+            name: "date",
+            type: "date"
+          }
+        });
+      }
     }
+
+    return pathAndFieldArray;
   }, [schema]);
 
   const primaryField = useMemo(() => getPrimaryField(schema) ?? "name", [schema]);
@@ -109,11 +134,13 @@ export function CollectionView({
 
   const columns = useMemo(() => {
     let tableColumns;
-    
-    tableColumns = viewFields.map((field: any) => {
-      // TODO: we probably need the path rather than the field name for nested fields
+    tableColumns = viewFields.map((pathAndField: any) => {
+      const path = pathAndField.path;
+      const field = pathAndField.field;
+      if (!field) return null;
+      
       return {
-        accessorKey: field.name,
+        accessorKey: path,
         accessorFn: (originalRow: any) => originalRow.object?.[field.name],
         header: field?.label ?? field.name,
         meta: { className: field.name === primaryField ? "truncate w-full min-w-[12rem] max-w-[1px]" : "" },
@@ -174,10 +201,10 @@ export function CollectionView({
       ? "name"
       : (
           schema.view?.default?.sort
-          || (viewFields.find((item: any) => item.name === "date") && "date")
+          || (viewFields.includes("date") && "date")
           || primaryField
         );
-
+    
     return {
       sorting: [{
         id: sortId,
@@ -194,6 +221,9 @@ export function CollectionView({
   }, [schema, primaryField, viewFields]);
 
   const filesData = useMemo(() => data.filter((item: any) => item.type === "file"), [data]);
+
+  console.log('viewFields', viewFields)
+  console.log('filesData', filesData)
   
   const foldersData = useMemo(() => data.filter((item: any) => item.type === "dir"), [data]);
 
