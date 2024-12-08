@@ -70,7 +70,10 @@ export function FileOptions({
     try {
       const deletePromise = new Promise(async (resolve, reject) => {
         try {
-          const params = new URLSearchParams({ sha, type });
+          const params = new URLSearchParams({ 
+            sha,
+            type: (type === "collection" || type === "file") ? "content" : type
+          });
           if (name) params.set("name", name);
 
           const response = await fetch(`/api/${config.owner}/${config.repo}/${config.branch}/files/${encodeURIComponent(normalizedPath)}?${params.toString()}`, {
