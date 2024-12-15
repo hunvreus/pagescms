@@ -35,7 +35,7 @@ const write = (value: any, field: Field) => {
 };
 
 const schema = (field: Field) => {
-  let zodSchema = z.coerce.date();
+  let zodSchema = z.coerce.date().transform((date) => new Date(date.toISOString()));
   
   if (field.options?.min) zodSchema = zodSchema.min(new Date(field.options.min as string), { message: `Minimum value is ${field.options.min}` });
   if (field.options?.max) zodSchema = zodSchema.max(new Date(field.options.max as string), { message: `Maximum value is ${field.options.max}` });
