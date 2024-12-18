@@ -62,7 +62,7 @@ export function CollectionView({
         // If we have a list of fields defined for the view
         schema.view.fields.forEach((path: string) => {
           const field = getFieldByPath(schema.fields, path);
-          if (field) pathAndFieldArray.push({ path: path, field: field });
+          if (field && field.type !== "object") pathAndFieldArray.push({ path: path, field: field });
         });
       } else {
         pathAndFieldArray = schema.fields
