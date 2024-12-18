@@ -370,7 +370,7 @@ export function CollectionView({
               {foldersData && foldersData.length > 0
                 ? <div className="space-y-4">
                     <h2 className="font-medium text-md">Folders</h2>
-                    <ul className="grid grid-cols-4 gap-2">
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                       {foldersData.map((item, index) => 
                         <li key={item.path}>
                           <Link
