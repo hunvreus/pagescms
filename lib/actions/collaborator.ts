@@ -26,8 +26,8 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
 		});
 		if (!ownerAndRepoValidation.success) throw new Error ("Invalid owner and/or repo");
 
-		const owner = ownerAndRepoValidation.data.owner;
-		const repo = ownerAndRepoValidation.data.repo;
+		const owner = ownerAndRepoValidation.data.owner.toLowerCase();
+		const repo = ownerAndRepoValidation.data.repo.toLowerCase();
 
 		const emailValidation = z.string().trim().email().safeParse(formData.get("email"));
 		if (!emailValidation.success) throw new Error ("Invalid email");
@@ -85,8 +85,8 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
 			installationId: installations[0].id,
 			ownerId: installationRepos[0].owner.id,
 			repoId: installationRepos[0].id,
-			owner: installationRepos[0].owner.login,
-			repo: installationRepos[0].name,
+			owner: installationRepos[0].owner.login.toLowerCase(),
+			repo: installationRepos[0].name.toLowerCase(),
 			email,
 			invitedBy: user.id
 		}).returning();
