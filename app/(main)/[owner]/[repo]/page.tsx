@@ -12,7 +12,7 @@ export default function Page() {
 	
 	if (!user) throw new Error("User not found");
 	if (!user.accounts) throw new Error("Accounts not found");
-  if (!user.accounts.find((account) => account.login === owner)) throw new Error(`GitHub application not installed for "${owner}"`);
+  if (!user.accounts.find((account) => account.login.toLowerCase() === owner.toLowerCase())) throw new Error(`GitHub application not installed for "${owner}"`);
 
   useEffect(() => {
     // If no branch is provided, redirect to the default branch
