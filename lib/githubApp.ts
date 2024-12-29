@@ -75,10 +75,11 @@ const getInstallationRepos = async (
     allRepos = allRepos.concat(response.data.repositories);
 
     if (repos) {
+      const lowercaseRepos = repos.map((repo) => repo.toLowerCase());
       for (const repo of allRepos) {
         const matches = filterById
-          ? repos.includes(repo.id.toString()) // Match by ID
-          : repos.includes(repo.name); // Match by name
+          ? lowercaseRepos.includes(repo.id.toString()) // Match by ID
+          : lowercaseRepos.includes(repo.name.toLowerCase()); // Match by name
 
         if (matches && !matchedRepos.find((m: any) => m.id === repo.id)) {
           matchedRepos.push(repo);
@@ -86,7 +87,7 @@ const getInstallationRepos = async (
       }
 
       // Early exit if all desired repos are found
-      if (matchedRepos.length === repos.length) {
+      if (matchedRepos.length === lowercaseRepos.length) {
         return matchedRepos;
       }
     }

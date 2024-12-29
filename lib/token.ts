@@ -8,7 +8,7 @@ import {
   githubUserTokenTable,
   githubInstallationTokenTable
 } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { User } from "@/types/user";
 
 const getToken = cache(async (user: User, owner: string, repo: string) => {
@@ -16,8 +16,8 @@ const getToken = cache(async (user: User, owner: string, repo: string) => {
 
   const permission = await db.query.collaboratorTable.findFirst({
     where: and(
-      eq(collaboratorTable.owner, owner),
-      eq(collaboratorTable.repo, repo)
+      sql`lower(${collaboratorTable.owner}) = lower(${owner})`,
+      sql`lower(${collaboratorTable.repo}) = lower(${repo})`
     )
   });
   if (!permission) throw new Error(`You do not have permission to access "${owner}/${repo}".`);

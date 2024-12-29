@@ -34,14 +34,6 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
 
 		const email = emailValidation.data;
 
-		const uniqueCollaborators = await db
-			.selectDistinct({ email: collaboratorTable.email })
-			.from(collaboratorTable)
-			.where(eq(collaboratorTable.owner, owner));
-
-		const isExistingCollaborator = uniqueCollaborators.find((collaborator) => collaborator.email === email);
-		const collaboratorCount = uniqueCollaborators.length;
-
 		const token = await getUserToken();
   	if (!token) throw new Error("Token not found");
 		
