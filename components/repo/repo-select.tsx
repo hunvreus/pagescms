@@ -19,7 +19,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Ban, ChevronsUpDown, LockKeyhole, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function RepoSelect() {
+export function RepoSelect({
+  onAccountSelect
+}: {
+  onAccountSelect?: (account: any) => void
+}) {
   const { user } = useUser();
 
   const accounts = useMemo(() => {
@@ -116,7 +120,13 @@ export function RepoSelect() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
             {accounts.map((account: any) => (
-              <DropdownMenuItem key={account.login} onSelect={() => setSelectedAccount(account)}>
+              <DropdownMenuItem
+                key={account.login}
+                onSelect={() => {
+                  setSelectedAccount(account);
+                  if (onAccountSelect) onAccountSelect(account);
+                }}
+              >
                 <img className="h-6 w-6 rounded mr-2" src={`https://github.com/${account.login}.png`} alt={`${account.login}'s avatar`}/>
                 {account.login}
               </DropdownMenuItem>

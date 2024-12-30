@@ -29,7 +29,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { ChevronsUpDown, ArrowUpRight } from "lucide-react";
   
-export function RepoTemplates() {
+export function RepoTemplates({ defaultAccount }: { defaultAccount?: any }) {
   const { user } = useUser();
   const router = useRouter();
   const dialogCloseRef = useRef<any>(null);
@@ -43,7 +43,7 @@ export function RepoTemplates() {
       branch: ""
     }
   });
-  const [selectedAccount, setSelectedAccount] = useState(user?.accounts?.[0]);
+  const [selectedAccount, setSelectedAccount] = useState(defaultAccount || user?.accounts?.[0]);
   const [name, setName] = useState(templates[0].suggested);
   const [isValidName, setIsValidName] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -94,6 +94,10 @@ export function RepoTemplates() {
       });
     }
   }, [copyTemplateState, router]);
+
+  useEffect(() => {
+    if (defaultAccount) setSelectedAccount(defaultAccount);
+  }, [defaultAccount]);
 
   return (
     <div className="flex flex-col gap-y-4">

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { handleAppInstall } from "@/lib/actions/app";
 import { useUser } from "@/contexts/user-context";
 import { RepoSelect } from "@/components/repo/repo-select";
@@ -11,6 +12,7 @@ import { MainRootLayout } from "./main-root-layout";
 import { Github } from "lucide-react";
 
 export default function Page() {
+	const [defaultAccount, setDefaultAccount] = useState<any>(null);
   const { user } = useUser();
 	
 	if (!user) throw new Error("User not found");
@@ -22,13 +24,13 @@ export default function Page() {
 				{user.accounts.length > 0
 					? <>
 							<h2 className="font-semibold text-lg md:text-2xl tracking-tight">Last visited</h2>
-							<RepoLatest />
+							<RepoLatest/>
 							<h2 className="font-semibold text-lg md:text-2xl tracking-tight">Open a project</h2>
-							<RepoSelect/>
+							<RepoSelect onAccountSelect={(account) => setDefaultAccount(account)}/>
 							{user?.githubId &&
 								<>
 									<h2 className="font-semibold text-lg md:text-2xl tracking-tight">Create from a template</h2>
-									<RepoTemplates/>
+									<RepoTemplates defaultAccount={defaultAccount}/>
 								</>
 							}
 						</>

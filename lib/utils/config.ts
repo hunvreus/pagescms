@@ -2,7 +2,7 @@ import { cache } from "react";
 import { Config } from "@/types/config";
 import { db } from "@/db";
 import { configTable } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 // TODO: add a fallback behavior to retrieve conf if not in DB
 const getConfig = cache(
@@ -15,8 +15,8 @@ const getConfig = cache(
     
     const config = await db.query.configTable.findFirst({
       where: and(
-        eq(configTable.owner, owner.toLowerCase()),
-        eq(configTable.repo, repo.toLowerCase()),
+        sql`lower(${configTable.owner}) = lower(${owner})`,
+        sql`lower(${configTable.repo}) = lower(${repo})`,
         eq(configTable.branch, branch),
       )
     });
@@ -38,8 +38,8 @@ const saveConfig = async (
   config: Config,
 ): Promise<Config> => {
   const result = await db.insert(configTable).values({
-    owner: config.owner.toLowerCase(),
-    repo: config.repo.toLowerCase(),
+    owner: config.owner,
+    repo: config.repo,
     branch: config.branch,
     sha: config.sha,
     version: config.version,
@@ -58,8 +58,8 @@ const updateConfig = async (
     object: JSON.stringify(config.object)
   }).where(
     and(
-      eq(configTable.owner, config.owner.toLowerCase()),
-      eq(configTable.repo, config.repo.toLowerCase()),
+      sql`lower(${configTable.owner}) = lower(${config.owner})`,
+      sql`lower(${configTable.repo}) = lower(${config.repo})`,
       eq(configTable.branch, config.branch)
     )
   );
