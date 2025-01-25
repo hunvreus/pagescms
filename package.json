@@ -66,7 +66,6 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
-    "date-fns-tz": "^3.2.0",
     "drizzle-orm": "^0.31.2",
     "install": "^0.13.0",
     "joplin-turndown-plugin-gfm": "^1.0.12",

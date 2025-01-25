@@ -307,7 +307,6 @@ const EntryForm = ({
   const handleSubmit = async (values: any) => {
     setIsSubmitting(true);
     try {
-      console.log("VALUES", values);
       await onSubmit(values);
     } finally {
       setIsSubmitting(false);
