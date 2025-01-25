@@ -1,5 +1,5 @@
 import { type NextRequest } from "next/server";
-import { Octokit } from "octokit";
+import { createOctokitInstance } from "@/lib/utils/octokit";
 import { getAuth } from "@/lib/auth";
 import { getInstallations, getInstallationRepos } from "@/lib/githubApp";
 import { getUserToken } from "@/lib/token";
@@ -39,7 +39,7 @@ export async function GET(
         // All repos are selected, we search for the repos based on parameters
         const keyword = searchParams.get("keyword");
         
-        const octokit = new Octokit({ auth: token });
+        const octokit = createOctokitInstance(token);
         const query = `${keyword} in:name ${type}:${params.owner} fork:true`;
         const response = await octokit.rest.search.repos({
           q: query,

@@ -11,7 +11,7 @@ const getAccounts = async (user: User) => {
 	if (user.githubId) {
 		const token = await getUserToken();
 		if (!token) throw new Error("Token not found");
-
+		
 		const installations = await getInstallations(token);
 
 		accounts = [

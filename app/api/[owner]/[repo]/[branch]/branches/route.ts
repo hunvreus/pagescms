@@ -1,4 +1,4 @@
-import { Octokit } from "octokit";
+import { createOctokitInstance } from "@/lib/utils/octokit";
 import { getAuth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
 
@@ -16,7 +16,7 @@ export async function POST(
     const data: any = await request.json();
     if (!data.name) throw new Error(`"name" is required.`);
 
-    const octokit = new Octokit({ auth: token });
+    const octokit = createOctokitInstance(token);
 
     // Get the SHA of the branch we"re creating the new branch from
     const { data: refData } = await octokit.rest.git.getRef({

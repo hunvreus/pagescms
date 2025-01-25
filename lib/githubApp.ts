@@ -1,4 +1,4 @@
-import { Octokit } from "octokit";
+import { createOctokitInstance } from "@/lib/utils/octokit";
 
 const getInstallations = async (
   token: string,
@@ -8,7 +8,7 @@ const getInstallations = async (
   let installations: any[] = [];
   const matchedInstallations: any[] = [];
 
-  const octokit = new Octokit({ auth: token });
+  const octokit = createOctokitInstance(token);
 
   let page = 1;
   let hasMore = true;
@@ -57,7 +57,7 @@ const getInstallationRepos = async (
   let allRepos: any[] = [];
   const matchedRepos: any[] = [];
 
-  const octokit = new Octokit({ auth: token });
+  const octokit = createOctokitInstance(token);
 
   let page = 1;
   let hasMore = true;

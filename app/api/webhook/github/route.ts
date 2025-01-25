@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import crypto from "crypto";
 import { db } from "@/db";
-import { collaboratorTable } from "@/db/schema";
+import { collaboratorTable, githubInstallationTokenTable } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
 
 export async function POST(request: Request) {
@@ -25,6 +25,9 @@ export async function POST(request: Request) {
           if (data.action === "deleted") {
             await db.delete(collaboratorTable).where(
               eq(collaboratorTable.installationId, data.installation.id)
+            );
+            await db.delete(githubInstallationTokenTable).where(
+              eq(githubInstallationTokenTable.installationId, data.installation.id)
             );
           }
           break;

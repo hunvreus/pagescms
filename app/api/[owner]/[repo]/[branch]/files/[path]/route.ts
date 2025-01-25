@@ -1,5 +1,5 @@
 import { type NextRequest } from "next/server";
-import { Octokit } from "octokit";
+import { createOctokitInstance } from "@/lib/utils/octokit";
 import { writeFns } from "@/fields/registry";
 import { configVersion, parseConfig, normalizeConfig } from "@/lib/config";
 import { stringify } from "@/lib/serialization";
@@ -188,7 +188,7 @@ const githubSaveFile = async (
   const maxAttempts = sha ? 1 : 5;
   let uniqueFilenameCounter = 1;
 
-  const octokit = new Octokit({ auth: token });
+  const octokit = createOctokitInstance(token);
 
   while (attempts < maxAttempts) {
     try {
@@ -271,7 +271,7 @@ export async function DELETE(
         break;
     }
     
-    const octokit = new Octokit({ auth: token });
+    const octokit = createOctokitInstance(token);
     const response = await octokit.rest.repos.deleteFile({
       owner: params.owner,
       repo: params.repo,

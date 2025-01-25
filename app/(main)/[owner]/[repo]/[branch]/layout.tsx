@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Octokit } from "octokit";
+import { createOctokitInstance } from "@/lib/utils/octokit";
 import { getAuth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
 import { configVersion, parseConfig, normalizeConfig } from "@/lib/config";
@@ -38,7 +38,7 @@ export default async function Layout({
   
   // We try to retrieve the config file (.pages.yml)
   try {
-    const octokit = new Octokit({ auth: token });
+    const octokit = createOctokitInstance(token);
     const response = await octokit.rest.repos.getContent({
       owner: owner,
       repo: repo,

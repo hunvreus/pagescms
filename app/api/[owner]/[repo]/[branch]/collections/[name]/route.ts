@@ -1,7 +1,7 @@
 export const maxDuration = 30;
 
 import { type NextRequest } from "next/server";
-import { Octokit } from "octokit";
+import { createOctokitInstance } from "@/lib/utils/octokit"
 import { readFns } from "@/fields/registry";
 import { parse } from "@/lib/serialization";
 import { deepMap, getDateFromFilename, getSchemaByName } from "@/lib/schema";
@@ -32,7 +32,7 @@ export async function GET(
     const normalizedPath = normalizePath(path);
     if (!normalizedPath.startsWith(schema.path)) throw new Error(`Invalid path "${path}" for collection "${params.name}".`);
     
-    const octokit = new Octokit({ auth: token });
+    const octokit = createOctokitInstance(token);
     const query = `
       query ($owner: String!, $repo: String!, $expression: String!) {
         repository(owner: $owner, name: $repo) {
@@ -56,6 +56,7 @@ export async function GET(
     `;
     const expression = `${params.branch}:${normalizedPath}`;
     const response: any = await octokit.graphql(query, { owner: params.owner, repo: params.repo, expression });
+    // TODO: handle 401 / Bad credentials error
 
     const entries = response.repository?.object?.entries;
 

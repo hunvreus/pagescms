@@ -1,4 +1,4 @@
-import { Octokit } from "octokit";
+import { createOctokitInstance } from "@/lib/utils/octokit";
 import { getConfig } from "@/lib/utils/config";
 import { getFileExtension, normalizePath } from "@/lib/utils/file";
 import { getAuth } from "@/lib/auth";
@@ -23,7 +23,7 @@ export async function GET(
     const normalizedPath = normalizePath(params.path);
     if (!normalizedPath.startsWith(config.object.media.input)) throw new Error(`Invalid path "${params.path}" for media.`);
 
-    const octokit = new Octokit({ auth: token });    
+    const octokit = createOctokitInstance(token);
     const response = await octokit.rest.repos.getContent({
       owner: params.owner,
       repo: params.repo,

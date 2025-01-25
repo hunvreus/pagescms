@@ -1,6 +1,6 @@
 "use server";
 
-import { Octokit } from "octokit";
+import { createOctokitInstance } from "@/lib/utils/octokit";
 import { getAuth } from "@/lib/auth";
 import { getInstallations } from "@/lib/githubApp";
 import { getUserToken } from "@/lib/token";
@@ -36,7 +36,7 @@ const handleCopyTemplate = async (prevState: any, formData: FormData) => {
 
     const [template_owner, template_repo] = templateRepoValidation.data.split("/");
 
-		const octokit = new Octokit({ auth: token });
+		const octokit = createOctokitInstance(token);
     const response = await octokit.rest.repos.createUsingTemplate({
       template_owner,
       template_repo,

@@ -1,5 +1,5 @@
 import { type NextRequest } from "next/server";
-import { Octokit } from "octokit";
+import { createOctokitInstance } from "@/lib/utils/octokit";
 import { getSchemaByName } from "@/lib/schema";
 import { getConfig } from "@/lib/utils/config";
 import { getFileExtension, normalizePath } from "@/lib/utils/file";
@@ -36,7 +36,7 @@ export async function GET(
       throw new Error("If no content entry name is provided, the path must be \".pages.yml\".");
     }
     
-    const octokit = new Octokit({ auth: token });
+    const octokit = createOctokitInstance(token);
     const response = await octokit.rest.repos.listCommits({
       owner: params.owner,
       repo: params.repo,

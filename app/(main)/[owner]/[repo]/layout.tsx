@@ -1,5 +1,5 @@
 import { redirect} from "next/navigation";
-import { Octokit } from "octokit";
+import { createOctokitInstance } from "@/lib/utils/octokit";
 import { getAuth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
 import { RepoProvider } from "@/contexts/repo-context";
@@ -20,7 +20,7 @@ export default async function Layout({
   if (!token) throw new Error("Token not found");
 
   try {
-    const octokit = new Octokit({ auth: token });
+    const octokit = createOctokitInstance(token);
     const repoResponse = await octokit.rest.repos.get({ owner: owner, repo: repo });
     
     let branches = [];

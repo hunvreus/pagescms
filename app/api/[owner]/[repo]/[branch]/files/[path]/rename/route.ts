@@ -1,4 +1,4 @@
-import { Octokit } from "octokit";
+import { createOctokitInstance } from "@/lib/utils/octokit";
 import { getSchemaByName } from "@/lib/schema";
 import { getConfig } from "@/lib/utils/config";
 import { getFileExtension, normalizePath } from "@/lib/utils/file";
@@ -98,7 +98,7 @@ const githubRenameFile = async (
   path: string,
   newPath: string,
 ) => {
-  const octokit = new Octokit({ auth: token });
+  const octokit = createOctokitInstance(token);
 
   // Step 1: Get the current branch commit SHA
   const { data: branchData } = await octokit.rest.repos.getBranch({

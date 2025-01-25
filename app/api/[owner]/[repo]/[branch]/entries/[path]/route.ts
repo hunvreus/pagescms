@@ -1,5 +1,5 @@
 import { type NextRequest } from "next/server";
-import { Octokit } from "octokit";
+import { createOctokitInstance } from "@/lib/utils/octokit";
 import { readFns } from "@/fields/registry";
 import { deepMap, getSchemaByName } from "@/lib/schema";
 import { parse } from "@/lib/serialization";
@@ -43,7 +43,7 @@ export async function GET(
       config = {};
     }
     
-    const octokit = new Octokit({ auth: token });
+    const octokit = createOctokitInstance(token);
     const response = await octokit.rest.repos.getContent({
       owner: params.owner,
       repo: params.repo,
