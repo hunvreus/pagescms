@@ -15,8 +15,8 @@ export default function Page() {
       router.replace(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/${config.object.content[0].type}/${config.object.content[0].name}`);
     } else if (config?.object.media) {
       router.replace(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/media`);
-    } else if (config && config?.object.settings !== false) {
-      router.replace(`/${config?.owner}/${config?.repo}/${encodeURIComponent(config.branch)}/settings`);
+    } else if (config?.object.settings !== false) {
+      router.replace(`/${config?.owner}/${config?.repo}/${encodeURIComponent(config!.branch)}/settings`);
     } else {
       setError(true);
     }
@@ -28,7 +28,7 @@ export default function Page() {
         description={<>This branch and/or repository has no configuration and settings are disabled. Edit on GitHub if you think this is a mistake.</>}
         className="absolute inset-0"
         cta="Edit configuration on GitHub"
-        href={`https://github.com/${config?.owner}/${config?.repo}/edit/${encodeURIComponent(config?.branch)}/.pages.yml`}
+        href={`https://github.com/${config?.owner}/${config?.repo}/edit/${encodeURIComponent(config!.branch)}/.pages.yml`}
       />
     : null;
 }

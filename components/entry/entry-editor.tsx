@@ -95,9 +95,9 @@ export function EntryEditor({
   const navigateBack = useMemo(() => {
     const parentPath = path ? getParentPath(path) : undefined;
     return schema && schema.type === "collection"
-      ? `/${config?.owner}/${config?.repo}/${encodeURIComponent(config?.branch)}/collection/${schema.name}${parentPath && parentPath !== schema.path ? `?path=${encodeURIComponent(parentPath)}` : ""}`
+      ? `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${schema.name}${parentPath && parentPath !== schema.path ? `?path=${encodeURIComponent(parentPath)}` : ""}`
       : ""},
-    [schema, config?.owner, config?.repo, config?.branch, path]
+    [schema, config.owner, config.repo, config.branch, path]
   );
 
   useEffect(() => {
