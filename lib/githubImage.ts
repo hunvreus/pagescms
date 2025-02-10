@@ -18,7 +18,7 @@ const getRelativeUrl = (
   let relativePath = path;
 
   if (path.startsWith("https://raw.githubusercontent.com/")) {
-    const pattern = new RegExp(`^https://raw\\.githubusercontent\\.com/${owner}/${repo}/${branch}/`, "i");
+    const pattern = new RegExp(`^https://raw\\.githubusercontent\\.com/${owner}/${repo}/${encodeURIComponent(branch)}/`, "i");
     relativePath = path.replace(pattern, "");
     relativePath = relativePath.split("?")[0];
   }
@@ -41,13 +41,13 @@ const getRawUrl = async (
     if (!filename) return null;
     const parentPath = getParentPath(decodedPath);
     
-    const parentFullPath = `${owner}/${repo}/${branch}/${parentPath}`;
+    const parentFullPath = `${owner}/${repo}/${encodeURIComponent(branch)}/${parentPath}`;
     
     if (!cache[parentFullPath]?.files?.[filename] || (Date.now() - (cache[parentFullPath]?.time || 0) > ttl)) {
       delete cache[parentFullPath];
       
       if (!requests[parentFullPath]) {
-        requests[parentFullPath] = fetch(`/api/${owner}/${repo}/${branch}/media/${encodeURIComponent(parentPath)}`)
+        requests[parentFullPath] = fetch(`/api/${owner}/${repo}/${encodeURIComponent(branch)}/media/${encodeURIComponent(parentPath)}`)
           .then(response => {
             if (!response.ok) throw new Error(`Failed to fetch media: ${response.status} ${response.statusText}`);
             
@@ -74,7 +74,7 @@ const getRawUrl = async (
 
     return cache[parentFullPath]?.files?.[filename];
   } else {
-    return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${encodeURI(decodedPath)}`;
+    return `https://raw.githubusercontent.com/${owner}/${repo}/${encodeURIComponent(branch)}/${encodeURI(decodedPath)}`;
   }
 };
 
@@ -91,7 +91,7 @@ const rawToRelativeUrls = (
     const quote = match[1] ? "\"" : "'";
 
     if (src.startsWith("https://raw.githubusercontent.com/")) {
-      let relativePath = src.replace(new RegExp(`https://raw\\.githubusercontent\\.com/${owner}/${repo}/${branch}/`, "gi"), "");
+      let relativePath = src.replace(new RegExp(`https://raw\\.githubusercontent\\.com/${owner}/${repo}/${encodeURIComponent(branch)}/`, "gi"), "");
       relativePath = relativePath.split("?")[0];
 
       if (!encode) relativePath = decodeURIComponent(relativePath);
