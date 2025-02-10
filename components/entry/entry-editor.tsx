@@ -107,7 +107,7 @@ export function EntryEditor({
         setError(null);
 
         try {
-          const response = await fetch(`/api/${config.owner}/${config.repo}/${config.branch}/entries/${encodeURIComponent(path)}?name=${encodeURIComponent(name)}`);
+          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/entries/${encodeURIComponent(path)}?name=${encodeURIComponent(name)}`);
           if (!response.ok) throw new Error(`Failed to fetch entry: ${response.status} ${response.statusText}`);
 
           const data: any = await response.json();
@@ -137,7 +137,7 @@ export function EntryEditor({
     const fetchHistory = async () => {
       if (path) {
         try {
-          const response = await fetch(`/api/${config.owner}/${config.repo}/${config.branch}/entries/${encodeURIComponent(path)}/history?name=${encodeURIComponent(name)}`);
+          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/entries/${encodeURIComponent(path)}/history?name=${encodeURIComponent(name)}`);
           if (!response.ok) throw new Error(`Failed to fetch entry's history: ${response.status} ${response.statusText}`);
           
           const data: any = await response.json();
@@ -159,7 +159,7 @@ export function EntryEditor({
       try {
         const savePath = path ?? `${parent ?? schema.path}/${generateFilename(schema.filename, schema, contentObject)}`;
 
-        const response = await fetch(`/api/${config.owner}/${config.repo}/${config.branch}/files/${encodeURIComponent(savePath)}`, {
+        const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/files/${encodeURIComponent(savePath)}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -178,7 +178,7 @@ export function EntryEditor({
         
         if (data.data.sha !== sha) setSha(data.data.sha);
 
-        if (!path && schema.type === "collection") router.push(`/${config.owner}/${config.repo}/${config.branch}/collection/${encodeURIComponent(name)}/edit/${encodeURIComponent(data.data.path)}`);
+        if (!path && schema.type === "collection") router.push(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/edit/${encodeURIComponent(data.data.path)}`);
 
         resolve(data);
       } catch (error) {
@@ -205,7 +205,7 @@ export function EntryEditor({
   const handleDelete = (path: string) => {
     // TODO: disable save button or freeze form while deleting?
     if (schema.type === "collection") {
-      router.push(`/${config.owner}/${config.repo}/${config.branch}/collection/${encodeURIComponent(name)}`);
+      router.push(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}`);
     } else {
       setRefetchTrigger(refetchTrigger + 1);
     }
@@ -213,7 +213,7 @@ export function EntryEditor({
 
   const handleRename = (oldPath: string, newPath: string) => {
     setPath(newPath);
-    router.replace(`/${config.owner}/${config.repo}/${config.branch}/collection/${encodeURIComponent(name)}/edit/${encodeURIComponent(newPath)}`);
+    router.replace(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/edit/${encodeURIComponent(newPath)}`);
   };
 
   const loadingSkeleton = useMemo(() => (
@@ -337,7 +337,7 @@ export function EntryEditor({
           description={error}
           className="absolute inset-0"
           cta="Go to settings"
-          href={`/${config.owner}/${config.repo}/${config.branch}/settings`}
+          href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/settings`}
         />
       );
     }

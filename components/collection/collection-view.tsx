@@ -153,7 +153,7 @@ export function CollectionView({
             return (
               <Link
                 className="font-medium truncate"
-                href={`/${config.owner}/${config.repo}/${config.branch}/collection/${encodeURIComponent(name)}/edit/${encodeURIComponent(row.original.path)}`}
+                href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/edit/${encodeURIComponent(row.original.path)}`}
               >
                 {CellView}
               </Link>
@@ -176,7 +176,7 @@ export function CollectionView({
         <div className="flex gap-1">
           <Link
             className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8")}
-            href={`/${config.owner}/${config.repo}/${config.branch}/collection/${name}/edit/${encodeURIComponent(row.original.path)}`}
+            href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${name}/edit/${encodeURIComponent(row.original.path)}`}
           >
             Edit
           </Link>
@@ -227,7 +227,7 @@ export function CollectionView({
         setIsLoading(true);
         setError(null);
         try {
-          const response = await fetch(`/api/${config.owner}/${config.repo}/${config.branch}/collections/${encodeURIComponent(name)}?path=${encodeURIComponent(path || schema.path)}`);
+          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collections/${encodeURIComponent(name)}?path=${encodeURIComponent(path || schema.path)}`);
           if (!response.ok) throw new Error(`Failed to fetch collection: ${response.status} ${response.statusText}`);
 
           const data: any = await response.json();
@@ -325,7 +325,7 @@ export function CollectionView({
         description={error}
         className="absolute inset-0"
         cta="Go to settings"
-        href={`/${config.owner}/${config.repo}/${config.branch}/settings`}
+        href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/settings`}
       />
     }
   }
@@ -351,13 +351,13 @@ export function CollectionView({
           </FolderCreate>
           <Link
             className={cn(buttonVariants({size: "sm"}), "hidden sm:flex")}
-            href={`/${config.owner}/${config.repo}/${config.branch}/collection/${encodeURIComponent(name)}/new${path && path !== schema.path ? `?parent=${encodeURIComponent(path)}` : ""}`}
+            href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new${path && path !== schema.path ? `?parent=${encodeURIComponent(path)}` : ""}`}
           >
               Add an entry
           </Link>
           <Link
             className={cn(buttonVariants({size: "icon-sm"}), "sm:hidden shrink-0")}
-            href={`/${config.owner}/${config.repo}/${config.branch}/collection/${encodeURIComponent(name)}/new`}
+            href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new`}
           >
               <Plus className="h-4 w-4"/>
           </Link>

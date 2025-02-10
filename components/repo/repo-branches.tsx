@@ -39,7 +39,7 @@ export function RepoBranches() {
         try {
           const newBranch = search;
 
-          const response = await fetch(`/api/${config.owner}/${config.repo}/${config.branch}/branches`, {
+          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/branches`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

@@ -76,7 +76,7 @@ export function FileOptions({
           });
           if (name) params.set("name", name);
 
-          const response = await fetch(`/api/${config.owner}/${config.repo}/${config.branch}/files/${encodeURIComponent(normalizedPath)}?${params.toString()}`, {
+          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/files/${encodeURIComponent(normalizedPath)}?${params.toString()}`, {
             method: "DELETE",
           });
 
@@ -112,7 +112,7 @@ export function FileOptions({
       
       const renamePromise = new Promise(async (resolve, reject) => {
         try {
-          const response = await fetch(`/api/${config.owner}/${config.repo}/${config.branch}/files/${encodeURIComponent(normalizedPath)}/rename`, {
+          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/files/${encodeURIComponent(normalizedPath)}/rename`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -155,7 +155,7 @@ export function FileOptions({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" portalProps={portalProps}>
             <DropdownMenuItem asChild>
-              <a href={`https://github.com/${config.owner}/${config.repo}/blob/${config.branch}/${path}`} target="_blank">
+              <a href={`https://github.com/${config.owner}/${config.repo}/blob/${encodeURIComponent(config.branch)}/${path}`} target="_blank">
                 <span className="mr-4">See on GitHub</span>
                 <ArrowUpRight className="h-3 w-3 ml-auto min-ml-4 opacity-50" />
               </a>

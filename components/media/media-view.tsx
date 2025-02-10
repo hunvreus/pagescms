@@ -71,7 +71,7 @@ const MediaView = ({
         setError(null);
 
         try {
-          const response = await fetch(`/api/${config.owner}/${config.repo}/${config.branch}/media/${encodeURIComponent(path)}`);
+          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/media/${encodeURIComponent(path)}`);
           if (!response.ok) throw new Error(`Failed to fetch media: ${response.status} ${response.statusText}`);
 
           const data: any = await response.json();
@@ -201,7 +201,7 @@ const MediaView = ({
         description="You have no media defined in your settings."
         className="absolute inset-0"
         cta="Go to settings"
-        href={`/${config.owner}/${config.repo}/${config.branch}/settings`}
+        href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/settings`}
       />
     );
   }

@@ -52,7 +52,7 @@ const RepoNav = ({
         ? <FileStack className="h-5 w-5 mr-2" />
         : <FileText className="h-5 w-5 mr-2" />
       ,
-      href: `/${config.owner}/${config.repo}/${config.branch}/${item.type}/${encodeURIComponent(item.name)}`,
+      href: `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/${item.type}/${encodeURIComponent(item.name)}`,
       label: item.label || item.name,
     })) || [];
 
@@ -60,7 +60,7 @@ const RepoNav = ({
       ? {
           key: "media",
           icon: <ImageIcon className="h-5 w-5 mr-2" />,
-          href: `/${config.owner}/${config.repo}/${config.branch}/media`,
+          href: `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/media`,
           label: "Media"
         }
       : null;
@@ -69,7 +69,7 @@ const RepoNav = ({
       ? {
           key: "settings",
           icon: <Settings className="h-5 w-5 mr-2" />,
-          href: `/${config.owner}/${config.repo}/${config.branch}/settings`,
+          href: `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/settings`,
           label: "Settings"
         }
       : null;
@@ -78,7 +78,7 @@ const RepoNav = ({
       ? {
           key: "collaborators",
           icon: <Users className="h-5 w-5 mr-2" />,
-          href: `/${config.owner}/${config.repo}/${config.branch}/collaborators`,
+          href: `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collaborators`,
           label: "Collaborators"
         }
       : null;

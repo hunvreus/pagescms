@@ -44,7 +44,7 @@ const FolderCreate = ({
 
       const createPromise = new Promise(async (resolve, reject) => {
         try {
-          const response = await fetch(`/api/${config.owner}/${config.repo}/${config.branch}/files/${encodeURIComponent(fullNewPath + "/.gitkeep")}`, {
+          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/files/${encodeURIComponent(fullNewPath + "/.gitkeep")}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
