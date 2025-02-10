@@ -9,6 +9,8 @@ const ViewComponent = ({
   value: string,
   field: Field
 }) => {
+  if (!value) return null;
+  
   const sanitizeHtml = (text: string) => {
     return text
       .replace(/<[^>]*>/g, ' ')

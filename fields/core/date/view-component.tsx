@@ -12,6 +12,8 @@ const ViewComponent = ({
   value: string | string[],
   field: Field
 }) => {
+  if (!value) return null;
+
   const firstValue = Array.isArray(value) ? value[0] : value;
   if (firstValue == null) return null;
   const extraValuesCount = Array.isArray(value) ? value.length - 1 : 0;
