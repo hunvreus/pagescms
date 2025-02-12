@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useCallback, useMemo, useRef, useState } from "react";
+import { forwardRef, useCallback, useMemo, useState } from "react";
 import { getParentPath } from "@/lib/utils/file";
 import { MediaDialog } from "@/components/media/media-dialog";
 import { Thumbnail } from "@/components/thumbnail";
