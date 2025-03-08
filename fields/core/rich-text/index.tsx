@@ -15,15 +15,15 @@ const read = (value: any, field: Field, config: Record<string, any>) => {
 
   const prefixInput = field.options?.input ?? config.object.media?.input;
   const prefixOutput = field.options?.output ?? config.object.media?.output;
-  
+
   return htmlSwapPrefix(html, prefixOutput, prefixInput, true);
 };
 
 const write = (value: any, field: Field, config: Record<string, any>) => {
-  let content = value;
-  
+  let content = value || '';
+
   content = rawToRelativeUrls(config.owner, config.repo, config.branch, content);
-  
+
   const prefixInput = field.options?.input ?? config.object.media?.input;
   const prefixOutput = field.options?.output ?? config.object.media?.output;
 
@@ -36,7 +36,7 @@ const write = (value: any, field: Field, config: Record<string, any>) => {
     });
     turndownService.use([tables, strikethrough]);
     turndownService.addRule("retain-html", {
-      filter: (node: any, options: any)  => (
+      filter: (node: any, options: any) => (
         (
           node.nodeName === "IMG" && (node.getAttribute("width") || node.getAttribute("height"))
         ) ||
@@ -50,10 +50,10 @@ const write = (value: any, field: Field, config: Record<string, any>) => {
     // We need to strip <colgroup> and <col> tags otherwise turndown won't convert tables
     content = content.replace(/<colgroup>.*?<\/colgroup>/g, '');
 
-    content = turndownService.turndown(content);    
+    content = turndownService.turndown(content);
   }
 
   return content;
 };
 
-export { EditComponent, ViewComponent, read, write};
+export { EditComponent, ViewComponent, read, write };
