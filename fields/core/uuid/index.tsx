@@ -7,7 +7,7 @@ const defaultValue = (): string => {
 };
 
 const schema = (_: Field) => {
-  let zodSchema = z.coerce.string();
+  let zodSchema = z.coerce.string().uuid();
 
   return zodSchema;
 };
