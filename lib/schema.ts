@@ -74,7 +74,10 @@ const getDefaultValue = (field: Record<string, any>) => {
   } else if (field.type === "object") {
     return initializeState(field.fields, {});
   } else {
-    return defaultValues?.[field.type] || "";
+    const defaultValue = defaultValues?.[field.type];
+    return defaultValue instanceof Function
+      ? defaultValue()
+      : defaultValue || "";
   }
 };
 
