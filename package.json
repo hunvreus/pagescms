@@ -79,6 +79,7 @@
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.51.5",
+    "react-select": "^5.10.0",
     "resend": "^3.5.0",
     "slugify": "^1.6.6",
     "sonner": "^1.4.41",

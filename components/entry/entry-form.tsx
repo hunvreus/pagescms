@@ -187,7 +187,7 @@ const ListField = ({
                   size="sm"
                   onClick={() => {
                     append(field.type === "object"
-                      ? initializeState(field.fields, {}, true)
+                      ? initializeState(field.fields, {})
                       : getDefaultValue(field)
                     );
                   }}
@@ -263,7 +263,7 @@ const EntryForm = ({
   }, [fields]);
 
   const defaultValues = useMemo(() => {
-    return initializeState(fields, sanitizeObject(contentObject), true);
+    return initializeState(fields, sanitizeObject(contentObject));
   }, [fields, contentObject]);
 
   const form = useForm({

@@ -21,13 +21,17 @@ const deepMap = (
       
       // TOOD: do we want to check for undefined or null?
       if (field.list) {
-        result[field.name] = Array.isArray(value)
-          ? value.map(item =>
-              field.type === "object"
-                ? traverse(item, field.fields || [])
-                : apply(item, field)
-            )
-          : [];
+        if (value === undefined) {
+          result[field.name] = apply(value, field);
+        } else {
+          result[field.name] = Array.isArray(value)
+            ? value.map(item =>
+                field.type === "object"
+                  ? traverse(item, field.fields || [])
+                  : apply(item, field)
+              )
+            : [];
+        }
       } else if (field.type === "object") {
         result[field.name] = value !== undefined
           ? traverse(value, field.fields || [])
@@ -46,18 +50,19 @@ const deepMap = (
 // Create an initial state for an entry based on the schema fields and content
 const initializeState = (
   fields: Field[] | undefined,
-  contentObject: Record<string, any> = {},
-  addDefaultEntryToLists: boolean = true,
-  nestArrays: boolean = false
+  contentObject: Record<string, any> = {}
 ): Record<string, any> => {
   if (!fields) return {};
-
+  
   return deepMap(contentObject, fields, (value, field) => {
     let appliedValue = value;
     if (value === undefined) {
-      appliedValue = field.list && addDefaultEntryToLists ? [getDefaultValue(field)] : getDefaultValue(field);
+      appliedValue = field.list
+        ? (typeof field.list === "object" && field.list.default)
+          ? field.list.default
+          : [getDefaultValue(field)]
+        : getDefaultValue(field);
     }
-    if (field.list && nestArrays) appliedValue = { value: appliedValue}
     return appliedValue;
   });
 };

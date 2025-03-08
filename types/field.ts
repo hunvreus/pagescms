@@ -4,7 +4,7 @@ export type Field = {
   description?: string | null;
   type: "boolean" | "code" | "date" | "image" | "number" | "object" | "rich-text" | "select" | "string" | "text" | string;
   default?: any;
-  list?: boolean | { min?: number; max?: number };
+  list?: boolean | { min?: number; max?: number; default?: any };
   hidden?: boolean | null;
   required?: boolean | null;
   pattern?: string | { regex: string; message?: string };
