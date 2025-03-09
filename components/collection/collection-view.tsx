@@ -66,7 +66,7 @@ export function CollectionView({
         });
       } else {
         pathAndFieldArray = schema.fields
-          .filter((field: any) => field?.type !== 'object')
+          .filter((field: any) => field?.type !== 'object' && !field.hidden)
           .map((field: any) => ({ path: field.name, field: field }));
       }
     } else {
