@@ -115,7 +115,8 @@ const ListField = ({
 
   useEffect(() => {
     const defaultValue = getDefaultValue(field);
-    if (typeof defaultValue === "object" && Object.values(defaultValue).filter(n => n).length === 0) {
+
+    if (field.list?.min == undefined) {
       return;
     }
 
