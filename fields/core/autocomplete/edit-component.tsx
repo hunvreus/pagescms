@@ -9,6 +9,13 @@ import AsyncCreatableSelect from "react-select/async-creatable";
 import { ChevronDown, X } from "lucide-react";
 import { safeAccess } from "@/lib/schema";
 
+const processTemplate = (template: string, item: any): string => {
+  return template.replace(/\{([^}]+)\}/g, (_, path) => {
+    const value = safeAccess(item, path);
+    return value !== undefined ? String(value) : '';
+  });
+};
+
 const DropdownIndicator = (props: any) => (
   <components.DropdownIndicator {...props}>
     <ChevronDown className="w-4 h-4" />
@@ -76,8 +83,12 @@ const EditComponent = forwardRef((props: any, ref: any) => {
         const results = fetchConfig.results ? safeAccess(data, fetchConfig.results) : data;
         if (!Array.isArray(results)) return [];
         return results.map((item: any) => ({
-          value: fetchConfig.value ? safeAccess(item, fetchConfig.value) : item.id,
-          label: fetchConfig.label ? safeAccess(item, fetchConfig.label) : item.name,
+          value: fetchConfig.value ? 
+            (fetchConfig.value.includes('{') ? processTemplate(fetchConfig.value, item) : safeAccess(item, fetchConfig.value))
+            : item.id,
+          label: fetchConfig.label ?
+            (fetchConfig.label.includes('{') ? processTemplate(fetchConfig.label, item) : safeAccess(item, fetchConfig.label))
+            : item.name,
         }));
       } catch (error) {
         console.error("Error loading options:", error);
@@ -90,10 +101,10 @@ const EditComponent = forwardRef((props: any, ref: any) => {
   const [selectedOptions, setSelectedOptions] = useState(() => {
     if (field.options?.multiple) {
       const values = Array.isArray(value) ? value : [];
-      return values.map((val: any) => staticOptions.find((opt: any) => opt.value === val) || { value: val, label: val });
+      return values.map((val: any) => ({ value: val, label: val }));
     }
     if (!value) return null;
-    return staticOptions.find((opt: any) => opt.value === value) || { value, label: value };
+    return { value: value, label: value };
   });
 
   const handleChange = useCallback(

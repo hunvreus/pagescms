@@ -16,6 +16,8 @@ const schema = (field: Field) => {
     zodSchema = z.coerce.string();
   }
 
+  if (field.options?.multiple) zodSchema = z.array(zodSchema);
+  
   if (!field.required) zodSchema = zodSchema.optional();
   
   return zodSchema;
