@@ -16,7 +16,7 @@ const schema = (field: Field) => {
     zodSchema = z.coerce.string();
   }
 
-  if (field.options?.multiple) zodSchema = z.array(zodSchema);
+  if (field.options?.multiple) zodSchema = z.array(zodSchema, { message: `Error` });
   
   if (!field.required) zodSchema = zodSchema.optional();
   

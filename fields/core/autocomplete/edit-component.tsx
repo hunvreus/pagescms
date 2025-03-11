@@ -9,6 +9,30 @@ import AsyncCreatableSelect from "react-select/async-creatable";
 import { ChevronDown, X } from "lucide-react";
 import { safeAccess } from "@/lib/schema";
 
+const Option = ({ children, ...props }: any) => {
+  const { data } = props;
+  return (
+    <components.Option {...props}>
+      <div className="flex items-center gap-2">
+        {data.image && <img src={data.image} alt="" className="w-6 h-6 rounded-full" />}
+        {children}
+      </div>
+    </components.Option>
+  );
+};
+
+const SingleValue = ({ children, ...props }: any) => {
+  const { data } = props;
+  return (
+    <components.SingleValue {...props}>
+      <div className="flex items-center gap-2">
+        {data.image && <img src={data.image} alt="" className="w-6 h-6 rounded-full" />}
+        {children}
+      </div>
+    </components.SingleValue>
+  );
+};
+
 const processTemplate = (template: string, item: any): string => {
   return template.replace(/\{([^}]+)\}/g, (_, path) => {
     const value = safeAccess(item, path);
@@ -43,6 +67,7 @@ type FetchConfig = {
   value?: string;
   label?: string;
   minlength?: number;
+  image?: string;
 };
 
 const EditComponent = forwardRef((props: any, ref: any) => {
@@ -89,6 +114,9 @@ const EditComponent = forwardRef((props: any, ref: any) => {
           label: fetchConfig.label ?
             (fetchConfig.label.includes('{') ? processTemplate(fetchConfig.label, item) : safeAccess(item, fetchConfig.label))
             : item.name,
+          image: fetchConfig.image ? 
+            (fetchConfig.image.includes('{') ? processTemplate(fetchConfig.image, item) : safeAccess(item, fetchConfig.image))
+            : undefined,
         }));
       } catch (error) {
         console.error("Error loading options:", error);
@@ -109,13 +137,21 @@ const EditComponent = forwardRef((props: any, ref: any) => {
 
   const handleChange = useCallback(
     (newValue: any) => {
-      setSelectedOptions(newValue);
+      // When a new value is selected, ensure we display the value, not the label
+      const selectedValue = newValue 
+        ? field.options?.multiple 
+          ? newValue.map((item: any) => ({ value: item.value, label: item.value }))
+          : { value: newValue.value, label: newValue.value }
+        : field.options?.multiple ? [] : null;
+      
+      setSelectedOptions(selectedValue);
+
       const output = field.options?.multiple
         ? newValue ? newValue.map((item: any) => item.value) : []
         : newValue ? newValue.value : null;
       onChange(output);
     },
-    [onChange, field.options?.multiple]
+    [onChange, field.options?.multiple, field]
   );
 
   if (!isMounted) return null;
@@ -125,8 +161,8 @@ const EditComponent = forwardRef((props: any, ref: any) => {
       ? AsyncCreatableSelect
       : AsyncSelect
     : field.options?.creatable
-    ? CreatableSelect
-    : Select;
+      ? CreatableSelect
+      : Select;
 
   const fetchConfig = field.options?.fetch as FetchConfig;
   return (
@@ -135,7 +171,13 @@ const EditComponent = forwardRef((props: any, ref: any) => {
       isMulti={field.options?.multiple}
       classNamePrefix="react-select"
       placeholder={field.options?.placeholder || "Select..."}
-      components={{ DropdownIndicator, ClearIndicator, MultiValueRemove }}
+      components={{ 
+        DropdownIndicator, 
+        ClearIndicator, 
+        MultiValueRemove,
+        Option,
+        SingleValue,
+      }}
       value={selectedOptions}
       onChange={handleChange}
       {...(fetchConfig
