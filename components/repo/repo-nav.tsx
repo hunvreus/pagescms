@@ -7,6 +7,7 @@ import { useConfig } from "@/contexts/config-context";
 import { useUser } from "@/contexts/user-context";
 import { cn } from "@/lib/utils";
 import { FileStack, FileText, Image as ImageIcon, Settings, Users } from "lucide-react";
+import { Icon } from "@/components/icon";
 
 const RepoNavItem = ({
   children,
@@ -48,10 +49,14 @@ const RepoNav = ({
     const configObject: any = config.object;
     const contentItems = configObject.content?.map((item: any) => ({
       key: item.name,
-      icon: item.type === "collection"
-        ? <FileStack className="h-5 w-5 mr-2" />
-        : <FileText className="h-5 w-5 mr-2" />
-      ,
+      icon: <Icon 
+        className="h-5 w-5 mr-2"
+        name={item.icon}
+        fallback={item.type === "collection" 
+          ? <FileStack className="h-5 w-5 mr-2" /> 
+          : <FileText className="h-5 w-5 mr-2" />
+        }
+      />,
       href: `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/${item.type}/${encodeURIComponent(item.name)}`,
       label: item.label || item.name,
     })) || [];
