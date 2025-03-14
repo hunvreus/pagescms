@@ -56,8 +56,8 @@ export async function GET(
         });
         repos = response.data.items;
       }
-      
-      repos = repos.map(repo => ({
+
+      repos = repos.filter(repo => repo.permissions.push).map(repo => ({
         owner: repo.owner.login,
         repo: repo.name,
         private: repo.private,
