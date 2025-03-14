@@ -240,10 +240,17 @@ function safeAccess(obj: Record<string, any>, path: string) {
   }, obj);
 }
 
-// Interpolate a string with a data object (e.g. {field.name} -> data.field.name)
-function interpolate(input: string, data: Record<string, any>): string {
+// Interpolate a string with a data object, with optional prefix fallback (e.g. "fields")
+function interpolate(input: string, data: Record<string, any>, prefixFallback?: string): string {
   return input.replace(/(?<!\\)\{([^}]+)\}/g, (_, token) => {
-    const value = safeAccess(data, token);
+    // First try direct access
+    let value = safeAccess(data, token);
+    
+    // If value is undefined and we have a prefix fallback, try with prefix
+    if (value === undefined && prefixFallback) {
+      value = safeAccess(data, `${prefixFallback}.${token}`);
+    }
+    
     return value !== undefined ? String(value) : '';
   }).replace(/\\([{}])/g, '$1');
 }

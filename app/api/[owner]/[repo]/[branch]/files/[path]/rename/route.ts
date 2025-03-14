@@ -5,6 +5,13 @@ import { getFileExtension, normalizePath } from "@/lib/utils/file";
 import { getAuth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
 
+/**
+ * Renames a file in a GitHub repository.
+ * POST /api/[owner]/[repo]/[branch]/files/[path]/rename
+ *
+ * Requires authentication.
+ */
+
 export async function POST(
   request: Request,
   { params }: { params: { owner: string, repo: string, branch: string, path: string } }

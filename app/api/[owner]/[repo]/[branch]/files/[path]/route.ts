@@ -9,6 +9,14 @@ import { getFileExtension, getFileName, normalizePath, serializedTypes } from "@
 import { getAuth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
 
+/**
+ * Create, update and delete individual files in a GitHub repository.
+ * POST /api/[owner]/[repo]/[branch]/files/[path]
+ * DELETE /api/[owner]/[repo]/[branch]/files/[path]
+ * 
+ * Requires authentication.
+ */
+
 export async function POST(
   request: Request,
   { params }: { params: { owner: string, repo: string, branch: string, path: string } }

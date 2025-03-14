@@ -100,11 +100,11 @@ const EditComponent = forwardRef((props: any, ref: any) => {
           Object.entries(fetchConfig.params).forEach(([key, paramValue]) => {
             if (Array.isArray(paramValue)) {
               paramValue.forEach(value => {
-                const interpolatedValue = interpolate(value, { input });
+                const interpolatedValue = interpolate(value, { input }, "fields");
                 searchParams.append(key, interpolatedValue);
               });
             } else {
-              const value = interpolate(paramValue, { input });
+              const value = interpolate(paramValue, { input }, "fields");
               searchParams.append(key, value);
             }
           });
@@ -123,13 +123,13 @@ const EditComponent = forwardRef((props: any, ref: any) => {
         if (!Array.isArray(results)) return [];
         return results.map((item: any) => ({
           value: fetchConfig.value ? 
-            interpolate(fetchConfig.value, item)
+            interpolate(fetchConfig.value, item, "fields")
             : item.id,
           label: fetchConfig.label ?
-            interpolate(fetchConfig.label, item)
+            interpolate(fetchConfig.label, item, "fields")
             : item.name,
           image: fetchConfig.image ? 
-            interpolate(fetchConfig.image, item)
+            interpolate(fetchConfig.image, item, "fields")
             : undefined,
         }));
       } catch (error) {

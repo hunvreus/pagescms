@@ -24,12 +24,13 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
       path: collection.path,
       type: "search",
       query: "{input}",
-      fields: field.options.search || "name"
+      fields: field.options?.search || "name"
     },
     minlength: 2,
     results: "data.contents",
-    value: field.options.value || "{path}",
-    label: field.options.label || "{name}",
+    value: field.options?.value || "{path}",
+    label: field.options?.label || "{name}",
+    image: field.options?.image,
     headers: {},
   }), [config.owner, config.repo, config.branch, field.options]);
 
