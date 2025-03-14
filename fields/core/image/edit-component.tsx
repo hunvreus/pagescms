@@ -156,6 +156,7 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
               selected={images.map((image: any) => image.path)}
               onSubmit={handleSubmit}
               maxSelected={maxImages}
+              initialPath={field.options?.path}
             >
               <Button type="button" variant="outline" className="h-28 w-28">
                 <div className="flex flex-col items-center gap-y-1 text-sm">
