@@ -9,6 +9,13 @@ type FileChange = {
   sha: string;
 };
 
+type FileOperation = {
+  type: 'add' | 'modify' | 'delete';
+  path: string;
+  sha?: string;
+  content?: string;
+};
+
 const updateCache = async (
   owner: string,
   repo: string,
@@ -211,4 +218,65 @@ const getCachedCollection = async (
   return entries;
 }
 
-export { updateCache, getCachedCollection };
+const updateFileCache = async (
+  owner: string,
+  repo: string,
+  branch: string,
+  operation: FileOperation
+) => {
+  const parentPath = path.dirname(operation.path);
+
+  switch (operation.type) {
+    case 'delete':
+      await db.delete(cachedEntriesTable).where(
+        and(
+          eq(cachedEntriesTable.owner, owner),
+          eq(cachedEntriesTable.repo, repo),
+          eq(cachedEntriesTable.branch, branch),
+          eq(cachedEntriesTable.path, operation.path)
+        )
+      );
+      break;
+
+    case 'add':
+    case 'modify':
+      if (operation.content === undefined || !operation.sha) {
+        throw new Error('Content and SHA are required for add/modify operations');
+      }
+
+      const entry = {
+        owner,
+        repo,
+        branch,
+        path: operation.path,
+        parentPath,
+        name: path.basename(operation.path),
+        type: 'blob',
+        content: operation.content,
+        sha: operation.sha,
+        lastUpdated: Date.now()
+      };
+
+      if (operation.type === 'modify') {
+        await db.update(cachedEntriesTable)
+          .set({
+            content: entry.content,
+            sha: entry.sha,
+            lastUpdated: entry.lastUpdated
+          })
+          .where(
+            and(
+              eq(cachedEntriesTable.owner, owner),
+              eq(cachedEntriesTable.repo, repo),
+              eq(cachedEntriesTable.branch, branch),
+              eq(cachedEntriesTable.path, operation.path)
+            )
+          );
+      } else {
+        await db.insert(cachedEntriesTable).values(entry);
+      }
+      break;
+  }
+};
+
+export { updateCache, getCachedCollection, updateFileCache };

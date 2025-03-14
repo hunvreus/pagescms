@@ -4,6 +4,14 @@ import { db } from "@/db";
 import { historyTable } from "@/db/schema";
 import { z } from "zod";
 
+/**
+ * Fetches and updates user's history of visits to repositories.
+ * GET /api/tracker
+ * POST /api/tracker
+ * 
+ * Requires authentication.
+ */
+
 export async function GET(request: Request) {
   try {
     const { user, session } = await getAuth();

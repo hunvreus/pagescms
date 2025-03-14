@@ -7,6 +7,16 @@ import { normalizePath } from "@/lib/utils/file";
 import { updateCache } from "@/lib/githubCache";
 import { getInstallationToken } from "@/lib/token";
 
+/**
+ * Handles GitHub webhooks:
+ * - Maintains tables related to GitHub installations (e.g. collaborators,
+ *   installation tokens)
+ * - Maintains GitHub cache
+ * POST /api/webhook/github
+ * 
+ * Requires GitHub App webhook secret and signature.
+ */
+
 export async function POST(request: Request) {
   try {
     const signature = request.headers.get("X-Hub-Signature-256");
@@ -90,7 +100,6 @@ export async function POST(request: Request) {
             }))
           );
 
-          // TODO: verify this is secure
           const installationToken = await getInstallationToken(owner, repo);
 
           await updateCache(
