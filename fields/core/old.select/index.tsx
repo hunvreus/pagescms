@@ -4,8 +4,8 @@ import { EditComponent } from "./edit-component";
 
 const schema = (field: Field) => {
   let zodSchema;
-  
-  if (!field.options?.creatable && !field.options?.fetch && field.options?.values && Array.isArray(field.options.values)) {
+
+  if (field.options?.values && Array.isArray(field.options.values)) {
     const normalizedValues = field.options.values.map((item) => {
       return typeof item === "object"
         ? item.value
@@ -13,14 +13,12 @@ const schema = (field: Field) => {
     });
     zodSchema = z.enum(normalizedValues as [string, ...string[]]);
   } else {
-    zodSchema = z.coerce.string();
+    zodSchema = z.string();
   }
 
-  if (field.options?.multiple) zodSchema = z.array(zodSchema, { message: `Error` });
-  
   if (!field.required) zodSchema = zodSchema.optional();
   
   return zodSchema;
 };
 
-export { schema, EditComponent };
+export { schema, EditComponent};

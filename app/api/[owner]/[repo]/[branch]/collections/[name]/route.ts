@@ -1,14 +1,14 @@
 export const maxDuration = 30;
 
 import { type NextRequest } from "next/server";
-import { createOctokitInstance } from "@/lib/utils/octokit"
 import { readFns } from "@/fields/registry";
 import { parse } from "@/lib/serialization";
-import { deepMap, getDateFromFilename, getSchemaByName } from "@/lib/schema";
+import { deepMap, getDateFromFilename, getSchemaByName, safeAccess } from "@/lib/schema";
 import { getConfig } from "@/lib/utils/config";
 import { normalizePath } from "@/lib/utils/file";
 import { getAuth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
+import { getCachedCollection } from "@/lib/githubCache";
 
 export async function GET(
   request: NextRequest,
@@ -29,39 +29,15 @@ export async function GET(
 
     const searchParams = request.nextUrl.searchParams;
     const path = searchParams.get("path") || "";
+    const type = searchParams.get("type");
+    const query = searchParams.get("query") || "";
+    const fields = searchParams.get("fields")?.split(",") || ["name"];
+
     const normalizedPath = normalizePath(path);
     if (!normalizedPath.startsWith(schema.path)) throw new Error(`Invalid path "${path}" for collection "${params.name}".`);
+
+    let entries = await getCachedCollection(params.owner, params.repo, params.branch, normalizedPath, token);
     
-    const octokit = createOctokitInstance(token);
-    const query = `
-      query ($owner: String!, $repo: String!, $expression: String!) {
-        repository(owner: $owner, name: $repo) {
-          object(expression: $expression) {
-            ... on Tree {
-              entries {
-                name
-                path
-                type
-                object {
-                  ... on Blob {
-                    text
-                    oid
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    `;
-    const expression = `${params.branch}:${normalizedPath}`;
-    const response: any = await octokit.graphql(query, { owner: params.owner, repo: params.repo, expression });
-    // TODO: handle 401 / Bad credentials error
-
-    const entries = response.repository?.object?.entries;
-
-    if (entries === undefined) throw new Error("Not found");
-
     let data: {
       contents: Record<string, any>[],
       errors: string[]
@@ -69,8 +45,35 @@ export async function GET(
       contents: [],
       errors: []
     };
+    
+    if (entries) {
+      data = parseContents(entries, schema, config);
 
-    if (entries) data  = parseContents(entries, schema, config);
+      console.log("data", JSON.stringify(data, null, 2));
+      
+      // If this is a search request, filter the contents
+      if (type === "search" && query) {
+        const searchQuery = query.toLowerCase();
+        data.contents = data.contents.filter(item => {
+          return fields.some(field => {
+            // Handle extra fields (name and path)
+            if (field === 'name' || field === 'path') {
+              const value = item[field];
+              return value && String(value).toLowerCase().includes(searchQuery);
+            }
+            
+            // Handle content fields (e.g. fields.title)
+            if (field.startsWith('fields.')) {
+              const fieldPath = field.replace('fields.', '');
+              const value = safeAccess(item.fields, fieldPath);
+              return value && String(value).toLowerCase().includes(searchQuery);
+            }
+            
+            return false;
+          });
+        });
+      }
+    }
 
     return Response.json({
       status: "success",
@@ -107,7 +110,7 @@ const parseContents = (
       if (serializedTypes.includes(schema.format) && schema.fields) {
         // If we are dealing with a serialized format and we have fields defined
         try {
-          contentObject = parse(item.object.text, { format: schema.format, delimiters: schema.delimiters });
+          contentObject = parse(item.content, { format: schema.format, delimiters: schema.delimiters });
           contentObject = deepMap(contentObject, schema.fields, (value, field) => readFns[field.type] ? readFns[field.type](value, field, config) : value);
         } catch (error: any) {
           // TODO: send this to the client?
@@ -132,11 +135,11 @@ const parseContents = (
       }
       // TODO: handle proper returns
       return {
-        sha: item.object.oid,
+        sha: item.sha,
         name: item.name,
         path: item.path,
-        content: item.object.text,
-        object: contentObject,
+        content: item.content,
+        fields: contentObject,
         type: "file",
       };
     } else if (item.type === "tree") {

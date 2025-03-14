@@ -3,6 +3,9 @@ import crypto from "crypto";
 import { db } from "@/db";
 import { collaboratorTable, githubInstallationTokenTable } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
+import { normalizePath } from "@/lib/utils/file";
+import { updateCache } from "@/lib/githubCache";
+import { getInstallationToken } from "@/lib/token";
 
 export async function POST(request: Request) {
   try {
@@ -61,6 +64,44 @@ export async function POST(request: Request) {
               eq(collaboratorTable.ownerId, data.account.id)
             );
           }
+          break;
+        case "push":
+          const owner = data.repository.owner.login.toLowerCase();
+          const repo = data.repository.name.toLowerCase();
+          const branch = data.ref.replace('refs/heads/', '');
+          
+          const removedFiles = data.commits.flatMap((commit: any) => 
+            (commit.removed || []).map((path: string) => ({ 
+              path: normalizePath(path) 
+            }))
+          );
+          
+          const modifiedFiles = data.commits.flatMap((commit: any) => 
+            (commit.modified || []).map((path: string) => ({
+              path: normalizePath(path),
+              sha: commit.id
+            }))
+          );
+
+          const addedFiles = data.commits.flatMap((commit: any) => 
+            (commit.added || []).map((path: string) => ({
+              path: normalizePath(path),
+              sha: commit.id
+            }))
+          );
+
+          // TODO: verify this is secure
+          const installationToken = await getInstallationToken(owner, repo);
+
+          await updateCache(
+            owner,
+            repo,
+            branch,
+            removedFiles,
+            modifiedFiles,
+            addedFiles,
+            installationToken
+          );
           break;
       }
     } catch (error: any) {

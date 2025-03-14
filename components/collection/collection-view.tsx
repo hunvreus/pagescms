@@ -138,7 +138,7 @@ export function CollectionView({
       
       return {
         accessorKey: path,
-        accessorFn: (originalRow: any) => safeAccess(originalRow.object, path),
+        accessorFn: (originalRow: any) => safeAccess(originalRow.fields, path),
         header: field?.label ?? field.name,
         meta: { className: field.name === primaryField ? "truncate w-full min-w-[12rem] max-w-[1px]" : "" },
         cell: ({ cell, row }: { cell: any, row: any }) => {

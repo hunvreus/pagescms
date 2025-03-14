@@ -240,6 +240,14 @@ function safeAccess(obj: Record<string, any>, path: string) {
   }, obj);
 }
 
+// Interpolate a string with a data object (e.g. {field.name} -> data.field.name)
+function interpolate(input: string, data: Record<string, any>): string {
+  return input.replace(/(?<!\\)\{([^}]+)\}/g, (_, token) => {
+    const value = safeAccess(data, token);
+    return value !== undefined ? String(value) : '';
+  }).replace(/\\([{}])/g, '$1');
+}
+
 // Get a field by its path
 function getFieldByPath(schema: Field[], path: string): Field | undefined {
   const [first, ...rest] = path.split('.');
@@ -315,5 +323,6 @@ export {
   nestFieldArrays,
   unnestFieldArrays,
   generateZodSchema,
-  safeAccess
+  safeAccess,
+  interpolate
 };

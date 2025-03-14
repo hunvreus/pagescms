@@ -74,6 +74,20 @@ const configTable = sqliteTable("config", {
   object: text("object").notNull()
 });
 
+const cachedEntriesTable = sqliteTable("cached_entries", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  owner: text("owner").notNull(),
+  repo: text("repo").notNull(),
+  branch: text("branch").notNull(),
+  parentPath: text("parent_path").notNull(),
+  name: text("name").notNull(),
+  path: text("path").notNull(),
+  type: text("type").notNull(),
+  content: text("content"),
+  sha: text("sha"),
+  lastUpdated: integer("last_updated").notNull()
+});
+
 export {
   userTable,
   sessionTable,
@@ -82,5 +96,6 @@ export {
   githubInstallationTokenTable,
   emailLoginTokenTable,
   collaboratorTable,
-  configTable
+  configTable,
+  cachedEntriesTable
 };

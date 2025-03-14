@@ -141,6 +141,7 @@ const ListField = ({
     }
   };
   
+  // We don't render <FormMessage/> in ListField, because it's already rendered in the individual fields
   return (
     <FormField
       name={fieldName}
@@ -198,7 +199,6 @@ const ListField = ({
                 </Button>
             }
           </div>
-          <FormMessage/>
         </FormItem>
       )}
     />
