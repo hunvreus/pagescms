@@ -57,8 +57,6 @@ export async function GET(
     
     if (entries) {
       data = parseContents(entries, schema, config);
-
-      console.log("data", JSON.stringify(data, null, 2));
       
       // If this is a search request, filter the contents
       if (type === "search" && query) {

@@ -67,7 +67,7 @@ type FetchConfig = {
 
 const EditComponent = forwardRef((props: any, ref: any) => {
   const { value, field, onChange } = props;
-  console.log('select field', field);
+  
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => setIsMounted(true), []);
