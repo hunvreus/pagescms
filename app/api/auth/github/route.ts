@@ -10,6 +10,7 @@ import { eq } from "drizzle-orm";
 
 /**
  * Handles GitHub OAuth authentication.
+ * 
  * GET /api/auth/github
  * 
  * Requires GitHub OAuth code and state.

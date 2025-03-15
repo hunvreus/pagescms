@@ -12,6 +12,7 @@ import { updateFileCache } from "@/lib/githubCache";
 
 /**
  * Create, update and delete individual files in a GitHub repository.
+ * 
  * POST /api/[owner]/[repo]/[branch]/files/[path]
  * DELETE /api/[owner]/[repo]/[branch]/files/[path]
  * 
@@ -192,6 +193,7 @@ export async function POST(
   }
 };
 
+// Helper function to save a file to GitHub (with retry logic for new files)
 const githubSaveFile = async (
   token: string,
   owner: string,
@@ -228,7 +230,6 @@ const githubSaveFile = async (
         sha: sha || undefined,
       });
 
-      // TODO: is that really what I have to do here?
       if (response.data.content && response.data.commit) {
         return response;
       } else {

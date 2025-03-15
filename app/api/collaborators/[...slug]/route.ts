@@ -8,6 +8,7 @@ import { getInstallations, getInstallationRepos } from "@/lib/githubApp";
 
 /**
  * Fetches collaborators for a repository.
+ * 
  * GET /api/collaborators/[owner]/[repo]
  * 
  * Requires authentication. Only accessible to GitHub users (not collaborators).

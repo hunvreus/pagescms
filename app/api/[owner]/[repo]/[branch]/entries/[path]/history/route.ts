@@ -8,6 +8,7 @@ import { getToken } from "@/lib/token";
 
 /**
  * Fetches the history of a file from GitHub repositories.
+ * 
  * GET /api/[owner]/[repo]/[branch]/entries/[path]/history
  * 
  * Requires authentication.

@@ -1,3 +1,7 @@
+/**
+ * Define file types and provide Helper functions (get file info, get parent path, normalize paths...)
+ */
+
 const serializedTypes = ["yaml-frontmatter", "json-frontmatter", "toml-frontmatter", "yaml", "json", "toml"];
 
 const extensionCategories: Record<string, string[]> = {
@@ -5,7 +9,10 @@ const extensionCategories: Record<string, string[]> = {
   document: ["pdf", "doc", "docx", "ppt", "pptx", "vxls", "xlsx", "txt", "rtf"],
   video: ["mp4", "avi", "mov", "wmv", "flv", "mpeg", "webm", "ogv", "ts", "3gp", "3g2"],
   audio: ["mp3", "wav", "aac", "ogg", "flac", "weba", "oga", "opus", "mid", "midi", "3gp", "3g2"],
-  compressed: ["zip", "rar", "7z", "tar", "gz", "tgz", "bz", "bz2"]
+  compressed: ["zip", "rar", "7z", "tar", "gz", "tgz", "bz", "bz2"],
+  code: ["js", "jsx", "ts", "tsx", "html", "css", "scss", "json", "xml", "yaml", "yml", "md", "py", "rb", "php", "java", "c", "cpp", "h", "cs", "go", "rs", "sql"],
+  font: ["ttf", "otf", "woff", "woff2", "eot"],
+  spreadsheet: ["csv", "tsv", "ods"]
 };
 
 const getFileSize = (

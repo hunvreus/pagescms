@@ -11,6 +11,7 @@ import { emailLoginTokenTable, userTable } from "@/db/schema";
 
 /**
  * Handles email login authentication (for collaborators).
+ * 
  * GET /api/auth/email/[token]
  * 
  * Requires email login token.

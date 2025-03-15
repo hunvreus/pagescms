@@ -8,6 +8,7 @@ import { z } from "zod";
 import { Field } from "@/types/field";
 import { format } from "date-fns";
 
+// Deep map a content object to a schema
 const deepMap = (
   contentObject: Record<string, any>,
   fields: Field[],

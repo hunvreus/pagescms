@@ -1,3 +1,7 @@
+/**
+ * Herlper functions to manage the database cache.
+ */
+
 import { db } from "@/db";
 import { eq, and, inArray } from "drizzle-orm";
 import { cachedEntriesTable } from "@/db/schema";
@@ -16,6 +20,7 @@ type FileOperation = {
   content?: string;
 };
 
+// Bulk update cache entries (removed, modified and added files).
 const updateCache = async (
   owner: string,
   repo: string,
@@ -147,6 +152,7 @@ const updateCache = async (
   }
 }
 
+// Attempt to get a collection from cache, if not found, fetch from GitHub.
 const getCachedCollection = async (
   owner: string,
   repo: string,
@@ -218,6 +224,7 @@ const getCachedCollection = async (
   return entries;
 }
 
+// Update the cache for an individual file (add, modify and delete).
 const updateFileCache = async (
   owner: string,
   repo: string,

@@ -7,6 +7,7 @@ import { getUserToken } from "@/lib/token";
 import templates from "@/lib/utils/templates";
 import { z } from "zod";
 
+// Copy a template repository.
 const handleCopyTemplate = async (prevState: any, formData: FormData) => {
   try {
 		const { user } = await getAuth();

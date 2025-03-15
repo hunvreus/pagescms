@@ -13,6 +13,7 @@ import { getCachedCollection } from "@/lib/githubCache";
 /**
  * Fetches and parses collection contents from GitHub repositories
  * (for collection views and searches)
+ * 
  * GET /api/[owner]/[repo]/[branch]/collections/[name]
  * 
  * Requires authentication. If type is set to "search", we filter the contents
@@ -95,6 +96,7 @@ export async function GET(
   }
 }
 
+// Parse the list of entries into objects based on the content schema.
 const parseContents = (
   contents: any,
   schema: Record<string, any>,

@@ -1,3 +1,10 @@
+/**
+ * Functions to parse, normalize and validate the configuration file.
+ * 
+ * Look at the `lib/utils/config.ts` file to understand how the config is
+ * retrieved, saved and updated in the DB.
+ */
+
 import YAML from "yaml";
 import { getFileExtension, extensionCategories } from "@/lib/utils/file";
 import { ConfigSchema } from "@/lib/configSchema";
@@ -5,6 +12,7 @@ import { z } from "zod";
 
 const configVersion = "2.0";
 
+// Parse the config file (YAML to JSON)
 const parseConfig = (content: string) => {
   const document = YAML.parseDocument(content, { strict: false, prettyErrors: false });
 
@@ -21,6 +29,8 @@ const parseConfig = (content: string) => {
   return { document, errors };
 };
 
+// Normalize the config object (e.g. convert media.input to a relative path, set
+// default values for filename, extension, format, etc.)
 const normalizeConfig = (configObject: any) => {
   if (!configObject) return {};
 
@@ -105,6 +115,8 @@ const normalizeConfig = (configObject: any) => {
   return configObjectCopy;
 }
 
+// Check if the config is valid with the the Zoc schema (lib/configSchema.ts).
+// This is used in the settings editor.
 const validateConfig = (document: YAML.Document.Parsed) => {
   const content = document.toJSON();
   let errors: any[] = [];
@@ -122,6 +134,8 @@ const validateConfig = (document: YAML.Document.Parsed) => {
   return errors;
 };
 
+// Process the Zod errors from the validateConfig function. Helps us display errors
+// in the settings editor.
 const processZodError = (error: any, document: YAML.Document.Parsed, errors: any[]) => {
   let path = error.path;
   let yamlNode: any = document.getIn(path, true);
@@ -187,6 +201,7 @@ const processZodError = (error: any, document: YAML.Document.Parsed, errors: any
   }
 };
 
+// Parse the config file and validate it (used in the settings editor).
 const parseAndValidateConfig = (content: string) => {
   const { document, errors: parseErrors } = parseConfig(content);
   const validationErrors = validateConfig(document);

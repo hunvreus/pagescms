@@ -7,6 +7,7 @@ import { getToken } from "@/lib/token";
 
 /**
  * Renames a file in a GitHub repository.
+ * 
  * POST /api/[owner]/[repo]/[branch]/files/[path]/rename
  *
  * Requires authentication.

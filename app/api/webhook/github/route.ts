@@ -12,6 +12,7 @@ import { getInstallationToken } from "@/lib/token";
  * - Maintains tables related to GitHub installations (e.g. collaborators,
  *   installation tokens)
  * - Maintains GitHub cache
+ * 
  * POST /api/webhook/github
  * 
  * Requires GitHub App webhook secret and signature.

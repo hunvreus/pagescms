@@ -1,3 +1,7 @@
+/**
+ * Helper function to get the name initials for a user avatar.
+ */
+
 const getInitialsFromName = (name?: string) => {
   if (!name) return 'U';
 

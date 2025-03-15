@@ -4,6 +4,16 @@ import { getFileExtension, normalizePath } from "@/lib/utils/file";
 import { getAuth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
 
+// Add docs
+
+/**
+ * Get the list of media files in a directory.
+ *
+ * GET /api/[owner]/[repo]/[branch]/media/[path]
+ * 
+ * Requires authentication.
+ */
+
 export async function GET(
   request: Request,
   { params }: { params: { owner: string, repo: string, branch: string, path: string } }

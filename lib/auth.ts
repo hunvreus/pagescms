@@ -1,3 +1,7 @@
+/**
+ * Auth helper functions for Lucia auth.
+ */
+
 import { cache } from "react";
 import { Session, User, Lucia } from "lucia";
 import { DrizzleSQLiteAdapter, SQLiteSessionTable, SQLiteUserTable } from "@lucia-auth/adapter-drizzle";

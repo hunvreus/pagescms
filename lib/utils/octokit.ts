@@ -1,3 +1,8 @@
+/**
+ * Create an Octokit instance that wraps the requests with a check for credentials
+ * to log out the user if they revoked/lost access.
+ */
+
 import { Octokit } from "octokit";
 import { handleSignOut } from "@/lib/actions/auth";
 

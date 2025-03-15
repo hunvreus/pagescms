@@ -1,5 +1,12 @@
+/**
+ * The Zod schema for the configuration file. Used in the settings editor.
+ * 
+ * Look at the `lib/config.ts` file to understand how we use this schema.
+ */
+
 import { z } from "zod";
 
+// Media schema
 const MediaSchema = z.union([
   z.string().regex(/^[^/].*[^/]$|^$/, {
     message: "'media' must be a valid relative path (no leading or trailing slash)."
@@ -33,6 +40,7 @@ const MediaSchema = z.union([
   }).strict()
 ]);
 
+// Content entry fields schema
 const FieldObjectSchema: z.ZodType<any> = z.lazy(() => z.object({
   name: z.string({
     required_error: "'name' is required.",
@@ -89,7 +97,7 @@ const FieldObjectSchema: z.ZodType<any> = z.lazy(() => z.object({
   fields: z.array(z.lazy(() => FieldObjectSchema)).optional(),
 }).strict());
 
-// Define the schema for content objects
+// Content entry schema
 const ContentObjectSchema = z.object({
   name: z.string({
     required_error: "'name' is required.",
@@ -178,7 +186,7 @@ const ContentObjectSchema = z.object({
   message: "YOP"
 }).strict();
 
-// Define the main schema
+// Main schema with media and content
 const ConfigSchema = z.object({
   media: MediaSchema.optional(),
   content: z.array(ContentObjectSchema, {

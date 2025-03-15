@@ -1,5 +1,8 @@
 /**
- * Convert image paths into raw.githubusercontent.com URLs (with some light caching).
+ * Helper functions to translate relative paths into publicly accessible GitHub
+ * raw.githubusercontent.com URLs (with some light caching). This is especially
+ * useful for images in private repositories since we can only access them via
+ * a temporary URL provided by the GitHub API.
  */
 
 import { getFileName, getParentPath } from "@/lib/utils/file";
@@ -8,6 +11,7 @@ const ttl = 10000; // TTL for the cache (in milliseconds)
 const cache: { [key: string]: any } = {};
 const requests: { [key: string]: Promise<any> } = {};
 
+// Get the relative path for an image.
 const getRelativeUrl = (
   owner: string,
   repo: string,
@@ -26,6 +30,7 @@ const getRelativeUrl = (
   return encode ? encodePath(relativePath) : relativePath;
 }
 
+// Get the raw.githubusercontent.com URL for an image.
 const getRawUrl = async (
   owner: string,
   repo: string,
@@ -78,6 +83,7 @@ const getRawUrl = async (
   }
 };
 
+// Convert all raw.githubusercontent.com URLs in a HTML string to relative paths.
 const rawToRelativeUrls = (
   owner: string,
   repo: string,
@@ -103,6 +109,7 @@ const rawToRelativeUrls = (
   return html;
 }
 
+// Convert all relative image paths in a HTML string to raw.githubusercontent.com URLs.
 const relativeToRawUrls = async (
   owner: string,
   repo: string,
@@ -130,6 +137,7 @@ const relativeToRawUrls = async (
   return newHtml;
 }
 
+// Swap the prefix of an image path (raw.githubusercontent.com url <> relative path)
 const swapPrefix = (
   path: string,
   from: string,
@@ -157,6 +165,7 @@ const swapPrefix = (
   return newPath;
 }
 
+// Swap the prefix of all images in a HTML string.
 const htmlSwapPrefix = (
   html: string,
   from: string,
@@ -191,10 +200,12 @@ const htmlSwapPrefix = (
   return newHtml;
 }
 
+// Encode a path for use in a URL.
 const encodePath = (path: string) => {
   return path.split("/").map(encodeURIComponent).join("/");
 }
 
+// Get all image sources from an HTML string.
 const getImgSrcs = (html: string) => {
   const regex = /<img [^>]*src=(?:"([^"]+)"|'([^']+)')[^>]*>/g;
   return Array.from(html.matchAll(regex));

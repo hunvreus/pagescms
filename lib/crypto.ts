@@ -1,3 +1,11 @@
+/**
+ * Utility functions to encrypt and decrypt text using AES-GCM. Used to secure
+ * info in the DB (e.g. GitHub tokens).
+ * 
+ * Requires a CRYPTO_KEY environment variable to be set.
+ */
+
+// Import the key from the CRYPTO_KEY environment variable
 const importKey = async (base64Key: string) => {
   const rawKey = Uint8Array.from(atob(base64Key), c => c.charCodeAt(0));
   return crypto.subtle.importKey(

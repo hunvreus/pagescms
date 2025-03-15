@@ -1,5 +1,11 @@
+
+/**
+ * Helper functions to get GitHub Appinstallations info.
+ */
+
 import { createOctokitInstance } from "@/lib/utils/octokit";
 
+// Get all GitHub App installations for the authenticated user.
 const getInstallations = async (
   token: string,
   owners?: string[],
@@ -48,6 +54,7 @@ const getInstallations = async (
   return matchedInstallations.length ? matchedInstallations : installations;
 };
 
+// Get all repositories for a GitHub App installation.)
 const getInstallationRepos = async (
   token: string,
   installationId: number,

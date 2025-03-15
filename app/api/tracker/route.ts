@@ -6,6 +6,7 @@ import { z } from "zod";
 
 /**
  * Fetches and updates user's history of visits to repositories.
+ * 
  * GET /api/tracker
  * POST /api/tracker
  * 

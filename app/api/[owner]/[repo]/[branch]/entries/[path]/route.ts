@@ -11,6 +11,7 @@ import { getToken } from "@/lib/token";
 /**
  * Fetches and parses individual file contents from GitHub repositories
  * (usually for editing).
+ * 
  * GET /api/[owner]/[repo]/[branch]/entries/[path]?name=[schemaName]
  * 
  * Requires authentication. If no schema name is provided, we return the raw
@@ -89,6 +90,7 @@ export async function GET(
   }
 }
 
+// Parse the entry into an object based on the content schema.
 const parseContent = (
   content: string,
   schema: Record<string, any>,
