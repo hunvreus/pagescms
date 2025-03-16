@@ -32,11 +32,13 @@ import {
 } from "lucide-react";
 
 const MediaView = ({
+  name,
   initialPath,
   initialSelected,
   maxSelected,
   onSelect,
 }: {
+  name?: string,
   initialPath?: string,
   initialSelected?: string[],
   maxSelected?: number,
@@ -44,6 +46,11 @@ const MediaView = ({
 }) => {
   const { config } = useConfig();
   if (!config) throw new Error(`Configuration not found.`);
+
+  const mediaConfig = useMemo(() => {
+    if (!name) return config.object.media[0];
+    return config.object.media.find((item: any) => item.name === name);
+  }, [name, config.object.media]);
 
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -54,12 +61,12 @@ const MediaView = ({
   const [error, setError] = useState<string | null | undefined>(null);
   const [selected, setSelected] = useState(initialSelected || []);
   const [path, setPath] = useState(() => {
-    if (!config.object.media) return "";
-    if (!initialPath) return config.object.media.input;
+    if (!mediaConfig) return "";
+    if (!initialPath) return mediaConfig.input;
     const normalizedInitialPath = normalizePath(initialPath);
-    if (normalizedInitialPath.startsWith(config.object.media.input)) return normalizedInitialPath;
-    console.warn(`"${initialPath}" is not within media root "${config.object.media.input}". Defaulting to media root.`);
-    return config.object.media.input;
+    if (normalizedInitialPath.startsWith(mediaConfig.input)) return normalizedInitialPath;
+    console.warn(`"${initialPath}" is not within media root "${mediaConfig.input}". Defaulting to media root.`);
+    return mediaConfig.input;
   });
   const [data, setData] = useState<Record<string, any>[] | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
@@ -135,13 +142,13 @@ const MediaView = ({
     setPath(newPath);
     if (!onSelect) {
       const params = new URLSearchParams(Array.from(searchParams.entries()));
-      params.set("path", newPath || config?.object.media.input);
+      params.set("path", newPath || mediaConfig.input);
       router.push(`${pathname}?${params.toString()}`);
     }
   }
 
   const handleNavigateParent = () => {
-    if (!path || path === config.object.media.input) return;
+    if (!path || path === mediaConfig.input) return;
     handleNavigate(getParentPath(path));
   }
 
@@ -194,7 +201,7 @@ const MediaView = ({
     </ul>
   ), []);
 
-  if (!config.object.media?.input) {
+  if (!mediaConfig.input) {
     return (
       <Message
         title="No media defined"
@@ -208,11 +215,11 @@ const MediaView = ({
 
   if (error) {
     // TODO: should we use a custom error class with code?
-    if (path === config.object.media.input && error === "Not found") {
+    if (path === mediaConfig.input && error === "Not found") {
       return (
         <Message
             title="Media folder missing"
-            description={`The media folder "${config.object.media.input}" has not been created yet.`}
+            description={`The media folder "${mediaConfig.input}" has not been created yet.`}
             className="absolute inset-0"
           >
           <EmptyCreate type="media">Create folder</EmptyCreate>
@@ -225,7 +232,7 @@ const MediaView = ({
           description={error}
           className="absolute inset-0"
         >
-          <Button size="sm" onClick={() => handleNavigate(config.object.media.input)}>Go to media root</Button>
+          <Button size="sm" onClick={() => handleNavigate(mediaConfig.input)}>Go to media root</Button>
         </Message>
       );
     }
@@ -235,8 +242,8 @@ const MediaView = ({
     <div className="flex-1 flex flex-col space-y-4">
       <header className="flex items-center gap-x-2">
         <div className="sm:flex-1">
-          <PathBreadcrumb path={path} rootPath={config.object.media.input} handleNavigate={handleNavigate} className="hidden sm:block"/>
-          <Button onClick={handleNavigateParent} size="icon-sm" variant="outline" className="shrink-0 sm:hidden" disabled={!path || path === config.object.media.input}>
+          <PathBreadcrumb path={path} rootPath={mediaConfig.input} handleNavigate={handleNavigate} className="hidden sm:block"/>
+          <Button onClick={handleNavigateParent} size="icon-sm" variant="outline" className="shrink-0 sm:hidden" disabled={!path || path === mediaConfig.input}>
             <CornerLeftUp className="w-4 h-4"/>
           </Button>
         </div>

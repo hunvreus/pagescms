@@ -27,8 +27,8 @@ const MediaDialog = forwardRef(({
   initialPath,
   children
 }: {
-  selected: string[],
   onSubmit: (images: string[]) => void,
+  selected?: string[],
   maxSelected?: number,
   initialPath?: string,
   children?: React.ReactNode

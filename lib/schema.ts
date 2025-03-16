@@ -61,7 +61,7 @@ const initializeState = (
       appliedValue = field.list
         ? (typeof field.list === "object" && field.list.default)
           ? field.list.default
-          : [getDefaultValue(field)]
+          : undefined
         : getDefaultValue(field);
     }
     return appliedValue;

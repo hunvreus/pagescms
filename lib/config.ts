@@ -36,37 +36,51 @@ const normalizeConfig = (configObject: any) => {
 
   const configObjectCopy = JSON.parse(JSON.stringify(configObject));
   
-  if (configObjectCopy?.media != null) {
+  if (configObjectCopy?.media) {
     if (typeof configObjectCopy.media === "string") {
-      // Ensure media.input is a relative path
+      // Ensure media.input is a relative path (and add name and label)
       const relativePath = configObjectCopy.media.replace(/^\/|\/$/g, "");
-      configObjectCopy.media = {
+      configObjectCopy.media = [{
+        name: "media",
+        label: "Media",
         input: relativePath,
         output: `/${relativePath}`,
-      };
-    } else {
-      if (configObjectCopy.media?.input != null && typeof configObjectCopy.media.input === "string") {
+      }];
+    } else if (typeof configObjectCopy.media === "object" && !Array.isArray(configObjectCopy.media)) {
+      // Ensure it's an array of media configurations (and add name and label)
+      configObjectCopy.media = [{
+        name: "media",
+        label: "Media",
+        ...configObjectCopy.media
+      }];
+    }
+
+    // We normalize each media configuration
+    configObjectCopy.media = configObjectCopy.media.map((mediaConfig: any) => {     
+      if (mediaConfig.input != null && typeof mediaConfig.input === "string") {
         // Make sure input is relative
-        configObjectCopy.media.input = configObjectCopy.media.input.replace(/^\/|\/$/g, "");
+        mediaConfig.input = mediaConfig.input.replace(/^\/|\/$/g, "");
       }
-      if (configObjectCopy.media.output != null && configObjectCopy.media.output !== "/" && typeof configObjectCopy.media.output === "string") {
+      if (mediaConfig.output != null && mediaConfig.output !== "/" && typeof mediaConfig.output === "string") {
         // Make sure output doesn"t have a trailing slash
-        configObjectCopy.media.output = configObjectCopy.media.output.replace(/\/$/, "");
+        mediaConfig.output = mediaConfig.output.replace(/\/$/, "");
       }
-      if (configObjectCopy.media.categories != null) {
-        if (configObjectCopy.media.extensions != null) {
-          delete configObjectCopy.media.categories;
-        } else if (Array.isArray(configObjectCopy.media.categories)) {
-          configObjectCopy.media.extensions = [];
-          configObjectCopy.media.categories.map((category: string) => {
+      if (mediaConfig.categories != null) {
+        if (mediaConfig.extensions != null) {
+          delete mediaConfig.categories;
+        } else if (Array.isArray(mediaConfig.categories)) {
+          mediaConfig.extensions = [];
+          mediaConfig.categories.map((category: string) => {
             if (extensionCategories[category] != null) {
-              configObjectCopy.media.extensions = configObjectCopy.media.extensions.concat(extensionCategories[category]);
+              mediaConfig.extensions = mediaConfig.extensions.concat(extensionCategories[category]);
             }
           });
-          delete configObjectCopy.media.categories;
+          delete mediaConfig.categories;
         }
       }
-    }
+
+      return mediaConfig;
+    });
   }
 
   if (configObjectCopy.content && Array.isArray(configObjectCopy?.content) && configObjectCopy.content.length > 0) {

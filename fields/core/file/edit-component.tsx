@@ -3,9 +3,10 @@
 import { forwardRef, useCallback, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { MediaUpload } from "@/components/media/media-upload";
-import { Pencil, Trash2, Upload, File, FileText, FileVideo, FileImage, FileAudio, FileArchive, FileCode, FileType, FileSpreadsheet, GripVertical } from "lucide-react";
+import { MediaDialog } from "@/components/media/media-dialog";
+import { Trash2, Upload, File, FileText, FileVideo, FileImage, FileAudio, FileArchive, FileCode, FileType, FileSpreadsheet, GripVertical, Folder, FolderOpen } from "lucide-react";
 import { useConfig } from "@/contexts/config-context";
-import { getFileExtension, getFileName, extensionCategories } from "@/lib/utils/file";
+import { getFileExtension, getFileName, extensionCategories, getParentPath } from "@/lib/utils/file";
 import {
   Tooltip,
   TooltipContent,
@@ -16,8 +17,12 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { v4 as uuidv4 } from 'uuid';
 
-const SortableItem = ({ file, onRemove, getFileIcon }: { 
+const generateId = () => uuidv4().slice(0, 8);
+
+const SortableItem = ({ id, file, onRemove, getFileIcon }: { 
+  id: string;
   file: string;
   onRemove: (file: string) => void;
   getFileIcon: (file: string) => React.ReactNode;
@@ -29,7 +34,7 @@ const SortableItem = ({ file, onRemove, getFileIcon }: {
     transform,
     transition,
     isDragging
-  } = useSortable({ id: file });
+  } = useSortable({ id: id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -41,14 +46,17 @@ const SortableItem = ({ file, onRemove, getFileIcon }: {
 
   return (
     <div ref={setNodeRef} style={style}>
-      <div className="grid grid-cols-[auto_auto_1fr_auto] items-center gap-2 px-4 py-2 border rounded-md bg-background">
-        <div {...attributes} {...listeners} className="-ml-2">
-          <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 pl-2 pr-1 bg-muted rounded-md h-10">
+        <div
+          {...attributes} {...listeners}
+          className="text-muted-foreground hover:text-foreground cursor-grab transition-colors"
+        >
+          <GripVertical className="h-4 w-4" />
         </div>
-        {getFileIcon(file)}
-        <div className="overflow-hidden">
-          <div className="font-medium truncate">{getFileName(file)}</div>
-          <div className="text-xs text-muted-foreground truncate">{file}</div>
+        <div className="flex items-center overflow-hidden">
+          {getFileIcon(file)}
+          <span className="ml-1 font-medium whitespace-nowrap">{getFileName(file)}</span>
+          <span className="ml-2 text-muted-foreground truncate">{file}</span>
         </div>
 
         <div>
@@ -80,40 +88,44 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
   const { value, field, onChange } = props;
   const { config } = useConfig();
 
-  const [files, setFiles] = useState<string[]>(() => 
+  const [files, setFiles] = useState<Array<{ id: string, path: string }>>(() => 
     value
       ? Array.isArray(value)
-        ? value
-        : [value]
+        ? value.map(path => ({ id: generateId(), path }))
+        : [{ id: generateId(), path: value }]
       : []
   );
 
   const isMultiple = field.options?.multiple !== undefined && field.options?.multiple !== false;
-  const uploadPath = field.options?.path || config?.object.media?.input;
+  const rootPath = field.options?.path || field.options?.input || config?.object.media?.input;
+  const remainingSlots = field.options?.multiple
+    ? field.options.multiple.max
+      ? field.options.multiple.max - files.length
+      : Infinity
+    : 1 - files.length;
 
   useEffect(() => {
     if (isMultiple) {
-      onChange(files);
+      onChange(files.map(f => f.path));
     } else {
-      onChange(files[0] || undefined);
+      onChange(files[0]?.path || undefined);
     }
   }, [files, isMultiple, onChange]);
 
   const handleUpload = useCallback((fileData: any) => {
     if (!config) return;
     
-    const path = fileData.path;
+    const newFile = { id: generateId(), path: fileData.path };
     
     if (isMultiple) {
-      setFiles(prev => [...prev, path]);
+      setFiles(prev => [...prev, newFile]);
     } else {
-      setFiles([path]);
+      setFiles([newFile]);
     }
   }, [isMultiple, config]);
 
-  const handleRemove = useCallback((pathToRemove: string) => {
-    console.log("handleRemove", pathToRemove);
-    setFiles(prev => prev.filter(path => path !== pathToRemove));
+  const handleRemove = useCallback((fileId: string) => {
+    setFiles(prev => prev.filter(file => file.id !== fileId));
   }, []);
 
   const getFileIcon = (filePath: string) => {
@@ -122,27 +134,27 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
       if (extensions.includes(ext)) {
         switch (category) {
           case 'image':
-            return <FileImage className="h-10 w-10 stroke-[1]" />;
+            return <FileImage className="h-4 w-4" />;
           case 'document':
-            return <FileText className="h-10 w-10 stroke-[1]" />;
+            return <FileText className="h-4 w-4" />;
           case 'video':
-            return <FileVideo className="h-10 w-10 stroke-[1]" />;
+            return <FileVideo className="h-4 w-4" />;
           case 'audio':
-            return <FileAudio className="h-10 w-10 stroke-[1]" />;
+            return <FileAudio className="h-4 w-4" />;
           case 'compressed':
-            return <FileArchive className="h-10 w-10 stroke-[1]" />;
+            return <FileArchive className="h-4 w-4" />;
           case 'code':
-            return <FileCode className="h-10 w-10 stroke-[1]" />;
+            return <FileCode className="h-4 w-4" />;
           case 'font':
-            return <FileType className="h-10 w-10 stroke-[1]" />;
+            return <FileType className="h-4 w-4" />;
           case 'spreadsheet':
-            return <FileSpreadsheet className="h-10 w-10 stroke-[1]" />;
+            return <FileSpreadsheet className="h-4 w-4" />;
           default:
-            return <FileText className="h-10 w-10 stroke-[1]" />;
+            return <FileText className="h-4 w-4" />;
         }
       }
     }
-    return <File className="h-10 w-10 stroke-[1]" />;
+    return <File className="h-4 w-4" />;
   };
 
   const sensors = useSensors(
@@ -157,12 +169,29 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
 
     if (active.id !== over.id) {
       setFiles((items) => {
-        const oldIndex = items.indexOf(active.id);
-        const newIndex = items.indexOf(over.id);
+        const oldIndex = items.findIndex(item => item.id === active.id);
+        const newIndex = items.findIndex(item => item.id === over.id);
         return arrayMove(items, oldIndex, newIndex);
       });
     }
   };
+
+  const handleSelected = useCallback((newPaths: string[]) => {
+    if (newPaths.length === 0) {
+      setFiles([]);
+    } else {
+      const newFiles = newPaths.map(path => ({
+        id: generateId(),
+        path
+      }));
+      
+      if (isMultiple) {
+        setFiles(prev => [...prev, ...newFiles]);
+      } else {
+        setFiles([newFiles[0]]);
+      }
+    }
+  }, [isMultiple]);
 
   return (
     <div className="space-y-2">
@@ -173,14 +202,15 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
           onDragEnd={handleDragEnd}
         >
           <SortableContext 
-            items={files}
+            items={files.map(f => f.id)}
             strategy={verticalListSortingStrategy}
           >
             {files.map((file) => (
               <SortableItem 
-                key={file} 
-                file={file} 
-                onRemove={handleRemove}
+                key={file.id}
+                id={file.id}
+                file={file.path}
+                onRemove={() => handleRemove(file.id)}
                 getFileIcon={getFileIcon}
               />
             ))}
@@ -188,13 +218,33 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
         </DndContext>
       </div>
       
-      {(!files.length || isMultiple) && (
-        <MediaUpload path={uploadPath} onUpload={handleUpload}>
-          <Button type="button" size="sm" className="gap-2">
-            <Upload className="h-3.5 w-3.5"/>
-            Upload
-          </Button>
-        </MediaUpload>
+      {remainingSlots > 0 && (
+        <div className="flex gap-2">
+          <MediaUpload path={rootPath} onUpload={handleUpload}>
+            <Button type="button" size="sm" variant="outline" className="gap-2">
+              <Upload className="h-3.5 w-3.5"/>
+              Upload
+            </Button>
+          </MediaUpload>      
+          <TooltipProvider>
+            <Tooltip>        
+              <MediaDialog
+                initialPath={rootPath}
+                maxSelected={remainingSlots}
+                onSubmit={handleSelected}
+              >
+                <TooltipTrigger asChild>
+                  <Button type="button" size="icon-sm" variant="outline">
+                    <FolderOpen className="h-3.5 w-3.5"/>
+                  </Button>
+                </TooltipTrigger>
+              </MediaDialog>
+              <TooltipContent>
+                Select from media
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       )}
     </div>
   );

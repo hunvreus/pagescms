@@ -33,7 +33,8 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
             <TooltipTrigger asChild>
               <Button 
                 type="button" 
-                variant="outline" 
+                variant="outline"
+                size="icon"
                 onClick={generateNewUUID}
                 className="shrink-0"
               >

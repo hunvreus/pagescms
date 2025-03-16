@@ -3,7 +3,6 @@
 import { useSearchParams } from "next/navigation";
 import { useConfig } from "@/contexts/config-context";
 import { MediaView} from "@/components/media/media-view";
-import { Message } from "@/components/message";
 
 export default function Page() {
   const searchParams = useSearchParams();
