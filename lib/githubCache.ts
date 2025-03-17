@@ -7,6 +7,7 @@ import { eq, and, inArray } from "drizzle-orm";
 import { cachedEntriesTable } from "@/db/schema";
 import { createOctokitInstance } from "@/lib/utils/octokit";
 import path from "path";
+import { sql } from 'drizzle-orm';
 
 type FileChange = {
   path: string;
@@ -411,7 +412,8 @@ const updateFileCache = async (
 
       if (operation.type === 'modify') {
         // We always update entries in the cache if they are already present
-        await db.update(cachedEntriesTable)
+        
+        const query = db.update(cachedEntriesTable)
           .set({
             content: operation.content,
             sha: operation.sha,
@@ -432,6 +434,12 @@ const updateFileCache = async (
               eq(cachedEntriesTable.path, operation.path)
             )
           );
+
+        // Log the SQL query
+        console.log('SQL Query:', query.toSQL());
+
+        // Execute the query
+        await query;
       } else {
         // We only cache collections and media folders. We only add files that already
         // have siblings in the cache. If not we can assume the collection or media

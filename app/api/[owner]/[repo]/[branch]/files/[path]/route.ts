@@ -157,10 +157,10 @@ export async function POST(
       await updateConfig(newConfig);
     }
     
-    if (response?.data.content && response?.data.commit && data.type !== "media") {
+    if (response?.data.content && response?.data.commit) {
       // If the file is successfully saved, update the cache
       await updateFileCache(
-        data.type,
+        data.type === 'content' ? 'collection' : 'media',
         params.owner,
         params.repo,
         params.branch,

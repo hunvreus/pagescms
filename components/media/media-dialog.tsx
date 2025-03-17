@@ -73,7 +73,7 @@ const MediaDialog = forwardRef(({
         </DialogHeader>
         
         <MediaView name={configMedia.name} initialSelected={selected || []} onSelect={handleSelect} maxSelected={maxSelected} initialPath={initialPath || ""}/>
-        {config.object.media?.input &&
+        {configMedia.input &&
           <DialogFooter>
             <DialogClose asChild>
               <Button type="submit" onClick={handleSubmit}>Select</Button>
