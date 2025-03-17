@@ -42,7 +42,7 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const nocache = searchParams.get('nocache');
 
-    let results = await getCachedMediaFolder(params.owner, params.repo, params.branch, params.name, normalizedPath, nocache);
+    let results = await getCachedMediaFolder(params.owner, params.repo, params.branch, normalizedPath, token, !!nocache);
 
     // const octokit = createOctokitInstance(token);
     // const response = await octokit.rest.repos.getContent({
@@ -84,7 +84,7 @@ export async function GET(
           path: item.path,
           extension: item.type === "dir" ? undefined : getFileExtension(item.name),
           size: item.size,
-          url: item.download_url
+          url: item.downloadUrl
         };
       }),
     });

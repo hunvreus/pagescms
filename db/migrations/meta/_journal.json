@@ -15,6 +15,13 @@
       "when": 1741784806486,
       "tag": "0001_brief_mesmero",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1742220477158,
+      "tag": "0002_late_big_bertha",
+      "breakpoints": true
     }
   ]
 }

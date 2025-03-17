@@ -307,8 +307,8 @@ const getCachedCollection = async (
     )
   });
 
-  if (entries.length === 0 || entries[0].context === 'media') {
-    if (entries[0].context === 'media') {
+  if (entries.length === 0 || (entries.length > 0 && entries[0].context === 'media')) {
+    if (entries.length > 0 && entries[0].context === 'media') {
       // Drop the media context cache and override it 
       await db.delete(cachedEntriesTable).where(
         and(
@@ -387,6 +387,7 @@ const updateFileCache = async (
   branch: string,
   operation: FileOperation
 ) => {
+  // console.log('updateFileCache', context, owner, repo, branch, operation);
   const parentPath = path.dirname(operation.path);
 
   switch (operation.type) {
@@ -499,6 +500,7 @@ const updateFileCache = async (
   }
 };
 
+// TODO: NO MEDIA NAME???
 // Attempt to get a media folder from cache, if not found, fetch from GitHub.
 const getCachedMediaFolder = async (
   owner: string,
