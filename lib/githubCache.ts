@@ -14,63 +14,167 @@ type FileChange = {
 };
 
 type FileOperation = {
-  type: 'add' | 'modify' | 'delete';
+  type: 'add' | 'modify' | 'delete' | 'rename';
   path: string;
+  newPath?: string;
   sha?: string;
   content?: string;
+  size?: number;
+  downloadUrl?: string;
+  commit?: {
+    sha: string;
+    timestamp: number;
+  };
 };
 
+type CacheContext = 'collection' | 'media';
+
 // Bulk update cache entries (removed, modified and added files).
-const updateCache = async (
+const updateMultipleFilesCache = async (
   owner: string,
   repo: string,
   branch: string,
   removedFiles: Array<{ path: string }>,
   modifiedFiles: Array<FileChange>,
   addedFiles: Array<FileChange>,
-  token: string
+  token: string,
+  commit?: { sha: string; timestamp: number }
 ) => {
-  // Get all unique parent paths for all operations
+  // Handle removed files first (we don't need context for these)
+  if (removedFiles.length > 0) {
+    await db.delete(cachedEntriesTable).where(
+      and(
+        eq(cachedEntriesTable.owner, owner),
+        eq(cachedEntriesTable.repo, repo),
+        eq(cachedEntriesTable.branch, branch),
+        inArray(cachedEntriesTable.path, removedFiles.map(f => f.path))
+      )
+    );
+  }
+  
+  // Now handle added/modified files
+  // Get all unique parent paths for add/modify operations
   const parentPaths = Array.from(new Set([
-    ...removedFiles.map(f => path.dirname(f.path)),
     ...modifiedFiles.map(f => path.dirname(f.path)),
     ...addedFiles.map(f => path.dirname(f.path))
   ]));
   
-  const entries = await db.query.cachedEntriesTable.findMany({
+  if (parentPaths.length === 0) return; // Nothing to add or modify
+  
+  // Create a map to store context information for each parent path
+  const pathContextMap = new Map<string, CacheContext>();
+  
+  // First try to find collection contexts (preferred)
+  const collectionEntries = await db.query.cachedEntriesTable.findMany({
     where: and(
+      eq(cachedEntriesTable.context, 'collection'),
       eq(cachedEntriesTable.owner, owner),
       eq(cachedEntriesTable.repo, repo),
       eq(cachedEntriesTable.branch, branch),
       inArray(cachedEntriesTable.parentPath, parentPaths)
     )
   });
-
-  const cachedParentPaths = parentPaths.length > 0 ? 
-    Array.from(new Set(entries.map(e => e.parentPath))) : [];
-
-  // Only process files in cached directories
-  const filesToRemove = removedFiles.filter(file => 
-    cachedParentPaths.includes(path.dirname(file.path))
-  );
-
-  const filesToFetch = [
-    ...modifiedFiles.filter(file => cachedParentPaths.includes(path.dirname(file.path))),
-    ...addedFiles.filter(file => cachedParentPaths.includes(path.dirname(file.path)))
-  ];
-
-  // Delete removed files (only if in cached directories)
-  if (filesToRemove.length > 0) {
-    await db.delete(cachedEntriesTable).where(
-      and(
+  
+  // Map parent paths to collection context
+  for (const entry of collectionEntries) {
+    if (!pathContextMap.has(entry.parentPath)) {
+      pathContextMap.set(entry.parentPath, 'collection');
+    }
+  }
+  
+  // For any remaining parent paths, check for media context
+  const remainingPaths = parentPaths.filter(path => !pathContextMap.has(path));
+  
+  if (remainingPaths.length > 0) {
+    const mediaEntries = await db.query.cachedEntriesTable.findMany({
+      where: and(
+        eq(cachedEntriesTable.context, 'media'),
         eq(cachedEntriesTable.owner, owner),
         eq(cachedEntriesTable.repo, repo),
         eq(cachedEntriesTable.branch, branch),
-        inArray(cachedEntriesTable.path, filesToRemove.map(f => f.path))
+        inArray(cachedEntriesTable.parentPath, remainingPaths)
       )
-    );
+    });
+    
+    // Map parent paths to media context
+    for (const entry of mediaEntries) {
+      if (!pathContextMap.has(entry.parentPath)) {
+        pathContextMap.set(entry.parentPath, 'media');
+      }
+    }
   }
 
+  // If we have commit info, check existing entries to avoid unnecessary processing
+  let existingEntries: any[] = [];
+  if (commit) {
+    const allPaths = [...modifiedFiles.map(f => f.path), ...addedFiles.map(f => f.path)];
+    
+    if (allPaths.length > 0) {
+      existingEntries = await db.query.cachedEntriesTable.findMany({
+        where: and(
+          eq(cachedEntriesTable.owner, owner),
+          eq(cachedEntriesTable.repo, repo),
+          eq(cachedEntriesTable.branch, branch),
+          inArray(cachedEntriesTable.path, allPaths)
+        )
+      });
+    }
+  }
+
+  // Filter files to only those with parent paths in our cache
+  // AND if we have commit info, only those that need updating
+  const modifiedFilesToProcess = modifiedFiles.filter(file => {
+    const parentPath = path.dirname(file.path);
+    const hasContext = pathContextMap.has(parentPath);
+    
+    if (!hasContext) return false;
+    
+    // If no commit info, always process
+    if (!commit) return true;
+    
+    // Check if we need to process this file
+    const existingEntry = existingEntries.find(e => e.path === file.path);
+    
+    // If no existing entry, we need to process it
+    if (!existingEntry) return true;
+    
+    // If we have a newer version based on timestamp, skip
+    if (existingEntry.commitTimestamp && 
+        existingEntry.commitTimestamp > commit.timestamp) {
+      return false;
+    }
+    
+    // If timestamps are equal, check commit SHA
+    if (existingEntry.commitTimestamp === commit.timestamp &&
+        existingEntry.commitSha === commit.sha) {
+      return false;
+    }
+    
+    return true;
+  });
+  
+  const addedFilesToProcess = addedFiles.filter(file => {
+    const parentPath = path.dirname(file.path);
+    const hasContext = pathContextMap.has(parentPath);
+    
+    if (!hasContext) return false;
+    
+    // For added files with commit info, check if they already exist
+    if (commit) {
+      const existingEntry = existingEntries.find(e => e.path === file.path);
+      
+      // If it exists and we have a newer or same version, skip
+      if (existingEntry && existingEntry.commitTimestamp && 
+          existingEntry.commitTimestamp >= commit.timestamp) {
+        return false;
+      }
+    }
+    
+    return true;
+  });
+
+  const filesToFetch = [...modifiedFilesToProcess, ...addedFilesToProcess];
+  
   if (filesToFetch.length === 0) return;
 
   // Fetch content for all files in a single GraphQL query
@@ -84,6 +188,7 @@ const updateCache = async (
             ... on Blob {
               text
               oid
+              byteSize
             }
           }
         `).join('\n')}
@@ -101,54 +206,86 @@ const updateCache = async (
 
   const response: any = await octokit.graphql(query, variables);
 
-  // Process the results
-  const updates = filesToFetch.map((file, index) => {
-    const fileData = response.repository[`file${index}`];
-    return {
-      path: file.path,
-      parentPath: path.dirname(file.path),
-      content: fileData.text,
-      sha: fileData.oid,
-      lastUpdated: Date.now()
-    };
-  });
+  // Process the results and separate into updates and inserts
+  const entriesToUpdate = [];
+  const entriesToInsert = [];
 
-  // Batch update the cache
-  for (const update of updates) {
-    const isModified = modifiedFiles.some(f => f.path === update.path);
+  for (let i = 0; i < filesToFetch.length; i++) {
+    const file = filesToFetch[i];
+    const fileData = response.repository[`file${i}`];
+    const parentPath = path.dirname(file.path);
+    const context = pathContextMap.get(parentPath)!; // We know this exists because of our filter
+    
+    const isModified = modifiedFiles.some(f => f.path === file.path);
     
     if (isModified) {
-      // Update existing entry
-      await db.update(cachedEntriesTable)
+      entriesToUpdate.push({
+        context,
+        owner,
+        repo,
+        branch,
+        path: file.path,
+        content: fileData.text,
+        sha: fileData.oid,
+        size: fileData.byteSize,
+        downloadUrl: null,
+        lastUpdated: Date.now(),
+        ...(commit ? {
+          commitSha: commit.sha,
+          commitTimestamp: commit.timestamp
+        } : {})
+      });
+    } else {
+      entriesToInsert.push({
+        context,
+        owner,
+        repo,
+        branch,
+        path: file.path,
+        parentPath,
+        name: path.basename(file.path),
+        type: 'blob',
+        content: fileData.text,
+        sha: fileData.oid,
+        size: fileData.byteSize,
+        downloadUrl: null,
+        lastUpdated: Date.now(),
+        ...(commit ? {
+          commitSha: commit.sha,
+          commitTimestamp: commit.timestamp
+        } : {})
+      });
+    }
+  }
+
+  // Batch update modified entries
+  if (entriesToUpdate.length > 0) {
+    await Promise.all(entriesToUpdate.map(entry => 
+      db.update(cachedEntriesTable)
         .set({
-          content: update.content,
-          sha: update.sha,
-          lastUpdated: update.lastUpdated
+          content: entry.content,
+          sha: entry.sha,
+          size: entry.size,
+          downloadUrl: entry.downloadUrl,
+          lastUpdated: entry.lastUpdated,
+          ...(entry.commitSha ? { commitSha: entry.commitSha } : {}),
+          ...(entry.commitTimestamp ? { commitTimestamp: entry.commitTimestamp } : {})
         })
         .where(
           and(
-            eq(cachedEntriesTable.owner, owner),
-            eq(cachedEntriesTable.repo, repo),
-            eq(cachedEntriesTable.branch, branch),
-            eq(cachedEntriesTable.path, update.path)
+            eq(cachedEntriesTable.context, entry.context),
+            eq(cachedEntriesTable.owner, entry.owner),
+            eq(cachedEntriesTable.repo, entry.repo),
+            eq(cachedEntriesTable.branch, entry.branch),
+            eq(cachedEntriesTable.path, entry.path)
           )
-        );
-    } else {
-      // Insert new entry
-      await db.insert(cachedEntriesTable)
-        .values({
-          owner,
-          repo,
-          branch,
-          path: update.path,
-          parentPath: update.parentPath,
-          name: path.basename(update.path),
-          type: 'blob',
-          content: update.content,
-          sha: update.sha,
-          lastUpdated: update.lastUpdated
-        });
-    }
+        )
+    ));
+  }
+
+  // Batch insert new entries
+  if (entriesToInsert.length > 0) {
+    await db.insert(cachedEntriesTable).values(entriesToInsert);
   }
 }
 
@@ -160,6 +297,7 @@ const getCachedCollection = async (
   path: string,
   token: string
 ) => {
+  // Check the cache (no context as we may invalidate media cache)
   let entries = await db.query.cachedEntriesTable.findMany({
     where: and(
       eq(cachedEntriesTable.owner, owner),
@@ -169,8 +307,21 @@ const getCachedCollection = async (
     )
   });
 
-  if (entries.length === 0) {
-    // No cache hit, fetch from GitHub
+  if (entries.length === 0 || entries[0].context === 'media') {
+    if (entries[0].context === 'media') {
+      // Drop the media context cache and override it 
+      await db.delete(cachedEntriesTable).where(
+        and(
+        eq(cachedEntriesTable.owner, owner),
+        eq(cachedEntriesTable.repo, repo),
+        eq(cachedEntriesTable.branch, branch),
+        eq(cachedEntriesTable.parentPath, path),
+        eq(cachedEntriesTable.context, 'media')
+        )
+      );
+    }
+    
+    // Fetch from GitHub to create the collection cache
     const octokit = createOctokitInstance(token);
     const query = `
       query ($owner: String!, $repo: String!, $expression: String!) {
@@ -185,6 +336,7 @@ const getCachedCollection = async (
                   ... on Blob {
                     text
                     oid
+                    byteSize
                   }
                 }
               }
@@ -199,22 +351,25 @@ const getCachedCollection = async (
       repo: repo,
       expression
     });
-    // TODO: handle 401 / Bad credentials error
-
+    
     let githubEntries = response.repository?.object?.entries || [];
 
     if (githubEntries.length > 0) {
+      // We populate the cache
       entries = await db.insert(cachedEntriesTable)
         .values(githubEntries.map((entry: any) => ({
-          owner: owner,
-          repo: repo,
-          branch: branch,
+          context: 'collection',
+          owner,
+          repo,
+          branch,
           parentPath: path,
           name: entry.name,
           path: entry.path,
           type: entry.type,
           content: entry.type === "blob" ? entry.object.text : null,
           sha: entry.type === "blob" ? entry.object.oid : null,
+          size: entry.type === "blob" ? entry.object.byteSize : null,
+          downloadUrl: null, // GraphQL doesn't return download URLs (and we don't need it for collections)
           lastUpdated: Date.now()
         })))
         .returning();
@@ -226,6 +381,7 @@ const getCachedCollection = async (
 
 // Update the cache for an individual file (add, modify and delete).
 const updateFileCache = async (
+  context: CacheContext,
   owner: string,
   repo: string,
   branch: string,
@@ -252,29 +408,23 @@ const updateFileCache = async (
         throw new Error('Content and SHA are required for add/modify operations');
       }
 
-      const entry = {
-        owner,
-        repo,
-        branch,
-        path: operation.path,
-        parentPath,
-        name: path.basename(operation.path),
-        type: 'blob',
-        content: operation.content,
-        sha: operation.sha,
-        lastUpdated: Date.now()
-      };
-
       if (operation.type === 'modify') {
         // We always update entries in the cache if they are already present
         await db.update(cachedEntriesTable)
           .set({
-            content: entry.content,
-            sha: entry.sha,
-            lastUpdated: entry.lastUpdated
+            content: operation.content,
+            sha: operation.sha,
+            size: operation.size,
+            downloadUrl: operation.downloadUrl,
+            lastUpdated: Date.now(),
+            ...(operation.commit ? {
+              commitSha: operation.commit.sha,
+              commitTimestamp: operation.commit.timestamp
+            } : {})
           })
           .where(
             and(
+              eq(cachedEntriesTable.context, context),
               eq(cachedEntriesTable.owner, owner),
               eq(cachedEntriesTable.repo, repo),
               eq(cachedEntriesTable.branch, branch),
@@ -282,12 +432,12 @@ const updateFileCache = async (
             )
           );
       } else {
-        // We only cache collections (and maybe media folders later on). When a
-        // file is added, we only add it to the cache if there are already existing
-        // entries with the same parent path (meaning getCachedCollection (or
-        // getCachedMedia once we have media) has already been called on this path).
+        // We only cache collections and media folders. We only add files that already
+        // have siblings in the cache. If not we can assume the collection or media
+        // folder hasn't been cached yet, so we skip to avoid caching a single file.
         const sibling = await db.query.cachedEntriesTable.findFirst({
           where: and(
+            eq(cachedEntriesTable.context, context),
             eq(cachedEntriesTable.owner, owner),
             eq(cachedEntriesTable.repo, repo),
             eq(cachedEntriesTable.branch, branch),
@@ -296,11 +446,127 @@ const updateFileCache = async (
         });
 
         if (sibling) {
-          await db.insert(cachedEntriesTable).values(entry);
+          await db.insert(cachedEntriesTable)
+            .values({
+              context,
+              owner,
+              repo,
+              branch,
+              path: operation.path,
+              parentPath,
+              name: path.basename(operation.path),
+              type: 'blob',
+              content: operation.content,
+              sha: operation.sha,
+              size: operation.size,
+              downloadUrl: operation.downloadUrl,
+              lastUpdated: Date.now(),
+              ...(operation.commit ? {
+                commitSha: operation.commit.sha,
+                commitTimestamp: operation.commit.timestamp
+              } : {})
+            });
         }
       }
+      break;
+
+    case 'rename':
+      if (!operation.newPath) {
+        throw new Error('newPath is required for rename operations');
+      }
+      
+      await db.update(cachedEntriesTable)
+        .set({
+          path: operation.newPath,
+          parentPath: path.dirname(operation.newPath),
+          name: path.basename(operation.newPath),
+          downloadUrl: null, // Reset download URL as it will change with the new path
+          lastUpdated: Date.now(),
+          ...(operation.commit ? {
+            commitSha: operation.commit.sha,
+            commitTimestamp: operation.commit.timestamp
+          } : {})
+        })
+        .where(
+          and(
+            eq(cachedEntriesTable.owner, owner),
+            eq(cachedEntriesTable.repo, repo),
+            eq(cachedEntriesTable.branch, branch),
+            eq(cachedEntriesTable.path, operation.path)
+          )
+        );
       break;
   }
 };
 
-export { updateCache, getCachedCollection, updateFileCache };
+// Attempt to get a media folder from cache, if not found, fetch from GitHub.
+const getCachedMediaFolder = async (
+  owner: string,
+  repo: string,
+  branch: string,
+  path: string,
+  token: string,
+  nocache?: boolean
+) => {
+  let entries: any[] = [];
+
+  if (!nocache) {
+    // Check for entries from either context
+    entries = await db.query.cachedEntriesTable.findMany({
+      where: and(
+        eq(cachedEntriesTable.owner, owner),
+        eq(cachedEntriesTable.repo, repo),
+        eq(cachedEntriesTable.branch, branch),
+        eq(cachedEntriesTable.parentPath, path)
+      )
+    });
+  }
+
+  if (entries.length === 0) {  
+    // No cache hit, fetch from GitHub
+    const octokit = createOctokitInstance(token);
+    const response = await octokit.rest.repos.getContent({
+      owner: owner,
+      repo: repo,
+      path: path,
+      ref: branch,
+    });
+
+    if (!Array.isArray(response.data)) throw new Error("Expected a directory but found a file.");
+
+    const githubEntries = response.data;
+    
+    const mappedEntries = githubEntries.map(entry => ({
+      context: 'media' as CacheContext,
+      owner,
+      repo,
+      branch,
+      parentPath: path,
+      name: entry.name,
+      path: entry.path,
+      type: entry.type === "file" ? "blob" : "tree",
+      content: null,
+      sha: entry.sha,
+      size: entry.size || null,
+      downloadUrl: entry.download_url || null,
+      lastUpdated: Date.now(),
+      commitSha: null,
+      commitTimestamp: null
+    }));
+
+    if (!nocache && githubEntries.length > 0) {
+      // Cache the entries
+      entries = await db.insert(cachedEntriesTable)
+        .values(mappedEntries)
+        .returning();
+    } else {
+      // When `nocache`, we don't cache the entries (used by ./lib/githubImage.ts
+      // to get fresh download_url from GitHub and avoid hammering the cache table).
+      entries = mappedEntries;
+    }
+  }
+
+  return entries;
+};
+
+export { updateMultipleFilesCache, getCachedCollection, updateFileCache, getCachedMediaFolder };

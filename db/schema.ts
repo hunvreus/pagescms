@@ -76,6 +76,7 @@ const configTable = sqliteTable("config", {
 
 const cachedEntriesTable = sqliteTable("cached_entries", {
   id: integer("id").primaryKey({ autoIncrement: true }),
+  context: text("context").notNull().default('collection'),
   owner: text("owner").notNull(),
   repo: text("repo").notNull(),
   branch: text("branch").notNull(),
@@ -85,6 +86,10 @@ const cachedEntriesTable = sqliteTable("cached_entries", {
   type: text("type").notNull(),
   content: text("content"),
   sha: text("sha"),
+  size: integer("size"),
+  downloadUrl: text("download_url"),
+  commitSha: text('commit_sha'),
+  commitTimestamp: integer('commit_timestamp'),
   lastUpdated: integer("last_updated").notNull()
 });
 

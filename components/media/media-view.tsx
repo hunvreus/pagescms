@@ -38,7 +38,7 @@ const MediaView = ({
   maxSelected,
   onSelect,
 }: {
-  name?: string,
+  name: string,
   initialPath?: string,
   initialSelected?: string[],
   maxSelected?: number,
@@ -78,7 +78,7 @@ const MediaView = ({
         setError(null);
 
         try {
-          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/media/${encodeURIComponent(path)}${name && `?name=${encodeURIComponent(name)}`}`);
+          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/media/${encodeURIComponent(name)}/${encodeURIComponent(path)}`);
           if (!response.ok) throw new Error(`Failed to fetch media: ${response.status} ${response.statusText}`);
 
           const data: any = await response.json();
@@ -292,7 +292,7 @@ const MediaView = ({
                             }
                             <div className={onSelect && "hover:bg-muted peer-focus:ring-offset-background peer-focus:ring-2 peer-focus:ring-ring peer-focus:ring-offset-2 rounded-md peer-checked:ring-offset-background peer-checked:ring-offset-2 peer-checked:ring-2 peer-checked:ring-ring relative"}>
                               {extensionCategories.image.includes(item.extension)
-                                ? <Thumbnail path={item.path} className="rounded-t-md aspect-video"/>
+                                ? <Thumbnail name={mediaConfig.name} path={item.path} className="rounded-t-md aspect-video"/>
                                 : <div className="flex items-center justify-center rounded-md aspect-video">
                                     <File className="stroke-[0.5] h-24 w-24"/>
                                   </div>

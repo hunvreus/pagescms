@@ -1,8 +1,7 @@
 /**
  * Helper functions to translate relative paths into publicly accessible GitHub
- * raw.githubusercontent.com URLs (with some light caching). This is especially
- * useful for images in private repositories since we can only access them via
- * a temporary URL provided by the GitHub API.
+ * raw.githubusercontent.com URLs (required for images in private repositories).
+ * Runs client-side with some temporary caching.
  */
 
 import { getFileName, getParentPath } from "@/lib/utils/file";
@@ -35,6 +34,7 @@ const getRawUrl = async (
   owner: string,
   repo: string,
   branch: string,
+  name: string,
   path: string,
   isPrivate = false,
   decode = false
@@ -52,7 +52,7 @@ const getRawUrl = async (
       delete cache[parentFullPath];
       
       if (!requests[parentFullPath]) {
-        requests[parentFullPath] = fetch(`/api/${owner}/${repo}/${encodeURIComponent(branch)}/media/${encodeURIComponent(parentPath)}`)
+        requests[parentFullPath] = fetch(`/api/${owner}/${repo}/${encodeURIComponent(branch)}/media/${encodeURIComponent(name)}/${encodeURIComponent(parentPath)}?nocache=true`)
           .then(response => {
             if (!response.ok) throw new Error(`Failed to fetch media: ${response.status} ${response.statusText}`);
             
@@ -114,6 +114,7 @@ const relativeToRawUrls = async (
   owner: string,
   repo: string,
   branch: string,
+  name: string,
   html: string,
   isPrivate = false,
   decode = false
@@ -127,7 +128,7 @@ const relativeToRawUrls = async (
 
     if (!src.startsWith("/") && !src.startsWith("http://") && !src.startsWith("https://") && !src.startsWith("data:image/")) {  
       // TODO: what does the function returns if it fails?
-      const rawUrl = await getRawUrl(owner, repo, branch, src, isPrivate, true);
+      const rawUrl = await getRawUrl(owner, repo, branch, name, src, isPrivate, true);
       if (rawUrl) {
         newHtml = newHtml.replace(`src=${quote}${src}${quote}`, `src=${quote}${rawUrl}${quote}`);
       }

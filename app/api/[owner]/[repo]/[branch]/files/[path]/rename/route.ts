@@ -4,6 +4,7 @@ import { getConfig } from "@/lib/utils/config";
 import { getFileExtension, normalizePath } from "@/lib/utils/file";
 import { getAuth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
+import { updateFileCache } from "@/lib/githubCache";
 
 /**
  * Renames a file in a GitHub repository.
@@ -77,6 +78,23 @@ export async function POST(
     }
     
     const response = await githubRenameFile(token, params.owner, params.repo, params.branch, normalizedPath, normalizedNewPath);
+
+    // Update the cache with the rename operation
+    await updateFileCache(
+      data.type === 'content' ? 'collection' : 'media',
+      params.owner,
+      params.repo,
+      params.branch,
+      {
+        type: 'rename',
+        path: normalizedPath,
+        newPath: normalizedNewPath,
+        commit: {
+          sha: response.sha,
+          timestamp: Date.now()
+        }
+      }
+    );
 
     // TODO: remove success message in backend 
     return Response.json({

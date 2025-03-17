@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { collaboratorTable, githubInstallationTokenTable } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { normalizePath } from "@/lib/utils/file";
-import { updateCache } from "@/lib/githubCache";
+import { updateMultipleFilesCache } from "@/lib/githubCache";
 import { getInstallationToken } from "@/lib/token";
 
 /**
@@ -103,14 +103,20 @@ export async function POST(request: Request) {
 
           const installationToken = await getInstallationToken(owner, repo);
 
-          await updateCache(
+          const commit = {
+            sha: data.head_commit.id,
+            timestamp: new Date(data.head_commit.timestamp).getTime()
+          };
+
+          await updateMultipleFilesCache(
             owner,
             repo,
             branch,
             removedFiles,
             modifiedFiles,
             addedFiles,
-            installationToken
+            installationToken,
+            commit
           );
           break;
       }

@@ -22,6 +22,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Pencil, Trash2, ImagePlus } from "lucide-react";
+import { useConfig } from "@/contexts/config-context";
 
 // TODO: disable sortable for single image
 // TODO: make component resilient to illegal parentPath
@@ -29,10 +30,12 @@ import { Pencil, Trash2, ImagePlus } from "lucide-react";
 const SortableItem = ({
   id,
   path,
+  media,
   children
 }: {
   id: string,
   path: string,
+  media: string,
   children: React.ReactNode
 }) => {
   const {
@@ -50,11 +53,13 @@ const SortableItem = ({
     zIndex: isDragging ? 1000 : "auto"
   };
 
+  // const name = field.options?;
+
   return (
     <div ref={setNodeRef} style={style}>
       <div className="relative w-28">
         <div {...attributes} {...listeners}>
-          <Thumbnail path={path} className="aspect-square rounded-md outline-none"/>
+          <Thumbnail name={media} path={path} className="aspect-square rounded-md outline-none"/>
         </div>
         {children}
       </div>
@@ -71,6 +76,10 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
         : [{ id: "image-0", path: value }]
       : []
   );
+
+  const { config } = useConfig();
+
+  const mediaName = field.options?.media || config?.object.media[0].name;
   
   const maxImages = useMemo(() => {
     if (field.list && typeof field.list.max === 'number') {
@@ -133,7 +142,7 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
         <div className="flex flex-wrap gap-4 items-start">
 
           {images.map((item, index) => 
-            <SortableItem key={item.id} id={item.id} path={item.path}>
+            <SortableItem key={item.id} id={item.id} path={item.path} media={mediaName}>
               <footer className="absolute bottom-2 right-2">
                 <Button type="button" size="icon-xs" variant="outline" className="rounded-r-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:bg-muted" onClick={() => handleRemove(index)}>
                   <Trash2 className="h-4 w-4" />
