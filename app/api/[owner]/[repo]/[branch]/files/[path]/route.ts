@@ -38,13 +38,14 @@ export async function POST(
     const data: any = await request.json();
 
     let contentBase64;
+    let schema;
 
     switch (data.type) {
       case "content":
         if (!data.name) throw new Error(`"name" is required for content.`);
 
-        let schema = getSchemaByName(config?.object, data.name);
-        if (!schema) throw new Error(`Schema not found for ${data.name}.`);
+        schema = getSchemaByName(config?.object, data.name);
+        if (!schema) throw new Error(`Content schema not found for ${data.name}.`);
 
         if (!normalizedPath.startsWith(schema.path)) throw new Error(`Invalid path "${params.path}" for ${data.type} "${data.name}".`);
 
@@ -108,17 +109,20 @@ export async function POST(
         }
         break;
       case "media":
-        if (!config?.object.media) throw new Error(`No media configuration found for ${params.owner}/${params.repo}/${params.branch}.`);
+        if (!data.name) throw new Error(`"name" is required for media.`);
 
-        if (!normalizedPath.startsWith(config.object.media.input)) throw new Error(`Invalid path "${params.path}" for media.`);
+        schema = getSchemaByName(config?.object, data.name, "media");
+        if (!schema) throw new Error(`Media schema not found for ${data.name}.`);
+
+        if (!normalizedPath.startsWith(schema.input)) throw new Error(`Invalid path "${params.path}" for media "${data.name}".`);
         
         if (getFileName(normalizedPath) === ".gitkeep") {
           // Folder creation
           contentBase64 = "";
         } else {
           if (
-            config.object.media.extensions?.length > 0 &&
-            !config.object.media.extensions.includes(getFileExtension(normalizedPath))
+            schema.extensions?.length > 0 &&
+            !schema.extensions.includes(getFileExtension(normalizedPath))
           ) throw new Error(`Invalid extension "${getFileExtension(normalizedPath)}" for media.`);
 
           contentBase64 = data.content;
@@ -153,8 +157,9 @@ export async function POST(
       await updateConfig(newConfig);
     }
     
-    // Update cache for content and settings files, but not media
     if (response?.data.content && response?.data.commit && data.type !== "media") {
+      // If the file is successfully saved, update the cache
+      // TODO: add media caching (requires split between listing and displaying media)
       await updateFileCache(
         params.owner,
         params.repo,
@@ -297,25 +302,30 @@ export async function DELETE(
     if (!config) throw new Error(`Configuration not found for ${params.owner}/${params.repo}/${params.branch}.`);
 
     const normalizedPath = normalizePath(params.path);
-    
+    let schema;
+
     switch (type) {
       case "content":
         if (!name) throw new Error(`"name" is required for content.`);
 
-        const schema = getSchemaByName(config.object, name);
-        if (!schema) throw new Error(`Schema not found for ${name}.`);
+        schema = getSchemaByName(config.object, name);
+        if (!schema) throw new Error(`Content schema not found for ${name}.`);
         
         if (!normalizedPath.startsWith(schema.path)) throw new Error(`Invalid path "${params.path}" for ${type} "${name}".`);
         
         if (getFileExtension(normalizedPath) !== schema.extension) throw new Error(`Invalid extension "${getFileExtension(normalizedPath)}" for ${type} "${name}".`);
         break;
       case "media":
-        if (!config.object.media) throw new Error(`No media configuration found for ${params.owner}/${params.repo}/${params.branch}.`);
-        if (!normalizedPath.startsWith(config.object.media.input)) throw new Error(`Invalid path "${params.path}" for media.`);
+        if (!name) throw new Error(`"name" is required for media.`);
+
+        schema = getSchemaByName(config.object, name, "media");
+        if (!schema) throw new Error(`Media schema not found for ${name}.`);
+
+        if (!normalizedPath.startsWith(schema.input)) throw new Error(`Invalid path "${params.path}" for media "${name}".`);
 
         if (
-          config.object.media.extensions?.length > 0 &&
-          !config.object.media.extensions.includes(getFileExtension(normalizedPath))
+          schema.extensions?.length > 0 &&
+          !schema.extensions.includes(getFileExtension(normalizedPath))
         ) throw new Error(`Invalid extension "${getFileExtension(normalizedPath)}" for media.`);
         break;
     }

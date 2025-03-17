@@ -18,6 +18,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { v4 as uuidv4 } from 'uuid';
+import { getSchemaByName } from "@/lib/schema";
 
 const generateId = () => uuidv4().slice(0, 8);
 
@@ -97,7 +98,10 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
   );
 
   const isMultiple = field.options?.multiple !== undefined && field.options?.multiple !== false;
-  const rootPath = field.options?.path || field.options?.input || config?.object.media?.input;
+  const mediaConfig = field.options?.media
+    ? getSchemaByName(config?.object, field.options?.media, "media")
+    : config?.object.media[0];
+  const rootPath = field.options?.path || mediaConfig.input;
   const remainingSlots = field.options?.multiple
     ? field.options.multiple.max
       ? field.options.multiple.max - files.length
@@ -220,15 +224,16 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
       
       {remainingSlots > 0 && (
         <div className="flex gap-2">
-          <MediaUpload path={rootPath} onUpload={handleUpload}>
+          <MediaUpload path={rootPath} name={mediaConfig.name} onUpload={handleUpload}>
             <Button type="button" size="sm" variant="outline" className="gap-2">
               <Upload className="h-3.5 w-3.5"/>
               Upload
             </Button>
           </MediaUpload>      
           <TooltipProvider>
-            <Tooltip>        
+            <Tooltip>
               <MediaDialog
+                name={mediaConfig.name}
                 initialPath={rootPath}
                 maxSelected={remainingSlots}
                 onSubmit={handleSelected}

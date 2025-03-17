@@ -14,6 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { getSchemaByName } from "@/lib/schema";
 
 export interface MediaDialogHandle {
   open: () => void;
@@ -21,12 +22,14 @@ export interface MediaDialogHandle {
 }
 
 const MediaDialog = forwardRef(({
+  name,
   selected,
   onSubmit,
   maxSelected,
   initialPath,
   children
 }: {
+  name?: string,
   onSubmit: (images: string[]) => void,
   selected?: string[],
   maxSelected?: number,
@@ -35,6 +38,10 @@ const MediaDialog = forwardRef(({
 }, ref) => {
   const { config } = useConfig();
   if (!config) throw new Error(`Configuration not found.`);
+
+  const configMedia = name
+    ? getSchemaByName(config.object, name, "media")
+    : config.object.media[0];
 
   const selectedImagesRef = useRef(selected || []);
   const [open, setOpen] = useState(false);
@@ -65,11 +72,11 @@ const MediaDialog = forwardRef(({
           <DialogDescription></DialogDescription>
         </DialogHeader>
         
-        <MediaView initialSelected={selected || []} onSelect={handleSelect} maxSelected={maxSelected} initialPath={initialPath || ""}/>
+        <MediaView name={configMedia.name} initialSelected={selected || []} onSelect={handleSelect} maxSelected={maxSelected} initialPath={initialPath || ""}/>
         {config.object.media?.input &&
           <DialogFooter>
             <DialogClose asChild>
-              <Button type="submit" onClick={handleSubmit}>Save changes</Button>
+              <Button type="submit" onClick={handleSubmit}>Select</Button>
             </DialogClose>
           </DialogFooter>
         }

@@ -33,16 +33,15 @@ const EmptyCreate = ({
     toCreate = "configuration file";
     redirectTo = `${redirectTo}/settings`;
   } else if (type === "content" || type === "media") {
-    if (type === "media") {
-      path = `${config.object.media?.input}/.gitkeep`;
-      toCreate = "media folder";
-      redirectTo = `${redirectTo}/media`;
-    } else {
-      if (!name) throw new Error(`"name" is required for content.`);
-      
-      const schema = getSchemaByName(config.object, name);
-      if (!schema) throw new Error(`Schema not found for ${name}.`);
+    if (!name) throw new Error(`"name" is required.`);
+    const schema = getSchemaByName(config.object, name, type);
+    if (!schema) throw new Error(`Schema not found for ${name}.`);
 
+    if (type === "media") {
+      path = `${schema.input}/.gitkeep`;
+      toCreate = "media folder";
+      redirectTo = `${redirectTo}/media/${schema.name}`;
+    } else {
       if (schema.type === "file") {
         path = schema.path;
         toCreate = "file";
@@ -54,7 +53,6 @@ const EmptyCreate = ({
         path = `${schema.path}/.gitkeep`;
         toCreate = "collection folder";
       }
-
       redirectTo = `${redirectTo}/${schema.type}/${schema.name}`;
     }
   } else {
@@ -92,7 +90,7 @@ const EmptyCreate = ({
         loading: `Creating ${toCreate}`,
         success: (response: any) => {
           // TODO: for media, we want to navigate to the root, not redirect in case it's in a dialog
-          router.push(redirectTo);
+          router.push(`${redirectTo}?empty-created`);
           router.refresh();
           return `Successfully created ${toCreate}.`;
         },

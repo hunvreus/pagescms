@@ -184,11 +184,13 @@ const getSchemaByPath = (config: Record<string, any>, path: string) => {
   return schema ? JSON.parse(JSON.stringify(schema)) : null;
 };
 
-// Retrieve the matching schema for a type
-const getSchemaByName = (config: Record<string, any> | null | undefined, name: string) => {
+// Retrieve the matching schema for a media or content entry
+const getSchemaByName = (config: Record<string, any> | null | undefined, name: string, type: string = "content") => {
   if (!config || !config.content || !name) return null;
   
-  const schema = config.content.find((item: Record<string, any>) => item.name === name);
+  const schema = (type === "media")
+    ? config.media.find((item: Record<string, any>) => item.name === name)
+    : config.content.find((item: Record<string, any>) => item.name === name);
 
   // We deep clone the object to avoid mutating config if schema is modified.
   return schema ? JSON.parse(JSON.stringify(schema)) : null;

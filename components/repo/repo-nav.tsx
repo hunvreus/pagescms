@@ -56,14 +56,12 @@ const RepoNav = ({
       label: item.label || item.name,
     })) || [];
 
-    const mediaItem = configObject.media
-      ? {
-        key: "media",
-        icon: <FolderOpen className="h-5 w-5 mr-2" />,
-        href: `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/media`,
-        label: "Media"
-      }
-      : null;
+    const mediaItems = configObject.media?.map((item: any) => ({
+      key: item.name || "media",
+      icon: <FolderOpen className="h-5 w-5 mr-2" />,
+      href: `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/media/${item.name}`,
+      label: item.label || item.name || "Media"
+    })) || [];
 
     const settingsItem = configObject.settings !== false
       ? {
@@ -85,7 +83,7 @@ const RepoNav = ({
 
     return [
       ...contentItems,
-      mediaItem,
+      ...mediaItems,
       settingsItem,
       collaboratorsItem
     ].filter(Boolean);

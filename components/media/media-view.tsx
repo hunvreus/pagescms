@@ -78,7 +78,7 @@ const MediaView = ({
         setError(null);
 
         try {
-          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/media/${encodeURIComponent(path)}`);
+          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/media/${encodeURIComponent(path)}${name && `?name=${encodeURIComponent(name)}`}`);
           if (!response.ok) throw new Error(`Failed to fetch media: ${response.status} ${response.statusText}`);
 
           const data: any = await response.json();
@@ -222,7 +222,7 @@ const MediaView = ({
             description={`The media folder "${mediaConfig.input}" has not been created yet.`}
             className="absolute inset-0"
           >
-          <EmptyCreate type="media">Create folder</EmptyCreate>
+          <EmptyCreate type="media" name={mediaConfig.name}>Create folder</EmptyCreate>
         </Message>
       );
     } else {
@@ -247,12 +247,12 @@ const MediaView = ({
             <CornerLeftUp className="w-4 h-4"/>
           </Button>
         </div>
-        <FolderCreate path={path} type="media" onCreate={handleFolderCreate}>
+        <FolderCreate path={path} name={mediaConfig.name} type="media" onCreate={handleFolderCreate}>
           <Button type="button" variant="outline" className="ml-auto" size="icon-sm">
             <FolderPlus className="h-3.5 w-3.5"/>
           </Button>
         </FolderCreate>
-        <MediaUpload path={path} onUpload={handleUpload}>
+        <MediaUpload name={mediaConfig.name} path={path} onUpload={handleUpload}>
           <Button type="button" size="sm" className="gap-2">
             <Upload className="h-3.5 w-3.5"/>
             Upload
@@ -302,7 +302,7 @@ const MediaView = ({
                                   <div className="text-sm font-medium truncate">{item.name}</div>
                                   <div className="text-xs text-muted-foreground truncate">{getFileSize(item.size)}</div>
                                 </div>
-                                <FileOptions path={item.path} sha={item.sha} type="media" onDelete={handleDelete} onRename={handleRename} portalProps={{container: filesGridRef.current}}>
+                                <FileOptions path={item.path} sha={item.sha} type="media" name={mediaConfig.name} onDelete={handleDelete} onRename={handleRename} portalProps={{container: filesGridRef.current}}>
                                   <Button variant="ghost" size="icon" className="shrink-0">
                                     <EllipsisVertical className="h-4 w-4" />
                                   </Button>

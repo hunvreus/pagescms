@@ -6,7 +6,7 @@
 
 import { z } from "zod";
 
-// Media configuration object schema
+// Media configuration object schema (for single object)
 const MediaConfigObject = z.object({
   input: z.string({
     message: "'input' is required."
@@ -31,17 +31,16 @@ const MediaConfigObject = z.object({
   }), {
     message: "'categories' must be an array of strings."
   }).optional(),
+  name: z.string().optional(),
+  label: z.string().optional(),
 }).strict();
 
-// Named media configuration schema
+// Named media configuration schema (for array entries)
 const NamedMediaConfig = MediaConfigObject.extend({
   name: z.string({
     required_error: "'name' is required for media configurations in array format.",
     invalid_type_error: "'name' must be a string.",
   }),
-  label: z.string({
-    message: "'label' must be a string."
-  }).optional(),
 });
 
 // Media schema

@@ -41,7 +41,7 @@ const normalizeConfig = (configObject: any) => {
       // Ensure media.input is a relative path (and add name and label)
       const relativePath = configObjectCopy.media.replace(/^\/|\/$/g, "");
       configObjectCopy.media = [{
-        name: "media",
+        name: "default",
         label: "Media",
         input: relativePath,
         output: `/${relativePath}`,
@@ -49,14 +49,14 @@ const normalizeConfig = (configObject: any) => {
     } else if (typeof configObjectCopy.media === "object" && !Array.isArray(configObjectCopy.media)) {
       // Ensure it's an array of media configurations (and add name and label)
       configObjectCopy.media = [{
-        name: "media",
+        name: "default",
         label: "Media",
         ...configObjectCopy.media
       }];
     }
 
     // We normalize each media configuration
-    configObjectCopy.media = configObjectCopy.media.map((mediaConfig: any) => {     
+    configObjectCopy.media = configObjectCopy.media.map((mediaConfig: any) => {
       if (mediaConfig.input != null && typeof mediaConfig.input === "string") {
         // Make sure input is relative
         mediaConfig.input = mediaConfig.input.replace(/^\/|\/$/g, "");

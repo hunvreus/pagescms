@@ -58,7 +58,7 @@ export async function GET(
     let results = response.data;
 
     if (mediaConfig.extensions && mediaConfig.extensions.length > 0) {
-      results = response.data.filter((item) => {
+      results = results.filter((item) => {
         if (item.type === "dir") return true;
         const extension = getFileExtension(item.name);
         return mediaConfig.extensions.includes(extension);

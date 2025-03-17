@@ -235,6 +235,7 @@ const updateFileCache = async (
 
   switch (operation.type) {
     case 'delete':
+      // We always remove entries from the cache when the file is deleted
       await db.delete(cachedEntriesTable).where(
         and(
           eq(cachedEntriesTable.owner, owner),
@@ -265,6 +266,7 @@ const updateFileCache = async (
       };
 
       if (operation.type === 'modify') {
+        // We always update entries in the cache if they are already present
         await db.update(cachedEntriesTable)
           .set({
             content: entry.content,
@@ -280,7 +282,22 @@ const updateFileCache = async (
             )
           );
       } else {
-        await db.insert(cachedEntriesTable).values(entry);
+        // We only cache collections (and maybe media folders later on). When a
+        // file is added, we only add it to the cache if there are already existing
+        // entries with the same parent path (meaning getCachedCollection (or
+        // getCachedMedia once we have media) has already been called on this path).
+        const sibling = await db.query.cachedEntriesTable.findFirst({
+          where: and(
+            eq(cachedEntriesTable.owner, owner),
+            eq(cachedEntriesTable.repo, repo),
+            eq(cachedEntriesTable.branch, branch),
+            eq(cachedEntriesTable.parentPath, parentPath)
+          )
+        });
+
+        if (sibling) {
+          await db.insert(cachedEntriesTable).values(entry);
+        }
       }
       break;
   }

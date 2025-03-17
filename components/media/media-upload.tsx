@@ -4,20 +4,27 @@ import { useRef, isValidElement, cloneElement } from "react";
 import { useConfig } from "@/contexts/config-context";
 import { joinPathSegments } from "@/lib/utils/file";
 import { toast } from "sonner";
+import { getSchemaByName } from "@/lib/schema";
 
 const MediaUpload = ({
   children,
   path,
   onUpload,
+  name
 }: {
   children: React.ReactElement<{ onClick: () => void }>;
   path?: string;
   onUpload?: (path: string) => void;
+  name?: string;
 }) => {
   const fileInputRef = useRef(null);
 
   const { config } = useConfig();
   if (!config) throw new Error(`Configuration not found.`);
+
+  const configMedia = name
+    ? getSchemaByName(config.object, name, "media")
+    : config.object.media[0];
 
   const handleTriggerClick = () => {
     if (fileInputRef.current) {
@@ -53,6 +60,7 @@ const MediaUpload = ({
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     type: "media",
+                    name: configMedia.name,
                     content,
                   }),
                 });
@@ -88,7 +96,7 @@ const MediaUpload = ({
     ? cloneElement(children, { onClick: handleTriggerClick })
     : null;
 
-  const mediaExtensions = config?.object.media?.extensions;
+  const mediaExtensions = configMedia.extensions;
   const accept = mediaExtensions && mediaExtensions.length > 0
     ? mediaExtensions.map((extension: string) => `.${extension}`).join(",")
     : undefined;
