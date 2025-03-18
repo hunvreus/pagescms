@@ -1,11 +1,11 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "86214e27-a7c3-4087-8050-6fc55560872a",
+  "id": "9d186c64-ed0f-408e-ad44-a04dad063523",
   "prevId": "9bebad23-d902-47ff-b6e6-8878fb0c5b3e",
   "tables": {
-    "cached_entries": {
-      "name": "cached_entries",
+    "cache": {
+      "name": "cache",
       "columns": {
         "id": {
           "name": "id",
@@ -13,6 +13,14 @@
           "primaryKey": true,
           "notNull": true,
           "autoincrement": true
+        },
+        "context": {
+          "name": "context",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'collection'"
         },
         "owner": {
           "name": "owner",
@@ -77,6 +85,34 @@
           "notNull": false,
           "autoincrement": false
         },
+        "size": {
+          "name": "size",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "download_url": {
+          "name": "download_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "commit_sha": {
+          "name": "commit_sha",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "commit_timestamp": {
+          "name": "commit_timestamp",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "last_updated": {
           "name": "last_updated",
           "type": "integer",
@@ -85,7 +121,28 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_cache_owner_repo_branch_parentPath": {
+          "name": "idx_cache_owner_repo_branch_parentPath",
+          "columns": [
+            "owner",
+            "repo",
+            "branch",
+            "parent_path"
+          ],
+          "isUnique": false
+        },
+        "idx_cache_owner_repo_branch_path": {
+          "name": "idx_cache_owner_repo_branch_path",
+          "columns": [
+            "owner",
+            "repo",
+            "branch",
+            "path"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
@@ -171,7 +228,24 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_collaborator_owner_repo_email": {
+          "name": "idx_collaborator_owner_repo_email",
+          "columns": [
+            "owner",
+            "repo",
+            "email"
+          ],
+          "isUnique": false
+        },
+        "idx_collaborator_userId": {
+          "name": "idx_collaborator_userId",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "collaborator_user_id_user_id_fk": {
           "name": "collaborator_user_id_user_id_fk",
@@ -256,7 +330,17 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_config_owner_repo_branch": {
+          "name": "idx_config_owner_repo_branch",
+          "columns": [
+            "owner",
+            "repo",
+            "branch"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
@@ -338,7 +422,15 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_github_installation_token_installationId": {
+          "name": "idx_github_installation_token_installationId",
+          "columns": [
+            "installation_id"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
@@ -375,7 +467,15 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_github_user_token_userId": {
+          "name": "idx_github_user_token_userId",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {
         "github_user_token_user_id_user_id_fk": {
           "name": "github_user_token_user_id_user_id_fk",
@@ -440,7 +540,16 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_history_userId_lastVisited": {
+          "name": "idx_history_userId_lastVisited",
+          "columns": [
+            "user_id",
+            "last_visited"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "history_user_id_user_id_fk": {
           "name": "history_user_id_user_id_fk",
@@ -484,7 +593,15 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_session_userId": {
+          "name": "idx_session_userId",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "session_user_id_user_id_fk": {
           "name": "session_user_id_user_id_fk",
