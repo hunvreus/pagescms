@@ -1,12 +1,12 @@
 "use client";
 
-import { forwardRef, useCallback, useState, useEffect } from "react";
+import { forwardRef, useCallback, useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { MediaUpload } from "@/components/media/media-upload";
 import { MediaDialog } from "@/components/media/media-dialog";
 import { Trash2, Upload, File, FileText, FileVideo, FileImage, FileAudio, FileArchive, FileCode, FileType, FileSpreadsheet, GripVertical, FolderOpen, ArrowUpRight } from "lucide-react";
 import { useConfig } from "@/contexts/config-context";
-import { getFileExtension, getFileName, extensionCategories } from "@/lib/utils/file";
+import { getFileExtension, getFileName, extensionCategories, normalizePath } from "@/lib/utils/file";
 import {
   Tooltip,
   TooltipContent,
@@ -117,16 +117,60 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
       : []
   );
 
-  const isMultiple = field.options?.multiple !== undefined && field.options?.multiple !== false;
-  const mediaConfig = field.options?.media
-    ? getSchemaByName(config?.object, field.options?.media, "media")
-    : config?.object.media[0];
-  const rootPath = field.options?.path || mediaConfig.input;
-  const remainingSlots = field.options?.multiple
-    ? field.options.multiple.max
-      ? field.options.multiple.max - files.length
-      : Infinity
-    : 1 - files.length;
+  const mediaConfig = useMemo(() => {
+    if (!config?.object?.media?.length) {
+      return undefined;
+    }
+    return field.options?.media
+      ? getSchemaByName(config.object, field.options?.media, "media")
+      : config.object.media[0];
+  }, [field.options?.media, config?.object]);
+
+  const rootPath = useMemo(() => {
+    if (!field.options?.path) {
+      return mediaConfig?.input;
+    }
+
+    const normalizedPath = normalizePath(field.options.path);
+    const normalizedMediaPath = normalizePath(mediaConfig?.input);
+
+    if (!normalizedPath.startsWith(normalizedMediaPath)) {
+      console.warn(`"${field.options.path}" is not within media root "${mediaConfig?.input}". Defaulting to media root.`);
+      return mediaConfig?.input;
+    }
+
+    return normalizedPath;
+  }, [field.options?.path, mediaConfig?.input]);
+
+  const allowedExtensions = useMemo(() => {
+    if (!mediaConfig) return [];
+
+    const fieldExtensions = field.options?.extensions 
+      ? field.options.extensions
+      : field.options?.categories
+        ? field.options.categories.flatMap((category: string) => extensionCategories[category])
+        : [];
+
+    if (!fieldExtensions.length) return mediaConfig.extensions || [];
+
+    return mediaConfig.extensions
+      ? fieldExtensions.filter((ext: string) => mediaConfig.extensions.includes(ext))
+      : fieldExtensions;
+  }, [field.options?.extensions, field.options?.categories, mediaConfig]);
+
+  const isMultiple = useMemo(() => 
+    field.options?.multiple !== undefined && field.options?.multiple !== false,
+    [field.options?.multiple]
+  );
+
+  const remainingSlots = useMemo(() => 
+    field.options?.multiple
+      ? field.options.multiple.max
+        ? field.options.multiple.max - files.length
+        : Infinity
+      : 1 - files.length,
+    [field.options?.multiple, files.length]
+  );
 
   useEffect(() => {
     if (isMultiple) {
@@ -217,6 +261,20 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
     }
   }, [isMultiple]);
 
+  if (!mediaConfig) {
+    return (
+      <div className="text-muted-foreground bg-muted rounded-md px-3 py-2 h-10">
+      No media configuration found. {' '}
+      <a 
+        href={`/${config?.owner}/${config?.repo}/${encodeURIComponent(config?.branch || "")}/settings`}
+        className="underline hover:text-foreground"
+      >
+        Check your settings
+      </a>.
+    </div>
+    );
+  }
+
   return (
     <div className="space-y-2">
       <div className="space-y-2">
@@ -245,7 +303,7 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
       
       {remainingSlots > 0 && (
         <div className="flex gap-2">
-          <MediaUpload path={rootPath} name={mediaConfig.name} onUpload={handleUpload}>
+          <MediaUpload path={rootPath} media={mediaConfig.name} extensions={allowedExtensions} onUpload={handleUpload}>
             <Button type="button" size="sm" variant="outline" className="gap-2">
               <Upload className="h-3.5 w-3.5"/>
               Upload
@@ -254,9 +312,10 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
           <TooltipProvider>
             <Tooltip>
               <MediaDialog
-                name={mediaConfig.name}
+                media={mediaConfig.name}
                 initialPath={rootPath}
                 maxSelected={remainingSlots}
+                extensions={allowedExtensions}
                 onSubmit={handleSelected}
               >
                 <TooltipTrigger asChild>

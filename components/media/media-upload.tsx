@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, isValidElement, cloneElement } from "react";
+import { useRef, isValidElement, cloneElement, useMemo, useCallback } from "react";
 import { useConfig } from "@/contexts/config-context";
 import { joinPathSegments } from "@/lib/utils/file";
 import { toast } from "sonner";
@@ -10,29 +10,42 @@ const MediaUpload = ({
   children,
   path,
   onUpload,
-  name
+  media,
+  extensions
 }: {
   children: React.ReactElement<{ onClick: () => void }>;
   path?: string;
   onUpload?: (path: string) => void;
-  name?: string;
+  media?: string;
+  extensions?: string[];
 }) => {
   const fileInputRef = useRef(null);
 
   const { config } = useConfig();
   if (!config) throw new Error(`Configuration not found.`);
 
-  const configMedia = name
-    ? getSchemaByName(config.object, name, "media")
-    : config.object.media[0];
+  const configMedia = useMemo(() => 
+    media
+      ? getSchemaByName(config.object, media, "media")
+      : config.object.media[0],
+    [media, config.object]
+  );
 
-  const handleTriggerClick = () => {
-    if (fileInputRef.current) {
-      (fileInputRef.current as HTMLInputElement).click();
-    }
-  };
+  const mediaExtensions = configMedia.extensions;
 
-  const handleFileInput = async (event: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+  const accept = useMemo(() => {
+    if (!configMedia?.extensions) return undefined;
+    
+    const allowedExtensions = extensions 
+      ? extensions.filter(ext => configMedia.extensions.includes(ext))
+      : configMedia.extensions;
+
+    return allowedExtensions.length > 0
+      ? allowedExtensions.map(extension => `.${extension}`).join(",")
+      : undefined;
+  }, [extensions, configMedia?.extensions]);
+
+  const handleFileInput = useCallback(async (event: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
     const readFileContent = (file: File): Promise<string | null> => {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -90,16 +103,20 @@ const MediaUpload = ({
         console.error(error);
       }
     }
-  };
-  
-  const trigger = isValidElement(children)
-    ? cloneElement(children, { onClick: handleTriggerClick })
-    : null;
+  }, [config, path, configMedia.name, onUpload]);
 
-  const mediaExtensions = configMedia.extensions;
-  const accept = mediaExtensions && mediaExtensions.length > 0
-    ? mediaExtensions.map((extension: string) => `.${extension}`).join(",")
-    : undefined;
+  const handleTriggerClick = useCallback(() => {
+    if (fileInputRef.current) {
+      (fileInputRef.current as HTMLInputElement).click();
+    }
+  }, []);
+
+  const trigger = useMemo(() => 
+    isValidElement(children)
+      ? cloneElement(children, { onClick: handleTriggerClick })
+      : null,
+    [children, handleTriggerClick]
+  );
 
   return (
     <>

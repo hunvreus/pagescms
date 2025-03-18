@@ -37,4 +37,3 @@ next-env.d.ts
 
 # Database
 local.db
-db/migrations/meta/_journal.json

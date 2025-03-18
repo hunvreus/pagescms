@@ -22,14 +22,14 @@ export interface MediaDialogHandle {
 }
 
 const MediaDialog = forwardRef(({
-  name,
+  media,
   selected,
   onSubmit,
   maxSelected,
   initialPath,
   children
 }: {
-  name?: string,
+  media?: string,
   onSubmit: (images: string[]) => void,
   selected?: string[],
   maxSelected?: number,
@@ -39,8 +39,8 @@ const MediaDialog = forwardRef(({
   const { config } = useConfig();
   if (!config) throw new Error(`Configuration not found.`);
 
-  const configMedia = name
-    ? getSchemaByName(config.object, name, "media")
+  const configMedia = media
+    ? getSchemaByName(config.object, media, "media")
     : config.object.media[0];
 
   const selectedImagesRef = useRef(selected || []);
@@ -72,7 +72,7 @@ const MediaDialog = forwardRef(({
           <DialogDescription></DialogDescription>
         </DialogHeader>
         
-        <MediaView name={configMedia.name} initialSelected={selected || []} onSelect={handleSelect} maxSelected={maxSelected} initialPath={initialPath || ""}/>
+        <MediaView media={configMedia.name} initialSelected={selected || []} onSelect={handleSelect} maxSelected={maxSelected} initialPath={initialPath || ""}/>
         {configMedia.input &&
           <DialogFooter>
             <DialogClose asChild>

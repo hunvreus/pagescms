@@ -32,29 +32,27 @@ import {
 } from "lucide-react";
 
 const MediaView = ({
-  name,
+  media,
   initialPath,
   initialSelected,
   maxSelected,
   onSelect,
-  extensions,
-  categories
+  extensions
 }: {
-  name: string,
+  media: string,
   initialPath?: string,
   initialSelected?: string[],
   maxSelected?: number,
   onSelect?: (newSelected: string[]) => void,
-  extensions?: string[],
-  categories?: string[]
+  extensions?: string[]
 }) => {
   const { config } = useConfig();
   if (!config) throw new Error(`Configuration not found.`);
 
   const mediaConfig = useMemo(() => {
-    if (!name) return config.object.media[0];
-    return config.object.media.find((item: any) => item.name === name);
-  }, [name, config.object.media]);
+    if (!media) return config.object.media[0];
+    return config.object.media.find((item: any) => item.name === media);
+  }, [media, config.object.media]);
 
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -102,7 +100,7 @@ const MediaView = ({
         setError(null);
 
         try {
-          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/media/${encodeURIComponent(name)}/${encodeURIComponent(path)}`);
+          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/media/${encodeURIComponent(mediaConfig.name)}/${encodeURIComponent(path)}`);
           if (!response.ok) throw new Error(`Failed to fetch media: ${response.status} ${response.statusText}`);
 
           const data: any = await response.json();
@@ -276,7 +274,7 @@ const MediaView = ({
             <FolderPlus className="h-3.5 w-3.5"/>
           </Button>
         </FolderCreate>
-        <MediaUpload name={mediaConfig.name} path={path} onUpload={handleUpload}>
+        <MediaUpload media={mediaConfig.name} path={path} onUpload={handleUpload}>
           <Button type="button" size="sm" className="gap-2">
             <Upload className="h-3.5 w-3.5"/>
             Upload

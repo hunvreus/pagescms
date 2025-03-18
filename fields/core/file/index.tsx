@@ -43,7 +43,4 @@ const schema = (field: Field) => {
   return zodSchema;
 };
 
-
-const supportsList = true;
-
-export { schema, ViewComponent, EditComponent, read, write, supportsList };
+export { schema, ViewComponent, EditComponent, read, write };
