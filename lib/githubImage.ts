@@ -126,7 +126,7 @@ const relativeToRawUrls = async (
     const src = match[1] || match[2];
     const quote = match[1] ? "\"" : "'";
 
-    if (!src.startsWith("/") && !src.startsWith("http://") && !src.startsWith("https://") && !src.startsWith("data:image/")) {  
+    if (!src.startsWith("http://") && !src.startsWith("https://") && !src.startsWith("data:image/")) {  
       // TODO: what does the function returns if it fails?
       const rawUrl = await getRawUrl(owner, repo, branch, name, src, isPrivate, true);
       if (rawUrl) {
