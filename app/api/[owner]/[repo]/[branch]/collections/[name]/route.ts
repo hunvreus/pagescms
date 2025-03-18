@@ -113,7 +113,7 @@ const parseContents = (
 
   parsedContents = contents.map((item: any) => {
     // If it's a file and it matches the schema extension
-    if (item.type === "blob" && (item.path.endsWith(`.${schema.extension}`) || schema.extension === "") && !excludedFiles.includes(item.name)) {
+    if (item.type === "file" && (item.path.endsWith(`.${schema.extension}`) || schema.extension === "") && !excludedFiles.includes(item.name)) {
       let contentObject: Record<string, any> = {};
       
       if (serializedTypes.includes(schema.format) && schema.fields) {
