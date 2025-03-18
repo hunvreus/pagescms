@@ -32,6 +32,7 @@ const write = (value: any, field: Field, config: Record<string, any>): string | 
   return swapPrefix(value, prefixInput, prefixOutput);
 };
 
+// TODO: add validation for media path and file extension
 const schema = (field: Field) => {
   let zodSchema: z.ZodTypeAny = z.coerce.string();
 

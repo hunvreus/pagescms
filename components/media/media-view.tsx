@@ -37,12 +37,16 @@ const MediaView = ({
   initialSelected,
   maxSelected,
   onSelect,
+  extensions,
+  categories
 }: {
   name: string,
   initialPath?: string,
   initialSelected?: string[],
   maxSelected?: number,
-  onSelect?: (newSelected: string[]) => void
+  onSelect?: (newSelected: string[]) => void,
+  extensions?: string[],
+  categories?: string[]
 }) => {
   const { config } = useConfig();
   if (!config) throw new Error(`Configuration not found.`);
@@ -55,7 +59,16 @@ const MediaView = ({
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
-  
+
+  const filteredExtensions = useMemo(() => {
+    if (extensions != null) {
+      return extensions;
+    } else if (categories != null) {
+      return categories.flatMap((category: string) => extensionCategories[category]);
+    }
+    return mediaConfig?.extensions || [];
+  }, [extensions, categories, mediaConfig?.extensions]);
+
   const filesGridRef = useRef<HTMLDivElement | null>(null);
 
   const [error, setError] = useState<string | null | undefined>(null);
@@ -69,6 +82,17 @@ const MediaView = ({
     return mediaConfig.input;
   });
   const [data, setData] = useState<Record<string, any>[] | undefined>(undefined);
+  
+  // Filter the data based on filteredExtensions when displaying
+  const filteredData = useMemo(() => {
+    if (!data) return undefined;
+    if (!filteredExtensions || filteredExtensions.length === 0) return data;
+    return data.filter(item => 
+      item.type === "dir" ||
+      filteredExtensions.includes(item.extension?.toLowerCase())
+    );
+  }, [data, filteredExtensions]);
+
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
@@ -262,9 +286,9 @@ const MediaView = ({
       <div className="relative flex-1 overflow-auto scrollbar" ref={filesGridRef}>
         {isLoading
           ? loadingSkeleton
-          : data && data.length > 0
+          : filteredData && filteredData.length > 0
               ? <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8 p-1">
-                  {data.map((item, index) => 
+                  {filteredData.map((item, index) => 
                     <li key={item.path}>
                       {item.type === "dir"
                         ? <button

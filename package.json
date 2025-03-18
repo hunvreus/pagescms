@@ -13,7 +13,8 @@
     "start": "next start",
     "lint": "next lint",
     "db:generate": "npx drizzle-kit generate",
-    "db:migrate": "npx drizzle-kit migrate"
+    "db:migrate": "npx drizzle-kit migrate",
+    "db:clear-cache": "npx tsx db/scripts/clear-cache.ts"
   },
   "dependencies": {
     "@codemirror/lang-html": "^6.4.9",

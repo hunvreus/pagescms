@@ -44,20 +44,6 @@ export async function GET(
 
     let results = await getCachedMediaFolder(params.owner, params.repo, params.branch, normalizedPath, token, !!nocache);
 
-    // const octokit = createOctokitInstance(token);
-    // const response = await octokit.rest.repos.getContent({
-    //   owner: params.owner,
-    //   repo: params.repo,
-    //   path: normalizedPath,
-    //   ref: params.branch,
-    // });
-
-    // if (!Array.isArray(response.data)) {
-    //   throw new Error("Expected a directory but found a file.");
-    // }
-
-    // let results = response.data;
-
     if (mediaConfig.extensions && mediaConfig.extensions.length > 0) {
       results = results.filter((item) => {
         if (item.type === "dir") return true;

@@ -184,7 +184,7 @@ const updateMultipleFilesCache = async (
         path: file.path,
         parentPath,
         name: path.basename(file.path),
-        type: 'blob',
+        type: 'file',
         content: context === 'collection' ? fileData.text : null,
         sha: fileData.oid,
         size: fileData.byteSize,
@@ -281,7 +281,7 @@ const getCachedCollection = async (
           parentPath: path,
           name: entry.name,
           path: entry.path,
-          type: entry.type,
+          type: entry.type === 'blob' ? 'file' : 'dir',
           content: entry.type === "blob" ? entry.object.text : null,
           sha: entry.type === "blob" ? entry.object.oid : null,
           size: entry.type === "blob" ? entry.object.byteSize : null,
@@ -372,7 +372,7 @@ const updateFileCache = async (
               path: operation.path,
               parentPath,
               name: path.basename(operation.path),
-              type: 'blob',
+              type: 'file',
               content: operation.content,
               sha: operation.sha,
               size: operation.size,
@@ -439,7 +439,7 @@ const getCachedMediaFolder = async (
       )
     });
   }
-
+  
   if (entries.length === 0) {  
     // No cache hit, fetch from GitHub
     const octokit = createOctokitInstance(token);
@@ -462,7 +462,7 @@ const getCachedMediaFolder = async (
       parentPath: path,
       name: entry.name,
       path: entry.path,
-      type: entry.type === "file" ? "blob" : "tree",
+      type: entry.type,
       content: null,
       sha: entry.sha,
       size: entry.size || null,

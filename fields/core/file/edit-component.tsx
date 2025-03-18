@@ -4,9 +4,9 @@ import { forwardRef, useCallback, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { MediaUpload } from "@/components/media/media-upload";
 import { MediaDialog } from "@/components/media/media-dialog";
-import { Trash2, Upload, File, FileText, FileVideo, FileImage, FileAudio, FileArchive, FileCode, FileType, FileSpreadsheet, GripVertical, Folder, FolderOpen } from "lucide-react";
+import { Trash2, Upload, File, FileText, FileVideo, FileImage, FileAudio, FileArchive, FileCode, FileType, FileSpreadsheet, GripVertical, FolderOpen, ArrowUpRight } from "lucide-react";
 import { useConfig } from "@/contexts/config-context";
-import { getFileExtension, getFileName, extensionCategories, getParentPath } from "@/lib/utils/file";
+import { getFileExtension, getFileName, extensionCategories } from "@/lib/utils/file";
 import {
   Tooltip,
   TooltipContent,
@@ -19,12 +19,15 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { v4 as uuidv4 } from 'uuid';
 import { getSchemaByName } from "@/lib/schema";
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
 
 const generateId = () => uuidv4().slice(0, 8);
 
-const SortableItem = ({ id, file, onRemove, getFileIcon }: { 
+const SortableItem = ({ id, file, config, onRemove, getFileIcon }: { 
   id: string;
   file: string;
+  config: any;
   onRemove: (file: string) => void;
   getFileIcon: (file: string) => React.ReactNode;
 }) => {
@@ -60,16 +63,33 @@ const SortableItem = ({ id, file, onRemove, getFileIcon }: {
           <span className="ml-2 text-muted-foreground truncate">{file}</span>
         </div>
 
-        <div>
+        <div className="flex items-center">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  href={`https://github.com/${config.owner}/${config.repo}/blob/${config.branch}/${file}`}
+                  target="_blank"
+                  className={cn(buttonVariants({ variant: "ghost", size: "icon-xs" }), "text-muted-foreground hover:text-foreground transition-colors")}
+                >
+                  <ArrowUpRight className="h-4 w-4" />
+                </a>
+              </TooltipTrigger>
+              <TooltipContent>
+                See on GitHub
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   type="button"
                   variant="ghost"
-                  size="sm"
+                  size="icon-xs"
                   onClick={() => onRemove(file)}
-                  className="h-8 w-8 p-0"
+                  className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -214,6 +234,7 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
                 key={file.id}
                 id={file.id}
                 file={file.path}
+                config={config}
                 onRemove={() => handleRemove(file.id)}
                 getFileIcon={getFileIcon}
               />
