@@ -27,14 +27,16 @@ const MediaDialog = forwardRef(({
   onSubmit,
   maxSelected,
   initialPath,
-  children
+  children,
+  extensions
 }: {
   media?: string,
   onSubmit: (images: string[]) => void,
   selected?: string[],
   maxSelected?: number,
   initialPath?: string,
-  children?: React.ReactNode
+  children?: React.ReactNode,
+  extensions?: string[]
 }, ref) => {
   const { config } = useConfig();
   if (!config) throw new Error(`Configuration not found.`);
@@ -72,7 +74,7 @@ const MediaDialog = forwardRef(({
           <DialogDescription></DialogDescription>
         </DialogHeader>
         
-        <MediaView media={configMedia.name} initialSelected={selected || []} onSelect={handleSelect} maxSelected={maxSelected} initialPath={initialPath || ""}/>
+        <MediaView media={configMedia.name} extensions={extensions} initialSelected={selected || []} onSelect={handleSelect} maxSelected={maxSelected} initialPath={initialPath || ""}/>
         {configMedia.input &&
           <DialogFooter>
             <DialogClose asChild>

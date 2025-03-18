@@ -59,13 +59,16 @@ const MediaView = ({
   const router = useRouter();
 
   const filteredExtensions = useMemo(() => {
-    if (extensions != null) {
-      return extensions;
-    } else if (categories != null) {
-      return categories.flatMap((category: string) => extensionCategories[category]);
-    }
-    return mediaConfig?.extensions || [];
-  }, [extensions, categories, mediaConfig?.extensions]);
+    if (!mediaConfig?.extensions && !extensions) return [];
+    
+    const allowedExtensions = extensions 
+      ? mediaConfig?.extensions
+        ? extensions.filter(ext => mediaConfig.extensions.includes(ext))
+        : extensions
+      : mediaConfig.extensions;
+
+    return allowedExtensions || [];
+  }, [extensions, mediaConfig?.extensions]);
 
   const filesGridRef = useRef<HTMLDivElement | null>(null);
 

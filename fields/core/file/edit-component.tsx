@@ -300,7 +300,6 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
           </SortableContext>
         </DndContext>
       </div>
-      
       {remainingSlots > 0 && (
         <div className="flex gap-2">
           <MediaUpload path={rootPath} media={mediaConfig.name} extensions={allowedExtensions} onUpload={handleUpload}>
@@ -308,7 +307,7 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
               <Upload className="h-3.5 w-3.5"/>
               Upload
             </Button>
-          </MediaUpload>      
+          </MediaUpload>
           <TooltipProvider>
             <Tooltip>
               <MediaDialog

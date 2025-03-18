@@ -303,7 +303,6 @@ const updateFileCache = async (
   branch: string,
   operation: FileOperation
 ) => {
-  // console.log('updateFileCache', context, owner, repo, branch, operation);
   const parentPath = path.dirname(operation.path);
 
   switch (operation.type) {

@@ -31,17 +31,17 @@ const MediaUpload = ({
     [media, config.object]
   );
 
-  const mediaExtensions = configMedia.extensions;
-
   const accept = useMemo(() => {
-    if (!configMedia?.extensions) return undefined;
+    if (!configMedia?.extensions && !extensions) return undefined;
     
     const allowedExtensions = extensions 
-      ? extensions.filter(ext => configMedia.extensions.includes(ext))
+      ? configMedia.extensions
+        ? extensions.filter(ext => configMedia.extensions.includes(ext))
+        : extensions
       : configMedia.extensions;
 
     return allowedExtensions.length > 0
-      ? allowedExtensions.map(extension => `.${extension}`).join(",")
+      ? allowedExtensions.map((extension: string) => `.${extension}`).join(",")
       : undefined;
   }, [extensions, configMedia?.extensions]);
 
