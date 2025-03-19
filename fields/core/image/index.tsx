@@ -3,33 +3,44 @@ import { ViewComponent } from "./view-component";
 import { EditComponent } from "./edit-component";
 import { Field } from "@/types/field";
 import { swapPrefix } from "@/lib/githubImage";
+import { getSchemaByName } from "@/lib/schema";
 
 const read = (value: any, field: Field, config: Record<string, any>): string | string[] | null => {
   if (!value) return null;
   if (Array.isArray(value) && !value.length) return null;
   
-  const prefixInput = field.options?.input ?? config.object.media?.input;
-  const prefixOutput = field.options?.output ?? config.object.media?.output;
+  const mediaConfig = field.options?.media === false
+    ? undefined
+    : field.options?.media && typeof field.options.media === 'string'
+      ? getSchemaByName(config.object, field.options.media, "media")
+      : config.object.media[0];
+
+  if (!mediaConfig) return value;
 
   if (Array.isArray(value)) {
     return value.map(v => read(v, field, config)) as string[];
   }
 
-  return swapPrefix(value, prefixOutput, prefixInput, true);
+  return swapPrefix(value, mediaConfig.output, mediaConfig.input, true);
 };
 
 const write = (value: any, field: Field, config: Record<string, any>): string | string[] | null => {
   if (!value) return null;
   if (Array.isArray(value) && !value.length) return null;
 
-  const prefixInput = field.options?.input ?? config.object.media?.input;
-  const prefixOutput = field.options?.output ?? config.object.media?.output;
+  const mediaConfig = field.options?.media === false
+    ? undefined
+    : field.options?.media && typeof field.options.media === 'string'
+      ? getSchemaByName(config.object, field.options.media, "media")
+      : config.object.media[0];
+
+  if (!mediaConfig) return value;
 
   if (Array.isArray(value)) {
     return value.map(v => write(v, field, config)) as string[];
   }
 
-  return swapPrefix(value, prefixInput, prefixOutput);
+  return swapPrefix(value, mediaConfig.input, mediaConfig.output);
 };
 
 // TODO: add validation for media path and file extension

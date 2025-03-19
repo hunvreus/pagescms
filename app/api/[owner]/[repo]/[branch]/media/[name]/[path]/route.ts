@@ -37,7 +37,7 @@ export async function GET(
     }
 
     const normalizedPath = normalizePath(params.path);
-    if (!normalizedPath.startsWith(mediaConfig.input)) throw new Error(`Invalid path "${params.path}" for media.`);
+    if (!normalizedPath.startsWith(mediaConfig.input)) throw new Error(`Invalid path "${params.path}" for media "${params.name}".`);
 
     const { searchParams } = new URL(request.url);
     const nocache = searchParams.get('nocache');

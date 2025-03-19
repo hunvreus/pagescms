@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useCallback, useRef, useState } from "react";
+import { forwardRef, useCallback, useRef, useState, useMemo } from "react";
 import { BubbleMenu, EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
@@ -58,13 +58,50 @@ import {
   Trash2,
   Underline as UnderlineIcon
 } from "lucide-react";
+import { toast } from "sonner";
+import { getSchemaByName } from "@/lib/schema";
+import { extensionCategories, normalizePath } from "@/lib/utils/file";
 
 const EditComponent = forwardRef((props: any, ref) => {
   const { config } = useConfig();
   const { isPrivate } = useRepo();
 
   const { value, field, onChange } = props;
-  const mediaName = field.options?.media || config?.object.media[0].name;
+
+  const mediaConfig = useMemo(() => {
+    if (!config?.object?.media?.length) {
+      return undefined;
+    }
+    return field.options?.media !== false
+      ? field.options?.media
+        ? getSchemaByName(config.object, field.options.media, "media")
+        : config.object.media[0]
+      : undefined;
+  }, [field.options?.media, config?.object]);
+
+  const allowedExtensions = useMemo(() => {
+    if (!mediaConfig) return [];
+
+    let extensions = extensionCategories['image'];
+
+    const fieldExtensions = field.options?.extensions 
+      ? field.options.extensions
+      : field.options?.categories
+        ? field.options.categories.flatMap((category: string) => extensionCategories[category])
+        : [];
+
+    if (fieldExtensions.length) {
+      extensions = extensions.filter(ext => fieldExtensions.includes(ext));
+    }
+
+    if (mediaConfig.extensions) {
+      extensions = extensions.filter(ext => mediaConfig.extensions.includes(ext));
+    }
+
+    return extensions;
+  }, [field.options?.extensions, field.options?.categories, mediaConfig]);
+
+  const mediaName = mediaConfig?.name || config?.object.media[0].name;
   if (!mediaName) throw new Error("No media defined.");
 
   const mediaDialogRef = useRef<MediaDialogHandle>(null);
@@ -74,9 +111,25 @@ const EditComponent = forwardRef((props: any, ref) => {
 
   const [linkUrl, setLinkUrl] = useState("");
 
-  const openMediaDialog = config?.object.media?.input
+  const openMediaDialog = mediaConfig?.input
     ? () => { if (mediaDialogRef.current) mediaDialogRef.current.open() }
     : undefined;
+
+  const rootPath = useMemo(() => {
+    if (!field.options?.path) {
+      return mediaConfig?.input;
+    }
+
+    const normalizedPath = normalizePath(field.options.path);
+    const normalizedMediaPath = normalizePath(mediaConfig?.input);
+
+    if (!normalizedPath.startsWith(normalizedMediaPath)) {
+      console.warn(`"${field.options.path}" is not within media root "${mediaConfig?.input}". Defaulting to media root.`);
+      return mediaConfig?.input;
+    }
+
+    return normalizedPath;
+  }, [field.options?.path, mediaConfig?.input]);
 
   const editor = useEditor({
     immediatelyRender: true,
@@ -119,8 +172,15 @@ const EditComponent = forwardRef((props: any, ref) => {
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
     onCreate: async ({ editor }) => {
       if (config && value) {
-        const initialContent = await relativeToRawUrls(config.owner, config.repo, config.branch, mediaName, value, isPrivate);
-        editor.commands.setContent(initialContent || "<p></p>");
+        try {
+          const initialContent = await relativeToRawUrls(config.owner, config.repo, config.branch, mediaName, value, isPrivate);
+          editor.commands.setContent(initialContent || "<p></p>");
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          console.warn(errorMessage);
+          toast.error(`${errorMessage} Check if the image exists or if media configuration is correct.`);
+          editor.commands.setContent(value);
+        }
       }
       setContentReady(true);
     }
@@ -129,12 +189,18 @@ const EditComponent = forwardRef((props: any, ref) => {
   const handleMediaDialogSubmit = useCallback(async (images: string[]) => {
     if (config && editor) {
       const content = await Promise.all(images.map(async (image) => {
-        const url = await getRawUrl(config.owner, config.repo, config.branch, mediaName, image, isPrivate);
-        return `<p><img src="${url}"></p>`;
+        try {
+          const url = await getRawUrl(config.owner, config.repo, config.branch, mediaName, image, isPrivate);
+          return `<p><img src="${url}"></p>`;
+        } catch {
+          toast.error(`Failed to load image: ${image}`);
+          // Return a placeholder with error styling
+          return `<p><img src="" alt="${image}" class="border border-destructive bg-destructive/10 rounded-md" /></p>`;
+        }
       }));
       editor.chain().focus().insertContent(content.join('\n')).run();
     }
-  }, [config, editor, isPrivate]);
+  }, [config, editor, isPrivate, mediaName]);
 
   const getBlockIcon = (editor: any) => {
     if (editor.isActive("heading", { level: 1 })) return <Heading1 className="h-4 w-4" />;
@@ -367,7 +433,14 @@ const EditComponent = forwardRef((props: any, ref) => {
           </div>
         </BubbleMenu>}
         <EditorContent editor={editor} />
-        <MediaDialog ref={mediaDialogRef} selected={[]} onSubmit={handleMediaDialogSubmit} />
+        <MediaDialog 
+          ref={mediaDialogRef} 
+          media={mediaConfig?.name}
+          initialPath={rootPath}
+          extensions={allowedExtensions}
+          selected={[]} 
+          onSubmit={handleMediaDialogSubmit} 
+        />
       </div>
     </>
   )

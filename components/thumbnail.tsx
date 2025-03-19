@@ -34,6 +34,8 @@ export function Thumbnail({
           const url = await getRawUrl(owner, repo, branch, name, path, isPrivate);
           setRawUrl(url);
         } catch (error: any) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          console.warn(errorMessage);
           setError(error.message);
         }
       }
