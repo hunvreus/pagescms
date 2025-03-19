@@ -215,23 +215,23 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
       if (extensions.includes(ext)) {
         switch (category) {
           case 'image':
-            return <FileImage className="h-4 w-4" />;
+            return <FileImage className="h-4 w-4 shrink-0" />;
           case 'document':
-            return <FileText className="h-4 w-4" />;
+            return <FileText className="h-4 w-4 shrink-0" />;
           case 'video':
-            return <FileVideo className="h-4 w-4" />;
+            return <FileVideo className="h-4 w-4 shrink-0" />;
           case 'audio':
-            return <FileAudio className="h-4 w-4" />;
+            return <FileAudio className="h-4 w-4 shrink-0" />;
           case 'compressed':
-            return <FileArchive className="h-4 w-4" />;
+            return <FileArchive className="h-4 w-4 shrink-0" />;
           case 'code':
-            return <FileCode className="h-4 w-4" />;
+            return <FileCode className="h-4 w-4 shrink-0" />;
           case 'font':
-            return <FileType className="h-4 w-4" />;
+            return <FileType className="h-4 w-4 shrink-0" />;
           case 'spreadsheet':
-            return <FileSpreadsheet className="h-4 w-4" />;
+            return <FileSpreadsheet className="h-4 w-4 shrink-0" />;
           default:
-            return <FileText className="h-4 w-4" />;
+            return <FileText className="h-4 w-4 shrink-0" />;
         }
       }
     }

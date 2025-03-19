@@ -134,7 +134,26 @@ function MediaUploadTrigger({ children }: MediaUploadTriggerProps) {
 
   const handleFileInput = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (files && files.length > 0) {
+    if (!files || files.length === 0) return;
+
+    const acceptedExtensions = context.accept?.split(',').map(ext => ext.trim().toLowerCase());
+    if (acceptedExtensions?.length) {
+      const validFiles = Array.from(files).filter(file => {
+        const ext = `.${file.name.split('.').pop()?.toLowerCase()}`;
+        return acceptedExtensions.includes(ext);
+      });
+
+      if (validFiles.length === 0) {
+        toast.error(`Invalid file type. Allowed: ${context.accept}`);
+        return;
+      }
+
+      if (validFiles.length !== files.length) {
+        toast.error(`Some files were skipped. Allowed: ${context.accept}`);
+      }
+
+      context.handleFiles(validFiles as unknown as FileList);
+    } else {
       context.handleFiles(files);
     }
   }, [context]);
@@ -174,8 +193,28 @@ function MediaUploadDropZone({ children, className }: MediaUploadDropZoneProps) 
     e.preventDefault();
     setIsDragging(false);
     
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      context.handleFiles(e.dataTransfer.files);
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+
+    const acceptedExtensions = context.accept?.split(',').map(ext => ext.trim().toLowerCase());
+    if (acceptedExtensions?.length) {
+      const validFiles = Array.from(files).filter(file => {
+        const ext = `.${file.name.split('.').pop()?.toLowerCase()}`;
+        return acceptedExtensions.includes(ext);
+      });
+
+      if (validFiles.length === 0) {
+        toast.error(`Invalid file type. Allowed: ${context.accept}`);
+        return;
+      }
+
+      if (validFiles.length !== files.length) {
+        toast.error(`Some files were skipped. Allowed: ${context.accept}`);
+      }
+
+      context.handleFiles(validFiles as unknown as FileList);
+    } else {
+      context.handleFiles(files);
     }
   }, [context]);
 
@@ -189,7 +228,9 @@ function MediaUploadDropZone({ children, className }: MediaUploadDropZoneProps) 
       {children}
       {isDragging && (
         <div className="absolute inset-0 bg-primary/10 rounded-lg flex items-center justify-center">
-          <p className="text-sm text-foreground font-medium bg-background/50 rounded-full px-3 py-1">Drop files here to upload</p>
+          <p className="text-sm text-foreground font-medium bg-background rounded-full px-3 py-1">
+            Drop files here to upload
+          </p>
         </div>
       )}
     </div>
