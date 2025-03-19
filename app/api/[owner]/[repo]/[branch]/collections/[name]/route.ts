@@ -46,6 +46,10 @@ export async function GET(
     const normalizedPath = normalizePath(path);
     if (!normalizedPath.startsWith(schema.path)) throw new Error(`Invalid path "${path}" for collection "${params.name}".`);
 
+    if (schema.subfolders === false) {
+      if (normalizedPath !== schema.path) throw new Error(`Invalid path "${path}" for collection "${params.name}".`);
+    }
+
     let entries = await getCachedCollection(params.owner, params.repo, params.branch, normalizedPath, token);
     
     let data: {
@@ -151,7 +155,7 @@ const parseContents = (
         fields: contentObject,
         type: "file",
       };
-    } else if (item.type === "dir" && !excludedFiles.includes(item.name)) {
+    } else if (item.type === "dir" && !excludedFiles.includes(item.name) && schema.subfolders !== false) {
       return {
         name: item.name,
         path: item.path,
