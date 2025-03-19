@@ -288,7 +288,7 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
                 </DndContext>
               </div>
             ) : (
-              <div className="aspect-square w-24 bg-red-600/50">
+              <div className="aspect-square w-24">
                 <ImageTeaser file={files[0].path} config={config} media={mediaConfig.name} onRemove={() => handleRemove(files[0].id)} />
               </div>
             )
