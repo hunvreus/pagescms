@@ -1,120 +1,212 @@
 "use client";
 
-import { forwardRef, useCallback, useMemo, useState } from "react";
-import { getParentPath } from "@/lib/utils/file";
-import { MediaDialog } from "@/components/media/media-dialog";
-import { Thumbnail } from "@/components/thumbnail";
+import { forwardRef, useCallback, useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  DndContext, 
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  rectSortingStrategy
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { Pencil, Trash2, ImagePlus } from "lucide-react";
+import { MediaUpload } from "@/components/media/media-upload";
+import { MediaDialog } from "@/components/media/media-dialog";
+import { Trash2, Upload, FolderOpen, ArrowUpRight } from "lucide-react";
 import { useConfig } from "@/contexts/config-context";
+import { extensionCategories, normalizePath } from "@/lib/utils/file";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, rectSortingStrategy } from '@dnd-kit/sortable';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { v4 as uuidv4 } from 'uuid';
+import { getSchemaByName } from "@/lib/schema";
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
+import { Thumbnail } from "@/components/thumbnail";
 
-// TODO: disable sortable for single image
-// TODO: make component resilient to illegal parentPath
+const generateId = () => uuidv4().slice(0, 8);
 
-const SortableItem = ({
-  id,
-  path,
-  media,
-  children
-}: {
-  id: string,
-  path: string,
-  media: string,
-  children: React.ReactNode
+const ImageTeaser = ({ file, config, media, onRemove }: { 
+  file: string;
+  config: any;
+  media: string;
+  onRemove: (file: string) => void;
+}) => {
+  return (
+    <>
+      <div className="absolute bottom-1 right-1">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <a
+                href={`https://github.com/${config.owner}/${config.repo}/blob/${config.branch}/${file}`}
+                target="_blank"
+                className={cn(buttonVariants({ variant: "secondary", size: "icon-xs" }), "rounded-r-none")}
+              >
+                <ArrowUpRight className="h-4 w-4" />
+              </a>
+            </TooltipTrigger>
+            <TooltipContent>
+              See on GitHub
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                size="icon-xs"
+                variant="secondary"
+                onClick={() => onRemove(file)}
+                className="rounded-l-none"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              Remove
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    </>
+  )
+};
+
+const SortableItem = ({ id, file, config, media, onRemove }: { 
+  id: string;
+  file: string;
+  config: any;
+  media: string;
+  onRemove: (file: string) => void;
 }) => {
   const {
     attributes,
-    isDragging,
     listeners,
     setNodeRef,
     transform,
     transition,
-  } = useSortable({ id });
+    isDragging
+  } = useSortable({ id: id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    zIndex: isDragging ? 1000 : "auto"
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1 : 0,
+    position: 'relative' as const
   };
-
-  // const name = field.options?;
 
   return (
     <div ref={setNodeRef} style={style}>
-      <div className="relative w-28">
-        <div {...attributes} {...listeners}>
-          <Thumbnail name={media} path={path} className="aspect-square rounded-md outline-none"/>
-        </div>
-        {children}
+      <div {...attributes} {...listeners}>
+        <Thumbnail name={media} path={file} className="rounded-md w-28 h-28"/>
       </div>
+      <ImageTeaser file={file} config={config} onRemove={onRemove} media={media} />
     </div>
   );
 };
 
 const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) => {
   const { value, field, onChange } = props;
-  const [images, setImages] = useState<{ id: string, path: string }[]>(() => 
+  const { config } = useConfig();
+  
+  const [files, setFiles] = useState<Array<{ id: string, path: string }>>(() => 
     value
       ? Array.isArray(value)
-        ? value.map((path, index) => ({ id: `image-${index}`, path }))
-        : [{ id: "image-0", path: value }]
+        ? value.map(path => ({ id: generateId(), path }))
+        : [{ id: generateId(), path: value }]
       : []
   );
 
-  const { config } = useConfig();
-
-  const mediaName = field.options?.media || config?.object.media[0].name;
-  
-  const maxImages = useMemo(() => {
-    if (field.list && typeof field.list.max === 'number') {
-      return field.list.max;
+  const mediaConfig = useMemo(() => {
+    if (!config?.object?.media?.length) {
+      return undefined;
     }
-    return field.list ? undefined : 1;
-  }, [field]);
+    return field.options?.media
+      ? getSchemaByName(config.object, field.options?.media, "media")
+      : config.object.media[0];
+  }, [field.options?.media, config?.object]);
 
-  const handleRemove = useCallback((index: number) => {
-    let newImages = [...images];
-    newImages.splice(index, 1);
+  const rootPath = useMemo(() => {
+    if (!field.options?.path) {
+      return mediaConfig?.input;
+    }
+
+    const normalizedPath = normalizePath(field.options.path);
+    const normalizedMediaPath = normalizePath(mediaConfig?.input);
+
+    if (!normalizedPath.startsWith(normalizedMediaPath)) {
+      console.warn(`"${field.options.path}" is not within media root "${mediaConfig?.input}". Defaulting to media root.`);
+      return mediaConfig?.input;
+    }
+
+    return normalizedPath;
+  }, [field.options?.path, mediaConfig?.input]);
+
+  const allowedExtensions = useMemo(() => {
+    if (!mediaConfig) return [];
+
+    // Start with image extensions
+    let extensions = extensionCategories['image'];
+
+    // Apply field-level extensions/categories if specified
+    const fieldExtensions = field.options?.extensions 
+      ? field.options.extensions
+      : field.options?.categories
+        ? field.options.categories.flatMap((category: string) => extensionCategories[category])
+        : [];
+
+    if (fieldExtensions.length) {
+      extensions = extensions.filter(ext => fieldExtensions.includes(ext));
+    }
+
+    // Finally, filter by media config extensions if they exist
+    if (mediaConfig.extensions) {
+      extensions = extensions.filter(ext => mediaConfig.extensions.includes(ext));
+    }
+
+    return extensions;
+  }, [field.options?.extensions, field.options?.categories, mediaConfig]);
+
+  const isMultiple = useMemo(() => 
+    field.options?.multiple === true,
+    [field.options?.multiple]
+  );
+
+  const remainingSlots = useMemo(() => 
+    field.options?.multiple
+      ? field.options.multiple.max
+        ? field.options.multiple.max - files.length
+        : Infinity
+      : 1 - files.length,
+    [field.options?.multiple, files.length]
+  );
+
+  useEffect(() => {
+    if (isMultiple) {
+      onChange(files.map(f => f.path));
+    } else {
+      onChange(files[0]?.path || undefined);
+    }
+  }, [files, isMultiple, onChange]);
+
+  const handleUpload = useCallback((fileData: any) => {
+    if (!config) return;
     
-    if (newImages.length === 0) {
-      setImages([]);
-      onChange(field.list ? [] : "");
-    } else { 
-      setImages(newImages);
-      field.list
-        ? onChange(newImages.map((item: any) => item.path))
-        : onChange(newImages[0].path);
+    const newFile = { id: generateId(), path: fileData.path };
+    
+    if (isMultiple) {
+      setFiles(prev => [...prev, newFile]);
+    } else {
+      setFiles([newFile]);
     }
-  }, [field, images, onChange]);
+  }, [isMultiple, config]);
 
-  const handleSubmit = useCallback((newImages: string[]) => {
-    if (newImages.length === 0) {
-      setImages([]);
-      onChange(field.list ? [] : "");
-    } else {    
-      const newImagesObjects = newImages.map((path: string, index: number) => ({ id: `image-${index}`, path }));
-      setImages(newImagesObjects);
-      field.list
-        ? onChange(newImagesObjects.map((item: any) => item.path))
-        : onChange(newImagesObjects[0].path);
-    }
-  }, [field, onChange]);
+  const handleRemove = useCallback((fileId: string) => {
+    setFiles(prev => prev.filter(file => file.id !== fileId));
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -125,60 +217,118 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
 
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
+
     if (active.id !== over.id) {
-      let newImages = images;
-      const oldIndex = newImages.findIndex(item => item.id === active.id);
-      const newIndex = newImages.findIndex(item => item.id === over.id);
-      newImages = arrayMove(newImages, oldIndex, newIndex);
-      setImages(newImages);
-      onChange(newImages.map((item: any) => item.path));
+      setFiles((items) => {
+        const oldIndex = items.findIndex(item => item.id === active.id);
+        const newIndex = items.findIndex(item => item.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
     }
   };
 
-  return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext items={images} strategy={rectSortingStrategy}>
-        {/* <div className="grid grid-flow-col auto-cols-max gap-4"> */}
-        <div className="flex flex-wrap gap-4 items-start">
+  const handleSelected = useCallback((newPaths: string[]) => {
+    if (newPaths.length === 0) {
+      setFiles([]);
+    } else {
+      const newFiles = newPaths.map(path => ({
+        id: generateId(),
+        path
+      }));
+      
+      if (isMultiple) {
+        setFiles(prev => [...prev, ...newFiles]);
+      } else {
+        setFiles([newFiles[0]]);
+      }
+    }
+  }, [isMultiple]);
 
-          {images.map((item, index) => 
-            <SortableItem key={item.id} id={item.id} path={item.path} media={mediaName}>
-              <footer className="absolute bottom-2 right-2">
-                <Button type="button" size="icon-xs" variant="outline" className="rounded-r-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:bg-muted" onClick={() => handleRemove(index)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-                <MediaDialog
-                  selected={images.map((image: any) => image.path)}
-                  onSubmit={handleSubmit}
-                  maxSelected={maxImages}
-                  initialPath={getParentPath(item.path)}
+  if (!mediaConfig) {
+    return (
+      <div className="text-muted-foreground bg-muted rounded-md px-3 py-2 h-10">
+      No media configuration found. {' '}
+      <a 
+        href={`/${config?.owner}/${config?.repo}/${encodeURIComponent(config?.branch || "")}/settings`}
+        className="underline hover:text-foreground"
+      >
+        Check your settings
+      </a>.
+    </div>
+    );
+  }
+
+  return (
+    <MediaUpload path={rootPath} media={mediaConfig.name} extensions={allowedExtensions} onUpload={handleUpload} multiple={isMultiple}>
+      <MediaUpload.DropZone>
+        <div className="space-y-2">
+          {files.length > 0 && (
+            isMultiple ? (
+              <div className="flex flex-wrap gap-2">
+                <DndContext 
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
                 >
-                  <Button type="button" size="icon-xs" variant="outline" className="rounded-l-none border-l-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:bg-muted">
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                </MediaDialog>
-              </footer>
-            </SortableItem>
+                  <SortableContext 
+                    items={files.map(f => f.id)}
+                    strategy={rectSortingStrategy}
+                  >
+                    {files.map((file) => (
+                      <SortableItem 
+                        key={file.id}
+                        id={file.id}
+                        file={file.path}
+                        config={config}
+                        media={mediaConfig.name}
+                        onRemove={() => handleRemove(file.id)}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+              </div>
+            ) : (
+              <div className="aspect-square w-24 bg-red-600/50">
+                <ImageTeaser file={files[0].path} config={config} media={mediaConfig.name} onRemove={() => handleRemove(files[0].id)} />
+              </div>
+            )
           )}
-          {(!maxImages || images.length < maxImages) && 
-            <MediaDialog
-              selected={images.map((image: any) => image.path)}
-              onSubmit={handleSubmit}
-              maxSelected={maxImages}
-              initialPath={field.options?.path}
-            >
-              <Button type="button" variant="outline" className="h-28 w-28">
-                <div className="flex flex-col items-center gap-y-1 text-sm">
-                  <ImagePlus className="h-5 w-5 stroke-[1.5] text-foreground" />
-                  <div>Add image</div>
-                </div>
-              </Button>
-            </MediaDialog>
-          }
+          {remainingSlots > 0 && (
+            <div className="flex gap-2">
+              <MediaUpload.Trigger>
+                <Button type="button" size="sm" variant="outline" className="gap-2">
+                  <Upload className="h-3.5 w-3.5"/>
+                  Upload
+                </Button>
+              </MediaUpload.Trigger>
+              <TooltipProvider>
+                <Tooltip>
+                  <MediaDialog
+                    media={mediaConfig.name}
+                    initialPath={rootPath}
+                    maxSelected={remainingSlots}
+                    extensions={allowedExtensions}
+                    onSubmit={handleSelected}
+                  >
+                    <TooltipTrigger asChild>
+                      <Button type="button" size="icon-sm" variant="outline">
+                        <FolderOpen className="h-3.5 w-3.5"/>
+                      </Button>
+                    </TooltipTrigger>
+                  </MediaDialog>
+                  <TooltipContent>
+                    Select from media
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          )}
         </div>
-      </SortableContext>
-    </DndContext>
+      </MediaUpload.DropZone>
+    </MediaUpload>
   );
 });
+
+EditComponent.displayName = "EditComponent";
 
 export { EditComponent };

@@ -1,26 +1,39 @@
 "use client";
 
-import { useRef, isValidElement, cloneElement, useMemo, useCallback } from "react";
+import { useRef, isValidElement, cloneElement, useMemo, useCallback, createContext, useContext, useState } from "react";
 import { useConfig } from "@/contexts/config-context";
 import { joinPathSegments } from "@/lib/utils/file";
 import { toast } from "sonner";
 import { getSchemaByName } from "@/lib/schema";
+import { cn } from "@/lib/utils";
 
-const MediaUpload = ({
-  children,
-  path,
-  onUpload,
-  media,
-  extensions
-}: {
-  children: React.ReactElement<{ onClick: () => void }>;
+interface MediaUploadContextValue {
+  handleFiles: (files: FileList) => Promise<void>;
+  accept?: string;
+  multiple?: boolean;
+}
+
+const MediaUploadContext = createContext<MediaUploadContextValue | null>(null);
+
+interface MediaUploadProps {
+  children: React.ReactNode;
   path?: string;
   onUpload?: (path: string) => void;
   media?: string;
   extensions?: string[];
-}) => {
-  const fileInputRef = useRef(null);
+  multiple?: boolean;
+}
 
+interface MediaUploadTriggerProps {
+  children: React.ReactElement<{ onClick?: () => void }>;
+}
+
+interface MediaUploadDropZoneProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+function MediaUploadRoot({ children, path, onUpload, media, extensions, multiple }: MediaUploadProps) {
   const { config } = useConfig();
   if (!config) throw new Error(`Configuration not found.`);
 
@@ -45,78 +58,86 @@ const MediaUpload = ({
       : undefined;
   }, [extensions, configMedia?.extensions]);
 
-  const handleFileInput = useCallback(async (event: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
-    const readFileContent = (file: File): Promise<string | null> => {
-      return new Promise((resolve, reject) => {
+  const handleFiles = useCallback(async (files: FileList) => {
+    try {
+      for (let i = 0; i < files.length; i++) {
         const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = () => reject(new Error("Failed to read file content"));
-        reader.readAsDataURL(file); // Reads the file as base64 encoded string
-      });
-    };
+        const file = files[i];
 
-    const files = event.target.files;
-    
-    if (files && files.length > 0) {
-      try {
-        for (let i = 0; i < files.length; i++) {
-          let content = await readFileContent(files[i]);
-          
-          if (content) {
-            content = content.replace(/^(.+,)/, ""); // We strip out the info at the beginning of the file (mime type + encoding)
-            const fullPath = joinPathSegments([path ?? "", files[i].name]);
+        const uploadPromise = new Promise((resolve, reject) => {
+          reader.onload = async () => {
+            try {
+              const content = (reader.result as string).replace(/^(.+,)/, "");
+              const fullPath = joinPathSegments([path ?? "", file.name]);
 
-            const uploadPromise = new Promise(async (resolve, reject) => {
-              try {
-                const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/files/${encodeURIComponent(fullPath)}`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    type: "media",
-                    name: configMedia.name,
-                    content,
-                  }),
-                });
-                if (!response.ok) throw new Error(`Failed to upload file: ${response.status} ${response.statusText}`);
+              const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/files/${encodeURIComponent(fullPath)}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  type: "media",
+                  name: configMedia.name,
+                  content,
+                }),
+              });
 
-                const data: any = await response.json();
-                
-                if (data.status !== "success") throw new Error(data.message);
-                
-                resolve(data);
-              } catch (error) {
-                reject(error);
-              }
-            });
+              if (!response.ok) throw new Error(`Failed to upload file: ${response.status} ${response.statusText}`);
 
-            toast.promise(uploadPromise, {
-              loading: `Uploading ${files[i].name}`,
-              success: (response: any) => {
-                onUpload?.(response.data);
-                return response.message;
-              },
-              error: (error: any) => error.message,
-            });
-          }
-        }
-      } catch (error) {
-        console.error(error);
+              const data = await response.json();
+              if (data.status !== "success") throw new Error(data.message);
+              
+              resolve(data);
+            } catch (error) {
+              reject(error);
+            }
+          };
+          reader.onerror = () => reject(new Error("Failed to read file"));
+        });
+
+        reader.readAsDataURL(file);
+
+        toast.promise(uploadPromise, {
+          loading: `Uploading ${file.name}`,
+          success: (data: any) => {
+            onUpload?.(data.data);
+            return data.message;
+          },
+          error: (error: any) => error.message,
+        });
       }
+    } catch (error) {
+      console.error(error);
     }
   }, [config, path, configMedia.name, onUpload]);
 
-  const handleTriggerClick = useCallback(() => {
-    if (fileInputRef.current) {
-      (fileInputRef.current as HTMLInputElement).click();
-    }
+  const contextValue = useMemo(() => ({
+    handleFiles,
+    accept,
+    multiple
+  }), [handleFiles, accept, multiple]);
+
+  return (
+    <MediaUploadContext.Provider value={contextValue}>
+      {children}
+    </MediaUploadContext.Provider>
+  );
+}
+
+function MediaUploadTrigger({ children }: MediaUploadTriggerProps) {
+  const context = useContext(MediaUploadContext);
+  if (!context) throw new Error("MediaUploadTrigger must be used within a MediaUpload component");
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleClick = useCallback(() => {
+    fileInputRef.current?.click();
   }, []);
 
-  const trigger = useMemo(() => 
-    isValidElement(children)
-      ? cloneElement(children, { onClick: handleTriggerClick })
-      : null,
-    [children, handleTriggerClick]
-  );
+  const handleFileInput = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      context.handleFiles(files);
+    }
+  }, [context]);
 
   return (
     <>
@@ -124,13 +145,58 @@ const MediaUpload = ({
         type="file"
         ref={fileInputRef}
         onChange={handleFileInput}
-        accept={accept}
-        multiple
+        accept={context.accept}
+        multiple={context.multiple}
         hidden
       />
-      {trigger}
+      {cloneElement(children, { onClick: handleClick })}
     </>
   );
-};
+}
 
-export { MediaUpload };
+function MediaUploadDropZone({ children, className }: MediaUploadDropZoneProps) {
+  const context = useContext(MediaUploadContext);
+  if (!context) throw new Error("MediaUploadDropZone must be used within a MediaUpload component");
+  
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      context.handleFiles(e.dataTransfer.files);
+    }
+  }, [context]);
+
+  return (
+    <div
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={cn("relative", className)}
+    >
+      {children}
+      {isDragging && (
+        <div className="absolute inset-0 bg-primary/10 rounded-lg flex items-center justify-center">
+          <p className="text-sm text-foreground font-medium bg-background/50 rounded-full px-3 py-1">Drop files here to upload</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export const MediaUpload = Object.assign(MediaUploadRoot, {
+  Trigger: MediaUploadTrigger,
+  DropZone: MediaUploadDropZone,
+});
