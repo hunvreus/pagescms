@@ -151,7 +151,7 @@ const parseContents = (
         fields: contentObject,
         type: "file",
       };
-    } else if (item.type === "tree" && !excludedFiles.includes(item.name)) {
+    } else if (item.type === "dir" && !excludedFiles.includes(item.name)) {
       return {
         name: item.name,
         path: item.path,
