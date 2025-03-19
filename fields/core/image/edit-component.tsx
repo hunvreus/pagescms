@@ -288,7 +288,8 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
                 </DndContext>
               </div>
             ) : (
-              <div className="aspect-square w-24">
+              <div className="aspect-square w-28 relative">
+                <Thumbnail name={mediaConfig.name} path={files[0].path} className="rounded-md w-28 h-28"/>
                 <ImageTeaser file={files[0].path} config={config} media={mediaConfig.name} onRemove={() => handleRemove(files[0].id)} />
               </div>
             )
