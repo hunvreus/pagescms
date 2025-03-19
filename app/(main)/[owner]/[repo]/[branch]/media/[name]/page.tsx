@@ -23,7 +23,7 @@ export default function Page({
         <h1 className="font-semibold text-lg md:text-2xl">Media</h1>
       </header>
       <div className="flex flex-col relative flex-1">
-        <MediaView initialPath={path} name={params.name} />
+        <MediaView initialPath={path} media={params.name} />
       </div>
     </div>
   );
