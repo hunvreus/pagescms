@@ -33,7 +33,7 @@ const ImageTeaser = ({ file, config, media, onRemove }: {
 }) => {
   return (
     <>
-      <div className="absolute bottom-1 right-1">
+      <div className="absolute bottom-1.5 right-1.5">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
