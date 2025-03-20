@@ -66,15 +66,26 @@ export async function GET(
       // If this is a search request, filter the contents
       if (type === "search" && query) {
         const searchQuery = query.toLowerCase();
+        const searchFields = Array.isArray(fields) ? fields : fields ? [fields] : [];
+        
         data.contents = data.contents.filter(item => {
-          return fields.some(field => {
-            // Handle extra fields (name and path)
+          if (searchFields.length === 0) {
+            if (
+              (item.name && item.name.toLowerCase().includes(searchQuery)) ||
+              (item.path && item.path.toLowerCase().includes(searchQuery))
+            ) {
+              return true;
+            }
+
+            return item.content && item.content.toLowerCase().includes(searchQuery);
+          }
+          
+          return searchFields.some(field => {
             if (field === 'name' || field === 'path') {
               const value = item[field];
               return value && String(value).toLowerCase().includes(searchQuery);
             }
             
-            // Handle content fields (e.g. fields.title)
             if (field.startsWith('fields.')) {
               const fieldPath = field.replace('fields.', '');
               const value = safeAccess(item.fields, fieldPath);
