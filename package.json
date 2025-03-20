@@ -9,7 +9,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && npm run db:migrate",
+    "build": "next build",
+    "postbuild": "npm run db:migrate",
     "start": "next start",
     "lint": "next lint",
     "db:generate": "npx drizzle-kit generate",
