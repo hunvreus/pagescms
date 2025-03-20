@@ -179,10 +179,20 @@ const EditComponent = forwardRef((props: any, ref: any) => {
       : Select;
 
   const fetchConfig = field.options?.fetch as FetchConfig;
+  
+  // Determine if we should load options immediately based on minlength
+  const shouldLoadInitially = fetchConfig?.minlength === undefined || fetchConfig?.minlength === 0;
+  
+  // Use field.options.default if defined, otherwise use our automatic behavior
+  const defaultOptions = field.options?.default !== undefined 
+    ? field.options.default 
+    : shouldLoadInitially;
+
   return (
     <SelectComponent
       ref={ref}
       isMulti={field.options?.multiple}
+      isClearable={true}
       classNamePrefix="react-select"
       placeholder={field.options?.placeholder || "Select..."}
       components={{ 
@@ -197,7 +207,8 @@ const EditComponent = forwardRef((props: any, ref: any) => {
       {...(fetchConfig
         ? {
             loadOptions,
-            cacheOptions: false,
+            cacheOptions: field.options?.cache ?? true,
+            defaultOptions: defaultOptions
           }
         : { options: staticOptions })}
     />

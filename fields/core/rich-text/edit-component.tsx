@@ -132,7 +132,7 @@ const EditComponent = forwardRef((props: any, ref) => {
   }, [field.options?.path, mediaConfig?.input]);
 
   const editor = useEditor({
-    immediatelyRender: true,
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         dropcursor: { width: 2 }

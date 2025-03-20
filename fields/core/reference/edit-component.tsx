@@ -26,7 +26,7 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
       query: "{input}",
       fields: field.options?.search || "name"
     },
-    minlength: 2,
+    minlength: 0,
     results: "data.contents",
     value: field.options?.value || "{path}",
     label: field.options?.label || "{name}",
