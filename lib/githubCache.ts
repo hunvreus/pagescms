@@ -236,8 +236,6 @@ const getCachedCollection = async (
         )
       );
     }
-
-    console.log('Octokit call in getCachedCollection');
     
     // Fetch from GitHub to create the collection cache
     const octokit = createOctokitInstance(token);
