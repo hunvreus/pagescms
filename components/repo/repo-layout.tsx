@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { RepoSidebar } from "@/components/repo/repo-sidebar";
-import {Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useConfig } from "@/contexts/config-context";
+import { useRepo } from "@/contexts/repo-context";
+import { trackVisit } from "@/lib/tracker";
 
 export function RepoLayout({
   children,
@@ -12,6 +15,8 @@ export function RepoLayout({
   children: React.ReactNode;
 }) {
   const [isMenuOpen, setMenuOpen] = useState(false);
+  const { config } = useConfig();
+  const { owner, repo } = useRepo();
 
   const handleMenuClose = () => setMenuOpen(false);
 
@@ -28,6 +33,12 @@ export function RepoLayout({
 
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isMenuOpen]);
+
+  useEffect(() => {
+    if (config?.owner && config?.repo && config?.branch) {
+      trackVisit(owner, repo, config.branch);
+    }
+  }, [config]);
 
   return (
     <>

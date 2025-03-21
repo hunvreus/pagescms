@@ -23,17 +23,6 @@ const sessionTable = sqliteTable("session", {
   idx_session_userId: index("idx_session_userId").on(table.userId)
 }));
 
-const historyTable = sqliteTable("history", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  owner: text("owner").notNull(),
-  repo: text("repo").notNull(),
-  branch: text("branch").notNull(),
-  lastVisited: integer("last_visited").notNull(),
-  userId: text("user_id").notNull().references(() => userTable.id)
-}, table => ({
-  idx_history_userId_lastVisited: index("idx_history_userId_lastVisited").on(table.userId, table.lastVisited)
-}));
-
 const githubUserTokenTable = sqliteTable("github_user_token", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   ciphertext: text("ciphertext").notNull(),
@@ -114,7 +103,6 @@ const cacheTable = sqliteTable("cache", {
 export {
   userTable,
   sessionTable,
-  historyTable,
   githubUserTokenTable,
   githubInstallationTokenTable,
   emailLoginTokenTable,

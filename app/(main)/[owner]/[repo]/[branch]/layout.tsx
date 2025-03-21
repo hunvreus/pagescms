@@ -8,7 +8,6 @@ import { ConfigProvider } from "@/contexts/config-context";
 import { RepoLayout } from "@/components/repo/repo-layout";
 import { EmptyCreate } from "@/components/empty-create";
 import { Message } from "@/components/message";
-import { Tracker } from "@/components/tracker";
 
 export default async function Layout({
   children,
@@ -107,7 +106,6 @@ export default async function Layout({
 
   return (
     <ConfigProvider value={config}>
-      <Tracker owner={owner} repo={repo} branch={branch} />
       <RepoLayout>{errorMessage ? errorMessage : children}</RepoLayout>
     </ConfigProvider>
   );
