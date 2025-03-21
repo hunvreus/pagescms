@@ -10,7 +10,7 @@ import {
   useFormContext
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { editComponents, supportsList } from "@/fields/registry";
+import { editComponents } from "@/fields/registry";
 import {
   initializeState,
   getDefaultValue,
@@ -288,7 +288,7 @@ const EntryForm = ({
 
       const fieldName = parentName ? `${parentName}.${field.name}` : field.name;
 
-      if (field.type === "object" && field.list && !supportsList[field.type]) {
+      if (field.list) {
         return <ListField key={fieldName} control={form.control} field={field} fieldName={fieldName} renderFields={renderFields} />;
       } else if (field.type === "object") {
         return (
@@ -302,8 +302,6 @@ const EntryForm = ({
             {renderFields(field.fields || [], fieldName)}
           </fieldset>
         );
-      } else if (field.list && !supportsList[field.type]) {
-        return <ListField key={fieldName} control={form.control} field={field} fieldName={fieldName} renderFields={renderFields} />;
       }
 
       return renderSingleField(field, fieldName, form.control);
