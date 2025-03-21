@@ -85,7 +85,7 @@ export function CollectionView({
     if (
       schema.filename.startsWith("{year}-{month}-{day}")
       && (
-        (schema.view?.fields.includes("date") && !pathAndFieldArray.find((item: any) => item.path === "date"))
+        (schema.view?.fields &&schema.view?.fields.includes("date") && !pathAndFieldArray.find((item: any) => item.path === "date"))
         || !schema.view?.fields
       )
     ) {
