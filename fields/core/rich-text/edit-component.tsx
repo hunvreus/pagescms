@@ -110,6 +110,7 @@ const EditComponent = forwardRef((props: any, ref) => {
   const [isContentReady, setContentReady] = useState(false);
 
   const [linkUrl, setLinkUrl] = useState("");
+  const [imageAlt, setImageAlt] = useState("");
 
   const openMediaDialog = mediaConfig?.input
     ? () => { if (mediaDialogRef.current) mediaDialogRef.current.open() }
@@ -429,6 +430,51 @@ const EditComponent = forwardRef((props: any, ref) => {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+            }
+            {editor.isActive("image") &&
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xxs"
+                    className="shrink-0 text-[0.6rem]"
+                    onClick={() => setImageAlt(editor.getAttributes('image').alt || "")}
+                  >
+                    ALT
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="p-1">
+                  <div className="flex gap-x-1 items-center">
+                    <Input
+                      className="h-8 flex-1"
+                      placeholder="Image description"
+                      value={imageAlt}
+                      onChange={e => setImageAlt(e.target.value)}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="xxs"
+                      className="shrink-0"
+                      onClick={() => {
+                        editor.chain().focus().updateAttributes('image', { alt: imageAlt }).run();
+                      }}
+                    >Set</Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="xxs"
+                      className="shrink-0"
+                      onClick={() => {
+                        editor.chain().focus().updateAttributes('image', { alt: "" }).run();
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
             }
           </div>
         </BubbleMenu>}
