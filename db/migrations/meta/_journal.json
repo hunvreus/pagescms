@@ -8,20 +8,6 @@
       "when": 1733392958887,
       "tag": "0000_lame_dormammu",
       "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1742264373167,
-      "tag": "0001_late_shinko_yamashiro",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1742531381179,
-      "tag": "0002_brainy_chamber",
-      "breakpoints": true
     }
   ]
 }

@@ -3,7 +3,7 @@ import { getConfig } from "@/lib/utils/config";
 import { getFileExtension, normalizePath } from "@/lib/utils/file";
 import { getAuth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
-import { getCachedMediaFolder } from "@/lib/githubCache";
+import { getMediaCache } from "@/lib/githubCache";
 
 // Add docs
 
@@ -42,7 +42,7 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const nocache = searchParams.get('nocache');
 
-    let results = await getCachedMediaFolder(params.owner, params.repo, params.branch, normalizedPath, token, !!nocache);
+    let results = await getMediaCache(params.owner, params.repo, params.branch, normalizedPath, token, !!nocache);
 
     if (mediaConfig.extensions && mediaConfig.extensions.length > 0) {
       results = results.filter((item) => {

@@ -8,7 +8,7 @@ import { getConfig } from "@/lib/utils/config";
 import { normalizePath } from "@/lib/utils/file";
 import { getAuth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
-import { getCachedCollection } from "@/lib/githubCache";
+import { getCollectionCache } from "@/lib/githubCache";
 
 /**
  * Fetches and parses collection contents from GitHub repositories
@@ -50,7 +50,7 @@ export async function GET(
       if (normalizedPath !== schema.path) throw new Error(`Invalid path "${path}" for collection "${params.name}".`);
     }
 
-    let entries = await getCachedCollection(params.owner, params.repo, params.branch, normalizedPath, token);
+    let entries = await getCollectionCache(params.owner, params.repo, params.branch, normalizedPath, token);
     
     let data: {
       contents: Record<string, any>[],
