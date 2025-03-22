@@ -90,6 +90,9 @@ Variable | Comments
 `SQLITE_URL` | `file:./local.db` for development, `libsql://pages-cms-username.turso.io` for example if you use [Turso](https://turso.tech) (you should, Turso is great).
 `SQLITE_AUTH_TOKEN` | Leave blank for development, otherwise use the token provided by [Turso](https://turso.tech) (if that's what you use).
 `BASE_URL` | **OPTIONAL**. If you're deploying to Vercel or working locally, you won't need that. If you're deploying elsewhere, you'll need to specify the base URL for the app (e.g. `https://mycustomdomain.com`).
+`FILE_CACHE_TTL` | **OPTIONAL**. Time to live (in minutes) for file cache (collections and
+media folders). Defaults to 10080 (7 days). Set to "-1" to prevent the cache from ever expiring, or "0" if you want no cache.
+`PERMISSION_CACHE_TTL` | **OPTIONAL**. Time to live (in minutes) for the permission cache, which controls access to file cache. Defaults to 60. Set to "0" if you want to always check permissions against the GitHub API.
 
 ### Local development
 

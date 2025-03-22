@@ -78,7 +78,7 @@ const configTable = sqliteTable("config", {
   idx_config_owner_repo_branch: uniqueIndex("idx_config_owner_repo_branch").on(table.owner, table.repo, table.branch)
 }));
 
-const cacheTable = sqliteTable("cache", {
+const cacheFileTable = sqliteTable("cache_file", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   context: text("context").notNull().default('collection'),
   owner: text("owner").notNull(),
@@ -96,8 +96,18 @@ const cacheTable = sqliteTable("cache", {
   commitTimestamp: integer('commit_timestamp'),
   lastUpdated: integer("last_updated").notNull()
 }, table => ({
-  idx_cache_owner_repo_branch_parentPath: index("idx_cache_owner_repo_branch_parentPath").on(table.owner, table.repo, table.branch, table.parentPath),
-  idx_cache_owner_repo_branch_path: uniqueIndex("idx_cache_owner_repo_branch_path").on(table.owner, table.repo, table.branch, table.path)
+  idx_cache_file_owner_repo_branch_parentPath: index("idx_cache_file_owner_repo_branch_parentPath").on(table.owner, table.repo, table.branch, table.parentPath),
+  idx_cache_file_owner_repo_branch_path: uniqueIndex("idx_cache_file_owner_repo_branch_path").on(table.owner, table.repo, table.branch, table.path)
+}));
+
+const cachePermissionTable = sqliteTable("cache_permission", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  githubId: integer("github_id").notNull(),
+  owner: text("owner").notNull(),
+  repo: text("repo").notNull(),
+  lastUpdated: integer("last_updated").notNull()
+}, table => ({
+  idx_cache_permission_githubId_owner_repo: uniqueIndex("idx_cache_permission_githubId_owner_repo").on(table.githubId, table.owner, table.repo)
 }));
 
 export {
@@ -108,5 +118,6 @@ export {
   emailLoginTokenTable,
   collaboratorTable,
   configTable,
-  cacheTable
+  cacheFileTable,
+  cachePermissionTable
 };

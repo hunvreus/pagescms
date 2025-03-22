@@ -3,8 +3,8 @@
  */
 
 import { db } from "@/db";
-import { eq, and, inArray } from "drizzle-orm";
-import { cacheTable } from "@/db/schema";
+import { eq, and, inArray, gt } from "drizzle-orm";
+import { cacheFileTable, cachePermissionTable } from "@/db/schema";
 import { createOctokitInstance } from "@/lib/utils/octokit";
 import path from "path";
 
@@ -29,7 +29,6 @@ type FileOperation = {
 
 type CacheContext = 'collection' | 'media';
 
-// TODO: add pagination for very large repos.
 // Bulk update cache entries (removed, modified and added files).
 const updateMultipleFilesCache = async (
   owner: string,
@@ -43,12 +42,12 @@ const updateMultipleFilesCache = async (
 ) => {
   // 1. Delete removed files in batch
   if (removedFiles.length > 0) {
-    await db.delete(cacheTable).where(
+    await db.delete(cacheFileTable).where(
       and(
-        eq(cacheTable.owner, owner),
-        eq(cacheTable.repo, repo),
-        eq(cacheTable.branch, branch),
-        inArray(cacheTable.path, removedFiles.map(f => f.path))
+        eq(cacheFileTable.owner, owner),
+        eq(cacheFileTable.repo, repo),
+        eq(cacheFileTable.branch, branch),
+        inArray(cacheFileTable.path, removedFiles.map(f => f.path))
       )
     );
   }
@@ -62,12 +61,12 @@ const updateMultipleFilesCache = async (
   if (parentPaths.length === 0) return;
 
   // 3. Query existing contexts (combined single query)
-  const existingEntries = await db.query.cacheTable.findMany({
+  const existingEntries = await db.query.cacheFileTable.findMany({
     where: and(
-      eq(cacheTable.owner, owner),
-      eq(cacheTable.repo, repo),
-      eq(cacheTable.branch, branch),
-      inArray(cacheTable.parentPath, parentPaths)
+      eq(cacheFileTable.owner, owner),
+      eq(cacheFileTable.repo, repo),
+      eq(cacheFileTable.branch, branch),
+      inArray(cacheFileTable.parentPath, parentPaths)
     )
   });
 
@@ -82,15 +81,15 @@ const updateMultipleFilesCache = async (
   }
 
   // 5. Query existing entries for modified/added files if commit provided
-  let existingFilesMap = new Map<string, typeof cacheTable.$inferSelect>();
+  let existingFilesMap = new Map<string, typeof cacheFileTable.$inferSelect>();
   if (commit) {
     const allPaths = [...modifiedFiles, ...addedFiles].map(f => f.path);
-    const existingFiles = await db.query.cacheTable.findMany({
+    const existingFiles = await db.query.cacheFileTable.findMany({
       where: and(
-        eq(cacheTable.owner, owner),
-        eq(cacheTable.repo, repo),
-        eq(cacheTable.branch, branch),
-        inArray(cacheTable.path, allPaths)
+        eq(cacheFileTable.owner, owner),
+        eq(cacheFileTable.repo, repo),
+        eq(cacheFileTable.branch, branch),
+        inArray(cacheFileTable.path, allPaths)
       )
     });
 
@@ -195,18 +194,182 @@ const updateMultipleFilesCache = async (
       };
 
       if (existingEntry) {
-        await db.update(cacheTable)
+        await db.update(cacheFileTable)
           .set(entryData)
-          .where(eq(cacheTable.id, existingEntry.id));
+          .where(eq(cacheFileTable.id, existingEntry.id));
       } else {
-        await db.insert(cacheTable).values(entryData);
+        await db.insert(cacheFileTable).values(entryData);
       }
     }
   }
 };
 
+// Update the cache for an individual file (add, modify and delete).
+const updateFileCache = async (
+  context: CacheContext,
+  owner: string,
+  repo: string,
+  branch: string,
+  operation: FileOperation
+) => {
+  const parentPath = path.dirname(operation.path);
+
+  switch (operation.type) {
+    case 'delete':
+      // We always remove entries from the cache when the file is deleted
+      await db.delete(cacheFileTable).where(
+        and(
+          eq(cacheFileTable.owner, owner),
+          eq(cacheFileTable.repo, repo),
+          eq(cacheFileTable.branch, branch),
+          eq(cacheFileTable.path, operation.path)
+        )
+      );
+      break;
+
+    case 'add':
+    case 'modify':
+      if (operation.content === undefined || !operation.sha) {
+        throw new Error('Content and SHA are required for add/modify operations');
+      }
+
+      if (operation.type === 'modify') {
+        // We always update entries in the cache if they are already present
+        await db.update(cacheFileTable)
+          .set({
+            content: operation.content,
+            sha: operation.sha,
+            size: operation.size,
+            downloadUrl: operation.downloadUrl,
+            lastUpdated: Date.now(),
+            ...(operation.commit ? {
+              commitSha: operation.commit.sha,
+              commitTimestamp: operation.commit.timestamp
+            } : {})
+          })
+          .where(
+            and(
+              eq(cacheFileTable.context, context),
+              eq(cacheFileTable.owner, owner),
+              eq(cacheFileTable.repo, repo),
+              eq(cacheFileTable.branch, branch),
+              eq(cacheFileTable.path, operation.path)
+            )
+          );
+      } else {
+        // We only cache collections and media folders. We only add files that already
+        // have siblings in the cache. If not we can assume the collection or media
+        // folder hasn't been cached yet, so we skip to avoid caching a single file.
+        const sibling = await db.query.cacheFileTable.findFirst({
+          where: and(
+            eq(cacheFileTable.context, context),
+            eq(cacheFileTable.owner, owner),
+            eq(cacheFileTable.repo, repo),
+            eq(cacheFileTable.branch, branch),
+            eq(cacheFileTable.parentPath, parentPath)
+          )
+        });
+
+        if (sibling) {
+          await db.insert(cacheFileTable)
+            .values({
+              context,
+              owner,
+              repo,
+              branch,
+              path: operation.path,
+              parentPath,
+              name: path.basename(operation.path),
+              type: 'file',
+              content: operation.content,
+              sha: operation.sha,
+              size: operation.size,
+              downloadUrl: operation.downloadUrl,
+              lastUpdated: Date.now(),
+              ...(operation.commit ? {
+                commitSha: operation.commit.sha,
+                commitTimestamp: operation.commit.timestamp
+              } : {})
+            });
+        }
+      }
+      break;
+
+    case 'rename':
+      if (!operation.newPath) {
+        throw new Error('newPath is required for rename operations');
+      }
+      
+      await db.update(cacheFileTable)
+        .set({
+          path: operation.newPath,
+          parentPath: path.dirname(operation.newPath),
+          name: path.basename(operation.newPath),
+          downloadUrl: null, // Reset download URL as it will change with the new path
+          lastUpdated: Date.now(),
+          ...(operation.commit ? {
+            commitSha: operation.commit.sha,
+            commitTimestamp: operation.commit.timestamp
+          } : {})
+        })
+        .where(
+          and(
+            eq(cacheFileTable.owner, owner),
+            eq(cacheFileTable.repo, repo),
+            eq(cacheFileTable.branch, branch),
+            eq(cacheFileTable.path, operation.path)
+          )
+        );
+      break;
+  }
+};
+
+// Update repository name in all cache entries
+const updateFileCacheRepository = async (
+  owner: string,
+  oldName: string,
+  newName: string
+) => {
+  await db.update(cacheFileTable)
+    .set({ repo: newName.toLowerCase() })
+    .where(
+      and(
+        eq(cacheFileTable.owner, owner.toLowerCase()),
+        eq(cacheFileTable.repo, oldName.toLowerCase())
+      )
+    );
+};
+
+// Update owner name in all cache entries
+const updateFileCacheOwner = async (
+  oldOwner: string,
+  newOwner: string
+) => {
+  await db.update(cacheFileTable)
+    .set({ owner: newOwner.toLowerCase() })
+    .where(
+      eq(cacheFileTable.owner, oldOwner.toLowerCase())
+    );
+};
+
+// Clear file cache entries
+const clearFileCache = async (
+  owner: string,
+  repo?: string,
+  branch?: string
+) => {
+  const conditions = [];
+  conditions.push(eq(cacheFileTable.owner, owner.toLowerCase()));  
+  if (repo) {
+    conditions.push(eq(cacheFileTable.repo, repo.toLowerCase()));
+    if (branch) conditions.push(eq(cacheFileTable.branch, branch));
+  }
+  
+  await db.delete(cacheFileTable).where(and(...conditions));
+};
+
 // Attempt to get a collection from cache, if not found, fetch from GitHub.
-const getCachedCollection = async (
+const getCollectionCache = async (
   owner: string,
   repo: string,
   branch: string,
@@ -214,25 +377,33 @@ const getCachedCollection = async (
   token: string
 ) => {
   // Check the cache (no context as we may invalidate media cache)
-  let entries = await db.query.cacheTable.findMany({
+  let entries = await db.query.cacheFileTable.findMany({
     where: and(
-      eq(cacheTable.owner, owner),
-      eq(cacheTable.repo, repo),
-      eq(cacheTable.branch, branch),
-      eq(cacheTable.parentPath, path)
+      eq(cacheFileTable.owner, owner),
+      eq(cacheFileTable.repo, repo),
+      eq(cacheFileTable.branch, branch),
+      eq(cacheFileTable.parentPath, path)
     )
   });
 
-  if (entries.length === 0 || (entries.length > 0 && entries[0].context === 'media')) {
-    if (entries.length > 0 && entries[0].context === 'media') {
-      // Drop the media context cache and override it 
-      await db.delete(cacheTable).where(
+  let cacheExpired = false;
+  // If set to "-1", the file cache doesn't expire
+  if (entries.length > 0 && process.env.FILE_CACHE_TTL !== "-1") {
+    const now = Date.now();
+    const ttl = parseInt(process.env.FILE_CACHE_TTL || "10080") * 60 * 1000; // Defaults to 7 days cache
+    cacheExpired = entries[0].lastUpdated < now - ttl;
+  }
+
+  if (entries.length === 0 || cacheExpired || (entries.length > 0 && entries[0].context === 'media')) {
+    if (cacheExpired || (entries.length > 0 && entries[0].context === 'media')) {
+      // Drop the cache, either because it expired or because we're replacing media
+      // cache with collection cache.
+      await db.delete(cacheFileTable).where(
         and(
-        eq(cacheTable.owner, owner),
-        eq(cacheTable.repo, repo),
-        eq(cacheTable.branch, branch),
-        eq(cacheTable.parentPath, path),
-        eq(cacheTable.context, 'media')
+          eq(cacheFileTable.owner, owner),
+          eq(cacheFileTable.repo, repo),
+          eq(cacheFileTable.branch, branch),
+          eq(cacheFileTable.parentPath, path),
         )
       );
     }
@@ -272,7 +443,7 @@ const getCachedCollection = async (
 
     if (githubEntries.length > 0) {
       // We populate the cache
-      entries = await db.insert(cacheTable)
+      entries = await db.insert(cacheFileTable)
         .values(githubEntries.map((entry: any) => ({
           context: 'collection',
           owner,
@@ -295,129 +466,8 @@ const getCachedCollection = async (
   return entries;
 }
 
-// Update the cache for an individual file (add, modify and delete).
-const updateFileCache = async (
-  context: CacheContext,
-  owner: string,
-  repo: string,
-  branch: string,
-  operation: FileOperation
-) => {
-  const parentPath = path.dirname(operation.path);
-
-  switch (operation.type) {
-    case 'delete':
-      // We always remove entries from the cache when the file is deleted
-      await db.delete(cacheTable).where(
-        and(
-          eq(cacheTable.owner, owner),
-          eq(cacheTable.repo, repo),
-          eq(cacheTable.branch, branch),
-          eq(cacheTable.path, operation.path)
-        )
-      );
-      break;
-
-    case 'add':
-    case 'modify':
-      if (operation.content === undefined || !operation.sha) {
-        throw new Error('Content and SHA are required for add/modify operations');
-      }
-
-      if (operation.type === 'modify') {
-        // We always update entries in the cache if they are already present
-        await db.update(cacheTable)
-          .set({
-            content: operation.content,
-            sha: operation.sha,
-            size: operation.size,
-            downloadUrl: operation.downloadUrl,
-            lastUpdated: Date.now(),
-            ...(operation.commit ? {
-              commitSha: operation.commit.sha,
-              commitTimestamp: operation.commit.timestamp
-            } : {})
-          })
-          .where(
-            and(
-              eq(cacheTable.context, context),
-              eq(cacheTable.owner, owner),
-              eq(cacheTable.repo, repo),
-              eq(cacheTable.branch, branch),
-              eq(cacheTable.path, operation.path)
-            )
-          );
-      } else {
-        // We only cache collections and media folders. We only add files that already
-        // have siblings in the cache. If not we can assume the collection or media
-        // folder hasn't been cached yet, so we skip to avoid caching a single file.
-        const sibling = await db.query.cacheTable.findFirst({
-          where: and(
-            eq(cacheTable.context, context),
-            eq(cacheTable.owner, owner),
-            eq(cacheTable.repo, repo),
-            eq(cacheTable.branch, branch),
-            eq(cacheTable.parentPath, parentPath)
-          )
-        });
-
-        if (sibling) {
-          await db.insert(cacheTable)
-            .values({
-              context,
-              owner,
-              repo,
-              branch,
-              path: operation.path,
-              parentPath,
-              name: path.basename(operation.path),
-              type: 'file',
-              content: operation.content,
-              sha: operation.sha,
-              size: operation.size,
-              downloadUrl: operation.downloadUrl,
-              lastUpdated: Date.now(),
-              ...(operation.commit ? {
-                commitSha: operation.commit.sha,
-                commitTimestamp: operation.commit.timestamp
-              } : {})
-            });
-        }
-      }
-      break;
-
-    case 'rename':
-      if (!operation.newPath) {
-        throw new Error('newPath is required for rename operations');
-      }
-      
-      await db.update(cacheTable)
-        .set({
-          path: operation.newPath,
-          parentPath: path.dirname(operation.newPath),
-          name: path.basename(operation.newPath),
-          downloadUrl: null, // Reset download URL as it will change with the new path
-          lastUpdated: Date.now(),
-          ...(operation.commit ? {
-            commitSha: operation.commit.sha,
-            commitTimestamp: operation.commit.timestamp
-          } : {})
-        })
-        .where(
-          and(
-            eq(cacheTable.owner, owner),
-            eq(cacheTable.repo, repo),
-            eq(cacheTable.branch, branch),
-            eq(cacheTable.path, operation.path)
-          )
-        );
-      break;
-  }
-};
-
-// TODO: NO MEDIA NAME???
 // Attempt to get a media folder from cache, if not found, fetch from GitHub.
-const getCachedMediaFolder = async (
+const getMediaCache = async (
   owner: string,
   repo: string,
   branch: string,
@@ -429,17 +479,38 @@ const getCachedMediaFolder = async (
 
   if (!nocache) {
     // Check for entries from either context
-    entries = await db.query.cacheTable.findMany({
+    entries = await db.query.cacheFileTable.findMany({
       where: and(
-        eq(cacheTable.owner, owner),
-        eq(cacheTable.repo, repo),
-        eq(cacheTable.branch, branch),
-        eq(cacheTable.parentPath, path)
+        eq(cacheFileTable.owner, owner),
+        eq(cacheFileTable.repo, repo),
+        eq(cacheFileTable.branch, branch),
+        eq(cacheFileTable.parentPath, path)
       )
     });
   }
+
+  let cacheExpired = false;
+  // If set to "-1", the file cache doesn't expire
+  if (entries.length > 0 && process.env.FILE_CACHE_TTL !== "-1") {
+    const now = Date.now();
+    const ttl = parseInt(process.env.FILE_CACHE_TTL || "10080") * 60 * 1000; // Defaults to 7 days cache
+    cacheExpired = entries[0].lastUpdated < now - ttl;
+  }
   
-  if (entries.length === 0) {  
+  if (entries.length === 0 || cacheExpired) {  
+    // Drop the cache as it expired
+    if (cacheExpired) {
+      // Drop expired cache
+      await db.delete(cacheFileTable).where(
+        and(
+          eq(cacheFileTable.owner, owner),
+          eq(cacheFileTable.repo, repo),
+          eq(cacheFileTable.branch, branch),
+          eq(cacheFileTable.parentPath, path),
+        )
+      );
+    }
+
     // No cache hit, fetch from GitHub
     const octokit = createOctokitInstance(token);
     const response = await octokit.rest.repos.getContent({
@@ -473,7 +544,7 @@ const getCachedMediaFolder = async (
 
     if (!nocache && githubEntries.length > 0) {
       // Cache the entries
-      entries = await db.insert(cacheTable)
+      entries = await db.insert(cacheFileTable)
         .values(mappedEntries)
         .returning();
     } else {
@@ -486,4 +557,68 @@ const getCachedMediaFolder = async (
   return entries;
 };
 
-export { updateMultipleFilesCache, getCachedCollection, updateFileCache, getCachedMediaFolder };
+// Check if a user has access to a repository (with caching)
+const checkRepoAccess = async (
+  token: string,
+  owner: string,
+  repo: string,
+  githubId: number
+): Promise<boolean> => {
+  // Check if we have a cached result
+  const now = Date.now();
+  const ttl = parseInt(process.env.PERMISSION_CACHE_TTL || "60") * 60 * 1000;
+  
+  const cacheEntry = await db.query.cachePermissionTable.findFirst({
+    where: and(
+      eq(cachePermissionTable.githubId, githubId),
+      eq(cachePermissionTable.owner, owner.toLowerCase()),
+      eq(cachePermissionTable.repo, repo.toLowerCase()),
+      gt(cachePermissionTable.lastUpdated, now - ttl)
+    )
+  });
+  
+  if (cacheEntry) return true;
+  
+  // Not in cache, check with API
+  try {
+    console.log("Checking repo access for", owner, repo, githubId);
+    const octokit = createOctokitInstance(token);
+    const response = await octokit.rest.repos.get({ owner, repo });
+    console.log("Response", response.status === 200);
+    // If successful, cache the result
+    if (response.status === 200) {
+      console.log("Caching result");
+      await db.insert(cachePermissionTable)
+        .values({
+          githubId,
+          owner: owner.toLowerCase(),
+          repo: repo.toLowerCase(),
+          lastUpdated: Date.now()
+        })
+        .onConflictDoUpdate({
+          target: [
+            cachePermissionTable.githubId, 
+            cachePermissionTable.owner, 
+            cachePermissionTable.repo
+          ],
+          set: { lastUpdated: Date.now() }
+        });
+    }
+    
+    return response.status === 200;
+  } catch (error) {
+    console.error("Error checking repo access", error);
+    return false;
+  }
+};
+
+export { 
+  updateMultipleFilesCache, 
+  updateFileCache,
+  updateFileCacheRepository,
+  updateFileCacheOwner,
+  clearFileCache,
+  getCollectionCache, 
+  getMediaCache,
+  checkRepoAccess
+};
