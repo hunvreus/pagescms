@@ -44,8 +44,8 @@ const updateMultipleFilesCache = async (
   if (removedFiles.length > 0) {
     await db.delete(cacheFileTable).where(
       and(
-        eq(cacheFileTable.owner, owner),
-        eq(cacheFileTable.repo, repo),
+        eq(cacheFileTable.owner, owner.toLowerCase()),
+        eq(cacheFileTable.repo, repo.toLowerCase()),
         eq(cacheFileTable.branch, branch),
         inArray(cacheFileTable.path, removedFiles.map(f => f.path))
       )
@@ -63,8 +63,8 @@ const updateMultipleFilesCache = async (
   // 3. Query existing contexts (combined single query)
   const existingEntries = await db.query.cacheFileTable.findMany({
     where: and(
-      eq(cacheFileTable.owner, owner),
-      eq(cacheFileTable.repo, repo),
+      eq(cacheFileTable.owner, owner.toLowerCase()),
+      eq(cacheFileTable.repo, repo.toLowerCase()),
       eq(cacheFileTable.branch, branch),
       inArray(cacheFileTable.parentPath, parentPaths)
     )
@@ -86,8 +86,8 @@ const updateMultipleFilesCache = async (
     const allPaths = [...modifiedFiles, ...addedFiles].map(f => f.path);
     const existingFiles = await db.query.cacheFileTable.findMany({
       where: and(
-        eq(cacheFileTable.owner, owner),
-        eq(cacheFileTable.repo, repo),
+        eq(cacheFileTable.owner, owner.toLowerCase()),
+        eq(cacheFileTable.repo, repo.toLowerCase()),
         eq(cacheFileTable.branch, branch),
         inArray(cacheFileTable.path, allPaths)
       )
@@ -177,8 +177,8 @@ const updateMultipleFilesCache = async (
 
       const entryData = {
         context,
-        owner,
-        repo,
+        owner: owner.toLowerCase(),
+        repo: repo.toLowerCase(),
         branch,
         path: file.path,
         parentPath,
@@ -219,8 +219,8 @@ const updateFileCache = async (
       // We always remove entries from the cache when the file is deleted
       await db.delete(cacheFileTable).where(
         and(
-          eq(cacheFileTable.owner, owner),
-          eq(cacheFileTable.repo, repo),
+          eq(cacheFileTable.owner, owner.toLowerCase()),
+          eq(cacheFileTable.repo, repo.toLowerCase()),
           eq(cacheFileTable.branch, branch),
           eq(cacheFileTable.path, operation.path)
         )
@@ -250,8 +250,8 @@ const updateFileCache = async (
           .where(
             and(
               eq(cacheFileTable.context, context),
-              eq(cacheFileTable.owner, owner),
-              eq(cacheFileTable.repo, repo),
+              eq(cacheFileTable.owner, owner.toLowerCase()),
+              eq(cacheFileTable.repo, repo.toLowerCase()),
               eq(cacheFileTable.branch, branch),
               eq(cacheFileTable.path, operation.path)
             )
@@ -263,8 +263,8 @@ const updateFileCache = async (
         const sibling = await db.query.cacheFileTable.findFirst({
           where: and(
             eq(cacheFileTable.context, context),
-            eq(cacheFileTable.owner, owner),
-            eq(cacheFileTable.repo, repo),
+            eq(cacheFileTable.owner, owner.toLowerCase()),
+            eq(cacheFileTable.repo, repo.toLowerCase()),
             eq(cacheFileTable.branch, branch),
             eq(cacheFileTable.parentPath, parentPath)
           )
@@ -274,8 +274,8 @@ const updateFileCache = async (
           await db.insert(cacheFileTable)
             .values({
               context,
-              owner,
-              repo,
+              owner: owner.toLowerCase(),
+              repo: repo.toLowerCase(),
               branch,
               path: operation.path,
               parentPath,
@@ -314,8 +314,8 @@ const updateFileCache = async (
         })
         .where(
           and(
-            eq(cacheFileTable.owner, owner),
-            eq(cacheFileTable.repo, repo),
+            eq(cacheFileTable.owner, owner.toLowerCase()),
+            eq(cacheFileTable.repo, repo.toLowerCase()),
             eq(cacheFileTable.branch, branch),
             eq(cacheFileTable.path, operation.path)
           )
@@ -379,8 +379,8 @@ const getCollectionCache = async (
   // Check the cache (no context as we may invalidate media cache)
   let entries = await db.query.cacheFileTable.findMany({
     where: and(
-      eq(cacheFileTable.owner, owner),
-      eq(cacheFileTable.repo, repo),
+      eq(cacheFileTable.owner, owner.toLowerCase()),
+      eq(cacheFileTable.repo, repo.toLowerCase()),
       eq(cacheFileTable.branch, branch),
       eq(cacheFileTable.parentPath, path)
     )
@@ -400,8 +400,8 @@ const getCollectionCache = async (
       // cache with collection cache.
       await db.delete(cacheFileTable).where(
         and(
-          eq(cacheFileTable.owner, owner),
-          eq(cacheFileTable.repo, repo),
+          eq(cacheFileTable.owner, owner.toLowerCase()),
+          eq(cacheFileTable.repo, repo.toLowerCase()),
           eq(cacheFileTable.branch, branch),
           eq(cacheFileTable.parentPath, path),
         )
@@ -446,8 +446,8 @@ const getCollectionCache = async (
       entries = await db.insert(cacheFileTable)
         .values(githubEntries.map((entry: any) => ({
           context: 'collection',
-          owner,
-          repo,
+          owner: owner.toLowerCase(),
+          repo: repo.toLowerCase(),
           branch,
           parentPath: path,
           name: entry.name,
@@ -481,8 +481,8 @@ const getMediaCache = async (
     // Check for entries from either context
     entries = await db.query.cacheFileTable.findMany({
       where: and(
-        eq(cacheFileTable.owner, owner),
-        eq(cacheFileTable.repo, repo),
+        eq(cacheFileTable.owner, owner.toLowerCase()),
+        eq(cacheFileTable.repo, repo.toLowerCase()),
         eq(cacheFileTable.branch, branch),
         eq(cacheFileTable.parentPath, path)
       )
@@ -503,8 +503,8 @@ const getMediaCache = async (
       // Drop expired cache
       await db.delete(cacheFileTable).where(
         and(
-          eq(cacheFileTable.owner, owner),
-          eq(cacheFileTable.repo, repo),
+          eq(cacheFileTable.owner, owner.toLowerCase()),
+          eq(cacheFileTable.repo, repo.toLowerCase()),
           eq(cacheFileTable.branch, branch),
           eq(cacheFileTable.parentPath, path),
         )
@@ -526,8 +526,8 @@ const getMediaCache = async (
     
     const mappedEntries = githubEntries.map(entry => ({
       context: 'media' as CacheContext,
-      owner,
-      repo,
+      owner: owner.toLowerCase(),
+      repo: repo.toLowerCase(),
       branch,
       parentPath: path,
       name: entry.name,
