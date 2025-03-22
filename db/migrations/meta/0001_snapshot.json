@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "bbee277a-4f56-4716-96ee-293b64cb5a33",
+  "id": "75bf6dd7-20d1-40ad-b47c-27709bf6784c",
   "prevId": "9bebad23-d902-47ff-b6e6-8878fb0c5b3e",
   "tables": {
     "cache_file": {
@@ -194,7 +194,7 @@
             "owner",
             "repo"
           ],
-          "isUnique": false
+          "isUnique": true
         }
       },
       "foreignKeys": {},

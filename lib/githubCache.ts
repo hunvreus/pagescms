@@ -3,8 +3,8 @@
  */
 
 import { db } from "@/db";
-import { eq, and, inArray } from "drizzle-orm";
-import { cacheFileTable } from "@/db/schema";
+import { eq, and, inArray, gt } from "drizzle-orm";
+import { cacheFileTable, cachePermissionTable } from "@/db/schema";
 import { createOctokitInstance } from "@/lib/utils/octokit";
 import path from "path";
 
@@ -528,6 +528,61 @@ const getMediaCache = async (
   return entries;
 };
 
+// Check if a user has access to a repository (with caching)
+const checkRepoAccess = async (
+  token: string,
+  owner: string,
+  repo: string,
+  githubId: number
+): Promise<boolean> => {
+  // Check if we have a cached result
+  const now = Date.now();
+  const ttl = parseInt(process.env.PERMISSION_CACHE_TTL || "60") * 60 * 1000;
+  
+  const cacheEntry = await db.query.cachePermissionTable.findFirst({
+    where: and(
+      eq(cachePermissionTable.githubId, githubId),
+      eq(cachePermissionTable.owner, owner.toLowerCase()),
+      eq(cachePermissionTable.repo, repo.toLowerCase()),
+      gt(cachePermissionTable.lastUpdated, now - ttl)
+    )
+  });
+  
+  if (cacheEntry) return true;
+  
+  // Not in cache, check with API
+  try {
+    console.log("Checking repo access for", owner, repo, githubId);
+    const octokit = createOctokitInstance(token);
+    const response = await octokit.rest.repos.get({ owner, repo });
+    console.log("Response", response.status === 200);
+    // If successful, cache the result
+    if (response.status === 200) {
+      console.log("Caching result");
+      await db.insert(cachePermissionTable)
+        .values({
+          githubId,
+          owner: owner.toLowerCase(),
+          repo: repo.toLowerCase(),
+          lastUpdated: Date.now()
+        })
+        .onConflictDoUpdate({
+          target: [
+            cachePermissionTable.githubId, 
+            cachePermissionTable.owner, 
+            cachePermissionTable.repo
+          ],
+          set: { lastUpdated: Date.now() }
+        });
+    }
+    
+    return response.status === 200;
+  } catch (error) {
+    console.error("Error checking repo access", error);
+    return false;
+  }
+};
+
 export { 
   updateMultipleFilesCache, 
   updateFileCache,
@@ -535,5 +590,6 @@ export {
   updateFileCacheOwner,
   clearFileCache,
   getCollectionCache, 
-  getMediaCache
+  getMediaCache,
+  checkRepoAccess
 };

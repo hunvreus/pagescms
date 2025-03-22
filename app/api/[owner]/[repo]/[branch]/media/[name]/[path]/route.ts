@@ -3,7 +3,7 @@ import { getConfig } from "@/lib/utils/config";
 import { getFileExtension, normalizePath } from "@/lib/utils/file";
 import { getAuth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
-import { getMediaCache } from "@/lib/githubCache";
+import { getMediaCache, checkRepoAccess } from "@/lib/githubCache";
 
 // Add docs
 
@@ -25,6 +25,11 @@ export async function GET(
 
     const token = await getToken(user, params.owner, params.repo);
     if (!token) throw new Error("Token not found");
+
+    if (user.githubId) {
+      const hasAccess = await checkRepoAccess(token, params.owner, params.repo, user.githubId);
+      if (!hasAccess) throw new Error(`No access to repository ${params.owner}/${params.repo}.`);
+    }
 
     const config = await getConfig(params.owner, params.repo, params.branch);
     if (!config) throw new Error(`Configuration not found for ${params.owner}/${params.repo}/${params.branch}.`);   

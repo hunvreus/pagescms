@@ -107,7 +107,7 @@ const cachePermissionTable = sqliteTable("cache_permission", {
   repo: text("repo").notNull(),
   lastUpdated: integer("last_updated").notNull()
 }, table => ({
-  idx_cache_permission_githubId_owner_repo: index("idx_cache_permission_githubId_owner_repo").on(table.githubId, table.owner, table.repo)
+  idx_cache_permission_githubId_owner_repo: uniqueIndex("idx_cache_permission_githubId_owner_repo").on(table.githubId, table.owner, table.repo)
 }));
 
 export {
