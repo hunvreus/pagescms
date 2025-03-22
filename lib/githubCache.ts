@@ -386,16 +386,24 @@ const getCollectionCache = async (
     )
   });
 
-  if (entries.length === 0 || (entries.length > 0 && entries[0].context === 'media')) {
-    if (entries.length > 0 && entries[0].context === 'media') {
-      // Drop the media context cache and override it 
+  let cacheExpired = false;
+  // If set to "-1", the file cache doesn't expire
+  if (entries.length > 0 && process.env.FILE_CACHE_TTL !== "-1") {
+    const now = Date.now();
+    const ttl = parseInt(process.env.FILE_CACHE_TTL || "10080") * 60 * 1000; // Defaults to 7 days cache
+    cacheExpired = entries[0].lastUpdated < now - ttl;
+  }
+
+  if (entries.length === 0 || cacheExpired || (entries.length > 0 && entries[0].context === 'media')) {
+    if (cacheExpired || (entries.length > 0 && entries[0].context === 'media')) {
+      // Drop the cache, either because it expired or because we're replacing media
+      // cache with collection cache.
       await db.delete(cacheFileTable).where(
         and(
-        eq(cacheFileTable.owner, owner),
-        eq(cacheFileTable.repo, repo),
-        eq(cacheFileTable.branch, branch),
-        eq(cacheFileTable.parentPath, path),
-        eq(cacheFileTable.context, 'media')
+          eq(cacheFileTable.owner, owner),
+          eq(cacheFileTable.repo, repo),
+          eq(cacheFileTable.branch, branch),
+          eq(cacheFileTable.parentPath, path),
         )
       );
     }
@@ -480,8 +488,29 @@ const getMediaCache = async (
       )
     });
   }
+
+  let cacheExpired = false;
+  // If set to "-1", the file cache doesn't expire
+  if (entries.length > 0 && process.env.FILE_CACHE_TTL !== "-1") {
+    const now = Date.now();
+    const ttl = parseInt(process.env.FILE_CACHE_TTL || "10080") * 60 * 1000; // Defaults to 7 days cache
+    cacheExpired = entries[0].lastUpdated < now - ttl;
+  }
   
-  if (entries.length === 0) {  
+  if (entries.length === 0 || cacheExpired) {  
+    // Drop the cache as it expired
+    if (cacheExpired) {
+      // Drop expired cache
+      await db.delete(cacheFileTable).where(
+        and(
+          eq(cacheFileTable.owner, owner),
+          eq(cacheFileTable.repo, repo),
+          eq(cacheFileTable.branch, branch),
+          eq(cacheFileTable.parentPath, path),
+        )
+      );
+    }
+
     // No cache hit, fetch from GitHub
     const octokit = createOctokitInstance(token);
     const response = await octokit.rest.repos.getContent({

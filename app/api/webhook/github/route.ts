@@ -112,33 +112,6 @@ export async function POST(request: Request) {
           }
           break;
           
-        case "organization":
-          if (data.action === "renamed") {
-            // Organization renamed
-            const oldOwner = data.changes.login.from;
-            const newOwner = data.organization.login;
-            
-            await Promise.all([
-              db.update(collaboratorTable).set({
-                owner: newOwner
-              }).where(
-                eq(collaboratorTable.ownerId, data.organization.id)
-              ),
-              updateFileCacheOwner(oldOwner, newOwner)
-            ]);
-          } else if (data.action === "deleted") {
-            // Organization deleted
-            const orgName = data.organization.login;
-            
-            await Promise.all([
-              db.delete(collaboratorTable).where(
-                eq(collaboratorTable.ownerId, data.organization.id)
-              ),
-              clearFileCache(orgName)
-            ]);
-          }
-          break;
-          
         case "installation_target":
           if (data.action === "renamed") {
             // Account renamed
