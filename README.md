@@ -18,6 +18,10 @@ It offers a user-friendly interface to edit the content of your website or app d
 
 Go to [pagescms.org/docs](https://pagescms.org/docs).
 
+## Community chat
+
+[Join the Discord server](https://pagescms.org/chat) to get help with Pages CMS, share feedback, and connect with other users building with the platform.
+
 ## Built with
 
 - [Next.js](https://nextjs.org/)
