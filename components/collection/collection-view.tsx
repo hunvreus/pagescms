@@ -78,16 +78,25 @@ export function CollectionView({
           type: "string"
         }
       });
-      if (schema.filename.startsWith("{year}-{month}-{day}")) {
-        pathAndFieldArray.push({
-          path: "date",
-          field: {
-            label: "Date",
-            name: "date",
-            type: "date"
-          }
-        });
-      }
+    }
+
+    // If the filename starts with {year}-{month}-{day} and date is listed in the
+    // view fields and is not an actual field, or if there are no fields, we add a date field
+    if (
+      schema.filename.startsWith("{year}-{month}-{day}")
+      && (
+        (schema.view?.fields &&schema.view?.fields.includes("date") && !pathAndFieldArray.find((item: any) => item.path === "date"))
+        || !schema.view?.fields
+      )
+    ) {
+      pathAndFieldArray.push({
+        path: "date",
+        field: {
+          label: "Date",
+          name: "date",
+          type: "date"
+        }
+      });
     }
 
     return pathAndFieldArray;
@@ -138,7 +147,7 @@ export function CollectionView({
       
       return {
         accessorKey: path,
-        accessorFn: (originalRow: any) => safeAccess(originalRow.object, path),
+        accessorFn: (originalRow: any) => safeAccess(originalRow.fields, path),
         header: field?.label ?? field.name,
         meta: { className: field.name === primaryField ? "truncate w-full min-w-[12rem] max-w-[1px]" : "" },
         cell: ({ cell, row }: { cell: any, row: any }) => {
@@ -154,6 +163,7 @@ export function CollectionView({
               <Link
                 className="font-medium truncate"
                 href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/edit/${encodeURIComponent(row.original.path)}`}
+                prefetch={true}
               >
                 {CellView}
               </Link>
@@ -177,6 +187,7 @@ export function CollectionView({
           <Link
             className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8")}
             href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${name}/edit/${encodeURIComponent(row.original.path)}`}
+            prefetch={true}
           >
             Edit
           </Link>

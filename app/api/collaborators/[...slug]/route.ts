@@ -6,6 +6,14 @@ import { db } from "@/db";
 import { collaboratorTable } from "@/db/schema";
 import { getInstallations, getInstallationRepos } from "@/lib/githubApp";
 
+/**
+ * Fetches collaborators for a repository.
+ * 
+ * GET /api/collaborators/[owner]/[repo]
+ * 
+ * Requires authentication. Only accessible to GitHub users (not collaborators).
+ */
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { slug: string[] } }

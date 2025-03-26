@@ -32,7 +32,7 @@ export default async function Page() {
   return (
     <MainRootLayout>
       <div className="max-w-screen-sm mx-auto p-4 md:p-6 space-y-6">
-        <Link className={cn(buttonVariants({ variant: "outline", size: "xs" }), "inline-flex")} href="/">
+        <Link className={cn(buttonVariants({ variant: "outline", size: "xs" }), "inline-flex")} href="/" prefetch={true}>
           <ArrowLeft className="h-4 w-4 mr-1.5" />
           Go home
         </Link>

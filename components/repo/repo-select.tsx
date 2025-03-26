@@ -163,6 +163,7 @@ export function RepoSelect({
                   <Link
                     className={cn("ml-auto", buttonVariants({ variant: "outline", size: "xs"}))}
                     href={`/${result.owner}/${result.repo}/${result.defaultBranch ? encodeURIComponent(result.defaultBranch) : ""}`}
+                    prefetch={true}
                   >
                     Open
                   </Link>

@@ -1,3 +1,7 @@
+/**
+ * List of GitHub repository templates the user can copy.
+ */
+
 const templates = [
   // {
   //   name: "Blank",

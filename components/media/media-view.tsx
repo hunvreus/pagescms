@@ -32,36 +32,68 @@ import {
 } from "lucide-react";
 
 const MediaView = ({
+  media,
   initialPath,
   initialSelected,
   maxSelected,
   onSelect,
+  extensions
 }: {
+  media: string,
   initialPath?: string,
   initialSelected?: string[],
   maxSelected?: number,
-  onSelect?: (newSelected: string[]) => void
+  onSelect?: (newSelected: string[]) => void,
+  extensions?: string[]
 }) => {
   const { config } = useConfig();
   if (!config) throw new Error(`Configuration not found.`);
 
+  const mediaConfig = useMemo(() => {
+    if (!media) return config.object.media[0];
+    return config.object.media.find((item: any) => item.name === media);
+  }, [media, config.object.media]);
+
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
-  
+
+  const filteredExtensions = useMemo(() => {
+    if (!mediaConfig?.extensions && !extensions) return [];
+    
+    const allowedExtensions = extensions 
+      ? mediaConfig?.extensions
+        ? extensions.filter(ext => mediaConfig.extensions.includes(ext))
+        : extensions
+      : mediaConfig.extensions;
+
+    return allowedExtensions || [];
+  }, [extensions, mediaConfig?.extensions]);
+
   const filesGridRef = useRef<HTMLDivElement | null>(null);
 
   const [error, setError] = useState<string | null | undefined>(null);
   const [selected, setSelected] = useState(initialSelected || []);
   const [path, setPath] = useState(() => {
-    if (!config.object.media) return "";
-    if (!initialPath) return config.object.media.input;
+    if (!mediaConfig) return "";
+    if (!initialPath) return mediaConfig.input;
     const normalizedInitialPath = normalizePath(initialPath);
-    if (normalizedInitialPath.startsWith(config.object.media.input)) return normalizedInitialPath;
-    console.warn(`"${initialPath}" is not within media root "${config.object.media.input}". Defaulting to media root.`);
-    return config.object.media.input;
+    if (normalizedInitialPath.startsWith(mediaConfig.input)) return normalizedInitialPath;
+    console.warn(`"${initialPath}" is not within media root "${mediaConfig.input}". Defaulting to media root.`);
+    return mediaConfig.input;
   });
   const [data, setData] = useState<Record<string, any>[] | undefined>(undefined);
+  
+  // Filter the data based on filteredExtensions when displaying
+  const filteredData = useMemo(() => {
+    if (!data) return undefined;
+    if (!filteredExtensions || filteredExtensions.length === 0) return data;
+    return data.filter(item => 
+      item.type === "dir" ||
+      filteredExtensions.includes(item.extension?.toLowerCase())
+    );
+  }, [data, filteredExtensions]);
+
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
@@ -71,7 +103,7 @@ const MediaView = ({
         setError(null);
 
         try {
-          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/media/${encodeURIComponent(path)}`);
+          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/media/${encodeURIComponent(mediaConfig.name)}/${encodeURIComponent(path)}`);
           if (!response.ok) throw new Error(`Failed to fetch media: ${response.status} ${response.statusText}`);
 
           const data: any = await response.json();
@@ -135,13 +167,13 @@ const MediaView = ({
     setPath(newPath);
     if (!onSelect) {
       const params = new URLSearchParams(Array.from(searchParams.entries()));
-      params.set("path", newPath || config?.object.media.input);
+      params.set("path", newPath || mediaConfig.input);
       router.push(`${pathname}?${params.toString()}`);
     }
   }
 
   const handleNavigateParent = () => {
-    if (!path || path === config.object.media.input) return;
+    if (!path || path === mediaConfig.input) return;
     handleNavigate(getParentPath(path));
   }
 
@@ -194,7 +226,7 @@ const MediaView = ({
     </ul>
   ), []);
 
-  if (!config.object.media?.input) {
+  if (!mediaConfig.input) {
     return (
       <Message
         title="No media defined"
@@ -208,14 +240,14 @@ const MediaView = ({
 
   if (error) {
     // TODO: should we use a custom error class with code?
-    if (path === config.object.media.input && error === "Not found") {
+    if (path === mediaConfig.input && error === "Not found") {
       return (
         <Message
             title="Media folder missing"
-            description={`The media folder "${config.object.media.input}" has not been created yet.`}
+            description={`The media folder "${mediaConfig.input}" has not been created yet.`}
             className="absolute inset-0"
           >
-          <EmptyCreate type="media">Create folder</EmptyCreate>
+          <EmptyCreate type="media" name={mediaConfig.name}>Create folder</EmptyCreate>
         </Message>
       );
     } else {
@@ -225,7 +257,7 @@ const MediaView = ({
           description={error}
           className="absolute inset-0"
         >
-          <Button size="sm" onClick={() => handleNavigate(config.object.media.input)}>Go to media root</Button>
+          <Button size="sm" onClick={() => handleNavigate(mediaConfig.input)}>Go to media root</Button>
         </Message>
       );
     }
@@ -235,90 +267,96 @@ const MediaView = ({
     <div className="flex-1 flex flex-col space-y-4">
       <header className="flex items-center gap-x-2">
         <div className="sm:flex-1">
-          <PathBreadcrumb path={path} rootPath={config.object.media.input} handleNavigate={handleNavigate} className="hidden sm:block"/>
-          <Button onClick={handleNavigateParent} size="icon-sm" variant="outline" className="shrink-0 sm:hidden" disabled={!path || path === config.object.media.input}>
+          <PathBreadcrumb path={path} rootPath={mediaConfig.input} handleNavigate={handleNavigate} className="hidden sm:block"/>
+          <Button onClick={handleNavigateParent} size="icon-sm" variant="outline" className="shrink-0 sm:hidden" disabled={!path || path === mediaConfig.input}>
             <CornerLeftUp className="w-4 h-4"/>
           </Button>
         </div>
-        <FolderCreate path={path} type="media" onCreate={handleFolderCreate}>
+        <FolderCreate path={path} name={mediaConfig.name} type="media" onCreate={handleFolderCreate}>
           <Button type="button" variant="outline" className="ml-auto" size="icon-sm">
             <FolderPlus className="h-3.5 w-3.5"/>
           </Button>
         </FolderCreate>
-        <MediaUpload path={path} onUpload={handleUpload}>
-          <Button type="button" size="sm" className="gap-2">
-            <Upload className="h-3.5 w-3.5"/>
-            Upload
-          </Button>
+        <MediaUpload media={mediaConfig.name} path={path} onUpload={handleUpload} extensions={filteredExtensions}>
+          <MediaUpload.Trigger>
+            <Button type="button" size="sm" className="gap-2">
+              <Upload className="h-3.5 w-3.5"/>
+              Upload
+            </Button>
+          </MediaUpload.Trigger>
         </MediaUpload>
       </header>
-      <div className="relative flex-1 overflow-auto scrollbar" ref={filesGridRef}>
-        {isLoading
-          ? loadingSkeleton
-          : data && data.length > 0
-              ? <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8 p-1">
-                  {data.map((item, index) => 
-                    <li key={item.path}>
-                      {item.type === "dir"
-                        ? <button
-                            className="hover:bg-muted focus:ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2 outline-none rounded-md block w-full"
-                            onClick={() => handleNavigate(item.path)}
-                          >
-                            <div className="flex items-center justify-center aspect-video">
-                              <Folder className="stroke-[0.5] h-[5.5rem] w-[5.5rem]"/>
-                            </div>
-                            <div className="flex items-center justify-center p-2">
-                              <div className="overflow-hidden h-9">
-                                <div className="text-sm font-medium truncate">{item.name}</div>
+      <MediaUpload media={mediaConfig.name} path={path} onUpload={handleUpload} extensions={filteredExtensions}>
+        <MediaUpload.DropZone className="flex-1 overflow-auto scrollbar">
+          <div className="h-full relative flex flex-col" ref={filesGridRef}>
+            {isLoading
+              ? loadingSkeleton
+              : filteredData && filteredData.length > 0
+                ? <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8 p-1">
+                    {filteredData.map((item, index) => 
+                      <li key={item.path}>
+                        {item.type === "dir"
+                          ? <button
+                              className="hover:bg-muted focus:ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2 outline-none rounded-md block w-full"
+                              onClick={() => handleNavigate(item.path)}
+                            >
+                              <div className="flex items-center justify-center aspect-video">
+                                <Folder className="stroke-[0.5] h-[5.5rem] w-[5.5rem]"/>
                               </div>
-                            </div>
-                          </button>
-                        : <label htmlFor={`item-${index}`}>
-                            {onSelect &&
-                              <input 
-                                type="checkbox" 
-                                id={`item-${index}`} 
-                                className="peer sr-only"
-                                checked={selected.includes(item.path)}
-                                onChange={() => handleSelect(item.path)}
-                              />
-                            }
-                            <div className={onSelect && "hover:bg-muted peer-focus:ring-offset-background peer-focus:ring-2 peer-focus:ring-ring peer-focus:ring-offset-2 rounded-md peer-checked:ring-offset-background peer-checked:ring-offset-2 peer-checked:ring-2 peer-checked:ring-ring relative"}>
-                              {extensionCategories.image.includes(item.extension)
-                                ? <Thumbnail path={item.path} className="rounded-t-md aspect-video"/>
-                                : <div className="flex items-center justify-center rounded-md aspect-video">
-                                    <File className="stroke-[0.5] h-24 w-24"/>
-                                  </div>
-                              }
-                              <div className="flex gap-x-2 items-center p-2">
-                                <div className="overflow-hidden mr-auto h-9">
+                              <div className="flex items-center justify-center p-2">
+                                <div className="overflow-hidden h-9">
                                   <div className="text-sm font-medium truncate">{item.name}</div>
-                                  <div className="text-xs text-muted-foreground truncate">{getFileSize(item.size)}</div>
                                 </div>
-                                <FileOptions path={item.path} sha={item.sha} type="media" onDelete={handleDelete} onRename={handleRename} portalProps={{container: filesGridRef.current}}>
-                                  <Button variant="ghost" size="icon" className="shrink-0">
-                                    <EllipsisVertical className="h-4 w-4" />
-                                  </Button>
-                                </FileOptions>
                               </div>
-                              {onSelect && selected.includes(item.path) &&
-                                <div className="text-primary-foreground bg-primary p-0.5 rounded-full absolute top-2 left-2">
-                                  <Check className="stroke-[3] w-3 h-3"/>
-                                </div>
+                            </button>
+                          : <label htmlFor={`item-${index}`}>
+                              {onSelect &&
+                                <input 
+                                  type="checkbox" 
+                                  id={`item-${index}`} 
+                                  className="peer sr-only"
+                                  checked={selected.includes(item.path)}
+                                  onChange={() => handleSelect(item.path)}
+                                />
                               }
-                            </div>
-                          </label>
-                      }
-                      
-                    </li>
-                  )}
-                </ul>
-              : <p className="text-muted-foreground flex items-center justify-center text-sm p-6">
-                  <Ban className="h-4 w-4 mr-2"/>
-                  This folder is empty.
-                </p>
-        }
-      </div>
+                              <div className={onSelect && "hover:bg-muted peer-focus:ring-offset-background peer-focus:ring-2 peer-focus:ring-ring peer-focus:ring-offset-2 rounded-md peer-checked:ring-offset-background peer-checked:ring-offset-2 peer-checked:ring-2 peer-checked:ring-ring relative"}>
+                                {extensionCategories.image.includes(item.extension)
+                                  ? <Thumbnail name={mediaConfig.name} path={item.path} className="rounded-t-md aspect-video"/>
+                                  : <div className="flex items-center justify-center rounded-md aspect-video">
+                                      <File className="stroke-[0.5] h-24 w-24"/>
+                                    </div>
+                                }
+                                <div className="flex gap-x-2 items-center p-2">
+                                  <div className="overflow-hidden mr-auto h-9">
+                                    <div className="text-sm font-medium truncate">{item.name}</div>
+                                    <div className="text-xs text-muted-foreground truncate">{getFileSize(item.size)}</div>
+                                  </div>
+                                  <FileOptions path={item.path} sha={item.sha} type="media" name={mediaConfig.name} onDelete={handleDelete} onRename={handleRename} portalProps={{container: filesGridRef.current}}>
+                                    <Button variant="ghost" size="icon" className="shrink-0">
+                                      <EllipsisVertical className="h-4 w-4" />
+                                    </Button>
+                                  </FileOptions>
+                                </div>
+                                {onSelect && selected.includes(item.path) &&
+                                  <div className="text-primary-foreground bg-primary p-0.5 rounded-full absolute top-2 left-2">
+                                    <Check className="stroke-[3] w-3 h-3"/>
+                                  </div>
+                                }
+                              </div>
+                            </label>
+                        }
+                        
+                      </li>
+                    )}
+                  </ul>
+                : <p className="text-muted-foreground flex items-center justify-center text-sm p-6">
+                    <Ban className="h-4 w-4 mr-2"/>
+                    This folder is empty.
+                  </p>
+            }
+          </div>
+        </MediaUpload.DropZone>
+      </MediaUpload>
     </div>
   )
 };

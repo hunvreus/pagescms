@@ -1,3 +1,10 @@
+/**
+ * Functions to parse, normalize and validate the configuration file.
+ * 
+ * Look at the `lib/utils/config.ts` file to understand how the config is
+ * retrieved, saved and updated in the DB.
+ */
+
 import YAML from "yaml";
 import { getFileExtension, extensionCategories } from "@/lib/utils/file";
 import { ConfigSchema } from "@/lib/configSchema";
@@ -5,6 +12,7 @@ import { z } from "zod";
 
 const configVersion = "2.0";
 
+// Parse the config file (YAML to JSON)
 const parseConfig = (content: string) => {
   const document = YAML.parseDocument(content, { strict: false, prettyErrors: false });
 
@@ -21,42 +29,58 @@ const parseConfig = (content: string) => {
   return { document, errors };
 };
 
+// Normalize the config object (e.g. convert media.input to a relative path, set
+// default values for filename, extension, format, etc.)
 const normalizeConfig = (configObject: any) => {
   if (!configObject) return {};
 
   const configObjectCopy = JSON.parse(JSON.stringify(configObject));
   
-  if (configObjectCopy?.media != null) {
+  if (configObjectCopy?.media) {
     if (typeof configObjectCopy.media === "string") {
-      // Ensure media.input is a relative path
+      // Ensure media.input is a relative path (and add name and label)
       const relativePath = configObjectCopy.media.replace(/^\/|\/$/g, "");
-      configObjectCopy.media = {
+      configObjectCopy.media = [{
+        name: "default",
+        label: "Media",
         input: relativePath,
         output: `/${relativePath}`,
-      };
-    } else {
-      if (configObjectCopy.media?.input != null && typeof configObjectCopy.media.input === "string") {
+      }];
+    } else if (typeof configObjectCopy.media === "object" && !Array.isArray(configObjectCopy.media)) {
+      // Ensure it's an array of media configurations (and add name and label)
+      configObjectCopy.media = [{
+        name: "default",
+        label: "Media",
+        ...configObjectCopy.media
+      }];
+    }
+
+    // We normalize each media configuration
+    configObjectCopy.media = configObjectCopy.media.map((mediaConfig: any) => {
+      if (mediaConfig.input != null && typeof mediaConfig.input === "string") {
         // Make sure input is relative
-        configObjectCopy.media.input = configObjectCopy.media.input.replace(/^\/|\/$/g, "");
+        mediaConfig.input = mediaConfig.input.replace(/^\/|\/$/g, "");
       }
-      if (configObjectCopy.media.output != null && configObjectCopy.media.output !== "/" && typeof configObjectCopy.media.output === "string") {
+      if (mediaConfig.output != null && mediaConfig.output !== "/" && typeof mediaConfig.output === "string") {
         // Make sure output doesn"t have a trailing slash
-        configObjectCopy.media.output = configObjectCopy.media.output.replace(/\/$/, "");
+        mediaConfig.output = mediaConfig.output.replace(/\/$/, "");
       }
-      if (configObjectCopy.media.categories != null) {
-        if (configObjectCopy.media.extensions != null) {
-          delete configObjectCopy.media.categories;
-        } else if (Array.isArray(configObjectCopy.media.categories)) {
-          configObjectCopy.media.extensions = [];
-          configObjectCopy.media.categories.map((category: string) => {
+      if (mediaConfig.categories != null) {
+        if (mediaConfig.extensions != null) {
+          delete mediaConfig.categories;
+        } else if (Array.isArray(mediaConfig.categories)) {
+          mediaConfig.extensions = [];
+          mediaConfig.categories.map((category: string) => {
             if (extensionCategories[category] != null) {
-              configObjectCopy.media.extensions = configObjectCopy.media.extensions.concat(extensionCategories[category]);
+              mediaConfig.extensions = mediaConfig.extensions.concat(extensionCategories[category]);
             }
           });
-          delete configObjectCopy.media.categories;
+          delete mediaConfig.categories;
         }
       }
-    }
+
+      return mediaConfig;
+    });
   }
 
   if (configObjectCopy.content && Array.isArray(configObjectCopy?.content) && configObjectCopy.content.length > 0) {
@@ -105,6 +129,8 @@ const normalizeConfig = (configObject: any) => {
   return configObjectCopy;
 }
 
+// Check if the config is valid with the the Zoc schema (lib/configSchema.ts).
+// This is used in the settings editor.
 const validateConfig = (document: YAML.Document.Parsed) => {
   const content = document.toJSON();
   let errors: any[] = [];
@@ -122,6 +148,8 @@ const validateConfig = (document: YAML.Document.Parsed) => {
   return errors;
 };
 
+// Process the Zod errors from the validateConfig function. Helps us display errors
+// in the settings editor.
 const processZodError = (error: any, document: YAML.Document.Parsed, errors: any[]) => {
   let path = error.path;
   let yamlNode: any = document.getIn(path, true);
@@ -187,6 +215,7 @@ const processZodError = (error: any, document: YAML.Document.Parsed, errors: any
   }
 };
 
+// Parse the config file and validate it (used in the settings editor).
 const parseAndValidateConfig = (content: string) => {
   const { document, errors: parseErrors } = parseConfig(content);
   const validationErrors = validateConfig(document);

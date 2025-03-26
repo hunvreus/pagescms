@@ -1,0 +1,89 @@
+.react-select__control {
+  @apply !min-h-10 !rounded-md !border-input !bg-background !ring-offset-background !transition-none !cursor-pointer !box-border !px-3 !py-2;
+}
+
+.react-select__control--is-focused {
+  @apply !outline-none !ring-2 !ring-ring !ring-offset-2;
+}
+
+.react-select__placeholder {
+  @apply !text-muted-foreground !mx-0;
+}
+
+.react-select__value-container {
+  @apply !p-0 !m-0 !leading-none !text-foreground;
+}
+
+.react-select__value-container--is-multi {
+  @apply flex gap-1.5 !-my-[1px];
+}
+
+.react-select__single-value {
+  @apply !mx-0 !text-foreground;
+}
+
+.react-select__input-container {
+  @apply !m-0 !p-0 !text-foreground;
+}
+
+.react-select__indicator-separator {
+  @apply !hidden;
+}
+
+.react-select__clear-indicator,
+.react-select__dropdown-indicator {
+  @apply !text-foreground opacity-50 !p-0 !transition-opacity;
+}
+
+.react-select__clear-indicator {
+  @apply hover:!opacity-100 mr-1;
+}
+
+.react-select__multi-value {
+  @apply !rounded-full !border !bg-accent !m-0 !inline-flex !items-center !p-0 !font-medium !text-inherit;
+}
+
+.react-select__multi-value__label {
+  @apply !py-1 !pl-2 !pr-0 !text-inherit;
+}
+
+.react-select__multi-value__remove {
+  @apply  !py-1 !px-1 !text-foreground !opacity-50 hover:!opacity-100 !bg-transparent !transition-opacity;
+}
+
+.react-select__menu {
+  @apply !rounded-md !border !border-input !shadow-md !bg-popover !text-popover-foreground !max-h-96 !min-w-[8rem];
+  animation: selectMenuIn 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: top;
+}
+
+@keyframes selectMenuIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-0.5rem) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.react-select__menu-list {
+  @apply !p-1;
+}
+
+.react-select__option {
+  @apply !rounded-sm !py-1.5 !pl-8 !pr-2 !text-sm hover:!bg-accent;
+}
+
+.react-select__menu-list--is-multi .react-select__option {
+  @apply !pl-2;
+}
+
+.react-select__option--is-focused {
+  @apply !bg-accent;
+}
+
+.react-select__option--is-selected {
+  @apply !bg-transparent !text-foreground bg-no-repeat bg-[url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwYTBhMGEiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1jaGVjayI+PHBhdGggZD0iTTIwIDYgOSAxN2wtNS01Ii8+PC9zdmc+")] dark:bg-[url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1jaGVjayI+PHBhdGggZD0iTTIwIDYgOSAxN2wtNS01Ii8+PC9zdmc+")] bg-[left_0.5rem_center] bg-[length:16px_16px];
+}

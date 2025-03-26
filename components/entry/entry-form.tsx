@@ -146,7 +146,8 @@ const ListField = ({
       setValue(fieldName, updatedValues);
     }
   };
-
+  
+  // We don't render <FormMessage/> in ListField, because it's already rendered in the individual fields
   return (
     <FormField
       name={fieldName}
@@ -188,23 +189,22 @@ const ListField = ({
             {typeof field.list === "object" && field.list?.max && arrayFields.length >= field.list.max
               ? null
               : <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  append(field.type === "object"
-                    ? initializeState(field.fields, {}, true)
-                    : getDefaultValue(field)
-                  );
-                }}
-                className="gap-x-2"
-              >
-                <Plus className="h-4 w-4" />
-                Add an entry
-              </Button>
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    append(field.type === "object"
+                      ? initializeState(field.fields, {})
+                      : getDefaultValue(field)
+                    );
+                  }}
+                  className="gap-x-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add an entry
+                </Button>
             }
           </div>
-          <FormMessage />
         </FormItem>
       )}
     />
@@ -269,7 +269,7 @@ const EntryForm = ({
   }, [fields]);
 
   const defaultValues = useMemo(() => {
-    return initializeState(fields, sanitizeObject(contentObject), true);
+    return initializeState(fields, sanitizeObject(contentObject));
   }, [fields, contentObject]);
 
   const form = useForm({

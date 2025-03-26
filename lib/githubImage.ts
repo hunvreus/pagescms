@@ -1,5 +1,7 @@
 /**
- * Convert image paths into raw.githubusercontent.com URLs (with some light caching).
+ * Helper functions to translate relative paths into publicly accessible GitHub
+ * raw.githubusercontent.com URLs (required for images in private repositories).
+ * Runs client-side with some temporary caching.
  */
 
 import { getFileName, getParentPath } from "@/lib/utils/file";
@@ -8,6 +10,7 @@ const ttl = 10000; // TTL for the cache (in milliseconds)
 const cache: { [key: string]: any } = {};
 const requests: { [key: string]: Promise<any> } = {};
 
+// Get the relative path for an image.
 const getRelativeUrl = (
   owner: string,
   repo: string,
@@ -26,10 +29,12 @@ const getRelativeUrl = (
   return encode ? encodePath(relativePath) : relativePath;
 }
 
+// Get the raw.githubusercontent.com URL for an image.
 const getRawUrl = async (
   owner: string,
   repo: string,
   branch: string,
+  name: string,
   path: string,
   isPrivate = false,
   decode = false
@@ -47,7 +52,7 @@ const getRawUrl = async (
       delete cache[parentFullPath];
       
       if (!requests[parentFullPath]) {
-        requests[parentFullPath] = fetch(`/api/${owner}/${repo}/${encodeURIComponent(branch)}/media/${encodeURIComponent(parentPath)}`)
+        requests[parentFullPath] = fetch(`/api/${owner}/${repo}/${encodeURIComponent(branch)}/media/${encodeURIComponent(name)}/${encodeURIComponent(parentPath)}?nocache=true`)
           .then(response => {
             if (!response.ok) throw new Error(`Failed to fetch media: ${response.status} ${response.statusText}`);
             
@@ -78,6 +83,7 @@ const getRawUrl = async (
   }
 };
 
+// Convert all raw.githubusercontent.com URLs in a HTML string to relative paths.
 const rawToRelativeUrls = (
   owner: string,
   repo: string,
@@ -103,10 +109,12 @@ const rawToRelativeUrls = (
   return html;
 }
 
+// Convert all relative image paths in a HTML string to raw.githubusercontent.com URLs.
 const relativeToRawUrls = async (
   owner: string,
   repo: string,
   branch: string,
+  name: string,
   html: string,
   isPrivate = false,
   decode = false
@@ -118,9 +126,9 @@ const relativeToRawUrls = async (
     const src = match[1] || match[2];
     const quote = match[1] ? "\"" : "'";
 
-    if (!src.startsWith("/") && !src.startsWith("http://") && !src.startsWith("https://") && !src.startsWith("data:image/")) {  
+    if (!src.startsWith("http://") && !src.startsWith("https://") && !src.startsWith("data:image/")) {  
       // TODO: what does the function returns if it fails?
-      const rawUrl = await getRawUrl(owner, repo, branch, src, isPrivate, true);
+      const rawUrl = await getRawUrl(owner, repo, branch, name, src, isPrivate, true);
       if (rawUrl) {
         newHtml = newHtml.replace(`src=${quote}${src}${quote}`, `src=${quote}${rawUrl}${quote}`);
       }
@@ -130,6 +138,7 @@ const relativeToRawUrls = async (
   return newHtml;
 }
 
+// Swap the prefix of an image path (raw.githubusercontent.com url <> relative path)
 const swapPrefix = (
   path: string,
   from: string,
@@ -157,6 +166,7 @@ const swapPrefix = (
   return newPath;
 }
 
+// Swap the prefix of all images in a HTML string.
 const htmlSwapPrefix = (
   html: string,
   from: string,
@@ -191,10 +201,12 @@ const htmlSwapPrefix = (
   return newHtml;
 }
 
+// Encode a path for use in a URL.
 const encodePath = (path: string) => {
   return path.split("/").map(encodeURIComponent).join("/");
 }
 
+// Get all image sources from an HTML string.
 const getImgSrcs = (html: string) => {
   const regex = /<img [^>]*src=(?:"([^"]+)"|'([^']+)')[^>]*>/g;
   return Array.from(html.matchAll(regex));

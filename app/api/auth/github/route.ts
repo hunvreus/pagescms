@@ -8,6 +8,14 @@ import { db } from "@/db";
 import { userTable, githubUserTokenTable } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
+/**
+ * Handles GitHub OAuth authentication.
+ * 
+ * GET /api/auth/github
+ * 
+ * Requires GitHub OAuth code and state.
+ */
+
 export async function GET(request: Request): Promise<Response> {
 	const { session } = await getAuth();
   if (session) return redirect("/");

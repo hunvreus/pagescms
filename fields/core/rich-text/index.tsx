@@ -5,6 +5,7 @@ import { ViewComponent } from "./view-component";
 import { marked } from "marked";
 import TurndownService from "turndown";
 import { tables, strikethrough } from "joplin-turndown-plugin-gfm";
+import { getSchemaByName } from "@/lib/schema";
 
 const read = (value: any, field: Field, config: Record<string, any>) => {
   let html = field.options?.format === "html"
@@ -13,10 +14,15 @@ const read = (value: any, field: Field, config: Record<string, any>) => {
       ? marked(value)
       : value;
 
-  const prefixInput = field.options?.input ?? config.object.media?.input;
-  const prefixOutput = field.options?.output ?? config.object.media?.output;
+  const mediaConfig = field.options?.media === false
+    ? undefined
+    : field.options?.media && typeof field.options.media === 'string'
+      ? getSchemaByName(config.object, field.options.media, "media")
+      : config.object.media[0];
 
-  return htmlSwapPrefix(html, prefixOutput, prefixInput, true);
+  if (!mediaConfig) return html;
+
+  return htmlSwapPrefix(html, mediaConfig.output, mediaConfig.input, true);
 };
 
 const write = (value: any, field: Field, config: Record<string, any>) => {
@@ -24,10 +30,15 @@ const write = (value: any, field: Field, config: Record<string, any>) => {
 
   content = rawToRelativeUrls(config.owner, config.repo, config.branch, content);
 
-  const prefixInput = field.options?.input ?? config.object.media?.input;
-  const prefixOutput = field.options?.output ?? config.object.media?.output;
+  const mediaConfig = field.options?.media === false
+    ? undefined
+    : field.options?.media && typeof field.options.media === 'string'
+      ? getSchemaByName(config.object, field.options.media, "media")
+      : config.object.media[0];
 
-  content = htmlSwapPrefix(content, prefixInput, prefixOutput);
+  if (mediaConfig) {
+    content = htmlSwapPrefix(content, mediaConfig.input, mediaConfig.output);
+  }
 
   if (field.options?.format !== "html") {
     const turndownService = new TurndownService({

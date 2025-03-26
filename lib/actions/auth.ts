@@ -1,5 +1,9 @@
 "use server";
 
+/**
+ * Authentication actions. All handled with Lucia auth, look at `lib/auth.ts` as well.
+ */
+
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { generateState } from "arctic";
@@ -15,6 +19,7 @@ import { z } from "zod";
 import { Resend } from "resend";
 import { LoginEmailTemplate } from "@/components/email/login";
 
+// Create a login token for the user.
 async function createLoginToken(email: string): Promise<string> {
 	await db.delete(emailLoginTokenTable).where(eq(emailLoginTokenTable.email, email));
 	const tokenId = generateIdFromEntropySize(25);
@@ -27,6 +32,7 @@ async function createLoginToken(email: string): Promise<string> {
 	return tokenId;
 }
 
+// Send a sign in link to the user's email.
 const handleEmailSignIn = async (prevState: any, formData: FormData) => {
   const validation = z.coerce.string().email().safeParse(formData.get("email"));
 
@@ -59,6 +65,7 @@ const handleEmailSignIn = async (prevState: any, formData: FormData) => {
 	return { message: "We've sent you a link to sign in. If you don't see it, check your spam folder." };	
 };
 
+// Redirect to the GitHub sign in page.
 const handleGithubSignIn = async () => {
   const state = generateState();
 	const url = await github.createAuthorizationURL(state, { scopes: ["repo", "user:email"] });
@@ -74,6 +81,7 @@ const handleGithubSignIn = async () => {
 	return redirect(url.href);
 };
 
+// Sign out the user.
 const handleSignOut = async () => {
 	const { session } = await getAuth();
 	if (!session) return { error: "Unauthorized" };

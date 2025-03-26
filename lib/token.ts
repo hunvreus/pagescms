@@ -1,5 +1,9 @@
+/**
+ * Token helper functions.
+ */
+
 import { cache } from "react";
-import { App, Octokit } from "octokit";
+import { App } from "octokit";
 import { getAuth } from "@/lib/auth";
 import { decrypt, encrypt } from "@/lib/crypto";
 import { db } from "@/db";
@@ -11,6 +15,7 @@ import {
 import { and, eq, sql } from "drizzle-orm";
 import { User } from "@/types/user";
 
+// Get a token for a user (including collagborators who need to provide an owner/repo scope).
 const getToken = cache(async (user: User, owner: string, repo: string) => {
   if (user.githubId) return await getUserToken();
 
@@ -27,6 +32,7 @@ const getToken = cache(async (user: User, owner: string, repo: string) => {
   return installationToken
 });
 
+// Get the GitHub App installation token for a specific repository.
 const getInstallationToken = cache(async (owner: string, repo: string) => {
   const app = new App({
 		appId: process.env.GITHUB_APP_ID!,
@@ -75,6 +81,7 @@ const getInstallationToken = cache(async (owner: string, repo: string) => {
   return installationToken.data.token;
 });
 
+// Get the GitHub user token.
 const getUserToken = cache(async () => {
   const { user } = await getAuth();
 	if (!user) throw new Error("User not found");

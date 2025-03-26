@@ -4,6 +4,15 @@ import { getConfig } from "@/lib/utils/config";
 import { getFileExtension, normalizePath } from "@/lib/utils/file";
 import { getAuth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
+import { updateFileCache } from "@/lib/githubCache";
+
+/**
+ * Renames a file in a GitHub repository.
+ * 
+ * POST /api/[owner]/[repo]/[branch]/files/[path]/rename
+ *
+ * Requires authentication.
+ */
 
 export async function POST(
   request: Request,
@@ -31,12 +40,14 @@ export async function POST(
     const normalizedNewPath = normalizePath(data.newPath);
     if (normalizedPath === normalizedNewPath) throw new Error(`New path "${data.newPath}" is the same as the old path.`);
 
+    let schema;
+
     switch (data.type) {
       case "content":
         if (!data.name) throw new Error(`"name" is required for content.`);
 
-        const schema = getSchemaByName(config.object, data.name);
-        if (!schema) throw new Error(`Schema not found for ${data.name}.`);
+        schema = getSchemaByName(config.object, data.name);
+        if (!schema) throw new Error(`Content schema not found for ${data.name}.`);
 
         if (schema.type === "file") throw new Error(`Renaming content of type "file" isn't allowed.`);
         
@@ -47,23 +58,43 @@ export async function POST(
         if (getFileExtension(normalizedNewPath) !== schema.extension) throw new Error(`Invalid extension "${getFileExtension(normalizedNewPath)}" for ${data.type} "${data.name}".`);
         break;
       case "media":
-        if (!config.object.media) throw new Error(`No media configuration found for ${params.owner}/${params.repo}/${params.branch}.`);
+        if (!data.name) throw new Error(`"name" is required for media.`);
+
+        schema = getSchemaByName(config.object, data.name, "media");
+        if (!schema) throw new Error(`Media schema not found for ${data.name}.`);
         
-        if (!normalizedPath.startsWith(config.object.media.input)) throw new Error(`Invalid path "${params.path}" for media.`);
-        if (!normalizedNewPath.startsWith(config.object.media.input)) throw new Error(`Invalid path "${data.newPath}" for media.`);
+        if (!normalizedPath.startsWith(schema.input)) throw new Error(`Invalid path "${params.path}" for media.`);
+        if (!normalizedNewPath.startsWith(schema.input)) throw new Error(`Invalid path "${data.newPath}" for media.`);
         
         if (
-          config.object.media.extensions?.length > 0 &&
-          !config.object.media.extensions.includes(getFileExtension(normalizedPath))
+          schema.extensions?.length > 0 &&
+          !schema.extensions.includes(getFileExtension(normalizedPath))
         ) throw new Error(`Invalid extension "${getFileExtension(normalizedPath)}" for media.`);
         if (
-          config.object.media.extensions?.length > 0 &&
-          !config.object.media.extensions.includes(getFileExtension(normalizedNewPath))
+          schema.extensions?.length > 0 &&
+          !schema.extensions.includes(getFileExtension(normalizedNewPath))
         ) throw new Error(`Invalid extension "${getFileExtension(normalizedNewPath)}" for media.`);
         break;
     }
     
     const response = await githubRenameFile(token, params.owner, params.repo, params.branch, normalizedPath, normalizedNewPath);
+
+    // Update the cache with the rename operation
+    await updateFileCache(
+      data.type === 'content' ? 'collection' : 'media',
+      params.owner,
+      params.repo,
+      params.branch,
+      {
+        type: 'rename',
+        path: normalizedPath,
+        newPath: normalizedNewPath,
+        commit: {
+          sha: response.sha,
+          timestamp: Date.now()
+        }
+      }
+    );
 
     // TODO: remove success message in backend 
     return Response.json({

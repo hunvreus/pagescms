@@ -1,38 +1,60 @@
+/**
+ * The Zod schema for the configuration file. Used in the settings editor.
+ * 
+ * Look at the `lib/config.ts` file to understand how we use this schema.
+ */
+
 import { z } from "zod";
 
+// Media configuration object schema (for single object)
+const MediaConfigObject = z.object({
+  input: z.string({
+    message: "'input' is required."
+  }).regex(/^[^/].*[^/]$|^$/, {
+    message: "'input' must be a valid relative path (no leading or trailing slash)."
+  }),
+  output: z.string({
+    message: "'output' is required."
+  }).regex(/^(\/?[^/].*[^/]$|^\/?$)/, {
+    message: "'output' must be a valid path with no trailing slash."
+  }),
+  path: z.string().regex(/^[^/].*[^/]$|^$/, {
+    message: "'path' must be a valid relative path (no leading or trailing slash)."
+  }).optional(),
+  extensions: z.array(z.string({
+    message: "Entries in the 'extensions' array must be strings."
+  }), {
+    message: "'extensions' must be an array of strings."
+  }).optional(),
+  categories: z.array(z.enum(["image", "document", "video", "audio", "compressed", "code", "font", "spreadsheet"], {
+    message: "Entries in the 'categories' array must be 'image', 'document', 'video', 'audio', 'compressed', 'code', 'font', or 'spreadsheet'."
+  }), {
+    message: "'categories' must be an array of strings."
+  }).optional(),
+  name: z.string().optional(),
+  label: z.string().optional(),
+}).strict();
+
+// Named media configuration schema (for array entries)
+const NamedMediaConfig = MediaConfigObject.extend({
+  name: z.string({
+    required_error: "'name' is required for media configurations in array format.",
+    invalid_type_error: "'name' must be a string.",
+  }),
+});
+
+// Media schema
 const MediaSchema = z.union([
   z.string().regex(/^[^/].*[^/]$|^$/, {
     message: "'media' must be a valid relative path (no leading or trailing slash)."
   }),
-  z.object({
-    input: z.string({
-      message: "'input' is required."
-    }).regex(/^[^/].*[^/]$|^$/, {
-      message: "'input' must be a valid relative path (no leading or trailing slash)."
-    }),
-    output: z.string({
-      message: "'output' is required."
-    }).regex(/^(\/?[^/].*[^/]$|^\/?$)/, {
-      message: "'output' must be a valid path with no trailing slash."
-    }),
-    path: z.string().regex(/^[^/].*[^/]$|^$/, {
-      message: "'path' must be a valid relative path (no leading or trailing slash)."
-    }).optional(),
-    extensions: z.array(z.string({
-      message: "Entries in the 'extensions' array must be strings."
-    }), {
-      message: "'extensions' must be an array of strings."
-    }).optional(),
-    categories: z.array(z.enum(["image", "document", "video", "audio", "compressed"], {
-      message: "Entries in the 'categories' array must be 'image', 'document', 'video', 'audio', or 'compressed'."
-    }), {
-      message: "'categories' must be an array of strings."
-    }).optional(),
-  }, {
-    message: "'media' must be a string (relative path) or an object with 'input' and 'output' attributes."
-  }).strict()
+  MediaConfigObject,
+  z.array(NamedMediaConfig, {
+    message: "'media' must be a string, an object, or an array of named media configurations."
+  })
 ]);
 
+// Content entry fields schema
 const FieldObjectSchema: z.ZodType<any> = z.lazy(() => z.object({
   name: z.string({
     required_error: "'name' is required.",
@@ -48,8 +70,8 @@ const FieldObjectSchema: z.ZodType<any> = z.lazy(() => z.object({
   ]).optional(),
   description: z.string().optional().nullable(),
   type: z.enum([
-    "boolean", "code", "date", "image", "number", "object", "rich-text",
-    "select", "string", "text"
+    "boolean", "code", "date", "file", "image", "number", "object", "reference", "rich-text",
+    "select", "string", "text", "uuid"
   ], {
     message: "'type' is required and must be set to a valid field type (see documentation)."
   }),
@@ -89,7 +111,7 @@ const FieldObjectSchema: z.ZodType<any> = z.lazy(() => z.object({
   fields: z.array(z.lazy(() => FieldObjectSchema)).optional(),
 }).strict());
 
-// Define the schema for content objects
+// Content entry schema
 const ContentObjectSchema = z.object({
   name: z.string({
     required_error: "'name' is required.",
@@ -178,7 +200,7 @@ const ContentObjectSchema = z.object({
   message: "YOP"
 }).strict();
 
-// Define the main schema
+// Main schema with media and content
 const ConfigSchema = z.object({
   media: MediaSchema.optional(),
   content: z.array(ContentObjectSchema, {

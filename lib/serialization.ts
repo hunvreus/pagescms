@@ -26,8 +26,18 @@ const parse = (content: string = "", options: { delimiters?: string, format?: Fo
   let contentObject;
   
   if (!match) return { body: content };
+
+  // For json-frontmatter and default delimiters (curly braces), we need the
+  // with the delimiters included to be a valid JSON object.
+  const frontMatter = (
+    format === "json-frontmatter" &&
+    delimiters[0] === "{" &&
+    delimiters[1] === "}"
+  )
+    ? match[1]
+    : match[2]
   
-  contentObject = deserialize(match[2], format.split("-")[0] as SerialFormat);
+  contentObject = deserialize(frontMatter, format.split("-")[0] as SerialFormat);
   contentObject["body"] = match[3] || "";
   contentObject["body"] = contentObject["body"].replace(/^\n/, "");
 
@@ -61,12 +71,17 @@ const stringify = (contentObject: Record<string, any> = {}, options: { delimiter
   // Frontmatter
   const delimiters = setDelimiter(options.delimiters, format as FrontmatterFormat);
 
-  let contentObjectCopy = JSON.parse(JSON.stringify(contentObject)); // Avoid mutating our object
+  let contentObjectCopy = JSON.parse(JSON.stringify(contentObject));
   const body = contentObjectCopy.body || "";
   delete contentObjectCopy.body;
 
   let frontmatter = serialize(contentObjectCopy, format.split("-")[0] as SerialFormat);
   frontmatter = (frontmatter.trim()) ? frontmatter.trim() + "\n" : ""; // Make sure we don"t have extra newlines
+  
+  // For json-frontmatter with default delimiters, the serialized content already includes braces
+  if (format === "json-frontmatter" && delimiters[0] === "{" && delimiters[1] === "}") {
+    return `${frontmatter}${body}`;
+  }
   
   return `${delimiters[0]}\n${frontmatter}${delimiters[1]}\n${body}`;
 };

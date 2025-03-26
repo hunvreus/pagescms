@@ -9,6 +9,14 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { emailLoginTokenTable, userTable } from "@/db/schema";
 
+/**
+ * Handles email login authentication (for collaborators).
+ * 
+ * GET /api/auth/email/[token]
+ * 
+ * Requires email login token.
+ */
+
 export async function GET(
 	request: Request,
 	{ params }: { params: { token: string } }

@@ -1,3 +1,11 @@
+/**
+ * Utility functions to create, retrieve and update a repository configuration
+ * from the DB.
+ * 
+ * Look at the `lib/config.ts` file to understand how the config is parsed,
+ * normalized and validated.
+ */
+
 import { cache } from "react";
 import { Config } from "@/types/config";
 import { db } from "@/db";

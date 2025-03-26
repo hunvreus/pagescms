@@ -8,6 +8,7 @@ import { z } from "zod";
 import { Field } from "@/types/field";
 import { format } from "date-fns";
 
+// Deep map a content object to a schema
 const deepMap = (
   contentObject: Record<string, any>,
   fields: Field[],
@@ -21,13 +22,17 @@ const deepMap = (
       
       // TOOD: do we want to check for undefined or null?
       if (field.list) {
-        result[field.name] = Array.isArray(value)
-          ? value.map(item =>
-              field.type === "object"
-                ? traverse(item, field.fields || [])
-                : apply(item, field)
-            )
-          : [];
+        if (value === undefined) {
+          result[field.name] = apply(value, field);
+        } else {
+          result[field.name] = Array.isArray(value)
+            ? value.map(item =>
+                field.type === "object"
+                  ? traverse(item, field.fields || [])
+                  : apply(item, field)
+              )
+            : [];
+        }
       } else if (field.type === "object") {
         result[field.name] = value !== undefined
           ? traverse(value, field.fields || [])
@@ -46,18 +51,19 @@ const deepMap = (
 // Create an initial state for an entry based on the schema fields and content
 const initializeState = (
   fields: Field[] | undefined,
-  contentObject: Record<string, any> = {},
-  addDefaultEntryToLists: boolean = true,
-  nestArrays: boolean = false
+  contentObject: Record<string, any> = {}
 ): Record<string, any> => {
   if (!fields) return {};
-
+  
   return deepMap(contentObject, fields, (value, field) => {
     let appliedValue = value;
     if (value === undefined) {
-      appliedValue = field.list && addDefaultEntryToLists ? [getDefaultValue(field)] : getDefaultValue(field);
+      appliedValue = field.list
+        ? (typeof field.list === "object" && field.list.default)
+          ? field.list.default
+          : undefined
+        : getDefaultValue(field);
     }
-    if (field.list && nestArrays) appliedValue = { value: appliedValue}
     return appliedValue;
   });
 };
@@ -69,44 +75,11 @@ const getDefaultValue = (field: Record<string, any>) => {
   } else if (field.type === "object") {
     return initializeState(field.fields, {});
   } else {
-    return defaultValues?.[field.type] || "";
+    const defaultValue = defaultValues?.[field.type];
+    return defaultValue instanceof Function
+      ? defaultValue()
+      : defaultValue || "";
   }
-};
-
-// Used to work around RHF's inability to handle flat field arrays
-// See https://react-hook-form.com/docs/usefieldarray#rules
-const nestFieldArrays = (values: any, fields: Field[]): any => {
-  const result: any = {};
-
-  fields.forEach(field => {
-    if (field.list) {
-      result[field.name] = values[field.name]?.map((item: any) => field.type === 'object' ? { value: nestFieldArrays(item, field.fields || []) } : { value: item }) || [];
-    } else if (field.type === "object" && field.fields) {
-      result[field.name] = nestFieldArrays(values[field.name] || {}, field.fields);
-    } else {
-      result[field.name] = values[field.name];
-    }
-  });
-
-  return result;
-};
-
-// Used to work around RHF's inability to handle flat field arrays
-// See https://react-hook-form.com/docs/usefieldarray#rules
-const unnestFieldArrays = (values: any, fields: Field[]): any => {
-  const result: any = {};
-
-  fields.forEach(field => {
-    if (field.list) {
-      result[field.name] = values[field.name]?.map((item: { value: any }) => field.type === 'object' ? unnestFieldArrays(item.value, field.fields || []) : item.value) || [];
-    } else if (field.type === "object" && field.fields) {
-      result[field.name] = unnestFieldArrays(values[field.name] || {}, field.fields);
-    } else {
-      result[field.name] = values[field.name];
-    }
-  });
-
-  return result;
 };
 
 // Generate a Zod schema for validation
@@ -211,11 +184,13 @@ const getSchemaByPath = (config: Record<string, any>, path: string) => {
   return schema ? JSON.parse(JSON.stringify(schema)) : null;
 };
 
-// Retrieve the matching schema for a type
-const getSchemaByName = (config: Record<string, any> | null | undefined, name: string) => {
+// Retrieve the matching schema for a media or content entry
+const getSchemaByName = (config: Record<string, any> | null | undefined, name: string, type: string = "content") => {
   if (!config || !config.content || !name) return null;
   
-  const schema = config.content.find((item: Record<string, any>) => item.name === name);
+  const schema = (type === "media")
+    ? config.media.find((item: Record<string, any>) => item.name === name)
+    : config.content.find((item: Record<string, any>) => item.name === name);
 
   // We deep clone the object to avoid mutating config if schema is modified.
   return schema ? JSON.parse(JSON.stringify(schema)) : null;
@@ -230,6 +205,21 @@ function safeAccess(obj: Record<string, any>, path: string) {
     }
     return acc && acc[part];
   }, obj);
+}
+
+// Interpolate a string with a data object, with optional prefix fallback (e.g. "fields")
+function interpolate(input: string, data: Record<string, any>, prefixFallback?: string): string {
+  return input.replace(/(?<!\\)\{([^}]+)\}/g, (_, token) => {
+    // First try direct access
+    let value = safeAccess(data, token);
+    
+    // If value is undefined and we have a prefix fallback, try with prefix
+    if (value === undefined && prefixFallback) {
+      value = safeAccess(data, `${prefixFallback}.${token}`);
+    }
+    
+    return value !== undefined ? String(value) : '';
+  }).replace(/\\([{}])/g, '$1');
 }
 
 // Get a field by its path
@@ -304,8 +294,7 @@ export {
   getPrimaryField,
   generateFilename,
   getDateFromFilename,
-  nestFieldArrays,
-  unnestFieldArrays,
   generateZodSchema,
-  safeAccess
+  safeAccess,
+  interpolate
 };

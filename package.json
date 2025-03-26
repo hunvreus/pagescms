@@ -9,11 +9,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && npm run db:migrate",
+    "build": "next build",
+    "postbuild": "npm run db:migrate",
     "start": "next start",
     "lint": "next lint",
     "db:generate": "npx drizzle-kit generate",
-    "db:migrate": "npx drizzle-kit migrate"
+    "db:migrate": "npx drizzle-kit migrate",
+    "db:clear-cache": "npx tsx db/scripts/clear-cache.ts"
   },
   "dependencies": {
     "@codemirror/lang-html": "^6.4.9",
@@ -70,7 +72,7 @@
     "install": "^0.13.0",
     "joplin-turndown-plugin-gfm": "^1.0.12",
     "lucia": "^3.2.0",
-    "lucide-react": "^0.378.0",
+    "lucide-react": "^0.479.0",
     "marked": "^12.0.2",
     "next": "^14.2.20",
     "next-themes": "^0.3.0",
@@ -79,6 +81,7 @@
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.51.5",
+    "react-select": "^5.10.0",
     "resend": "^3.5.0",
     "slugify": "^1.6.6",
     "sonner": "^1.4.41",
@@ -86,6 +89,7 @@
     "tailwindcss-animate": "^1.0.7",
     "turndown": "^7.2.0",
     "use-debounce": "^10.0.0",
+    "uuid": "^11.1.0",
     "yaml": "^2.4.2",
     "zod": "^3.23.8"
   },

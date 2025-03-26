@@ -10,6 +10,7 @@ import { and, eq} from "drizzle-orm";
 import { collaboratorTable } from "@/db/schema";
 import { z } from "zod";
 
+// Invite a collaborator to a repository.
 const handleAddCollaborator = async (prevState: any, formData: FormData) => {
 	try {
 		// TODO: remove the requirement for Github account, let any collaborator invite others
@@ -101,6 +102,7 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
 	}
 };
 
+// Remove a collaborator from a repository.
 const handleRemoveCollaborator = async (collaboratorId: number, owner: string, repo: string) => {
 	try {
 		const { user } = await getAuth();

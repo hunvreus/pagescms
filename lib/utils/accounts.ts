@@ -1,3 +1,7 @@
+/**
+ * Get the list of GitHub accounts the user (incl. collaborators) has access to.
+ */
+
 import { db } from "@/db";
 import { collaboratorTable } from "@/db/schema";
 import { eq } from "drizzle-orm";

@@ -6,8 +6,8 @@ export default defineConfig({
   out: "./db/migrations",
   dialect: "sqlite",
   driver: (process.env.SQLITE_AUTH_TOKEN && process.env.SQLITE_AUTH_TOKEN !== "")
-    ? "turso"
-    : undefined,
+    ? ("turso" as const)
+    : (undefined as any),
   dbCredentials: {
     url: process.env.SQLITE_URL!,
     authToken: process.env.SQLITE_AUTH_TOKEN,
