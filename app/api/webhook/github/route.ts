@@ -42,7 +42,12 @@ export async function POST(request: Request) {
         case "installation":
           if (data.action === "deleted") {
             // App uninstalled
-            const accountLogin = data.account.login;
+            const accountLogin = data.installation?.account?.login;
+            
+            if (!accountLogin) {
+              console.error("Missing account login in installation deleted event", data.installation);
+              break;
+            }
             
             await Promise.all([
               db.delete(collaboratorTable).where(
@@ -59,7 +64,7 @@ export async function POST(request: Request) {
         case "installation_repositories":
           if (data.action === "removed") {
             // Repositories removed from installation
-            const reposIdRemoved = data.repositories_removed.map((repo: any) => repo.id);
+            const reposIdRemoved = data.repositories_removed?.map((repo: any) => repo.id) || [];
             if (reposIdRemoved.length === 0) break;
             
             await db.delete(collaboratorTable).where(
@@ -67,9 +72,14 @@ export async function POST(request: Request) {
             );
             
             await Promise.all(
-              data.repositories_removed.map((repo: any) => 
-                clearFileCache(repo.owner.login, repo.name)
-              )
+              (data.repositories_removed || []).map((repo: any) => {
+                // full_name format is "owner/repo"
+                const [owner, repoName] = (repo.full_name || "").split('/');
+                if (owner && repoName) {
+                  return clearFileCache(owner, repoName);
+                }
+                return Promise.resolve();
+              })
             );
           }
           break;
@@ -142,6 +152,12 @@ export async function POST(request: Request) {
           
         case "push":
           // Files changed (added, modified, removed)
+          // Skip cache updates for branch deletions (they're handled by the "delete" event)
+          if (data.deleted === true) {
+            console.log("Skipping push event for branch deletion");
+            break;
+          }
+
           const pushOwner = data.repository.owner.login;
           const pushRepo = data.repository.name;
           const pushBranch = data.ref.replace('refs/heads/', '');
