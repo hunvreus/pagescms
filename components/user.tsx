@@ -67,13 +67,17 @@ export function User({
             : <div className="text-sm font-medium truncate">{user.email}</div>
           }
         </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <a href={`https://github.com/${user.githubUsername}`} target="_blank" onClick={onClick}>
-            <span className="mr-4">See GitHub profile</span>
-            <ArrowUpRight className="h-3 w-3 ml-auto opacity-50" />
-          </a>
-        </DropdownMenuItem>
+        {user?.githubId && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <a href={`https://github.com/${user.githubUsername}`} target="_blank" onClick={onClick}>
+                <span className="mr-4">See GitHub profile</span>
+                <ArrowUpRight className="h-3 w-3 ml-auto opacity-50" />
+              </a>
+            </DropdownMenuItem>
+          </>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuLabel className="w-40 text-xs text-muted-foreground font-medium">
           Theme
