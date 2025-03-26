@@ -89,7 +89,7 @@ Variable | Comments
 `GITHUB_APP_WEBHOOK_SECRET` | The secret you picked for your webhook. This is used to ensure the request is coming from GitHub.
 `GITHUB_APP_CLIENT_ID` | GitHub App Client ID from your GitHub App details page.
 `GITHUB_APP_CLIENT_SECRET` | GitHub App Client Secret you generate on theGitHub App details page.
-`RESEND_DOMAIN_EMAIL` | The domain email you use for your Resend account (e.g. `no-reply@mail.resend.com` )
+`RESEND_FROM_EMAIL` | The sender for authentication emails. Must be a verified domain in your Resend account and follow the format `email@example.com` or `Name <email@example.com>`.
 `RESEND_API_KEY` | You'll get that when you create a (free) [Resend](https://resend.com) account to handle emails.
 `SQLITE_URL` | `file:./local.db` for development, `libsql://pages-cms-username.turso.io` for example if you use [Turso](https://turso.tech) (you should, Turso is great).
 `SQLITE_AUTH_TOKEN` | Leave blank for development, otherwise use the token provided by [Turso](https://turso.tech) (if that's what you use).

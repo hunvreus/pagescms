@@ -581,13 +581,10 @@ const checkRepoAccess = async (
   
   // Not in cache, check with API
   try {
-    console.log("Checking repo access for", owner, repo, githubId);
     const octokit = createOctokitInstance(token);
     const response = await octokit.rest.repos.get({ owner, repo });
-    console.log("Response", response.status === 200);
     // If successful, cache the result
     if (response.status === 200) {
-      console.log("Caching result");
       await db.insert(cachePermissionTable)
         .values({
           githubId,
