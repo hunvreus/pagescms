@@ -187,7 +187,12 @@ export async function POST(request: Request) {
       }
     } catch (error: any) {
       // TODO: log for remediation (maybe invalidate cache to be safe)
-      console.error("Error in Webhook", error);
+      console.error("Error in Webhook", {
+        error,
+        event,
+        payload: data,
+        action: data?.action
+      });
     }
     
     return Response.json(null, { status: 200 });
