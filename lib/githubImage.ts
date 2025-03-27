@@ -145,21 +145,33 @@ const swapPrefix = (
   to: string,
   relative = false
 ) => {
-  if (path == null || from == null || to == null) return path;
+  console.log("swapPrefix", path, from, to, relative);
+  if (
+    path == null
+    || from == null
+    || to == null
+    || (from === to)
+    || path.startsWith("//")
+    || path.startsWith("http://")
+    || path.startsWith("https://")
+    || path.startsWith("data:image/")
+    || !path.startsWith(from)
+  ) return path;
   
   let newPath;
   
-  if (from === to) {
-    newPath = path;
-  } else if (path.startsWith(from) && !(from == "/" && path.startsWith("//")) && !path.startsWith("http://") && !path.startsWith("https://") && !path.startsWith("data:image/")) {
-    if (from === "" && to !== "/" && !path.startsWith("/")) {
-      newPath = `${to}/${path}`;
-    } else {
-      newPath = path.replace(from, to);
-    }
+  if (from === "" && to !== "/") {
+    newPath = `${to}/${path}`;
+  } else if (from === "" && to === "/") {
+    newPath = `/${path}`;
   } else {
-    return path;
+    const remainingPath = path.slice(from.length);
+    newPath = to === "/" 
+      ? `/${remainingPath.replace(/^\//, '')}` 
+      : `${to}/${remainingPath.replace(/^\//, '')}`;
   }
+
+  console.log("newPath", newPath);
 
   if (newPath && newPath.startsWith("/") && relative) newPath = newPath.substring(1);
 
@@ -173,30 +185,23 @@ const htmlSwapPrefix = (
   to: string,
   relative = false
 ) => {
-  if (from === to) return html;
+  if (from === to || html == null || from == null || to == null) return html;
   
   let newHtml = html;
-
-  if (html != null && from != null && to != null) {
-    const matches = getImgSrcs(newHtml);
-    matches.forEach(match => {
-      const src = match[1] || match[2];
-      const quote = match[1] ? "\"" : "'";
-      let newSrc;
-      
-      if (from === to) {
-        newSrc = src;
-      } else if (src.startsWith(from) && !(from == "/" && src.startsWith("//")) && !src.startsWith("http://") && !src.startsWith("https://") && !src.startsWith("data:image/")) {
-        if (from === "" && to !== "/" && !src.startsWith("/")) {
-          newSrc = `${to}/${src}`;
-        } else {
-          newSrc = src.replace(from, to);
-        }
-        if (newSrc && newSrc.startsWith("/") && relative) newSrc = newSrc.substring(1);
-        newHtml = newHtml.replace(`src=${quote}${src}${quote}`, `src=${quote}${newSrc}${quote}`);
-      }
-    });
-  }
+  const matches = getImgSrcs(newHtml);
+  
+  matches.forEach(match => {
+    const src = match[1] || match[2];
+    const quote = match[1] ? "\"" : "'";
+    
+    const newSrc = swapPrefix(src, from, to, relative);
+    if (newSrc !== src) {
+      // Use a regex with global flag to replace all occurrences
+      const escapedSrc = src.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // Escape special regex chars
+      const regex = new RegExp(`src=${quote}${escapedSrc}${quote}`, 'g');
+      newHtml = newHtml.replace(regex, `src=${quote}${newSrc}${quote}`);
+    }
+  });
 
   return newHtml;
 }
