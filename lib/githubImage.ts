@@ -145,7 +145,6 @@ const swapPrefix = (
   to: string,
   relative = false
 ) => {
-  console.log("swapPrefix", path, from, to, relative);
   if (
     path == null
     || from == null
@@ -170,8 +169,6 @@ const swapPrefix = (
       ? `/${remainingPath.replace(/^\//, '')}` 
       : `${to}/${remainingPath.replace(/^\//, '')}`;
   }
-
-  console.log("newPath", newPath);
 
   if (newPath && newPath.startsWith("/") && relative) newPath = newPath.substring(1);
 
