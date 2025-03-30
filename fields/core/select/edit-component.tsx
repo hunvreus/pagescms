@@ -151,21 +151,23 @@ const EditComponent = forwardRef((props: any, ref: any) => {
 
   const handleChange = useCallback(
     (newValue: any) => {
-      // When a new value is selected, ensure we display the value, not the label
-      const selectedValue = newValue 
-        ? field.options?.multiple 
-          ? newValue.map((item: any) => ({ value: item.value, label: item.value }))
-          : { value: newValue.value, label: newValue.value }
-        : field.options?.multiple ? [] : null;
-      
-      setSelectedOptions(selectedValue);
+      if (!field.options?.fetch) {
+        setSelectedOptions(newValue);
+      } else {
+        const selectedValue = newValue 
+          ? field.options?.multiple 
+            ? newValue.map((item: any) => ({ value: item.value, label: item.value }))
+            : { value: newValue.value, label: newValue.value }
+          : field.options?.multiple ? [] : null;
+        setSelectedOptions(selectedValue);
+      }
 
       const output = field.options?.multiple
         ? newValue ? newValue.map((item: any) => item.value) : []
         : newValue ? newValue.value : null;
       onChange(output);
     },
-    [onChange, field.options?.multiple, field]
+    [onChange, field.options?.multiple, field.options?.fetch]
   );
 
   if (!isMounted) return null;
