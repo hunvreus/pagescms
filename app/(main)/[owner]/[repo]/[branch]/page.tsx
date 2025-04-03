@@ -14,7 +14,7 @@ export default function Page() {
     if (config?.object.content?.[0]) {
       router.replace(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/${config.object.content[0].type}/${config.object.content[0].name}`);
     } else if (config?.object.media) {
-      router.replace(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/media`);
+      router.replace(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/media/${config.object.media[0].name}`);
     } else if (config?.object.settings !== false) {
       router.replace(`/${config?.owner}/${config?.repo}/${encodeURIComponent(config!.branch)}/settings`);
     } else {

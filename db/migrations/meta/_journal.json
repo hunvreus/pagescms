@@ -12,15 +12,8 @@
     {
       "idx": 1,
       "version": "6",
-      "when": 1742264373167,
-      "tag": "0001_late_shinko_yamashiro",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1742531381179,
-      "tag": "0002_brainy_chamber",
+      "when": 1742647191303,
+      "tag": "0001_certain_thunderbird",
       "breakpoints": true
     }
   ]

@@ -18,6 +18,10 @@ It offers a user-friendly interface to edit the content of your website or app d
 
 Go to [pagescms.org/docs](https://pagescms.org/docs).
 
+## Community chat
+
+[Join the Discord server](https://pagescms.org/chat) to get help with Pages CMS, share feedback, and connect with other users building with the platform.
+
 ## Built with
 
 - [Next.js](https://nextjs.org/)
@@ -71,7 +75,9 @@ You will need to fill in the following information:
     - Account permissions: nothing.
 - **Subscribe to events**:
     - Installation target
-    - Repository (you'll probably need to add this after creating the GitHub App)
+    - Repository
+    - Push
+    - Delete
 - **Where can this GitHub App be installed?**: you'll want to select "Any account" unless you intend to only use Pages CMS on the account this GitHub App is created under.
 
 ### Environment variables
@@ -85,11 +91,14 @@ Variable | Comments
 `GITHUB_APP_WEBHOOK_SECRET` | The secret you picked for your webhook. This is used to ensure the request is coming from GitHub.
 `GITHUB_APP_CLIENT_ID` | GitHub App Client ID from your GitHub App details page.
 `GITHUB_APP_CLIENT_SECRET` | GitHub App Client Secret you generate on theGitHub App details page.
-`RESEND_DOMAIN_EMAIL` | The domain email you use for your Resend account (e.g. `no-reply@mail.resend.com` )
+`RESEND_FROM_EMAIL` | The sender for authentication emails. Must be a verified domain in your Resend account and follow the format `email@example.com` or `Name <email@example.com>`.
 `RESEND_API_KEY` | You'll get that when you create a (free) [Resend](https://resend.com) account to handle emails.
 `SQLITE_URL` | `file:./local.db` for development, `libsql://pages-cms-username.turso.io` for example if you use [Turso](https://turso.tech) (you should, Turso is great).
 `SQLITE_AUTH_TOKEN` | Leave blank for development, otherwise use the token provided by [Turso](https://turso.tech) (if that's what you use).
 `BASE_URL` | **OPTIONAL**. If you're deploying to Vercel or working locally, you won't need that. If you're deploying elsewhere, you'll need to specify the base URL for the app (e.g. `https://mycustomdomain.com`).
+`FILE_CACHE_TTL` | **OPTIONAL**. Time to live (in minutes) for file cache (collections and
+media folders). Defaults to 10080 (7 days). Set to "-1" to prevent the cache from ever expiring, or "0" if you want no cache.
+`PERMISSION_CACHE_TTL` | **OPTIONAL**. Time to live (in minutes) for the permission cache, which controls access to file cache. Defaults to 60. Set to "0" if you want to always check permissions against the GitHub API.
 
 ### Local development
 

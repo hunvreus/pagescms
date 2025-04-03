@@ -224,6 +224,7 @@ export function EntryEditor({
             <Link
               className={cn(buttonVariants({ variant: "outline", size: "icon-xs" }), "mr-4 shrink-0")}
               href={navigateBack}
+              prefetch={true}
             >
               <ChevronLeft className="h-4 w-4"/>
             </Link>

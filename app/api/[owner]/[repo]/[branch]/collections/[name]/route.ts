@@ -8,7 +8,7 @@ import { getConfig } from "@/lib/utils/config";
 import { normalizePath } from "@/lib/utils/file";
 import { getAuth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
-import { getCachedCollection } from "@/lib/githubCache";
+import { getCollectionCache, checkRepoAccess } from "@/lib/githubCache";
 
 /**
  * Fetches and parses collection contents from GitHub repositories
@@ -31,6 +31,11 @@ export async function GET(
     const token = await getToken(user, params.owner, params.repo);
     if (!token) throw new Error("Token not found");
 
+    if (user.githubId) {
+      const hasAccess = await checkRepoAccess(token, params.owner, params.repo, user.githubId);
+      if (!hasAccess) throw new Error(`No access to repository ${params.owner}/${params.repo}.`);
+    }
+
     const config = await getConfig(params.owner, params.repo, params.branch);
     if (!config) throw new Error(`Configuration not found for ${params.owner}/${params.repo}/${params.branch}.`);
 
@@ -50,7 +55,7 @@ export async function GET(
       if (normalizedPath !== schema.path) throw new Error(`Invalid path "${path}" for collection "${params.name}".`);
     }
 
-    let entries = await getCachedCollection(params.owner, params.repo, params.branch, normalizedPath, token);
+    let entries = await getCollectionCache(params.owner, params.repo, params.branch, normalizedPath, token);
     
     let data: {
       contents: Record<string, any>[],

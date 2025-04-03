@@ -28,6 +28,7 @@ const RepoNavItem = ({
     )}
     href={href}
     onClick={onClick}
+    prefetch={true}
   >
     {icon}
     <span className="truncate">{children}</span>

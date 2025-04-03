@@ -85,7 +85,7 @@ export function CollectionView({
     if (
       schema.filename.startsWith("{year}-{month}-{day}")
       && (
-        (schema.view?.fields.includes("date") && !pathAndFieldArray.find((item: any) => item.path === "date"))
+        (schema.view?.fields &&schema.view?.fields.includes("date") && !pathAndFieldArray.find((item: any) => item.path === "date"))
         || !schema.view?.fields
       )
     ) {
@@ -163,6 +163,7 @@ export function CollectionView({
               <Link
                 className="font-medium truncate"
                 href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/edit/${encodeURIComponent(row.original.path)}`}
+                prefetch={true}
               >
                 {CellView}
               </Link>
@@ -186,6 +187,7 @@ export function CollectionView({
           <Link
             className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8")}
             href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${name}/edit/${encodeURIComponent(row.original.path)}`}
+            prefetch={true}
           >
             Edit
           </Link>
