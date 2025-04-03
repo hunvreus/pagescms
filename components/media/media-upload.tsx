@@ -48,12 +48,12 @@ function MediaUploadRoot({ children, path, onUpload, media, extensions, multiple
     if (!configMedia?.extensions && !extensions) return undefined;
     
     const allowedExtensions = extensions 
-      ? configMedia.extensions
+      ? configMedia?.extensions
         ? extensions.filter(ext => configMedia.extensions.includes(ext))
         : extensions
-      : configMedia.extensions;
+      : configMedia?.extensions;
 
-    return allowedExtensions.length > 0
+    return allowedExtensions?.length > 0
       ? allowedExtensions.map((extension: string) => `.${extension}`).join(",")
       : undefined;
   }, [extensions, configMedia?.extensions]);
@@ -107,7 +107,7 @@ function MediaUploadRoot({ children, path, onUpload, media, extensions, multiple
     } catch (error) {
       console.error(error);
     }
-  }, [config, path, configMedia.name, onUpload]);
+  }, [config, path, configMedia?.name, onUpload]);
 
   const contextValue = useMemo(() => ({
     handleFiles,

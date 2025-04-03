@@ -75,7 +75,9 @@ You will need to fill in the following information:
     - Account permissions: nothing.
 - **Subscribe to events**:
     - Installation target
-    - Repository (you'll probably need to add this after creating the GitHub App)
+    - Repository
+    - Push
+    - Delete
 - **Where can this GitHub App be installed?**: you'll want to select "Any account" unless you intend to only use Pages CMS on the account this GitHub App is created under.
 
 ### Environment variables
