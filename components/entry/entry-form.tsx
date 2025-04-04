@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, forwardRef } from "react";
 import Link from "next/link";
 import {
   useForm,
@@ -55,7 +55,7 @@ import {
   restrictToParentElement
 } from "@dnd-kit/modifiers";
 import { CSS } from "@dnd-kit/utilities";
-import { ChevronLeft, GripVertical, Loader, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, GripVertical, Loader, Plus, Trash2, X } from "lucide-react";
 
 const SortableItem = ({
   id,
@@ -79,10 +79,11 @@ const SortableItem = ({
     transform: CSS.Transform.toString(transform),
     transition
   };
-
+  // type === "object" ? "px-2 py-4" : "px-1 py-2"
   return (
-    <div ref={setNodeRef} className={cn("bg-background flex gap-x-1 rounded-lg border items-center", type === "object" ? "px-2 py-4" : "px-1 py-2", isDragging ? "z-50" : "z-10")} style={style}>
-      <Button type="button" variant="ghost" size="icon-sm" className="h-8 cursor-move" {...attributes} {...listeners}>
+
+    <div ref={setNodeRef} className={cn("flex gap-x-2 items-center", isDragging ? "opacity-50 z-50" : "z-10")} style={style}>
+      <Button type="button" variant="ghost" size="icon-sm" className="h-auto w-6 bg-muted/50 self-stretch rounded-md text-muted-foreground cursor-move" {...attributes} {...listeners}>
         <GripVertical className="h-4 w-4" />
       </Button>
       {children}
@@ -166,15 +167,15 @@ const ListField = ({
             <DndContext sensors={sensors} modifiers={modifiers} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={arrayFields.map(item => item.id)} strategy={verticalListSortingStrategy}>
                 {arrayFields.map((arrayField, index) => (
-                  <SortableItem key={arrayField.id} id={arrayField.id} type={field.type}>
+                  <SortableItem key={arrayField.id} id={arrayField.id} type={typeof field.type === 'string' ? field.type : "mixed"}>
                     <div className="grid gap-6 flex-1">
-                      {field.type === "object" && field.fields
+                      {typeof field.type === 'string' && field.type === "object" && field.fields
                         ? renderFields(field.fields, `${fieldName}.${index}`)
                         : renderSingleField(field, `${fieldName}.${index}`, control, false)}
                     </div>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button type="button" variant="ghost" size="icon-sm" className="h-8" onClick={() => remove(index)}>
+                        <Button type="button" variant="ghost" size="icon-sm" className="bg-muted/50 text-muted-foreground self-start" onClick={() => remove(index)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </TooltipTrigger>
@@ -211,13 +212,126 @@ const ListField = ({
   );
 };
 
+const MixedTypeField = forwardRef((props: any, ref) => {
+  // Rename props from RHF for clarity
+  const { value: rhfValue, onChange: rhfOnChange, field } = props;
+  const types = Array.isArray(field.type) ? field.type : []; // Get the possible types
+
+  // Derive selectedType from the RHF value structure { type, value }
+  const selectedType = rhfValue?.type || null;
+
+  // Called when a type button is clicked
+  const handleTypeSelect = (newType: string) => {
+    // Create minimal config for default value lookup
+    const minimalFieldConfig = { ...field, type: newType, list: false, fields: undefined };
+    rhfOnChange({ // Update RHF state
+      type: newType,
+      value: getDefaultValue(minimalFieldConfig)
+    });
+  };
+
+  // Called when the remove button is clicked
+  const handleRemove = () => {
+    rhfOnChange(null); // Reset RHF state for this field
+  };
+
+  // onChange handler passed to the inner FieldComponent
+  const handleInnerChange = (eventOrValue: any) => {
+    let newInnerValue: any;
+
+    // Simple check: If it has a 'target' and 'target.value', assume it's an event.
+    if (eventOrValue && eventOrValue.target && typeof eventOrValue.target.value !== 'undefined') {
+      newInnerValue = eventOrValue.target.value;
+    // Simple check for checkbox event
+    } else if (eventOrValue && eventOrValue.target && typeof eventOrValue.target.checked !== 'undefined') {
+       newInnerValue = eventOrValue.target.checked;
+    }
+     else {
+      // Otherwise, assume the argument *is* the value.
+      newInnerValue = eventOrValue;
+    }
+
+    // Construct the new outer value for RHF { type, value }
+    const newOuterValue = {
+      type: selectedType,
+      value: newInnerValue // Use the extracted value
+    };
+
+    // Compare the extracted inner value with the existing inner value
+    if (selectedType && JSON.stringify(newInnerValue) !== JSON.stringify(rhfValue?.value)) {
+       rhfOnChange(newOuterValue); // Update RHF with the full object
+    }
+  };
+
+  // Get the specific component for the selected type
+  const FieldComponent = selectedType ? (editComponents?.[selectedType] || editComponents["text"]) : null;
+
+  // Determine the value to pass down
+  const innerValue = rhfValue?.value ?? getDefaultValue({ ...field, type: selectedType, list: false, fields: undefined });
+
+  return (
+    <div className="space-y-3" ref={ref as React.Ref<HTMLDivElement>}>
+      {!selectedType ? (
+        // State 1: Show type selection buttons
+        <div className="flex flex-wrap gap-2">
+          {types.map((type: string) => (
+            <Button key={type} type="button" variant="outline" size="sm" onClick={() => handleTypeSelect(type)}>
+              {type.charAt(0).toUpperCase() + type.slice(1)}
+            </Button>
+          ))}
+        </div>
+      ) : (
+        // State 2: Show selected type's form in a fieldset
+        <div className="rounded-lg border">
+          <header className="flex items-center justify-between gap-x-2 rounded-t-lg pl-4 pr-1 h-8 bg-muted border-b text-muted-foreground">
+            <span className="flex items-center gap-x-2 capitalize text-sm font-medium">{selectedType}</span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button type="button" variant="ghost" size="icon-sm" className="" onClick={handleRemove}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Remove item</TooltipContent>
+            </Tooltip>
+          </header>
+          <div className="p-4">
+            {FieldComponent && (
+              <FieldComponent
+                value={innerValue}
+                onChange={handleInnerChange}
+                // Pass field config with the *selected* type
+                field={{...field, type: selectedType}}
+              />
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
+
 const renderSingleField = (
   field: Field,
   fieldName: string,
   control: Control,
   showLabel = true
 ) => {
-  const FieldComponent = editComponents?.[field.type] || editComponents["text"];
+  if (!Array.isArray(field.type) && typeof field.type !== 'string') {
+    console.error(`Invalid field type: ${field.type}`);
+    return null;
+  }
+  let FieldComponent;
+
+  if (typeof field.type === 'string') {
+    if (editComponents?.[field.type]) {
+      FieldComponent = editComponents[field.type];
+    } else {
+      console.warn(`No component found for field type: ${field.type}. Switching to text.`);
+      FieldComponent = editComponents["text"];
+    }
+  } else {
+    FieldComponent = MixedTypeField;
+  }
 
   return (
     <FormField
@@ -319,6 +433,8 @@ const EntryForm = ({
 
   return (
     <Form {...form}>
+      {/* We display the watched form values in a div */}
+      <pre>{JSON.stringify(form.watch(), null, 2)}</pre>
       <form onSubmit={form.handleSubmit(handleSubmit)}>
         <div className="max-w-screen-xl mx-auto flex w-full gap-x-8">
           <div className="flex-1 w-0">

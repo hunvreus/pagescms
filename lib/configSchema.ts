@@ -69,11 +69,19 @@ const FieldObjectSchema: z.ZodType<any> = z.lazy(() => z.object({
     })
   ]).optional(),
   description: z.string().optional().nullable(),
-  type: z.enum([
-    "boolean", "code", "date", "file", "image", "number", "object", "reference", "rich-text",
-    "select", "string", "text", "uuid"
+  type: z.union([
+    z.string({
+      invalid_type_error: "'type' must be a non-empty string.",
+    }).min(1, "'type' cannot be an empty string."),
+    z.array(
+      z.string({
+        invalid_type_error: "Each item in the 'type' array must be a non-empty string."
+       }).min(1, "Items in the 'type' array cannot be empty strings."),
+      { invalid_type_error: "'type' must be a non-empty array of non-empty strings." }
+    ).min(1, "'type' array cannot be empty.")
   ], {
-    message: "'type' is required and must be set to a valid field type (see documentation)."
+      required_error: "'type' is required.",
+      invalid_type_error: "'type' must be a non-empty string or a non-empty array of non-empty strings. Received invalid value.",
   }),
   default: z.any().nullable().optional(),
   list: z.union([

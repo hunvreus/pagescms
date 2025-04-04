@@ -18,34 +18,49 @@ const deepMap = (
     const result: any = {};
 
     schema.forEach(field => {
-      const value = data[field.name];
-      
-      // TOOD: do we want to check for undefined or null?
+      const value = data?.[field.name];
+
       if (field.list) {
-        if (value === undefined) {
-          result[field.name] = apply(value, field);
+        if (value === undefined || !Array.isArray(value)) {
+          result[field.name] = apply(undefined, field);
+        } else if (field.type === "object") {
+          // List of objects
+          result[field.name] = value.map(item => traverse(item, field.fields || []));
+        } else if (Array.isArray(field.type)) {
+          // List of mixed types
+          result[field.name] = value.map(item => {
+              if (item && typeof item === 'object' && 'type' in item && 'value' in item && field.type.includes(item.type)) {
+                const processedInnerValue = apply(item.value, { ...field, type: item.type, list: false });
+                return { type: item.type, value: processedInnerValue };
+              }
+              return item; // Return original if malformed
+            });
         } else {
-          result[field.name] = Array.isArray(value)
-            ? value.map(item =>
-                field.type === "object"
-                  ? traverse(item, field.fields || [])
-                  : apply(item, field)
-              )
-            : [];
+          // List of simple types
+          result[field.name] = value.map(item => apply(item, { ...field, list: false }));
         }
       } else if (field.type === "object") {
+        // Object
         result[field.name] = value !== undefined
           ? traverse(value, field.fields || [])
-          : {};
+          : apply(undefined, field);
+      } else if (Array.isArray(field.type)) {
+        // Mixed type
+        if (value && typeof value === 'object' && 'type' in value && 'value' in value && field.type.includes(value.type)) {
+          const processedInnerValue = apply(value.value, { ...field, type: value.type });
+          result[field.name] = { type: value.type, value: processedInnerValue };
+        } else {
+          result[field.name] = apply(undefined, field);
+        }
       } else {
+        // Simple type
         result[field.name] = apply(value, field);
       }
     });
-
     return result;
   };
-
-  return traverse(contentObject, fields);
+  // Guard against null/undefined input object
+  return traverse(contentObject || {}, fields);
 };
 
 // Create an initial state for an entry based on the schema fields and content
@@ -73,12 +88,15 @@ const getDefaultValue = (field: Record<string, any>) => {
   if (field.default !== undefined) {
     return field.default;
   } else if (field.type === "object") {
-    return initializeState(field.fields, {});
+    return field.fields ? initializeState(field.fields, {}) : {};
   } else {
-    const defaultValue = defaultValues?.[field.type];
+    const fieldType = field.type as string;
+    const defaultValue = defaultValues?.[fieldType];
     return defaultValue instanceof Function
       ? defaultValue()
-      : defaultValue || "";
+      : defaultValue !== undefined
+        ? defaultValue
+        : "";
   }
 };
 
@@ -94,32 +112,50 @@ const generateZodSchema = (
     return fields.reduce((acc: Record<string, z.ZodTypeAny>, field) => {
       if (ignoreHidden && field.hidden) return acc;
 
-      let fieldSchemaFn = schemas?.[field.type] || schemas["text"];
-      
-      let schema = field.list
-        ? z.array(field.type === "object"
-          ? nestArrays
-            ? { value: z.object(buildSchema(field.fields || [])) }
-            : z.object(buildSchema(field.fields || []))
-          : nestArrays
-            ? { value: fieldSchemaFn(field) }
+      let fieldSchema: z.ZodTypeAny;
+
+      if (Array.isArray(field.type)) {
+        // Handle mixed types (e.g. ["text", "image"])
+        const mixedTypeObjectSchema = z.object({
+          type: z.enum(field.type as [string, ...string[]]),
+          value: z.any(),
+        });
+
+        if (field.list) {
+          let listSchema = z.array(mixedTypeObjectSchema);
+          if (typeof field.list === "object") {
+            if (field.list.min) listSchema = listSchema.min(field.list.min);
+            if (field.list.max) listSchema = listSchema.max(field.list.max);
+          }
+          fieldSchema = listSchema;
+        } else {
+          fieldSchema = mixedTypeObjectSchema;
+        }
+      } else {
+        // Handle single types (e.g. "text")
+        let fieldSchemaFn = schemas?.[field.type] || schemas["text"];
+
+        let baseSchema = field.list
+          ? z.array(field.type === "object"
+            ? z.object(buildSchema(field.fields || []))
             : fieldSchemaFn(field)
           )
-        : field.type === "object"
-          ? z.object(buildSchema(field.fields || []))
-          : fieldSchemaFn(field);
+          : field.type === "object"
+            ? z.object(buildSchema(field.fields || []))
+            : fieldSchemaFn(field);
 
-      if (field.list && typeof field.list === "object") {
-        // TODO: do we check the type of min and max or do we leave that to the normalize function? Probably normalize as we'll need to also support field options schema.
-        if (field.list.min) schema = schema.min(field.list.min);
-        if (field.list.max) schema = schema.max(field.list.max);
+        if (field.list && typeof field.list === "object" && baseSchema instanceof z.ZodArray) {
+          if (field.list.min) baseSchema = baseSchema.min(field.list.min);
+          if (field.list.max) baseSchema = baseSchema.max(field.list.max);
+        }
+        fieldSchema = baseSchema;
       }
 
       if (!field.required) {
-        schema = schema.optional();
+        fieldSchema = fieldSchema.optional().nullable();
       }
 
-      acc[field.name] = schema;
+      acc[field.name] = fieldSchema;
       return acc;
     }, {});
   };
