@@ -83,7 +83,7 @@ const SortableItem = ({
   return (
 
     <div ref={setNodeRef} className={cn("flex gap-x-2 items-center", isDragging ? "opacity-50 z-50" : "z-10")} style={style}>
-      <Button type="button" variant="ghost" size="icon-sm" className="h-auto w-6 bg-muted/50 self-stretch rounded-md text-muted-foreground cursor-move" {...attributes} {...listeners}>
+      <Button type="button" variant="ghost" size="icon-sm" className="h-auto w-5 bg-muted/50 self-stretch rounded-md text-muted-foreground cursor-move" {...attributes} {...listeners}>
         <GripVertical className="h-4 w-4" />
       </Button>
       {children}
@@ -283,15 +283,15 @@ const MixedTypeField = forwardRef((props: any, ref) => {
       ) : (
         // State 2: Show selected type's form in a fieldset
         <div className="rounded-lg border">
-          <header className="flex items-center justify-between gap-x-2 rounded-t-lg pl-4 pr-1 h-8 bg-muted border-b text-muted-foreground">
+          <header className="flex items-center justify-between gap-x-2 rounded-t-lg pl-4 pr-1 h-9 border-b text-muted-foreground">
             <span className="flex items-center gap-x-2 capitalize text-sm font-medium">{selectedType}</span>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button type="button" variant="ghost" size="icon-sm" className="" onClick={handleRemove}>
+                <Button type="button" variant="ghost" size="icon-sm" className="hover:bg-transparent" onClick={handleRemove}>
                   <X className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Remove item</TooltipContent>
+              <TooltipContent>Remove field</TooltipContent>
             </Tooltip>
           </header>
           <div className="p-4">
@@ -433,8 +433,6 @@ const EntryForm = ({
 
   return (
     <Form {...form}>
-      {/* We display the watched form values in a div */}
-      <pre>{JSON.stringify(form.watch(), null, 2)}</pre>
       <form onSubmit={form.handleSubmit(handleSubmit)}>
         <div className="max-w-screen-xl mx-auto flex w-full gap-x-8">
           <div className="flex-1 w-0">

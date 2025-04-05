@@ -172,6 +172,9 @@ const processZodError = (error: any, document: YAML.Document.Parsed, errors: any
       if (invalidUnionCount === error.unionErrors.length) {
         // If all entries in the union were invalid types, assume none of the schemas could validate the type.
         yamlNode = document.getIn(error.path, true);
+        if (!yamlNode || yamlNode?.range == null) {
+          yamlNode = document.getIn(error.path.slice(0, -1), true);
+        }
         range = yamlNode && yamlNode.range ? yamlNode.range : [0, 0];
         errors.push({
           code: error.code,

@@ -70,19 +70,14 @@ const FieldObjectSchema: z.ZodType<any> = z.lazy(() => z.object({
   ]).optional(),
   description: z.string().optional().nullable(),
   type: z.union([
+    z.array(z.string({
+      message: "'type' must be an array of strings."
+    })).min(1, "'type' must contain at least one string value."),
     z.string({
-      invalid_type_error: "'type' must be a non-empty string.",
-    }).min(1, "'type' cannot be an empty string."),
-    z.array(
-      z.string({
-        invalid_type_error: "Each item in the 'type' array must be a non-empty string."
-       }).min(1, "Items in the 'type' array cannot be empty strings."),
-      { invalid_type_error: "'type' must be a non-empty array of non-empty strings." }
-    ).min(1, "'type' array cannot be empty.")
-  ], {
       required_error: "'type' is required.",
-      invalid_type_error: "'type' must be a non-empty string or a non-empty array of non-empty strings. Received invalid value.",
-  }),
+      invalid_type_error: "'type' must be a string or an array of strings."
+    })
+  ]),
   default: z.any().nullable().optional(),
   list: z.union([
     z.boolean(),
@@ -214,6 +209,9 @@ const ConfigSchema = z.object({
   content: z.array(ContentObjectSchema, {
     message: "'content' must be an array of objects with at least one entry."
   }).optional(),
+  blocks: z.array(FieldObjectSchema, {
+    message: "'blocks' must be an array of objects with at least one entry."
+  }).optional().nullable(),
   settings: z.literal(false, {
     errorMap: () => ({ message: "'settings' must be 'false'." })
   }).optional(),
