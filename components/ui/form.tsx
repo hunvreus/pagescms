@@ -155,8 +155,8 @@ const FormMessage = React.forwardRef<
   errors.forEach((err) => {
     const body = err
       ? err.root
-        ? String(err?.root?.message)
-        : String(err?.message)
+        ? err?.root?.message && String(err?.root?.message)
+        : err?.message && String(err?.message)
       : children
 
     if (!body) {

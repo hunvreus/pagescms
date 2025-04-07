@@ -190,6 +190,7 @@ const ListField = ({
                 ))}
               </SortableContext>
             </DndContext>
+            <FormMessage />
             {typeof field.list === 'object' && field.list?.max && arrayFields.length >= field.list.max
               ? null
               : <Button
@@ -367,7 +368,7 @@ const renderSingleField = (
 
   if (!FieldComponent) {
      console.error(`No component found for resolved field type: ${resolvedConfig.type}`);
-     return <FormItem><p className="text-xs text-red-500">Render Error: Component missing.</p></FormItem>;
+     return <FormItem><p className="text-xs text-destructive">Render Error: Component missing.</p></FormItem>;
   }
 
   // Render using the final resolved config and determined component
@@ -424,8 +425,8 @@ const EntryForm = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const zodSchema = useMemo(() => {
-    return generateZodSchema(fields, true);
-  }, [fields]);
+    return generateZodSchema(fields, true, blocks);
+  }, [fields, blocks]);
 
   const defaultValues = useMemo(() => {
     return initializeState(fields, sanitizeObject(contentObject));
@@ -434,6 +435,7 @@ const EntryForm = ({
   const form = useForm({
     resolver: zodSchema && zodResolver(zodSchema),
     defaultValues,
+    reValidateMode: "onSubmit"
   });
 
   const { isDirty } = useFormState({
