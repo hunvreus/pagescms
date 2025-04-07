@@ -10,7 +10,7 @@ import {
   useFormContext
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { editComponents } from "@/fields/registry";
+import { labels, fieldTypes, editComponents } from "@/fields/registry";
 import {
   initializeState,
   getDefaultValue,
@@ -77,7 +77,7 @@ const SortableItem = ({
   } = useSortable({ id });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Translate.toString(transform),
     transition
   };
   
@@ -263,22 +263,36 @@ const MixedTypeField = forwardRef((props: any, ref) => {
   };
 
   const innerValue = value?.value;
-
+  const displayLabel = fieldTypes.has(selectedType)
+    
   return (
     <div className="space-y-3" ref={ref as React.Ref<HTMLDivElement>}>
       {!selectedType ? (
-        <div className="flex flex-wrap gap-2">
-          {types.map((type: string) => (
-            <Button key={type} type="button" variant="outline" size="sm" onClick={() => handleTypeSelect(type)}>
-              {type.charAt(0).toUpperCase() + type.slice(1)}
-            </Button>
-          ))}
+        <div className="rounded-lg border">
+          <header className="flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-10 text-sm">
+            Choose content type:
+          </header>
+          <div className="flex flex-wrap gap-2 p-4">
+            {types.map((type: string) => (
+              <Button key={type} type="button" variant="outline" size="sm" onClick={() => handleTypeSelect(type)}>
+                {
+                  fieldTypes.has(type)
+                    ? labels[type] || type
+                    : blocks?.[type]?.label || type
+                }
+              </Button>
+            ))}
+          </div>
         </div>
       ) : (
         <div className="rounded-lg border">
           <header className="flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-10 border-b text-sm text-muted-foreground font-medium bg-muted">
             <span className="flex items-center gap-x-2">
-              {selectedType}
+              {
+                fieldTypes.has(selectedType)
+                  ? labels[selectedType] || selectedType
+                  : blocks?.[selectedType]?.label || selectedType
+              }
             </span>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -438,9 +452,11 @@ const EntryForm = ({
     reValidateMode: "onSubmit"
   });
 
-  const { isDirty } = useFormState({
+  const { isDirty, errors } = useFormState({
     control: form.control
   });
+
+  // console.log(errors);
 
   const renderFields = useCallback((
     fieldsToRender: Field[],
@@ -454,10 +470,16 @@ const EntryForm = ({
       if (fieldItem.list === true || (typeof fieldItem.list === 'object' && fieldItem.list !== null)) {
         return <ListField key={currentFieldName} control={form.control} field={fieldItem} fieldName={currentFieldName} renderFields={renderFields} blocks={blocksMap} />;
       } else if (fieldItem.type === "object" && Array.isArray(fieldItem.fields)) {
+        const objectErrors = errors?.[currentFieldName];
+        const hasNestedErrors = typeof objectErrors === 'object' && objectErrors !== null && Object.keys(objectErrors).length > 0;
+
         return (
           <div className="rounded-lg border" key={currentFieldName}>
             {fieldItem.label !== false &&
-              <header className="flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-10 border-b text-sm font-medium bg-muted">
+              <header className={cn(
+                "flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-10 border-b text-sm font-medium bg-muted",
+                hasNestedErrors && "text-red-500"
+              )}>
                 {fieldItem.label || fieldItem.name}
                 {fieldItem.required && <span className="ml-2 rounded-md bg-muted px-2 py-0.5 text-xs font-medium">Required</span>}
               </header>
@@ -470,7 +492,7 @@ const EntryForm = ({
       }
       return renderSingleField(fieldItem, currentFieldName, form.control, blocksMap, renderFields, true);
     });
-  }, [form.control, blocks]);
+  }, [form.control, blocks, errors, renderSingleField]);
 
   const handleSubmit = async (values: any) => {
     setIsSubmitting(true);

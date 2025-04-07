@@ -1,6 +1,7 @@
 // TODO: split into separate files to improve bundling/tree-shaking?
 import { Field } from "@/types/field";
 
+let labels: Record<string, string> = {};
 let schemas: Record<string, any> = {};
 let readFns: Record<string, (value: any, field: Field, configObject?: Record<string, any>) => void> = {};
 let writeFns: Record<string, (value: any, field: Field, configObject?: Record<string, any>) => void> = {};
@@ -19,6 +20,7 @@ const importCustomFieldComponents = (require as any).context('@/fields/custom', 
 
     fieldTypes.add(fieldName);
 
+    if (fieldModule.label) labels[fieldName] = fieldModule.label;
     if (fieldModule.schema) schemas[fieldName] = fieldModule.schema;
     if (fieldModule.read) readFns[fieldName] = fieldModule.read;
     if (fieldModule.write) writeFns[fieldName] = fieldModule.write;
@@ -28,4 +30,4 @@ const importCustomFieldComponents = (require as any).context('@/fields/custom', 
   });
 });
 
-export { schemas, readFns, writeFns, defaultValues, editComponents, viewComponents, fieldTypes };
+export { labels, schemas, readFns, writeFns, defaultValues, editComponents, viewComponents, fieldTypes };
