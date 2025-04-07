@@ -32,6 +32,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -56,7 +62,7 @@ import {
   restrictToParentElement
 } from "@dnd-kit/modifiers";
 import { CSS } from "@dnd-kit/utilities";
-import { ChevronLeft, GripVertical, Loader, Plus, Trash2, X } from "lucide-react";
+import { ChevronLeft, GripVertical, Loader, Plus, Trash2, EllipsisVertical } from "lucide-react";
 
 const SortableItem = ({
   id,
@@ -190,7 +196,6 @@ const ListField = ({
                 ))}
               </SortableContext>
             </DndContext>
-            <FormMessage />
             {typeof field.list === 'object' && field.list?.max && arrayFields.length >= field.list.max
               ? null
               : <Button
@@ -209,6 +214,7 @@ const ListField = ({
                   Add an entry
                 </Button>
             }
+            <FormMessage />
           </div>
         </FormItem>
       )}
@@ -263,78 +269,84 @@ const MixedTypeField = forwardRef((props: any, ref) => {
   };
 
   const innerValue = value?.value;
-  const displayLabel = fieldTypes.has(selectedType)
     
   return (
     <div className="space-y-3" ref={ref as React.Ref<HTMLDivElement>}>
       {!selectedType ? (
-        <div className="rounded-lg border">
-          <header className="flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-10 text-sm">
-            Choose content type:
-          </header>
-          <div className="flex flex-wrap gap-2 p-4">
+        <div className="rounded-lg border p-4 space-y-4">
+          <span>Choose content type:</span>
+          <div className="flex flex-wrap gap-2">
             {types.map((type: string) => (
-              <Button key={type} type="button" variant="outline" size="sm" onClick={() => handleTypeSelect(type)}>
+              <Button
+                key={type}
+                type="button"
+                variant="secondary"
+                className="rounded-full gap-x-2"
+                onClick={() => handleTypeSelect(type)}
+              >
                 {
                   fieldTypes.has(type)
                     ? labels[type] || type
                     : blocks?.[type]?.label || type
                 }
+                <Plus className="h-4 w-4 text-muted-foreground" />
               </Button>
             ))}
           </div>
         </div>
       ) : (
-        <div className="rounded-lg border">
-          <header className="flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-10 border-b text-sm text-muted-foreground font-medium bg-muted">
-            <span className="flex items-center gap-x-2">
-              {
-                fieldTypes.has(selectedType)
-                  ? labels[selectedType] || selectedType
-                  : blocks?.[selectedType]?.label || selectedType
-              }
-            </span>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button type="button" variant="ghost" size="icon-sm" className="ml-auto hover:bg-transparent" onClick={handleRemove}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Remove field</TooltipContent>
-            </Tooltip>
-          </header>
-          <div className="p-4">
-            {(() => {
-                const fieldForResolution = { ...field, type: selectedType };
-                const resolvedConfig = resolveBlocks(fieldForResolution, blocks);
-
-                const FieldComponent = typeof resolvedConfig.type === 'string' && resolvedConfig.type !== 'object'
-                    ? (editComponents?.[resolvedConfig.type] || editComponents['text'])
-                    : null;
-
-                if (resolvedConfig.type === 'object') {
-                   return (
-                    <div className="grid gap-6">
-                       {typeof renderFields === 'function' && Array.isArray(resolvedConfig.fields)
-                        ? renderFields(resolvedConfig.fields, blocks, fieldName + ".value")
-                        : <p className="text-muted-foreground bg-muted rounded-md px-3 py-2">Error: Cannot render object fields.</p>
-                      }
-                    </div>
-                  );
-                } else if (FieldComponent) {
-                   return (
-                    <FieldComponent
-                        value={innerValue}
-                        onChange={handleInnerChange}
-                        field={resolvedConfig}
-                        blocks={blocks}
-                    />
-                  );
-                } else {
-                   return selectedType && <p className="text-muted-foreground bg-muted rounded-md px-3 py-2">Error: Component not found for type '{resolvedConfig.type}'.</p>;
+        <div className="rounded-lg border p-4 space-y-6">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="secondary"
+                className="rounded-full gap-x-2.5"
+              >
+                {
+                  fieldTypes.has(selectedType)
+                    ? labels[selectedType] || selectedType
+                    : blocks?.[selectedType]?.label || selectedType
                 }
-             })()}
-          </div>
+                <Trash2 className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={handleRemove}>
+                Remove content
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {(() => {
+              const fieldForResolution = { ...field, type: selectedType };
+              const resolvedConfig = resolveBlocks(fieldForResolution, blocks);
+
+              const FieldComponent = typeof resolvedConfig.type === 'string' && resolvedConfig.type !== 'object'
+                  ? (editComponents?.[resolvedConfig.type] || editComponents['text'])
+                  : null;
+
+              if (resolvedConfig.type === 'object') {
+                  return (
+                  <div className="grid gap-6">
+                      {typeof renderFields === 'function' && Array.isArray(resolvedConfig.fields)
+                      ? renderFields(resolvedConfig.fields, blocks, fieldName + ".value")
+                      : <p className="text-muted-foreground bg-muted rounded-md px-3 py-2">Error: Cannot render object fields.</p>
+                    }
+                  </div>
+                );
+              } else if (FieldComponent) {
+                  return (
+                  <FieldComponent
+                      value={innerValue}
+                      onChange={handleInnerChange}
+                      field={resolvedConfig}
+                      blocks={blocks}
+                  />
+                );
+              } else {
+                  return selectedType && <p className="text-muted-foreground bg-muted rounded-md px-3 py-2">Error: Component not found for type '{resolvedConfig.type}'.</p>;
+              }
+            })()}
         </div>
       )}
     </div>
@@ -439,7 +451,7 @@ const EntryForm = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const zodSchema = useMemo(() => {
-    return generateZodSchema(fields, true, blocks);
+    return generateZodSchema(fields, blocks, true);
   }, [fields, blocks]);
 
   const defaultValues = useMemo(() => {
@@ -456,41 +468,39 @@ const EntryForm = ({
     control: form.control
   });
 
-  // console.log(errors);
-
   const renderFields = useCallback((
-    fieldsToRender: Field[],
-    blocksMap: Record<string, any>,
+    fields: Field[],
+    blocks: Record<string, any>,
     parentName?: string
   ): React.ReactNode[] => {
-    return fieldsToRender.map((fieldItem) => {
-      if (!fieldItem || fieldItem.hidden) return null;
-      const currentFieldName = parentName ? `${parentName}.${fieldItem.name}` : fieldItem.name;
+    return fields.map((field) => {
+      if (!field || field.hidden) return null;
+      const currentFieldName = parentName ? `${parentName}.${field.name}` : field.name;
 
-      if (fieldItem.list === true || (typeof fieldItem.list === 'object' && fieldItem.list !== null)) {
-        return <ListField key={currentFieldName} control={form.control} field={fieldItem} fieldName={currentFieldName} renderFields={renderFields} blocks={blocksMap} />;
-      } else if (fieldItem.type === "object" && Array.isArray(fieldItem.fields)) {
+      if (field.list === true || (typeof field.list === 'object' && field.list !== null)) {
+        return <ListField key={currentFieldName} control={form.control} field={field} fieldName={currentFieldName} renderFields={renderFields} blocks={blocks} />;
+      } else if (field.type === "object" && Array.isArray(field.fields)) {
         const objectErrors = errors?.[currentFieldName];
         const hasNestedErrors = typeof objectErrors === 'object' && objectErrors !== null && Object.keys(objectErrors).length > 0;
 
         return (
           <div className="rounded-lg border" key={currentFieldName}>
-            {fieldItem.label !== false &&
+            {field.label !== false &&
               <header className={cn(
                 "flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-10 border-b text-sm font-medium bg-muted",
                 hasNestedErrors && "text-red-500"
               )}>
-                {fieldItem.label || fieldItem.name}
-                {fieldItem.required && <span className="ml-2 rounded-md bg-muted px-2 py-0.5 text-xs font-medium">Required</span>}
+                {field.label || field.name}
+                {field.required && <span className="ml-2 rounded-md bg-muted px-2 py-0.5 text-xs font-medium">Required</span>}
               </header>
             }
             <div className="grid gap-6 p-4">
-              {renderFields(fieldItem.fields, blocksMap, currentFieldName)}
+              {renderFields(field.fields, blocks, currentFieldName)}
             </div>
           </div>
         );
       }
-      return renderSingleField(fieldItem, currentFieldName, form.control, blocksMap, renderFields, true);
+      return renderSingleField(field, currentFieldName, form.control, blocks, renderFields, true);
     });
   }, [form.control, blocks, errors, renderSingleField]);
 

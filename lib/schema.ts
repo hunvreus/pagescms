@@ -90,6 +90,8 @@ const getDefaultValue = (field: Record<string, any>) => {
     return field.default;
   } else if (field.type === "object") {
     return field.fields ? initializeState(field.fields, {}) : {};
+  } else if (Array.isArray(field.type)) {
+    return null;
   } else {
     const fieldType = field.type as string;
     const defaultValue = defaultValues?.[fieldType];
@@ -106,8 +108,8 @@ const getDefaultValue = (field: Record<string, any>) => {
 // See https://react-hook-form.com/docs/usefieldarray#rules
 const generateZodSchema = (
   fields: Field[],
-  ignoreHidden: boolean = false,
-  blocks: Record<string, Field> = {}
+  blocks: Record<string, Field> = {},
+  ignoreHidden: boolean = false
 ): z.ZodTypeAny => {
   const buildSchema = (currentFields: Field[], currentBlocks: Record<string, Field>): Record<string, z.ZodTypeAny> => {
     return currentFields.reduce((acc: Record<string, z.ZodTypeAny>, field) => {
@@ -116,6 +118,7 @@ const generateZodSchema = (
       let fieldSchema: z.ZodTypeAny;
 
       if (Array.isArray(field.type)) {
+        // Mixed types
         const unionOptions = field.type.map((typeName): z.ZodDiscriminatedUnionOption<"type"> | null => {
           let valueSchema: z.ZodTypeAny;
           const blockDefinition = currentBlocks[typeName];
@@ -139,12 +142,27 @@ const generateZodSchema = (
         }).filter(Boolean) as z.ZodDiscriminatedUnionOption<"type">[];
 
         if (unionOptions.length > 0) {
-          fieldSchema = z.discriminatedUnion("type", [unionOptions[0], ...unionOptions.slice(1)]);
+          const baseDiscriminatedUnion = z.discriminatedUnion("type", [unionOptions[0], ...unionOptions.slice(1)]);
+
+          if (field.required) {
+            fieldSchema = z.union([baseDiscriminatedUnion, z.null()]).superRefine((data, ctx) => {
+                if (data === null) {
+                  ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "Please select a type for this field.",
+                  });
+                }
+              }
+            );
+          } else {
+            fieldSchema = baseDiscriminatedUnion.optional().nullable();
+          }
         } else {
           console.error(`Mixed type field "${field.name}" resulted in empty union.`);
           fieldSchema = z.any();
         }
       } else {
+        // Single types
         const typeName = field.type;
         const blockDefinition = currentBlocks[typeName];
 
@@ -182,10 +200,12 @@ const generateZodSchema = (
          fieldSchema = z.array(z.any());
       }
 
-      if (!field.required && fieldSchema && typeof fieldSchema.optional === 'function' && typeof fieldSchema.nullable === 'function') {
-        fieldSchema = fieldSchema.optional().nullable();
-      } else if (!field.required) {
-        fieldSchema = z.any().optional().nullable();
+      if (!Array.isArray(field.type) && !field.required) {
+         if (fieldSchema && typeof fieldSchema.optional === 'function' && typeof fieldSchema.nullable === 'function') {
+           fieldSchema = fieldSchema.optional().nullable();
+         } else if (!fieldSchema) {
+           fieldSchema = z.any().optional().nullable();
+         }
       }
 
       acc[field.name] = fieldSchema;

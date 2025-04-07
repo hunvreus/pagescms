@@ -1,7 +1,7 @@
 import { type NextRequest } from "next/server";
 import { createOctokitInstance } from "@/lib/utils/octokit";
 import { writeFns } from "@/fields/registry";
-import { configVersion, parseConfig, normalizeConfig } from "@/lib/config";
+import { configVersion, parseConfig, normalizeConfig, mapBlocks } from "@/lib/config";
 import { stringify } from "@/lib/serialization";
 import { deepMap, getDefaultValue, generateZodSchema, getSchemaByName, sanitizeObject } from "@/lib/schema";
 import { getConfig, updateConfig } from "@/lib/utils/config";
@@ -73,11 +73,11 @@ export async function POST(
               contentFields = schema.fields;
             }
 
-            // Hidden fields are stripped in the client, we add them back
-            // contentObject = deepMap(contentObject, contentFields, (value, field) => field.hidden ? getDefaultValue(field) : value);
             // TODO: fetch the entry and merge values
             
-            const zodSchema = generateZodSchema(contentFields);
+            // Use mapBlocks to convert config blocks array to a map
+            const blocksMap = mapBlocks(config?.object);
+            const zodSchema = generateZodSchema(contentFields, blocksMap, false);
             const zodValidation = zodSchema.safeParse(contentObject);
             
             if (zodValidation.success === false ) {
