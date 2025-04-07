@@ -48,7 +48,7 @@ export function SignIn() {
         <form action={emailSignInAction} className="space-y-2">
           <Input ref={emailInputRef} type="email" name="email" placeholder="Email" required/>
           {emailSignInState?.error &&
-            <div className="text-sm font-medium text-destructive">{emailSignInState.error}</div>
+            <div className="text-sm font-medium text-red-500">{emailSignInState.error}</div>
           }
           <SubmitButton type="submit" className="w-full">
             Sign in with email

@@ -191,7 +191,7 @@ export function Collaborators({
             required
           />
           {addCollaboratorState?.error &&
-            <div className="text-sm font-medium text-destructive mt-2 ">{addCollaboratorState.error}</div>
+            <div className="text-sm font-medium text-red-500 mt-2 ">{addCollaboratorState.error}</div>
           }
         </div>
         <SubmitButton type="submit" disabled={isEmailInList}>

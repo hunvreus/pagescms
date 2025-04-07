@@ -9,8 +9,7 @@ export default function Page() {
   const handleSave = async (data: Record<string, any>) => {
     setConfig(data.config);
   };
-
-  // TODO: check if pages.yml exists and offer to create it if not
+  
   return (
     <EntryEditor path=".pages.yml" onSave={handleSave} title="Settings"/>
   );

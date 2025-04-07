@@ -7,6 +7,7 @@ let writeFns: Record<string, (value: any, field: Field, configObject?: Record<st
 let editComponents: Record<string, any> = {};
 let defaultValues: Record<string, any> = {};
 let viewComponents: Record<string, any> = {};
+const fieldTypes = new Set<string>();
 
 const importCoreFieldComponents = (require as any).context('@/fields/core', true, /index\.(ts|tsx)$/);
 const importCustomFieldComponents = (require as any).context('@/fields/custom', true, /index\.(ts|tsx)$/);
@@ -15,6 +16,8 @@ const importCustomFieldComponents = (require as any).context('@/fields/custom', 
   importComponents.keys().forEach((key: string) => {
     const fieldName = key.split('/')[1];
     const fieldModule = importComponents(key);
+
+    fieldTypes.add(fieldName);
 
     if (fieldModule.schema) schemas[fieldName] = fieldModule.schema;
     if (fieldModule.read) readFns[fieldName] = fieldModule.read;
@@ -25,4 +28,4 @@ const importCustomFieldComponents = (require as any).context('@/fields/custom', 
   });
 });
 
-export { schemas, readFns, writeFns, defaultValues, editComponents, viewComponents };
+export { schemas, readFns, writeFns, defaultValues, editComponents, viewComponents, fieldTypes };

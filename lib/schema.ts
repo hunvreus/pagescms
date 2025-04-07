@@ -3,10 +3,11 @@
  */
 
 import slugify from "slugify";
-import { defaultValues, schemas } from "@/fields/registry";
+import { defaultValues, schemas, fieldTypes } from "@/fields/registry";
 import { z } from "zod";
 import { Field } from "@/types/field";
 import { format } from "date-fns";
+import { deepMergeObjects } from "@/lib/helpers";
 
 // Deep map a content object to a schema
 const deepMap = (
@@ -319,6 +320,37 @@ function getDateFromFilename(filename: string) {
   return undefined;
 }
 
+// Resolve blocks references in a field config
+const resolveBlocks = (field: Field, blocks: Record<string, any>): Field => {
+  if (
+    typeof field.type !== 'string'
+    || fieldTypes.has(field.type)
+    || !blocks?.[field.type]
+  ) {
+    // Not a block reference
+    return field;
+  }
+
+  const blockDefinition = blocks[field.type];
+  const resolvedConfig = JSON.parse(JSON.stringify(field)); 
+
+  // Merge block properties into the field
+  deepMergeObjects(resolvedConfig, blockDefinition); 
+
+  // Take on block's type
+  resolvedConfig.type = blockDefinition.type || 'text'; 
+
+  if (resolvedConfig.type === 'object' && blockDefinition.fields) {
+    // Block is an object, make sure we inherit its fields
+    resolvedConfig.fields = JSON.parse(JSON.stringify(blockDefinition.fields));
+  } else if (resolvedConfig.type !== 'object') {
+    // Block is not an object, make sure we have no fields
+    delete resolvedConfig.fields;
+  }
+  
+  return resolvedConfig;
+}
+
 export {
   deepMap,
   initializeState,
@@ -332,5 +364,6 @@ export {
   getDateFromFilename,
   generateZodSchema,
   safeAccess,
-  interpolate
+  interpolate,
+  resolveBlocks
 };

@@ -173,10 +173,10 @@ export function RepoTemplates({ defaultAccount }: { defaultAccount?: any }) {
                         onChange={(e) => setName(e.target.value)}
                       />
                       {copyTemplateState?.error &&
-                        <div className="text-sm font-medium text-destructive mt-2 ">{copyTemplateState.error}</div>
+                        <div className="text-sm font-medium text-red-500 mt-2 ">{copyTemplateState.error}</div>
                       }
                       {!isValidName && (
-                        <div className="text-sm font-medium text-destructive mt-2 ">Invalid name</div>
+                        <div className="text-sm font-medium text-red-500 mt-2 ">Invalid name</div>
                       )}
                     </div>
                   </div>

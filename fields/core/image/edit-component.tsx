@@ -246,7 +246,7 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
 
   if (!mediaConfig) {
     return (
-      <div className="text-muted-foreground bg-muted rounded-md px-3 py-2 h-10">
+      <p className="text-muted-foreground bg-muted rounded-md px-3 py-2">
       No media configuration found. {' '}
       <a 
         href={`/${config?.owner}/${config?.repo}/${encodeURIComponent(config?.branch || "")}/settings`}
@@ -254,7 +254,7 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
       >
         Check your settings
       </a>.
-    </div>
+    </p>
     );
   }
 
