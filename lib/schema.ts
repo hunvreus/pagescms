@@ -104,117 +104,160 @@ const getDefaultValue = (field: Record<string, any>) => {
 };
 
 // Generate a Zod schema for validation
-// nestArrays allows us to nest arrays to work around RHF's inability to handle flat field arrays
-// See https://react-hook-form.com/docs/usefieldarray#rules
 const generateZodSchema = (
   fields: Field[],
   blocks: Record<string, Field> = {},
   ignoreHidden: boolean = false,
   configObject?: Record<string, any>
 ): z.ZodTypeAny => {
-  const buildSchema = (currentFields: Field[], currentBlocks: Record<string, Field>): Record<string, z.ZodTypeAny> => {
-    return currentFields.reduce((acc: Record<string, z.ZodTypeAny>, field) => {
-      if (ignoreHidden && field.hidden) return acc;
+  // Cache for block schemas, using z.lazy for recursion
+  const blockSchemaCache = new Map<string, z.ZodTypeAny>();
 
-      let fieldSchema: z.ZodTypeAny;
+  // Get a block schema (with caching)
+  const getBlockSchema = (blockName: string): z.ZodTypeAny => {
+    if (blockSchemaCache.has(blockName)) {
+      return blockSchemaCache.get(blockName)!;
+    }
 
-      if (Array.isArray(field.type)) {
-        // Mixed types
-        const unionOptions = field.type.map((typeName): z.ZodDiscriminatedUnionOption<"type"> | null => {
-          let valueSchema: z.ZodTypeAny;
-          const block = currentBlocks[typeName];
+    const lazySchema = z.lazy(() => {
+      const block = blocks?.[blockName];
+      if (!block) {
+        console.error(`Block "${blockName}" not found during schema generation.`);
+        return z.any();
+      }
+      const actualBlockType = block.type || 'text';
 
-          if (block) {
-            const actualBlockType = block.type || 'text';
-            if (Array.isArray(actualBlockType)) {
-              console.warn(`Block "${typeName}" defines mixed type within mixed field "${field.name}". Validation limited.`);
-              valueSchema = z.any();
-            } else if (actualBlockType === 'object') {
-              valueSchema = z.object(buildSchema(block.fields || [], currentBlocks));
-            } else {
-              const fieldSchemaFn = schemas?.[actualBlockType] || schemas['text'];
-              valueSchema = fieldSchemaFn({ ...block, name: field.name, required: field.required, type: actualBlockType }, configObject);
-            }
-          } else {
-            const fieldSchemaFn = schemas?.[typeName] || schemas['text'];
-            valueSchema = fieldSchemaFn({ ...field, type: typeName }, configObject);
-          }
-          return z.object({ type: z.literal(typeName), value: valueSchema });
-        }).filter(Boolean) as z.ZodDiscriminatedUnionOption<"type">[];
-
-        if (unionOptions.length > 0) {
-          const baseDiscriminatedUnion = z.discriminatedUnion("type", [unionOptions[0], ...unionOptions.slice(1)]);
-
-          if (field.required) {
-            fieldSchema = z.union([baseDiscriminatedUnion, z.null()]).superRefine((data, ctx) => {
-                if (data === null) {
-                  ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message: "Please select a type for this field.",
-                  });
-                }
-              }
-            );
-          } else {
-            fieldSchema = baseDiscriminatedUnion.optional().nullable();
-          }
-        } else {
-          console.error(`Mixed type field "${field.name}" resulted in empty union.`);
-          fieldSchema = z.any();
-        }
+      if (Array.isArray(actualBlockType)) {
+        console.warn(`Recursive block "${blockName}" has mixed type. Validation limited.`);
+        return z.any();
+      } else if (actualBlockType === 'object') {
+        // Use the main internal builder function
+        return z.object(buildSchema(block.fields || [], blocks));
       } else {
-        // Single types
-        const typeName = field.type;
-        const block = currentBlocks[typeName];
+        // Primitive block type
+        const fieldSchemaFn = schemas?.[actualBlockType] || schemas['text'];
+        return fieldSchemaFn({ ...block, name: blockName, type: actualBlockType }, configObject);
+      }
+    });
 
-        if (block) {
-          const actualBlockType = block.type || 'text';
-          if (Array.isArray(actualBlockType)) {
-            console.warn(`Block "${typeName}" defining mixed type used as single field type "${field.name}". Validation limited.`);
-            fieldSchema = z.any();
-          } else if (actualBlockType === 'object') {
-            fieldSchema = z.object(buildSchema(block.fields || [], currentBlocks));
-          } else {
-            const fieldSchemaFn = schemas?.[actualBlockType] || schemas['text'];
-            fieldSchema = fieldSchemaFn({ ...block, name: field.name, required: field.required, type: actualBlockType }, configObject);
-          }
-        } else {
-          let fieldSchemaFn = schemas?.[typeName] || schemas["text"];
+    blockSchemaCache.set(blockName, lazySchema);
+    return lazySchema;
+  };
 
-          fieldSchema = typeName === "object"
-              ? z.object(buildSchema(field.fields || [], currentBlocks))
-              : fieldSchemaFn(field, configObject);
+  // Build schema for Mixed Type field (e.g. `type: [string, number]`)
+  const buildMixedTypeSchema = (field: Field, currentBlocks: Record<string, Field>): z.ZodTypeAny => {
+    const typeNames = Array.isArray(field.type) ? field.type : [];
+
+    const unionOptions = typeNames.map((typeName): z.ZodDiscriminatedUnionOption<"type"> | null => {
+      let valueSchema: z.ZodTypeAny;
+
+      if (fieldTypes.has(typeName)) {
+        // Field
+        const fieldSchemaFn = schemas?.[typeName] || schemas['text'];
+        valueSchema = fieldSchemaFn({ ...field, type: typeName }, configObject);
+        if (currentBlocks[typeName]) {
+             console.warn(`Block definition "${typeName}" ignored within mixed type field "${field.name}" because it conflicts with a core field type.`);
         }
+      } else if (currentBlocks[typeName]) {
+        // Block
+        valueSchema = getBlockSchema(typeName);
+      } else {
+        // Unknown
+        console.warn(`Unknown type "${typeName}" in mixed field "${field.name}". Skipping.`);
+        return null;
       }
 
-      // Check if the field is already a list from block inheritance
-      const blockForListCheck = typeof field.type === 'string' ? currentBlocks?.[field.type] : undefined;
-      const isAlreadyList = fieldSchema instanceof z.ZodArray || blockForListCheck?.list === true;
+      if (!valueSchema) return null;
+      return z.object({ type: z.literal(typeName), value: valueSchema });
+    }).filter((opt): opt is z.ZodDiscriminatedUnionOption<"type"> => opt !== null);
 
-      // Lists
-      if (field.list && fieldSchema && !isAlreadyList) {
-        let listSchema = z.array(fieldSchema);
-        if (typeof field.list === "object") {
-          if (field.list.min !== undefined) listSchema = listSchema.min(field.list.min);
-          if (field.list.max !== undefined) listSchema = listSchema.max(field.list.max);
+    let mixedSchema: z.ZodTypeAny;
+    if (unionOptions.length === 0) {
+      console.error(`Mixed type field "${field.name}" resulted in zero valid options.`);
+      mixedSchema = z.any();
+    } else if (unionOptions.length === 1) {
+      mixedSchema = unionOptions[0];
+    } else {
+      mixedSchema = z.discriminatedUnion("type", [unionOptions[0], ...unionOptions.slice(1)]);
+    }
+
+    if (!field.required) {
+       if (typeof mixedSchema.optional === 'function' && typeof mixedSchema.nullable === 'function') {
+          mixedSchema = mixedSchema.optional().nullable();
+       }
+    }
+    return mixedSchema;
+  };
+
+  // Build schema for a Single Type field (e.g. `type: string`)
+  const buildSingleFieldSchema = (field: Field, currentBlocks: Record<string, Field>): z.ZodTypeAny => {
+    let baseSchema: z.ZodTypeAny;
+
+    if (Array.isArray(field.type)) {
+      baseSchema = buildMixedTypeSchema(field, currentBlocks);
+    } else {
+      const typeName = field.type;
+
+      if (fieldTypes.has(typeName)) {
+        // Field
+        const fieldSchemaFn = schemas?.[typeName] || schemas["text"];
+        baseSchema = fieldSchemaFn(field, configObject);
+        if (currentBlocks[typeName]) { // Warn if block also exists
+          console.warn(`Block definition "${typeName}" ignored for field "${field.name}" because it conflicts with a core field type.`);
         }
-        fieldSchema = listSchema;
-      } else if (field.list && !fieldSchema) {
-         fieldSchema = z.array(z.any()); // Fallback to an array of any type
+      } else if (typeName === "object") {
+        // Object
+        baseSchema = z.object(buildSchema(field.fields || [], currentBlocks));
+      } else if (currentBlocks[typeName]) {
+        // Block (safety check)
+        console.warn(`Field "${field.name}" type "${typeName}" is not a core type but exists as a block. NormalizeConfig should have resolved this. Attempting lazy resolution.`);
+        baseSchema = getBlockSchema(typeName);
+      } else {
+        // Unknown
+        console.warn(`Unknown single field type "${typeName}" for field "${field.name}". Using z.any().`);
+        baseSchema = z.any();
       }
 
-      // Not required and not a list
-      if (!Array.isArray(field.type) && !field.required) {
-         if (fieldSchema && typeof fieldSchema.optional === 'function' && typeof fieldSchema.nullable === 'function') {
-           fieldSchema = fieldSchema.optional().nullable();
-         } else if (!fieldSchema) {
-           fieldSchema = z.any().optional().nullable();
-         }
+      if (!field.required && baseSchema) {
+        if (typeof baseSchema.optional === 'function' && typeof baseSchema.nullable === 'function') {
+          baseSchema = baseSchema.optional().nullable();
+        }
+      } else if (!field.required && !baseSchema) {
+        baseSchema = z.any().optional().nullable();
       }
+    }
 
-      acc[field.name] = fieldSchema;
-      return acc;
-    }, {});
+    let finalSchema = baseSchema;
+    if (field.list && finalSchema && !(finalSchema instanceof z.ZodArray)) {
+      let listSchema = z.array(finalSchema);
+      if (typeof field.list === "object") {
+        if (field.list.min !== undefined) listSchema = listSchema.min(field.list.min);
+        if (field.list.max !== undefined) listSchema = listSchema.max(field.list.max);
+      }
+      if (field.required) {
+        const currentMin = listSchema._def.minLength?.value;
+        if (currentMin === undefined || currentMin < 1) {
+          listSchema = listSchema.min(1, "This list requires at least one item");
+        }
+        finalSchema = listSchema;
+      } else {
+        finalSchema = listSchema.optional().nullable();
+      }
+    } else if (field.list && !finalSchema) {
+       finalSchema = z.array(z.any()).optional().nullable();
+    }
+
+    return finalSchema || z.any();
+  };
+
+  // Function used for recursion
+  const buildSchema = (currentFields: Field[], currentBlocks: Record<string, Field>): Record<string, z.ZodTypeAny> => {
+     const schemaObject: Record<string, z.ZodTypeAny> = {};
+     for (const field of currentFields) {
+        if (ignoreHidden && field.hidden) continue;
+        schemaObject[field.name] = buildSingleFieldSchema(field, currentBlocks);
+     }
+     return schemaObject;
   };
 
   return z.object(buildSchema(fields, blocks));

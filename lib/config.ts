@@ -12,7 +12,7 @@ import { z } from "zod";
 import { fieldTypes } from "@/fields/registry";
 import { deepMergeObjects } from "@/lib/helpers";
 
-const configVersion = "2.0";
+const configVersion = "2.1";
 
 // Parse the config file (YAML to JSON)
 const parseConfig = (content: string) => {
@@ -55,6 +55,17 @@ const normalizeConfig = (configObject: any) => {
   
   const blocksMap = mapBlocks(configObjectCopy);
   
+  // Resolve blocks within the main blocks definition
+  if (configObjectCopy.blocks && Array.isArray(configObjectCopy.blocks)) {
+    configObjectCopy.blocks = configObjectCopy.blocks.map((block: any) => {
+      if (block?.fields && Array.isArray(block.fields)) {
+        // Resolve this block's fields using the initial map
+        block.fields = resolveBlocks(block.fields, blocksMap);
+      }
+      return block;
+    });
+  }
+
   if (configObjectCopy?.media) {
     if (typeof configObjectCopy.media === "string") {
       // Ensure media.input is a relative path (and add name and label)
@@ -142,7 +153,7 @@ const normalizeConfig = (configObject: any) => {
         }
       }
       
-      // Process fields to resolve block references
+      // Process content fields to resolve block references
       if (Array.isArray(item.fields)) {
         item.fields = resolveBlocks(item.fields, blocksMap);
       }
@@ -161,22 +172,30 @@ function resolveBlocks(fields: any[], blocksMap: Record<string, any>): any[] {
     const originalFieldType = field.type;
 
     // We leave mixed types for runtime processing
-    if (originalFieldType &&
-        !Array.isArray(originalFieldType) &&
-        !fieldTypes.has(originalFieldType) && // It's not a known field type
-        blocksMap[originalFieldType]) // And it exists as a block
-    {
-        // Deep merge block properties into resulting field
-        const block = JSON.parse(JSON.stringify(blocksMap[originalFieldType]));
-        deepMergeObjects(result, block);
+    if (
+      originalFieldType
+      && typeof originalFieldType === 'string'
+      && !fieldTypes.has(originalFieldType) // Protect field types
+      && blocksMap[originalFieldType]
+    ) {
+      // Deep merge block properties into resulting field
+      const block = JSON.parse(JSON.stringify(blocksMap[originalFieldType]));
+      deepMergeObjects(result, block);
 
-        // Set type to block type if it exists
-        if (block.type) {
-            result.type = block.type;
-        } else {
-            console.error("Block has no type", originalFieldType);
-            result.type = 'text';
-        }
+      // Set type to block type if it exists
+      if (block.type) {
+        result.type = block.type;
+      } else {
+        console.error("Block has no type", originalFieldType);
+        result.type = 'text';
+      }
+    } else if (
+      originalFieldType
+      && typeof originalFieldType === 'string'
+      && fieldTypes.has(originalFieldType)
+      && blocksMap[originalFieldType]
+    ) {
+      console.error(`Block definition ignored for "${originalFieldType}" because it conflicts with a field type name.`);
     }
 
     // Process nested fields recursively
