@@ -64,7 +64,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { ChevronLeft, GripVertical, Loader, Plus, Trash2, Ellipsis } from "lucide-react";
 import { useConfig } from "@/contexts/config-context";
-
+import { toast } from "sonner";
 const SortableItem = ({
   id,
   type,
@@ -515,6 +515,7 @@ const EntryForm = ({
   }, [form.control, blocks, errors, renderSingleField]);
 
   const handleSubmit = async (values: any) => {
+    console.log("handleSubmit", values);
     setIsSubmitting(true);
     try {
       await onSubmit(values);
@@ -523,9 +524,13 @@ const EntryForm = ({
     }
   };
 
+  const handleError = (errors: any) => {
+    toast.error("Please fix the errors before saving.", { duration: 5000 });
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)}>
+      <form onSubmit={form.handleSubmit(handleSubmit, handleError)}>
         <div className="max-w-screen-xl mx-auto flex w-full gap-x-8">
           <div className="flex-1 w-0">
             <header className="flex items-center mb-6">
