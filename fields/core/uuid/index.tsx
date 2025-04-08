@@ -7,9 +7,9 @@ const defaultValue = (): string => {
 };
 
 const schema = (field: Field, configObject?: Record<string, any>) => {
-  let zodSchema = z.coerce.string().uuid();
+  let zodSchema: z.ZodTypeAny = z.string().uuid("Invalid UUID format");
 
-  if (field.required) zodSchema = zodSchema.min(1, "This field is required");
+  if (!field.required) zodSchema = zodSchema.optional().nullable();
 
   return zodSchema;
 };
