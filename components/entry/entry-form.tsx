@@ -65,8 +65,6 @@ import { CSS } from "@dnd-kit/utilities";
 import { ChevronLeft, GripVertical, Loader, Plus, Trash2, Ellipsis } from "lucide-react";
 import { useConfig } from "@/contexts/config-context";
 import { toast } from "sonner";
-import { z } from 'zod';
-
 const SortableItem = ({
   id,
   type,
@@ -519,7 +517,6 @@ const EntryForm = ({
   }, [form.control, errors]);
 
   const handleSubmit = async (values: any) => {
-    console.log("handleSubmit", values);
     setIsSubmitting(true);
     try {
       await onSubmit(values);
@@ -529,59 +526,8 @@ const EntryForm = ({
   };
 
   const handleError = (errors: any) => {
-    console.log("handleError", errors);
     toast.error("Please fix the errors before saving.", { duration: 5000 });
   };
-
-  // Add a useEffect for testing
-  useEffect(() => {
-    console.log("Running direct Zod validation test...");
-    if (!zodSchema || !fields || !blocks) {
-      console.log("Schema, fields, or blocks not ready for test.");
-      return;
-    }
-
-    try {
-      // 1. Full schema is already generated in zodSchema
-
-      // 2. Extract meta schema
-      // Ensure zodSchema is a ZodObject before accessing shape
-      if (!(zodSchema instanceof z.ZodObject)) {
-        console.error("Full schema is not a ZodObject, cannot extract meta schema.");
-        return;
-      }
-      const metaSchema = zodSchema.shape.meta;
-
-      if (!metaSchema) {
-        console.error("Meta schema not found in the full schema shape.");
-        return;
-      }
-
-
-      // 3. Test data
-      const metaData = {
-        title: "Test Title", // Use a valid non-empty title
-        description: ""      // Empty description as per your example
-      };
-      console.log("Testing metaData:", metaData);
-
-
-      // 4. Parse ONLY meta data
-      const result = metaSchema.safeParse(metaData);
-
-      console.log("Direct Zod validation result for meta:", JSON.stringify(result, null, 2));
-
-      if (!result.success) {
-        console.error("Direct Zod validation errors:", result.error.flatten());
-      } else {
-        console.log("Direct validation PASSED for meta object.");
-      }
-
-    } catch (error) {
-      console.error("Error during direct schema extraction/validation:", error);
-    }
-
-  }, [zodSchema, fields, blocks]); // Add dependencies
 
   return (
     <Form {...form}>
