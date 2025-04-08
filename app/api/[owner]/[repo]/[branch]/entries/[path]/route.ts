@@ -123,9 +123,11 @@ const parseContent = (
         entryFields,
         (value, field) => {
           if (field.hidden) return;
-          return readFns[field.type]
-            ? readFns[field.type](value, field,  config)
-            : value;
+          const type = field.type;
+          if (typeof type === 'string' && readFns[type]) {
+            return readFns[type](value, field, config);
+          }
+          return value;
         }
       );
       if (schema.list) contentObject = contentObject.listWrapper;

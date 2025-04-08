@@ -140,7 +140,13 @@ const parseContents = (
         // If we are dealing with a serialized format and we have fields defined
         try {
           contentObject = parse(item.content, { format: schema.format, delimiters: schema.delimiters });
-          contentObject = deepMap(contentObject, schema.fields, (value, field) => readFns[field.type] ? readFns[field.type](value, field, config) : value);
+          // TODO: review if this works for blocks
+          contentObject = deepMap(contentObject, schema.fields, (value, field) => {
+            if (typeof field.type === 'string' && readFns[field.type]) {
+              return readFns[field.type](value, field, config);
+            }
+            return value;
+          });
         } catch (error: any) {
           // TODO: send this to the client?
           console.error(`Error parsing frontmatter for file "${item.path}": ${error.message}`);

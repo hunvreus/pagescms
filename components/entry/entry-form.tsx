@@ -352,7 +352,7 @@ const MixedTypeField = forwardRef((props: any, ref) => {
                   />
                 );
               } else {
-                  return selectedType && <p className="text-muted-foreground bg-muted rounded-md px-3 py-2">Error: Component not found for type '{resolvedConfig.type}'.</p>;
+                  return selectedType && <p className="text-muted-foreground bg-muted rounded-md px-3 py-2">Error: Component not found for type &apos;{resolvedConfig.type}&apos;.</p>;
               }
             })()}
           </div>
@@ -361,6 +361,8 @@ const MixedTypeField = forwardRef((props: any, ref) => {
     </div>
   );
 });
+
+MixedTypeField.displayName = 'MixedTypeField';
 
 const renderSingleField = (
   field: Field,
@@ -462,7 +464,7 @@ const EntryForm = ({
 
   const zodSchema = useMemo(() => {
     return generateZodSchema(fields, blocks, true, config?.object);
-  }, [fields, blocks]);
+  }, [fields, blocks, config?.object]);
 
   const defaultValues = useMemo(() => {
     return initializeState(fields, sanitizeObject(contentObject));
@@ -512,7 +514,7 @@ const EntryForm = ({
       }
       return renderSingleField(field, currentFieldName, form.control, blocks, renderFields, true);
     });
-  }, [form.control, blocks, errors, renderSingleField]);
+  }, [form.control, errors]);
 
   const handleSubmit = async (values: any) => {
     console.log("handleSubmit", values);

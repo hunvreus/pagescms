@@ -42,7 +42,7 @@ export function Thumbnail({
     };
 
     fetchRawUrl();
-  }, [path, owner, repo, branch, isPrivate]);
+  }, [path, owner, repo, branch, isPrivate, name]);
 
   return (
     <div

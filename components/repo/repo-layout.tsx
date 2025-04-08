@@ -38,7 +38,7 @@ export function RepoLayout({
     if (config?.owner && config?.repo && config?.branch) {
       trackVisit(owner, repo, config.branch);
     }
-  }, [config]);
+  }, [config, owner, repo]);
 
   return (
     <>
