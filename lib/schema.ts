@@ -109,7 +109,8 @@ const getDefaultValue = (field: Record<string, any>) => {
 const generateZodSchema = (
   fields: Field[],
   blocks: Record<string, Field> = {},
-  ignoreHidden: boolean = false
+  ignoreHidden: boolean = false,
+  configObject?: Record<string, any>
 ): z.ZodTypeAny => {
   const buildSchema = (currentFields: Field[], currentBlocks: Record<string, Field>): Record<string, z.ZodTypeAny> => {
     return currentFields.reduce((acc: Record<string, z.ZodTypeAny>, field) => {
@@ -121,22 +122,22 @@ const generateZodSchema = (
         // Mixed types
         const unionOptions = field.type.map((typeName): z.ZodDiscriminatedUnionOption<"type"> | null => {
           let valueSchema: z.ZodTypeAny;
-          const blockDefinition = currentBlocks[typeName];
+          const block = currentBlocks[typeName];
 
-          if (blockDefinition) {
-            const actualBlockType = blockDefinition.type || 'text';
+          if (block) {
+            const actualBlockType = block.type || 'text';
             if (Array.isArray(actualBlockType)) {
               console.warn(`Block "${typeName}" defines mixed type within mixed field "${field.name}". Validation limited.`);
               valueSchema = z.any();
             } else if (actualBlockType === 'object') {
-              valueSchema = z.object(buildSchema(blockDefinition.fields || [], currentBlocks));
+              valueSchema = z.object(buildSchema(block.fields || [], currentBlocks));
             } else {
-              const primitiveSchemaFn = schemas?.[actualBlockType] || schemas['text'];
-              valueSchema = primitiveSchemaFn({ ...blockDefinition, name: field.name, required: field.required, type: actualBlockType });
+              const fieldSchemaFn = schemas?.[actualBlockType] || schemas['text'];
+              valueSchema = fieldSchemaFn({ ...block, name: field.name, required: field.required, type: actualBlockType }, configObject);
             }
           } else {
-            const primitiveSchemaFn = schemas?.[typeName] || schemas['text'];
-            valueSchema = primitiveSchemaFn({ ...field, type: typeName });
+            const fieldSchemaFn = schemas?.[typeName] || schemas['text'];
+            valueSchema = fieldSchemaFn({ ...field, type: typeName }, configObject);
           }
           return z.object({ type: z.literal(typeName), value: valueSchema });
         }).filter(Boolean) as z.ZodDiscriminatedUnionOption<"type">[];
@@ -164,31 +165,33 @@ const generateZodSchema = (
       } else {
         // Single types
         const typeName = field.type;
-        const blockDefinition = currentBlocks[typeName];
+        const block = currentBlocks[typeName];
 
-        if (blockDefinition) {
-          const actualBlockType = blockDefinition.type || 'text';
+        if (block) {
+          const actualBlockType = block.type || 'text';
           if (Array.isArray(actualBlockType)) {
             console.warn(`Block "${typeName}" defining mixed type used as single field type "${field.name}". Validation limited.`);
             fieldSchema = z.any();
           } else if (actualBlockType === 'object') {
-            fieldSchema = z.object(buildSchema(blockDefinition.fields || [], currentBlocks));
+            fieldSchema = z.object(buildSchema(block.fields || [], currentBlocks));
           } else {
-            const primitiveSchemaFn = schemas?.[actualBlockType] || schemas['text'];
-            fieldSchema = primitiveSchemaFn({ ...blockDefinition, name: field.name, required: field.required, type: actualBlockType });
+            const fieldSchemaFn = schemas?.[actualBlockType] || schemas['text'];
+            fieldSchema = fieldSchemaFn({ ...block, name: field.name, required: field.required, type: actualBlockType }, configObject);
           }
         } else {
           let fieldSchemaFn = schemas?.[typeName] || schemas["text"];
 
           fieldSchema = typeName === "object"
               ? z.object(buildSchema(field.fields || [], currentBlocks))
-              : fieldSchemaFn(field);
+              : fieldSchemaFn(field, configObject);
         }
       }
 
-      const blockDefForListCheck = typeof field.type === 'string' ? currentBlocks?.[field.type] : undefined;
-      const isAlreadyList = fieldSchema instanceof z.ZodArray || blockDefForListCheck?.list === true;
+      // Check if the field is already a list from block inheritance
+      const blockForListCheck = typeof field.type === 'string' ? currentBlocks?.[field.type] : undefined;
+      const isAlreadyList = fieldSchema instanceof z.ZodArray || blockForListCheck?.list === true;
 
+      // Lists
       if (field.list && fieldSchema && !isAlreadyList) {
         let listSchema = z.array(fieldSchema);
         if (typeof field.list === "object") {
@@ -197,9 +200,10 @@ const generateZodSchema = (
         }
         fieldSchema = listSchema;
       } else if (field.list && !fieldSchema) {
-         fieldSchema = z.array(z.any());
+         fieldSchema = z.array(z.any()); // Fallback to an array of any type
       }
 
+      // Not required and not a list
       if (!Array.isArray(field.type) && !field.required) {
          if (fieldSchema && typeof fieldSchema.optional === 'function' && typeof fieldSchema.nullable === 'function') {
            fieldSchema = fieldSchema.optional().nullable();

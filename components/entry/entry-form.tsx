@@ -62,7 +62,8 @@ import {
   restrictToParentElement
 } from "@dnd-kit/modifiers";
 import { CSS } from "@dnd-kit/utilities";
-import { ChevronLeft, GripVertical, Loader, Plus, Trash2, EllipsisVertical } from "lucide-react";
+import { ChevronLeft, GripVertical, Loader, Plus, Trash2, Ellipsis } from "lucide-react";
+import { useConfig } from "@/contexts/config-context";
 
 const SortableItem = ({
   id,
@@ -273,15 +274,18 @@ const MixedTypeField = forwardRef((props: any, ref) => {
   return (
     <div className="space-y-3" ref={ref as React.Ref<HTMLDivElement>}>
       {!selectedType ? (
-        <div className="rounded-lg border p-4 space-y-4">
-          <span>Choose content type:</span>
-          <div className="flex flex-wrap gap-2">
+        <div className="rounded-lg border">
+          <header className="flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-10 text-sm font-medium">
+            <span>Choose content type:</span>
+          </header>
+          <div className="flex flex-wrap gap-2 p-4">
             {types.map((type: string) => (
               <Button
                 key={type}
                 type="button"
                 variant="secondary"
-                className="rounded-full gap-x-2"
+                size="sm"
+                className="gap-x-2"
                 onClick={() => handleTypeSelect(type)}
               >
                 {
@@ -295,29 +299,33 @@ const MixedTypeField = forwardRef((props: any, ref) => {
           </div>
         </div>
       ) : (
-        <div className="rounded-lg border p-4 space-y-6">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="secondary"
-                className="rounded-full gap-x-2.5"
-              >
-                {
-                  fieldTypes.has(selectedType)
-                    ? labels[selectedType] || selectedType
-                    : blocks?.[selectedType]?.label || selectedType
-                }
-                <Trash2 className="h-4 w-4 text-muted-foreground" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={handleRemove}>
-                Remove content
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          {(() => {
+        <div className="rounded-lg border">
+          <header className="flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-10 border-b text-sm font-medium text-muted-foreground">
+            {
+              fieldTypes.has(selectedType)
+                ? labels[selectedType] || selectedType
+                : blocks?.[selectedType]?.label || selectedType
+            }
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  className="gap-x-2.5"
+                >
+                  <Ellipsis className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={handleRemove}>
+                  Change content type
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </header>
+          <div className="p-4">
+            {(() => {
               const fieldForResolution = { ...field, type: selectedType };
               const resolvedConfig = resolveBlocks(fieldForResolution, blocks);
 
@@ -347,6 +355,7 @@ const MixedTypeField = forwardRef((props: any, ref) => {
                   return selectedType && <p className="text-muted-foreground bg-muted rounded-md px-3 py-2">Error: Component not found for type '{resolvedConfig.type}'.</p>;
               }
             })()}
+          </div>
         </div>
       )}
     </div>
@@ -449,9 +458,10 @@ const EntryForm = ({
   options: React.ReactNode;
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { config } = useConfig();
 
   const zodSchema = useMemo(() => {
-    return generateZodSchema(fields, blocks, true);
+    return generateZodSchema(fields, blocks, true, config?.object);
   }, [fields, blocks]);
 
   const defaultValues = useMemo(() => {

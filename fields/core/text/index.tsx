@@ -2,7 +2,7 @@ import { z } from "zod";
 import { Field } from "@/types/field";
 import { EditComponent } from "./edit-component";
 
-const schema = (field: Field) => {
+const schema = (field: Field, configObject?: Record<string, any>) => {
   let zodSchema = z.string();
   
   if (field.required) zodSchema = zodSchema.min(1, "This field is required");
@@ -19,4 +19,6 @@ const schema = (field: Field) => {
   return zodSchema;
 };
 
-export { schema, EditComponent};
+const label = "Text";
+
+export { label, schema, EditComponent };

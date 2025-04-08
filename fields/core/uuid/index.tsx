@@ -6,10 +6,14 @@ const defaultValue = (): string => {
   return crypto.randomUUID();
 };
 
-const schema = (_: Field) => {
+const schema = (field: Field, configObject?: Record<string, any>) => {
   let zodSchema = z.coerce.string().uuid();
+
+  if (field.required) zodSchema = zodSchema.min(1, "This field is required");
 
   return zodSchema;
 };
 
-export { EditComponent, defaultValue, schema };
+const label = "UUID";
+
+export { label, EditComponent, defaultValue, schema };

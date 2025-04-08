@@ -12,4 +12,6 @@ const schema = (field: Field) => {
   return zodSchema;
 };
 
-export { schema, EditComponent };
+const label = "Reference";
+
+export { label, schema, EditComponent };

@@ -13,17 +13,22 @@ const schema = (field: Field) => {
     });
     zodSchema = z.enum(normalizedValues as [string, ...string[]]);
   } else {
-    zodSchema = z.string().nullable();
+    zodSchema = z.string();
+    if (field.required) zodSchema = zodSchema.min(1, "This field is required");
   }
 
   if (field.options?.multiple) {
+    zodSchema = z.array(zodSchema);
+
+    if (field.required) zodSchema = zodSchema.min(1, "This field is required");
+
     zodSchema = z.preprocess(
       (val) => {
         if (val === "" || val === null) return [];
         // Ensure array values are converted to strings
         return Array.isArray(val) ? val.map(String) : val;
       },
-      z.array(zodSchema)
+      zodSchema
     );
   }
   
@@ -34,4 +39,6 @@ const schema = (field: Field) => {
   return zodSchema;
 };
 
-export { schema, EditComponent };
+const label = "Select";
+
+export { label, schema, EditComponent };

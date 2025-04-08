@@ -73,11 +73,13 @@ export async function POST(
               contentFields = schema.fields;
             }
 
+            // Hidden fields are stripped in the client, we add them back
+            // contentObject = deepMap(contentObject, contentFields, (value, field) => field.hidden ? getDefaultValue(field) : value);
             // TODO: fetch the entry and merge values
             
             // Use mapBlocks to convert config blocks array to a map
             const blocksMap = mapBlocks(config?.object);
-            const zodSchema = generateZodSchema(contentFields, blocksMap, false);
+            const zodSchema = generateZodSchema(contentFields, blocksMap, false, config?.object);
             const zodValidation = zodSchema.safeParse(contentObject);
             
             if (zodValidation.success === false ) {

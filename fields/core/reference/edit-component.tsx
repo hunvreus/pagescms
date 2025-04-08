@@ -5,10 +5,6 @@ import { forwardRef, useMemo } from "react";
 import { getSchemaByName } from "@/lib/schema";
 import { useConfig } from "@/contexts/config-context";
 
-// const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLTextAreaElement>) => {
-//   return <SelectEditComponent {...props} ref={ref} className="text-base" />;
-// });
-
 const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) => {
   const { value, field, onChange } = props;
 
