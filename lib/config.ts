@@ -11,7 +11,7 @@ import { ConfigSchema } from "@/lib/configSchema";
 import { z } from "zod";
 import { deepMergeObjects } from "@/lib/helpers";
 
-const configVersion = "2.1";
+const configVersion = "2.2";
 
 // Parse the config file (YAML to JSON)
 const parseConfig = (content: string) => {
