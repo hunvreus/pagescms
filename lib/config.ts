@@ -141,7 +141,7 @@ const normalizeConfig = (configObject: any) => {
       return item;
     });
   }
-
+  
   return configObjectCopy;
 }
 
@@ -155,12 +155,21 @@ function resolveComponent(field: any, componentsMap: Record<string, any>): any {
 
     if (componentDef) {
       const componentCopy = JSON.parse(JSON.stringify(componentDef));
+      const originalName = result.name;
+      const componentType = componentCopy.type;
       delete result.component;
       result = deepMergeObjects(componentCopy, result);
+      result.name = originalName;
+      result.type = componentType;
     } else {
       console.error(`Component reference "${componentKey}" could not be resolved.`);
       delete result.component; // Remove the broken reference
     }
+  }
+
+  // Default to `type: object` if fields exist and type is missing
+  if (Array.isArray(result.fields) && result.fields.length > 0 && result.type === undefined) {
+    result.type = 'object';
   }
 
   // Nested fields

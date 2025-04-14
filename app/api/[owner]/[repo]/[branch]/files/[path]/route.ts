@@ -271,7 +271,6 @@ const githubSaveFile = async (
 
       // Try up to 3 times with incrementing numbers
       for (let i = 1; i <= 3; i++) {
-        console.log(`>>> Trying ${i} with ${maxNumber + i}`);
         const newPath = `${parentDir ? parentDir + '/' : ''}${filename}-${maxNumber + i}.${extension}`;
         try {
           const response = await octokit.rest.repos.createOrUpdateFileContents({

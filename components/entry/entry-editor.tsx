@@ -343,9 +343,7 @@ export function EntryEditor({
       );
     }
   }
-
-  console.log(config?.object);
-
+  
   return (
     isLoading
       ? loadingSkeleton
