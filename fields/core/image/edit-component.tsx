@@ -169,7 +169,7 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
     if (isMultiple) {
       onChange(files.map(f => f.path));
     } else {
-      onChange(files[0]?.path || undefined);
+      onChange(files[0]?.path ?? "");
     }
   }, [files, isMultiple, onChange]);
 

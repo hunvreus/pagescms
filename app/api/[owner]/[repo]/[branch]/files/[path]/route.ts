@@ -1,9 +1,9 @@
 import { type NextRequest } from "next/server";
 import { createOctokitInstance } from "@/lib/utils/octokit";
 import { writeFns } from "@/fields/registry";
-import { configVersion, parseConfig, normalizeConfig, mapBlocks } from "@/lib/config";
+import { configVersion, parseConfig, normalizeConfig } from "@/lib/config";
 import { stringify } from "@/lib/serialization";
-import { deepMap, getDefaultValue, generateZodSchema, getSchemaByName, sanitizeObject } from "@/lib/schema";
+import { deepMap, generateZodSchema, getSchemaByName, sanitizeObject } from "@/lib/schema";
 import { getConfig, updateConfig } from "@/lib/utils/config";
 import { getFileExtension, getFileName, normalizePath, serializedTypes, getParentPath } from "@/lib/utils/file";
 import { getAuth } from "@/lib/auth";
@@ -78,8 +78,7 @@ export async function POST(
             // TODO: fetch the entry and merge values
             
             // Use mapBlocks to convert config blocks array to a map
-            const blocksMap = mapBlocks(config?.object);
-            const zodSchema = generateZodSchema(contentFields, blocksMap, false, config?.object);
+            const zodSchema = generateZodSchema(contentFields);
             const zodValidation = zodSchema.safeParse(contentObject);
             
             if (zodValidation.success === false ) {

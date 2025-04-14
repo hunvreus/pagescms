@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useConfig } from "@/contexts/config-context";
-import { parseAndValidateConfig, mapBlocks } from "@/lib/config";
+import { parseAndValidateConfig } from "@/lib/config";
 import { generateFilename, getPrimaryField, getSchemaByName } from "@/lib/schema";
 import {
   getFileExtension,
@@ -49,10 +49,6 @@ export function EntryEditor({
   
   const { config } = useConfig();
   if (!config) throw new Error(`Configuration not found.`);
-  
-  const blocks = useMemo(() => {
-    return mapBlocks(config?.object);
-  }, [config?.object]);
   
   let schema = useMemo(() => {
     if (!name) return;
@@ -359,7 +355,6 @@ export function EntryEditor({
         onSubmit={onSubmit}
         path={path}
         history={history}
-        blocks={blocks}
         options={path && sha &&
           <FileOptions
             path={path}

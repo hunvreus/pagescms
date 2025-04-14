@@ -135,7 +135,10 @@ const schema = (field: Field, configObject?: Record<string, any>) => {
   return zodSchema;
 };
 
-const defaultValue = null;
+const defaultValue = (field: Field) => {
+  return field.options?.multiple ? [] : "";
+};
+
 const label = "File";
 
 export { label, schema, ViewComponent, EditComponent, read, write, defaultValue, getAllowedExtensions };

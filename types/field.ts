@@ -2,7 +2,7 @@ export type Field = {
   name: string;
   label?: string | false;
   description?: string | null;
-  type: string | string[];
+  type: string;
   default?: any;
   list?: boolean | { min?: number; max?: number; default?: any };
   hidden?: boolean | null;
@@ -10,4 +10,6 @@ export type Field = {
   pattern?: string | { regex: string; message?: string };
   options?: Record<string, unknown> | null;
   fields?: Field[];
+  blocks?: Field[];
+  blockKey?: string;
 };
