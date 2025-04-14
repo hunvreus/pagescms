@@ -127,7 +127,7 @@ const generateZodSchema = (
             console.warn(`Block field "${field.name}" has no valid block definitions in 'blocks'. Allowing any object.`);
             fieldSchema = z.object({}).passthrough();
           } else if (blockTypeSchemas.length === 1) {
-            fieldSchema = blockTypeSchemas[0];
+            fieldSchema = blockTypeSchemas[0].optional().nullable();
           } else {
             fieldSchema = z.discriminatedUnion(
               discriminator,

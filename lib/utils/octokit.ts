@@ -6,10 +6,11 @@
 import { Octokit } from "octokit";
 import { handleSignOut } from "@/lib/actions/auth";
 
-export const createOctokitInstance = (token: string) => {
+export const createOctokitInstance = (token: string, options?: any) => {
   if (!token) throw new Error("Auth token is required to initialize Octokit");
 
   return new Octokit({
+    ...options,
     auth: token,
     request: {
       fetch: async (url: string, options: RequestInit) => {

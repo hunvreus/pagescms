@@ -222,8 +222,9 @@ const githubSaveFile = async (
   contentBase64: string,
   sha?: string,
 ) => {
-  const octokit = createOctokitInstance(token);
-
+  // We disable retries for 409 errors as it means the file has changed (conflict on SHA)
+  const octokit = createOctokitInstance(token, { retry: { doNotRetry: [409] } });
+  
   try {
     // First attempt: try with original path
     const response = await octokit.rest.repos.createOrUpdateFileContents({
@@ -241,6 +242,10 @@ const githubSaveFile = async (
     }
     throw new Error("Invalid response structure");
   } catch (error: any) {
+    if (error.status === 409) {
+      error.message = "File has changed since you last loaded it. Please refresh the page and try again.";
+    }
+
     // Only handle 422 errors for new files (no sha)
     if (error.status === 422 && !sha) {
       // Get directory contents to find next available name
@@ -266,6 +271,7 @@ const githubSaveFile = async (
 
       // Try up to 3 times with incrementing numbers
       for (let i = 1; i <= 3; i++) {
+        console.log(`>>> Trying ${i} with ${maxNumber + i}`);
         const newPath = `${parentDir ? parentDir + '/' : ''}${filename}-${maxNumber + i}.${extension}`;
         try {
           const response = await octokit.rest.repos.createOrUpdateFileContents({

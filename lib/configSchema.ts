@@ -56,16 +56,8 @@ const MediaSchema = z.union([
 ]);
 
 // Generator for Field Object Schema (components do not have a `name` field)
-const generateFieldObjectSchema = (isComponent: boolean = false): z.ZodType<any> => {
-  return z.lazy(() => z.object({
-    ...(!isComponent && {
-      name: z.string({
-        required_error: "'name' is required.",
-        invalid_type_error: "'name' must be a string.",
-      }).regex(/^[a-zA-Z0-9-_]+$/, {
-        message: "'name' must be alphanumeric with dashes and underscores.",
-      })
-    }),
+const generateFieldObjectSchema = (isComponent?: boolean, isBlock?: boolean): z.ZodType<any> => {
+  let baseObjectSchema = {
     label: z.union([
       z.literal(false),
       z.string({
@@ -73,83 +65,136 @@ const generateFieldObjectSchema = (isComponent: boolean = false): z.ZodType<any>
       })
     ]).optional(),
     description: z.string().optional().nullable(),
-    type: z.string({
-      invalid_type_error: "'type' must be a string."
-    }).min(1, { message: "'type' cannot be empty." })
-      .refine(val => fieldTypes.has(val) || ['object', 'block'].includes(val), {
-        message: "'type' must be a valid field type.",
-        path: ['type']
-      })
-      .optional(),
     component: z.string({
       invalid_type_error: "'component' must be a string."
     }).regex(/^[a-zA-Z0-9-_]+$/, {
       message: "Component key must be alphanumeric with dashes and underscores."
     }).optional(),
     default: z.any().nullable().optional(),
-    list: z.union([
-      z.boolean(),
-      z.object({
-        min: z.number().min(0, "'min' must be a positive integer (minimum 0).").optional(),
-        max: z.number().min(1, "'max' must be a positive integer (minimum 1).").optional(),
-      }, {
-        message: "'list' must be either a boolean or an object with 'min' and 'max' properties."
-      }).strict()
-    ]).optional(),
-    hidden: z.boolean({
-      message: "'hidden' must be a boolean."
-    }).optional().nullable(),
-    required: z.boolean({
-      message: "'required' must be a boolean."
-    }).optional().nullable(),
-    pattern: z.union([
-      z.string({
-        message: "'pattern' must be a valid regex string."
-      }),
-      z.object({
-        regex: z.string({
-          required_error: "'regex' is required.",
-          invalid_type_error: "'regex' must be a valid regex string."
-        }),
-        message: z.string({
-          message: "'message' must be a string."
-        }).optional(),
-      }, {
-        message: "'pattern' must be a string (regex) or an object with 'regex' and optionally 'message' properties."
-      }).strict()
-    ]).optional(),
-    options: z.object({}).optional().nullable(),
     fields: z.array(
-      z.lazy(() => generateFieldObjectSchema(false)),
+      z.lazy(() => generateFieldObjectSchema()),
       { message: "'fields' must be an array of field definitions." }
     ).optional(),
-    blocks: z.array(
-      z.lazy(() => generateFieldObjectSchema(false)),
-      { message: "'blocks' must be an array of field definitions." }
-    ).optional(),
-    blockKey: z.string({
-      message: "'blockKey' must be a string."
-    }).min(1, { 
-       message: "'blockKey' cannot be empty."
-    }).optional(),
-  })
-  .strict()
-  .refine(data => (data.type !== undefined) !== (data.component !== undefined), {
-    message: "Field must have either 'type' or 'component'.",
-    path: ['type', 'component']
-  })
-  .refine(data => !(data.type === 'block' && data.blocks === undefined), {
-    message: "Fields with type 'block' must have a 'blocks' attribute.",
-    path: ['blocks']
-  })
-  .refine(data => !(data.type === 'object' && data.fields === undefined), {
-    message: "Fields with type 'object' must have a 'fields' attribute.",
-    path: ['fields']
-  })
-  .refine(data => data.type === 'block' || data.blockKey === undefined, {
-      message: "'blockKey' attribute is only valid when 'type' is 'block'.",
-      path: ['blockKey']
-  }));
+  };
+
+  if (!isComponent) {
+    baseObjectSchema = {
+      ...{
+        name: z.string({
+          required_error: "'name' is required.",
+          invalid_type_error: "'name' must be a string.",
+        }).regex(/^[a-zA-Z0-9-_]+$/, {
+          message: "'name' must be alphanumeric with dashes and underscores.",
+        })
+      },
+      ...baseObjectSchema
+    }
+  }
+
+  if (!isBlock) {
+    baseObjectSchema = {
+      ...{
+        type: z.string({
+          invalid_type_error: "'type' must be a string."
+        }).min(1, { message: "'type' cannot be empty." })
+          .refine(val => fieldTypes.has(val) || ['object', 'block'].includes(val), {
+            message: "'type' must be a valid field type.",
+            path: ['type']
+          })
+          .optional(),
+        list: z.union([
+          z.boolean(),
+          z.object({
+            min: z.number().min(0, "'min' must be a positive integer (minimum 0).").optional(),
+            max: z.number().min(1, "'max' must be a positive integer (minimum 1).").optional(),
+          }, {
+            message: "'list' must be either a boolean or an object with 'min' and 'max' properties."
+          }).strict()
+        ]).optional(),
+        hidden: z.boolean({
+          message: "'hidden' must be a boolean."
+        }).optional().nullable(),
+        required: z.boolean({
+          message: "'required' must be a boolean."
+        }).optional().nullable(),
+        pattern: z.union([
+          z.string({
+            message: "'pattern' must be a valid regex string."
+          }),
+          z.object({
+            regex: z.string({
+              required_error: "'regex' is required.",
+              invalid_type_error: "'regex' must be a valid regex string."
+            }),
+            message: z.string({
+              message: "'message' must be a string."
+            }).optional(),
+          }, {
+            message: "'pattern' must be a string (regex) or an object with 'regex' and optionally 'message' properties."
+          }).strict()
+        ]).optional(),
+        options: z.object({}).optional().nullable(),
+        blocks: z.array(
+          z.lazy(() => generateFieldObjectSchema(false, true)),
+          { message: "'blocks' must be an array of field definitions." }
+        ).optional(),
+        blockKey: z.string({
+          message: "'blockKey' must be a string."
+        }).min(1, { 
+           message: "'blockKey' cannot be empty."
+        }).optional()
+      },
+      ...baseObjectSchema
+    }
+  }
+  
+  return z.lazy(() => z.object(baseObjectSchema).strict()
+    .superRefine((data: any, ctx: any) => {
+      if (!isBlock) {
+        const hasType = data.type !== undefined;
+        const hasComponent = data.component !== undefined;
+        if (hasType === hasComponent) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Field must have exactly one of 'type' or 'component'.",
+            path: ['type', 'component']
+          });
+        }
+      }
+
+      if (data.type === 'block' && data.blocks === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Fields with type 'block' must have a 'blocks' attribute.",
+          path: ['blocks']
+        });
+      }
+
+      if (data.type === 'object' && data.fields === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Fields with type 'object' must have a 'fields' attribute.",
+          path: ['fields']
+        });
+      }
+
+      if (isBlock && data.fields === undefined && data.component === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Blocks must have a 'fields' attribute or inherit one from a component.",
+          path: ['fields', 'component']
+        });
+      }
+
+      if (data.blockKey !== undefined && data.type !== 'block') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "'blockKey' attribute is only valid when 'type' is 'block'.",
+          path: ['blockKey']
+        });
+      }
+    })
+  );
 };
 
 // Content entry schema
@@ -234,7 +279,7 @@ const ContentObjectSchema = z.object({
     message: "'subfolders' must be a boolean."
   }).optional().nullable(),
   fields: z.array(
-    generateFieldObjectSchema(false),
+    generateFieldObjectSchema(),
     { message: "'fields' must be an array of field definitions." }
   ).optional(),
   list: z.boolean({

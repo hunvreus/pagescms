@@ -170,6 +170,13 @@ function resolveComponent(field: any, componentsMap: Record<string, any>): any {
     });
   }
 
+  // Nested blocks
+  if (Array.isArray(result.blocks)) {
+    result.blocks = result.blocks.map((block: any) => {
+      return resolveComponent(block, componentsMap);
+    });
+  }
+
   return result;
 }
 

@@ -62,7 +62,6 @@ import {
 } from "@dnd-kit/modifiers";
 import { CSS } from "@dnd-kit/utilities";
 import { ChevronLeft, GripVertical, Loader, Plus, Trash2, Ellipsis } from "lucide-react";
-import { useConfig } from "@/contexts/config-context";
 import { toast } from "sonner";
 const SortableItem = ({
   id,
@@ -276,13 +275,13 @@ const BlocksField = forwardRef((props: any, ref) => {
             {selectedBlockDefinition.label || selectedBlockDefinition.name}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button type="button" variant="ghost" size="icon-xs" className="ml-auto">
+                <Button type="button" variant="ghost" size="icon-xs">
                   <Ellipsis className="h-4 w-4 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent>
                 <DropdownMenuItem onClick={handleRemoveBlock}>
-                  Change block type
+                  Remove block
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
