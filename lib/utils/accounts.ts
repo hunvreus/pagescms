@@ -22,14 +22,16 @@ const getAccounts = async (user: User) => {
 			...installations.map((installation: any) => ({
 				login: installation.account.login,
 				type: installation.account.type === "User" ? "user" : "org",
-				repositorySelection: installation.repository_selection
+				repositorySelection: installation.repository_selection,
+        installationId: installation.id
 			}))
 		];
 	} else {
 		const groupedRepos = await db
 			.select({
 				owner: collaboratorTable.owner,
-				type: collaboratorTable.type
+				type: collaboratorTable.type,
+        installationId: collaboratorTable.installationId
 			})
 			.from(collaboratorTable)
 			.where(eq(collaboratorTable.email, user.email))
@@ -38,7 +40,8 @@ const getAccounts = async (user: User) => {
 		accounts = groupedRepos.map(collaborator => ({
 			login: collaborator.owner,
 			type: collaborator.type,
-			repositorySelection: "selected"
+			repositorySelection: "selected",
+      installationId: collaborator.installationId
 		}));
 	}
 
