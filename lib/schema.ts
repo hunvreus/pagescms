@@ -240,7 +240,12 @@ const getSchemaByPath = (config: Record<string, any>, path: string) => {
 
 // Retrieve the matching schema for a media or content entry
 const getSchemaByName = (config: Record<string, any> | null | undefined, name: string, type: string = "content") => {
-  if (!config || !config.content || !name) return null;
+  if (
+    !config
+    || (type === "media" && !config.media)
+    || (type === "content" && !config.content)
+    || !name
+  ) return null;
   
   const schema = (type === "media")
     ? config.media.find((item: Record<string, any>) => item.name === name)
