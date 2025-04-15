@@ -27,8 +27,8 @@ const Installations = () => {
           <Button size="sm" variant="outline" className="h-8 ml-auto" asChild>
             <a
               href={account.type === 'org' 
-                ? `https://github.com/organizations/${account.login}/settings/installations`
-                : 'https://github.com/settings/installations'} 
+                ? `https://github.com/organizations/${account.login}/settings/installations/${account.installationId ?? ''}`
+                : `https://github.com/settings/installations/${account.installationId ?? ''}`} 
               target="_blank"
             >
               Manage
