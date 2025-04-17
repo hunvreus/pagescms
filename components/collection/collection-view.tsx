@@ -62,11 +62,11 @@ export function CollectionView({
         // If we have a list of fields defined for the view
         schema.view.fields.forEach((path: string) => {
           const field = getFieldByPath(schema.fields, path);
-          if (field && field.type !== "object") pathAndFieldArray.push({ path: path, field: field });
+          if (field && !['object', 'block'].includes(field.type)) pathAndFieldArray.push({ path: path, field: field });
         });
       } else {
         pathAndFieldArray = schema.fields
-          .filter((field: any) => field?.type !== 'object' && !field.hidden)
+          .filter((field: any) => !['object', 'block'].includes(field.type) && !field.hidden)
           .map((field: any) => ({ path: field.name, field: field }));
       }
     } else {
