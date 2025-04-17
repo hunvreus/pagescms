@@ -392,7 +392,7 @@ const EntryForm = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const zodSchema = useMemo(() => {
-    return generateZodSchema(fields, true);
+    return generateZodSchema(fields);
   }, [fields]);
 
   const defaultValues = useMemo(() => {
@@ -459,6 +459,7 @@ const EntryForm = ({
 
   return (
     <Form {...form}>
+      <pre>{JSON.stringify(form.watch(), null, 2)}</pre>
       <form onSubmit={form.handleSubmit(handleSubmit, handleError)}>
         <div className="max-w-screen-xl mx-auto flex w-full gap-x-8">
           <div className="flex-1 w-0">
