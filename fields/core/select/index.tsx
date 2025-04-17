@@ -11,7 +11,15 @@ const schema = (field: Field) => {
         ? String(item.value)
         : String(item);
     });
-    zodSchema = z.enum(normalizedValues as [string, ...string[]]);
+
+    zodSchema = z.enum(
+      normalizedValues as [string, ...string[]],
+      { message: "This field is required" }
+    );
+
+    zodSchema = field.required
+      ? zodSchema
+      : z.union([z.literal(""), zodSchema]).optional().nullable();
   } else {
     zodSchema = z.string();
     if (field.required) zodSchema = zodSchema.min(1, "This field is required");
@@ -30,10 +38,6 @@ const schema = (field: Field) => {
       },
       zodSchema
     );
-  }
-  
-  if (!field.required) {
-    zodSchema = zodSchema.nullable();
   }
   
   return zodSchema;

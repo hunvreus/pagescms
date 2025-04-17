@@ -343,7 +343,7 @@ export function EntryEditor({
       );
     }
   }
-  
+  console.log(config)
   return (
     isLoading
       ? loadingSkeleton
