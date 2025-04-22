@@ -16,31 +16,53 @@ const deepMap = (
 ): Record<string, any> => {
   const traverse = (data: any, schema: Field[]): any => {
     const result: any = {};
+    const currentData = data || {}; // Ensure data is an object
 
     schema.forEach(field => {
-      const currentData = data || {};
       const value = currentData[field.name];
-      
+
       if (field.list) {
         if (value === undefined) {
           result[field.name] = apply(value, field);
         } else {
           result[field.name] = Array.isArray(value)
-            ? value.map(item =>
-                field.type === "object"
-                  ? traverse(item, field.fields || [])
-                  : apply(item, field)
-              )
+            ? value.map(item => {
+                if (field.type === "object") {
+                  return traverse(item, field.fields || []);
+                } else if (field.type === "block") {
+                  const blockKey = field.blockKey || "_block";
+                  const blockName = item?.[blockKey];
+                  const blockDef = field.blocks?.find(b => b.name === blockName);
+                  if (blockDef) {
+                    const innerResult = traverse(item, blockDef.fields || []);
+                    // Merge discriminator back after processing inner fields
+                    return { [blockKey]: blockName, ...innerResult }; 
+                  }
+                  return item;
+                } else {
+                  return apply(item, field);
+                }
+              })
             : [];
         }
       } else if (field.type === "object") {
         result[field.name] = traverse(value, field.fields || []);
+      } else if (field.type === "block") {
+        const blockKey = field.blockKey || "_block";
+        const blockName = value?.[blockKey];
+        const blockDef = field.blocks?.find(b => b.name === blockName);
+        if (blockDef && value) {
+          const innerResult = traverse(value, blockDef.fields || []);
+          // Merge discriminator back after processing inner fields
+          result[field.name] = { [blockKey]: blockName, ...innerResult };
+        } else {
+          result[field.name] = value;
+        }
       } else {
-        const applied = apply(value, field);
-        result[field.name] = applied;
+        result[field.name] = apply(value, field);
       }
     });
-
+    
     return result;
   };
 
