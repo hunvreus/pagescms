@@ -82,10 +82,12 @@ export function CollectionView({
 
     // If the filename starts with {year}-{month}-{day} and date is listed in the
     // view fields and is not an actual field, or if there are no fields, we add a date field
+    console.log("pathAndFieldArray", pathAndFieldArray)
     if (
-      schema.filename.startsWith("{year}-{month}-{day}")
+      !pathAndFieldArray.find((item: any) => item.path === "date")
+      && schema.filename.startsWith("{year}-{month}-{day}")
       && (
-        (schema.view?.fields &&schema.view?.fields.includes("date") && !pathAndFieldArray.find((item: any) => item.path === "date"))
+        (schema.view?.fields && schema.view?.fields.includes("date"))
         || !schema.view?.fields
       )
     ) {

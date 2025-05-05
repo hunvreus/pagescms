@@ -55,7 +55,7 @@ export async function GET(
       if (normalizedPath !== schema.path) throw new Error(`Invalid path "${path}" for collection "${params.name}".`);
     }
 
-    let entries = await getCollectionCache(params.owner, params.repo, params.branch, normalizedPath, token);
+    let entries = await getCollectionCache(params.owner, params.repo, params.branch, normalizedPath, token, schema.view?.node);
     
     let data: {
       contents: Record<string, any>[],
@@ -168,18 +168,22 @@ const parseContents = (
           contentObject.date = filenameDate.string;
         }
       }
+      item
       // TODO: handle proper returns
       return {
         sha: item.sha,
         name: item.name,
+        parentPath: item.parentPath,
         path: item.path,
         content: item.content,
         fields: contentObject,
         type: "file",
+        node: item.context === "node",
       };
     } else if (item.type === "dir" && !excludedFiles.includes(item.name) && schema.subfolders !== false) {
       return {
         name: item.name,
+        parentPath: item.parentPath,
         path: item.path,
         type: "dir",
       };

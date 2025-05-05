@@ -1,13 +1,17 @@
 "use client"
 
+import { useState } from "react";
 import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  getExpandedRowModel,
   useReactTable,
-  RowData
+  RowData,
+  TableState,
+  ExpandedState,
 } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +23,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { ArrowUp, ArrowDown, Ban, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ArrowUp,
+  ArrowDown,
+  Ban,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+} from "lucide-react";
 
 declare module '@tanstack/react-table' {
   interface ColumnMeta<TData extends RowData, TValue> {
@@ -27,14 +38,9 @@ declare module '@tanstack/react-table' {
   }
 }
 
-type TableData = {
-  name: string;
-  path: string;
-  sha?: string;
-  content?: string;
-  object?: Record<string, any>;
-  type: "file";
-}
+type TableData = Record<string, any> & {
+  type?: "file" | "dir";
+};
 
 export function CollectionTable<TData extends TableData>({
   columns,
@@ -49,6 +55,8 @@ export function CollectionTable<TData extends TableData>({
   search: string,
   setSearch: (value: string) => void,
 }) {
+  const [expanded, setExpanded] = useState<ExpandedState>({});
+
   const table = useReactTable({
     data,
     columns,
@@ -57,10 +65,14 @@ export function CollectionTable<TData extends TableData>({
     initialState,
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
+    getRowCanExpand: () => true,
     state: {
       globalFilter: search,
+      expanded,
     },
-    onGlobalFilterChange: setSearch
+    onGlobalFilterChange: setSearch,
+    onExpandedChange: setExpanded,
   });
 
   return (
@@ -110,7 +122,7 @@ export function CollectionTable<TData extends TableData>({
           {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
               <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                {row.getVisibleCells().map((cell) => (
+                {row.getVisibleCells().map((cell, cellIndex) => (
                   <TableCell
                     key={cell.id}
                     className={cn(
@@ -118,7 +130,29 @@ export function CollectionTable<TData extends TableData>({
                       cell.column.columnDef.meta?.className
                     )}
                   >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    <div className="flex items-center gap-x-1.5">
+                      {cellIndex === 0 && row.getCanExpand() ? (
+                         <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            onClick={(e) => {
+                               e.stopPropagation();
+                               row.getToggleExpandedHandler()();
+                            }}
+                            className="shrink-0"
+                            aria-label={row.getIsExpanded() ? "Collapse row" : "Expand row"}
+                         >
+                            {row.getIsExpanded() ? (
+                               <ChevronDown className="h-4 w-4" />
+                            ) : (
+                               <ChevronRight className="h-4 w-4" />
+                            )}
+                          </Button>
+                      ) : cellIndex === 0 ? (
+                          <span className="inline-block w-6 h-6 shrink-0"></span>
+                      ): null}
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </div>
                   </TableCell>
                 ))}
               </TableRow>
