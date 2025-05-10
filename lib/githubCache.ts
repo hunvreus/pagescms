@@ -620,7 +620,7 @@ const getCollectionCache = async (
   branch: string,
   dirPath : string,
   token: string,
-  nodeFilename?: string
+  nodeEntryFilename?: string
 ) => {
   // Check the cache (no context as we may invalidate media cache)
   let entries = await db.query.cacheFileTable.findMany({
@@ -713,78 +713,85 @@ const getCollectionCache = async (
     }
   }
 
-  if (nodeFilename) {
+  if (nodeEntryFilename) {
     if (!octokit) octokit = createOctokitInstance(token);
 
     const subdirs = entries.filter((entry: any) => entry.type === 'dir');
 
-    // Check the cache for nodes
-    let nodes = await db.query.cacheFileTable.findMany({
-      where: and(
-        eq(cacheFileTable.owner, owner.toLowerCase()),
-        eq(cacheFileTable.repo, repo.toLowerCase()),
-        eq(cacheFileTable.branch, branch),
-        inArray(cacheFileTable.path, subdirs.map((dir: any) => `${dir.path}/${nodeFilename}`))
-      )
-    });
-
-    // Query the GitHub API for the missing nodes
-    const missingSubdirs = subdirs.filter((dir: any) => !nodes.some((node: any) => node.path === `${dir.path}/${nodeFilename}`));
-    if (missingSubdirs.length > 0) {
-      const nodeExpressions = missingSubdirs.map((dir: { path: string }, i: number) => ({
-        alias: `nodeFile${i}`,
-        expression: `${branch}:${dir.path}/${nodeFilename}`
-      }));
-      const queryNodes = `
-        query ($owner: String!, $repo: String!, ${nodeExpressions.map((nodeExpression: any) => `$exp${nodeExpression.alias}: String!`).join(', ')}) {
-          repository(owner: $owner, name: $repo) {
-            ${nodeExpressions.map(nodeExpression => `
-              ${nodeExpression.alias}: object(expression: $exp${nodeExpression.alias}) {
-                ... on Blob {
-                  text
-                  oid
-                  byteSize
+    if (subdirs.length > 0) {
+      // Check the cache for node entries
+      let nodeEntries = await db.query.cacheFileTable.findMany({
+        where: and(
+          eq(cacheFileTable.owner, owner.toLowerCase()),
+          eq(cacheFileTable.repo, repo.toLowerCase()),
+          eq(cacheFileTable.branch, branch),
+          inArray(cacheFileTable.path, subdirs.map((dir: any) => `${dir.path}/${nodeEntryFilename}`))
+        )
+      });
+      
+      // Query the GitHub API for the missing node entries
+      const missingSubdirs = subdirs.filter((dir: any) => !nodeEntries.some((entry: any) => entry.path === `${dir.path}/${nodeEntryFilename}`));
+      
+      if (missingSubdirs.length > 0) {
+        const nodeEntryExpressions = missingSubdirs.map((dir: { path: string }, i: number) => ({
+          alias: `nodeFile${i}`,
+          expression: `${branch}:${dir.path}/${nodeEntryFilename}`
+        }));
+        const queryNodeEntries = `
+          query ($owner: String!, $repo: String!, ${nodeEntryExpressions.map((nodeEntryExpression: any) => `$exp${nodeEntryExpression.alias}: String!`).join(', ')}) {
+            repository(owner: $owner, name: $repo) {
+              ${nodeEntryExpressions.map(nodeEntryExpression => `
+                ${nodeEntryExpression.alias}: object(expression: $exp${nodeEntryExpression.alias}) {
+                  ... on Blob {
+                    text
+                    oid
+                    byteSize
+                  }
                 }
-              }
-            `).join('\n')}
+              `).join('\n')}
+            }
+          }
+        `;
+        const variablesNodeEntries = {
+          owner, repo,
+          ...Object.fromEntries(nodeEntryExpressions.map(nf => [`exp${nf.alias}`, nf.expression]))
+        };
+
+        const responseNodeEntries: any = await octokit.graphql(queryNodeEntries, variablesNodeEntries);
+        
+        for (let i = 0; i < missingSubdirs.length; i++) {
+          const dir = missingSubdirs[i];
+          const alias = `nodeFile${i}`;
+          const nodeEntry = responseNodeEntries.repository?.[alias];
+      
+          if (nodeEntry) {
+            nodeEntries.push({
+              id: -1,
+              context: '',
+              owner: owner.toLowerCase(),
+              repo: repo.toLowerCase(),
+              branch,
+              parentPath: dir.path,
+              name: nodeEntryFilename,
+              path: `${dir.path}/${nodeEntryFilename}`,
+              type: 'file',
+              content: nodeEntry.text,
+              sha: nodeEntry.oid,
+              size: nodeEntry.byteSize,
+              downloadUrl: null,
+              lastUpdated: Date.now(),
+              commitSha: null,
+              commitTimestamp: null
+            });
           }
         }
-      `;
-      const variablesNodes = {
-        owner, repo,
-        ...Object.fromEntries(nodeExpressions.map(nf => [`exp${nf.alias}`, nf.expression]))
-      };
-
-      const responseNodes: any = await octokit.graphql(queryNodes, variablesNodes);
-      
-      for (let i = 0; i < missingSubdirs.length; i++) {
-        const dir = missingSubdirs[i];
-        const alias = `nodeFile${i}`;
-        const node = responseNodes.repository?.[alias];
-    
-        if (node) {
-          nodes.push({
-            id: -1,
-            context: 'node',
-            owner: owner.toLowerCase(),
-            repo: repo.toLowerCase(),
-            branch,
-            parentPath: dir.path,
-            name: nodeFilename,
-            path: `${dir.path}/${nodeFilename}`,
-            type: 'file',
-            content: node.text,
-            sha: node.oid,
-            size: node.byteSize,
-            downloadUrl: null,
-            lastUpdated: Date.now(),
-            commitSha: null,
-            commitTimestamp: null
-          });
-        }
       }
-
-      entries = [...entries, ...nodes];
+      if (nodeEntries.length > 0) {
+        nodeEntries.forEach((entry: any) => {
+          entry.isNode = true;
+        });
+        entries = [...entries, ...nodeEntries];
+      }
     }
   }
 

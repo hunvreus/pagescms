@@ -10,8 +10,8 @@ import {
   getExpandedRowModel,
   useReactTable,
   RowData,
-  TableState,
   ExpandedState,
+  Row
 } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button";
 import {
@@ -22,15 +22,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
-import {
-  ArrowUp,
-  ArrowDown,
-  Ban,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-} from "lucide-react";
+import { ArrowUp, ArrowDown, Ban, ChevronLeft, ChevronRight, Loader2, SquareMinus, SquarePlus, CircleMinus, CirclePlus, Folder, FolderOpen } from "lucide-react";
 
 declare module '@tanstack/react-table' {
   interface ColumnMeta<TData extends RowData, TValue> {
@@ -38,9 +32,18 @@ declare module '@tanstack/react-table' {
   }
 }
 
-type TableData = Record<string, any> & {
-  type?: "file" | "dir";
-};
+export type TableData = {
+  name: string;
+  path: string;
+  sha?: string;
+  content?: string;
+  object?: Record<string, any>;
+  type: "file" | "dir";
+  node?: boolean;
+  parentPath?: string;
+  subRows?: TableData[];
+  fields?: Record<string, any>;
+}
 
 export function CollectionTable<TData extends TableData>({
   columns,
@@ -48,14 +51,44 @@ export function CollectionTable<TData extends TableData>({
   initialState,
   search,
   setSearch,
+  onExpand,
+  pathname,
+  path,
+  isTree = false,
 }: {
   columns: any[],
   data: Record<string, any>[],
   initialState?: Record<string, any>,
   search: string,
   setSearch: (value: string) => void,
+  onExpand: (row: any) => Promise<void> | void,
+  pathname: string,
+  path: string,
+  isTree?: boolean,
 }) {
+  console.log("pathname", pathname);
   const [expanded, setExpanded] = useState<ExpandedState>({});
+  const [loadingRows, setLoadingRows] = useState<Record<string, boolean>>({});
+
+  const handleRowExpansion = async (row: Row<TData>) => {
+    const needsLoading = !row.getIsExpanded() && row.original.subRows === undefined && row.original.parentPath;
+
+    if (needsLoading) {
+      setLoadingRows(prev => ({ ...prev, [row.id]: true }));
+      try {
+        await onExpand(row.original); // Pass original row data
+      } catch (error) {
+        console.error("onExpand failed:", error);
+      } finally {
+        setLoadingRows(prev => {
+          const newState = { ...prev };
+          delete newState[row.id];
+          return newState;
+        });
+      }
+    }
+    row.toggleExpanded();
+  };
 
   const table = useReactTable({
     data,
@@ -66,7 +99,8 @@ export function CollectionTable<TData extends TableData>({
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
-    getRowCanExpand: () => true,
+    getRowCanExpand: (row) => row.original.isNode || row.original.type === "dir",
+    getSubRows: (row) => row.subRows,
     state: {
       globalFilter: search,
       expanded,
@@ -121,40 +155,76 @@ export function CollectionTable<TData extends TableData>({
         <TableBody>
           {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                {row.getVisibleCells().map((cell, cellIndex) => (
-                  <TableCell
-                    key={cell.id}
-                    className={cn(
-                      "px-3 first:pl-0 last:pr-0 border-b py-3",
-                      cell.column.columnDef.meta?.className
-                    )}
-                  >
-                    <div className="flex items-center gap-x-1.5">
-                      {cellIndex === 0 && row.getCanExpand() ? (
-                         <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            onClick={(e) => {
-                               e.stopPropagation();
-                               row.getToggleExpandedHandler()();
-                            }}
-                            className="shrink-0"
-                            aria-label={row.getIsExpanded() ? "Collapse row" : "Expand row"}
-                         >
-                            {row.getIsExpanded() ? (
-                               <ChevronDown className="h-4 w-4" />
-                            ) : (
-                               <ChevronRight className="h-4 w-4" />
-                            )}
-                          </Button>
-                      ) : cellIndex === 0 ? (
-                          <span className="inline-block w-6 h-6 shrink-0"></span>
-                      ): null}
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </div>
-                  </TableCell>
-                ))}
+              <TableRow key={row.id}>
+                {
+                  row.original.type === "dir"
+                    ? <TableCell
+                        colSpan={columns.length}
+                        className="px-3 first:pl-0 last:pr-0 border-b py-0 h-14"
+                        style={{
+                          paddingLeft: row.depth > 0
+                            ? `${row.depth * 1.5 + 1.75}rem`
+                            : undefined
+                        }}
+                      >
+                        {isTree
+                        ? <button
+                            className="flex items-center gap-x-2 font-medium"
+                            onClick={() => handleRowExpansion(row as Row<TData>)}
+                          >
+                            {loadingRows[row.id]
+                              ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                              : row.getIsExpanded()
+                                ? <FolderOpen className="h-4 w-4" />
+                                : <Folder className="h-4 w-4" />
+                            }
+                            {row.original.name}
+                          </button>
+                        : <Link
+                            className="flex items-center gap-x-2 font-medium"
+                            href={`${pathname}?path=${encodeURIComponent(row.original.path)}`}
+                          >
+                            <FolderOpen className="h-4 w-4" />
+                            {row.original.name}
+                          </Link>
+                        }
+                      </TableCell>
+                    : row.getVisibleCells().map((cell, index) => (
+                      <TableCell
+                        key={cell.id}
+                        className={cn(
+                          "px-3 first:pl-0 last:pr-0 border-b py-0 h-14",
+                          cell.column.columnDef.meta?.className,
+                        )}
+                        style={{
+                          paddingLeft: (index === 0 && row.depth > 0)
+                            ? `${row.depth * 1.5 + 1.75}rem`
+                            : undefined
+                        }}
+                      >
+                        <div className="flex items-center gap-x-1">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          {isTree && row.getCanExpand() && index === 0 && (
+                            loadingRows[row.id]
+                              ? <Button variant="ghost" size="icon-sm" className="h-6 w-6 rounded-full" disabled>
+                                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                </Button>
+                              : <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  className="h-6 w-6 rounded-full"
+                                  onClick={() => handleRowExpansion(row as Row<TData>)}
+                                  disabled={row.getIsExpanded() && row.subRows.length === 0}
+                                >
+                                  {row.getIsExpanded() ? <CircleMinus className="text-muted-foreground hover:text-foreground h-4 w-4" /> : <CirclePlus className="text-muted-foreground hover:text-foreground h-4 w-4" />}
+                                  <span className="sr-only">{row.getIsExpanded() ? 'Collapse row' : 'Expand row'}</span>
+                                </Button>
+                          )}
+                          
+                        </div>
+                      </TableCell>
+                    ))
+                }
               </TableRow>
             ))
           ) : (

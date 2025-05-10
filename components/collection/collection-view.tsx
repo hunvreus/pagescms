@@ -26,7 +26,6 @@ import { cn } from "@/lib/utils";
 import {
   CornerLeftUp,
   Ellipsis,
-  Folder,
   FolderPlus,
   Plus,
   Search
@@ -82,7 +81,6 @@ export function CollectionView({
 
     // If the filename starts with {year}-{month}-{day} and date is listed in the
     // view fields and is not an actual field, or if there are no fields, we add a date field
-    console.log("pathAndFieldArray", pathAndFieldArray)
     if (
       !pathAndFieldArray.find((item: any) => item.path === "date")
       && schema.filename.startsWith("{year}-{month}-{day}")
@@ -105,6 +103,53 @@ export function CollectionView({
   }, [schema]);
 
   const primaryField = useMemo(() => getPrimaryField(schema) ?? "name", [schema]);
+
+  const fetchCollectionData = useCallback(async (fetchPath: string): Promise<Record<string, any>[] | undefined> => {
+    if (!config) return undefined;
+
+    try {
+      const apiUrl = `/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collections/${encodeURIComponent(name)}?path=${encodeURIComponent(fetchPath)}`;
+      
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        if(response.status === 404 && fetchPath === (path || schema.path)) {
+          throw new Error("Not found");
+        }
+        throw new Error(`API Error ${response.status}`);
+      }
+
+      const result = await response.json();
+      if (result.status !== 'success') {
+        throw new Error(result.message || 'Fetch failed');
+      }
+
+      if (result.data.errors?.length) {
+        result.data.errors.forEach((e: any) => toast.error(e));
+      }
+
+      const unsortedData = result.data.contents || [];
+      
+      if (unsortedData.length === 0) return [];
+      return unsortedData.sort((a: any, b: any) => {
+        if (a.type === "dir" && b.type === "file") return schema.view?.foldersFirst ? -1 : 1;
+        if (a.type === "file" && b.type === "dir") return schema.view?.foldersFirst ? 1 : -1;
+        return a.name.localeCompare(b.name);
+      });
+
+    } catch (err: any) {
+      console.error(`Fetch failed for path ${fetchPath}:`, err);
+      if (fetchPath === (path || schema.path)) {
+        setError(err.message);
+      } else {
+        toast.error(`Could not load items inside ${getFileName(fetchPath)}: ${err.message}`);
+      }
+      return undefined;
+    }
+  }, [config, name, path, schema.path]);
+
+  const filesData = useMemo(() => data.filter((item: any) => item.type === "file"), [data]);
+  
+  const foldersData = useMemo(() => data.filter((item: any) => item.type === "dir"), [data]);
 
   const handleDelete = useCallback((path: string) => {
     setData((prevData) => prevData?.filter((item: any) => item.path !== path));
@@ -177,7 +222,7 @@ export function CollectionView({
             </div>
           );
         },
-        sortUndefined: "last"
+        sortUndefined: schema.view?.foldersFirst ? "first" : "last"
       };
     }) || [];
 
@@ -230,39 +275,29 @@ export function CollectionView({
     };
   }, [schema, primaryField, viewFields]);
 
-  const filesData = useMemo(() => data.filter((item: any) => item.type === "file"), [data]);
-  
-  const foldersData = useMemo(() => data.filter((item: any) => item.type === "dir"), [data]);
-
   useEffect(() => {
-    async function fetchCollection() {
-      if (config) {
-        setIsLoading(true);
-        setError(null);
-        try {
-          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collections/${encodeURIComponent(name)}?path=${encodeURIComponent(path || schema.path)}`);
-          if (!response.ok) throw new Error(`Failed to fetch collection: ${response.status} ${response.statusText}`);
+    const currentPath = schema.view?.mode === 'tree'
+      ? schema.path
+      : path || schema.path;
+    let isMounted = true;
 
-          const data: any = await response.json();
+    setIsLoading(true);
+    setError(null);
 
-          if (data.status !== "success") throw new Error(data.message);
-
-          setData(data.data.contents);
-
-          if (data.data.errors && data.data.errors.length > 0) {
-            data.data.errors.forEach((error: any) => toast.error(error));
-          }
-        } catch (error: any) {
-          console.error(error);
-          setError(error.message);
-        } finally {
+    fetchCollectionData(currentPath)
+      .then(fetchedData => {
+        if (isMounted && fetchedData) {
+          setData(fetchedData);
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
           setIsLoading(false);
         }
-      }
-    }
+      });
 
-    fetchCollection();
-  }, [config, name, path, schema.path]);
+    return () => { isMounted = false };
+  }, [fetchCollectionData, path, schema.path]);
 
   const handleNavigate = (newPath: string) => {
     // setPath(newPath);
@@ -276,6 +311,21 @@ export function CollectionView({
     if (!path || path === schema.path) return;
     handleNavigate(getParentPath(path));
   }
+
+  const handleExpand = useCallback(async (row: any) => {
+    if (!row) return;
+    const subRows = await fetchCollectionData(row.isNode ? row.parentPath : row.path);
+    if (subRows !== undefined) {
+      setData((currentData: any) => {
+        return currentData.map((item: any) => {
+          if (item.path === row.path) {
+            return { ...item, subRows: subRows };
+          }
+          return item;
+        });
+      });
+    }
+  }, [fetchCollectionData]);
 
   const loadingSkeleton = useMemo(() => (
     <table className="w-full">
@@ -298,23 +348,23 @@ export function CollectionView({
       <tbody>
         {[...Array(5)].map((_, index) => (
           <tr className="border-b" key={index}>
-            <td className="p-3 pl-0 align-middle">
+            <td className="pr-3 pl-0 align-middle h-14">
               <Skeleton className="h-8 w-8 rounded-md" />
             </td>
-            <th className="p-3 align-middle w-full min-w-[12rem] max-w-[1px]">
+            <td className="px-3 align-middle w-full min-w-[12rem] max-w-[1px] h-14">
               <Skeleton className="w-full h-5 rounded" />
-            </th>
-            <th className="p-3 align-middle">
+            </td>
+            <td className="px-3 align-middle h-14">
               <Skeleton className="w-24 h-5 rounded" />
-            </th>
-            <th className="p-3 pr-0 align-middle">
+            </td>
+            <td className="pl-3 pr-0 align-middle h-14">
               <div className="flex gap-1">
                 <Button variant="outline" size="sm" className="h-8" disabled>Edit</Button>
                 <Button variant="outline" size="icon-sm" className="h-8" disabled>
                   <Ellipsis className="h-4 w-4" />
                 </Button>
               </div>
-            </th>
+            </td>
           </tr>
         ))}
       </tbody>
@@ -348,10 +398,14 @@ export function CollectionView({
       <div className="flex-1 flex flex-col space-y-6">
         <header className="flex items-center gap-x-2">
           <div className="sm:flex-1">
-            <PathBreadcrumb path={path || schema.path} rootPath={schema.path} handleNavigate={handleNavigate} className="hidden sm:block"/>
-            <Button onClick={handleNavigateParent} size="icon-sm" variant="outline" className="shrink-0 sm:hidden" disabled={!path || path === schema.path}>
-              <CornerLeftUp className="w-4 h-4"/>
-            </Button>
+            {schema.view?.mode !== 'tree' && (
+              <>
+                <PathBreadcrumb path={path || schema.path} rootPath={schema.path} handleNavigate={handleNavigate} className="hidden sm:block"/>
+                <Button onClick={handleNavigateParent} size="icon-sm" variant="outline" className="shrink-0 sm:hidden" disabled={!path || path === schema.path}>
+                  <CornerLeftUp className="w-4 h-4"/>
+                </Button>
+              </>
+            )}
           </div>
           <div className="relative flex-1">
             <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none"/>
@@ -377,30 +431,17 @@ export function CollectionView({
         </header>
         {isLoading
           ? loadingSkeleton
-          : (
-            <>
-              <CollectionTable columns={columns} data={filesData} search={search} setSearch={setSearch} initialState={initialState} />
-              {foldersData && foldersData.length > 0
-                ? <div className="space-y-4">
-                    <h2 className="font-medium text-md">Folders</h2>
-                    <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                      {foldersData.map((item, index) => 
-                        <li key={item.path}>
-                          <Link
-                            className={cn(buttonVariants({variant: "outline"}), "w-full justify-start gap-x-2")}
-                            href={`${pathname}?path=${encodeURIComponent(item.path)}`}
-                          >
-                            <Folder className="h-4 w-4 shrink-0"/>
-                            <span className="truncate">{item.name}</span>
-                          </Link>
-                        </li>
-                      )}
-                    </ul>
-                  </div>
-                : null
-              }
-            </>
-          )
+          : <CollectionTable
+              columns={columns}
+              data={data}
+              search={search}
+              setSearch={setSearch}
+              initialState={initialState}
+              onExpand={handleExpand}
+              pathname={pathname}
+              path={path || schema.path}
+              isTree={schema.view?.mode === 'tree'}
+            />
         }
       </div>
     </>

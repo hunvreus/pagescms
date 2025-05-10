@@ -55,7 +55,7 @@ export async function GET(
       if (normalizedPath !== schema.path) throw new Error(`Invalid path "${path}" for collection "${params.name}".`);
     }
 
-    let entries = await getCollectionCache(params.owner, params.repo, params.branch, normalizedPath, token, schema.view?.node);
+    let entries = await getCollectionCache(params.owner, params.repo, params.branch, normalizedPath, token, schema.view?.node?.filename);
     
     let data: {
       contents: Record<string, any>[],
@@ -64,6 +64,16 @@ export async function GET(
       contents: [],
       errors: []
     };
+
+    if (schema.view?.node.filename) {
+      // Remove node entries from subfolders
+      entries = entries.filter((item: any) => item.isNode || item.parentPath === schema.path || item.name !== schema.view.node);
+    }
+
+    if (schema.view?.node.dir === false) {
+      // Remove dirs with a node entry
+      entries = entries.filter((item: any) => item.type !== 'dir' || !entries.some((subItem: any) => subItem.parentPath === item.path && subItem.isNode));
+    }
     
     if (entries) {
       data = parseContents(entries, schema, config);
@@ -168,7 +178,7 @@ const parseContents = (
           contentObject.date = filenameDate.string;
         }
       }
-      item
+      
       // TODO: handle proper returns
       return {
         sha: item.sha,
@@ -178,7 +188,7 @@ const parseContents = (
         content: item.content,
         fields: contentObject,
         type: "file",
-        node: item.context === "node",
+        isNode: item.isNode,
       };
     } else if (item.type === "dir" && !excludedFiles.includes(item.name) && schema.subfolders !== false) {
       return {
