@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -61,13 +61,13 @@ export function CollectionTable<TData extends TableData>({
   initialState?: Record<string, any>,
   search: string,
   setSearch: (value: string) => void,
-  onExpand: (row: any) => Promise<void> | void,
+  onExpand: (row: any) => Promise<any>,
   pathname: string,
   path: string,
   isTree?: boolean,
 }) {
-  console.log("pathname", pathname);
   const [expanded, setExpanded] = useState<ExpandedState>({});
+  
   const [loadingRows, setLoadingRows] = useState<Record<string, boolean>>({});
 
   const handleRowExpansion = async (row: Row<TData>) => {
@@ -76,7 +76,7 @@ export function CollectionTable<TData extends TableData>({
     if (needsLoading) {
       setLoadingRows(prev => ({ ...prev, [row.id]: true }));
       try {
-        await onExpand(row.original); // Pass original row data
+        await onExpand(row.original);
       } catch (error) {
         console.error("onExpand failed:", error);
       } finally {
@@ -108,6 +108,27 @@ export function CollectionTable<TData extends TableData>({
     onGlobalFilterChange: setSearch,
     onExpandedChange: setExpanded,
   });
+
+  useEffect(() => {
+    if (!isTree) return;
+    
+    table.getRowModel().rows.forEach((row) => {
+      if (
+        (row.original.isNode && path.startsWith(row.original.parentPath)) ||
+        (row.original.type === "dir" && path.startsWith(row.original.path))
+      ) {
+        handleRowExpansion(row as Row<TData>);
+        row.toggleExpanded(true);
+      }
+    });
+  }, [isTree, path, table, handleRowExpansion]);
+
+  useEffect(() => {
+    table.setOptions(prev => ({
+      ...prev,
+      data
+    }));
+  }, [data, table]);
 
   return (
     <div className="space-y-2">
@@ -163,30 +184,30 @@ export function CollectionTable<TData extends TableData>({
                         className="px-3 first:pl-0 last:pr-0 border-b py-0 h-14"
                         style={{
                           paddingLeft: row.depth > 0
-                            ? `${row.depth * 1.5 + 1.75}rem`
+                            ? `${row.depth * 2}rem`
                             : undefined
                         }}
                       >
                         {isTree
-                        ? <button
-                            className="flex items-center gap-x-2 font-medium"
-                            onClick={() => handleRowExpansion(row as Row<TData>)}
-                          >
-                            {loadingRows[row.id]
-                              ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                              : row.getIsExpanded()
-                                ? <FolderOpen className="h-4 w-4" />
-                                : <Folder className="h-4 w-4" />
-                            }
-                            {row.original.name}
-                          </button>
-                        : <Link
-                            className="flex items-center gap-x-2 font-medium"
-                            href={`${pathname}?path=${encodeURIComponent(row.original.path)}`}
-                          >
-                            <FolderOpen className="h-4 w-4" />
-                            {row.original.name}
-                          </Link>
+                          ? <button
+                              className="flex items-center gap-x-2 font-medium"
+                              onClick={() => handleRowExpansion(row as Row<TData>)}
+                            >
+                              {loadingRows[row.id]
+                                ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                : row.getIsExpanded()
+                                  ? <FolderOpen className="h-4 w-4" />
+                                  : <Folder className="h-4 w-4" />
+                              }
+                              {row.original.name}
+                            </button>
+                          : <Link
+                              className="flex items-center gap-x-2 font-medium"
+                              href={`${pathname}?path=${encodeURIComponent(row.original.path)}`}
+                            >
+                              <Folder className="h-4 w-4" />
+                              {row.original.name}
+                            </Link>
                         }
                       </TableCell>
                     : row.getVisibleCells().map((cell, index) => (
@@ -198,7 +219,7 @@ export function CollectionTable<TData extends TableData>({
                         )}
                         style={{
                           paddingLeft: (index === 0 && row.depth > 0)
-                            ? `${row.depth * 1.5 + 1.75}rem`
+                            ? `${row.depth * 2}rem`
                             : undefined
                         }}
                       >

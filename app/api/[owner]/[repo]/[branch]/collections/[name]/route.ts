@@ -67,7 +67,7 @@ export async function GET(
 
     if (schema.view?.node.filename) {
       // Remove node entries from subfolders
-      entries = entries.filter((item: any) => item.isNode || item.parentPath === schema.path || item.name !== schema.view.node);
+      entries = entries.filter((item: any) => item.isNode || item.parentPath === schema.path || item.name !== schema.view.node.filename);
     }
 
     if (schema.view?.node.dir === false) {

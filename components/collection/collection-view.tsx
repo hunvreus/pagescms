@@ -147,10 +147,6 @@ export function CollectionView({
     }
   }, [config, name, path, schema.path]);
 
-  const filesData = useMemo(() => data.filter((item: any) => item.type === "file"), [data]);
-  
-  const foldersData = useMemo(() => data.filter((item: any) => item.type === "dir"), [data]);
-
   const handleDelete = useCallback((path: string) => {
     setData((prevData) => prevData?.filter((item: any) => item.path !== path));
   }, []);
@@ -316,13 +312,21 @@ export function CollectionView({
     if (!row) return;
     const subRows = await fetchCollectionData(row.isNode ? row.parentPath : row.path);
     if (subRows !== undefined) {
-      setData((currentData: any) => {
-        return currentData.map((item: any) => {
-          if (item.path === row.path) {
-            return { ...item, subRows: subRows };
-          }
-          return item;
-        });
+      setData((currentData: any[]) => {
+        const updateNestedData = (items: any[]): any[] => {
+          return items.map((item: any) => {
+            if (item.path === row.path) return { ...item, subRows };
+            if (item.subRows && Array.isArray(item.subRows)) {
+              const updatedSubRows = updateNestedData(item.subRows);
+              if (updatedSubRows !== item.subRows) {
+                return { ...item, subRows: updatedSubRows };
+              }
+            }
+            return item;
+          });
+        };
+        
+        return updateNestedData(currentData);
       });
     }
   }, [fetchCollectionData]);
