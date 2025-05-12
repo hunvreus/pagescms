@@ -70,9 +70,20 @@ export async function GET(
       entries = entries.filter((item: any) => item.isNode || item.parentPath === schema.path || item.name !== schema.view.node.filename);
     }
 
-    if (schema.view?.node?.dir === false) {
-      // Remove dirs with a node entry
-      entries = entries.filter((item: any) => item.type !== 'dir' || !entries.some((subItem: any) => subItem.parentPath === item.path && subItem.isNode));
+    if (['all', 'nodes', 'others'].includes(schema.view?.node?.hideDirs)) {
+      if (schema.view.node.hideDirs === "all") {
+        // Remove all dirs
+        entries = entries.filter((item: any) => item.type !== "dir");
+      } else if (["nodes", "others"].includes(schema.view.node.hideDirs)) {
+        // Remove node dirs or non node dirs
+        entries = entries.filter((item: any) =>
+          item.type !== "dir" ||
+          (schema.view.node.hideDirs === "others"
+            ? entries.some((subItem: any) => subItem.parentPath === item.path && subItem.isNode)
+            : !entries.some((subItem: any) => subItem.parentPath === item.path && subItem.isNode)
+          )
+        );
+      }
     }
     
     if (entries) {
