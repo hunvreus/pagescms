@@ -356,7 +356,7 @@ export function EntryEditor({
         onSubmit={onSubmit}
         path={path}
         history={history}
-        filePath={path && schema?.type === 'collection' &&
+        filePath={false && path && schema?.type === 'collection' &&
           <FilePath
             path={path}
             sha={sha}
