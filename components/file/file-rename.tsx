@@ -36,6 +36,8 @@ export function FileRename({
 }) {
   const { config } = useConfig();
   if (!config) throw new Error(`Configuration not found.`);
+  
+  if (!name) throw new Error("Name is required for FileRename");
 
   const schema = getSchemaByName(config.object, name, type);
   if (!schema) throw new Error(`Schema not found for ${name}.`);

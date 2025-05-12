@@ -307,8 +307,8 @@ export function CollectionView({
                     <AlertDialogHeader>
                       <AlertDialogTitle>Rename this file first?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Before adding children to this file, you must rename it from "{row.original.path}" to 
-                        "{row.original.path.replace(`.${schema.extension}`, `/${schema.view?.node?.filename}`)}".
+                        Before adding children to this file, you must rename it from &quot;{row.original.path}&quot; to 
+                        &quot;{row.original.path.replace(`.${schema.extension}`, `/${schema.view?.node?.filename}`)}&quot;.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -426,10 +426,7 @@ export function CollectionView({
           if (!response.ok) throw new Error(`Failed to rename file: ${response.status} ${response.statusText}`);
 
           const data: any = await response.json();
-
           if (data.status !== "success") throw new Error(data.message);
-
-          router.push(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new?parent=${encodeURIComponent(getParentPath(normalizedNewPath))}`);
 
           resolve(data);
         } catch (error) {
@@ -440,6 +437,7 @@ export function CollectionView({
       toast.promise(renamePromise, {
         loading: `Renaming "${path}" to "${newPath}"`,
         success: (data: any) => {
+          router.push(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new?parent=${encodeURIComponent(getParentPath(normalizedNewPath))}`);
           return data.message;
         },
         error: (error: any) => error.message,
@@ -470,7 +468,7 @@ export function CollectionView({
         return updateNestedData(currentData);
       });
     }
-  }, [fetchCollectionData]);
+  }, [fetchCollectionData, config.owner, config.repo, config.branch, name]);
 
   const loadingSkeleton = useMemo(() => (
     <table className="w-full">
