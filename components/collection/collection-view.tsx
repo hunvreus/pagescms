@@ -13,12 +13,23 @@ import {
 import { viewComponents } from "@/fields/registry";
 import { getSchemaByName, getPrimaryField, getFieldByPath, safeAccess } from "@/lib/schema";
 import { EmptyCreate } from "@/components/empty-create";
-import { FileOptions } from "@/components/file-options";
+import { FileOptions } from "@/components/file/file-options";
 import { CollectionTable } from "./collection-table";
 import { FolderCreate} from "@/components/folder-create";
 import { Message } from "@/components/message";
 import { PathBreadcrumb } from "@/components/path-breadcrumb";
 import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -30,6 +41,7 @@ import {
   Plus,
   Search
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function CollectionView({
   name,
@@ -151,17 +163,50 @@ export function CollectionView({
     setData((prevData) => prevData?.filter((item: any) => item.path !== path));
   }, []);
 
-  // TODO: use proper type (File ?) Same for handleDelete
   const handleRename = useCallback((path: string, newPath: string) => {
     setData((prevData: any) => {
-      if (!prevData) return;
-      if (getParentPath(normalizePath(path)) === getParentPath(normalizePath(newPath))) {
-        const newData = prevData?.map((item: any) => {
-          return item.path === path ? { ...item, path: newPath, name: getFileName(newPath) } : item;
+      if (!prevData) return prevData;
+      
+      const updateNestedData = (items: any[]): any[] => {
+        return items.map((item: any) => {
+          // If this is the item being renamed
+          if (item.path === path) {
+            return { ...item, path: newPath, name: getFileName(newPath) };
+          }
+          
+          // If this item has subRows, recursively update them
+          if (item.subRows && Array.isArray(item.subRows)) {
+            const updatedSubRows = updateNestedData(item.subRows);
+            // Only create a new item reference if subRows changed
+            if (updatedSubRows !== item.subRows) {
+              return { ...item, subRows: updatedSubRows };
+            }
+          }
+          
+          // Return the original item if no changes
+          return item;
         });
-        return sortFiles(newData);
+      };
+      
+      // Check if the item is moving to a different folder
+      if (getParentPath(normalizePath(path)) !== getParentPath(normalizePath(newPath))) {
+        // For items moved to a different folder, we need to:
+        // 1. Remove the item from its original location (recursively)
+        const removeItem = (items: any[]): any[] => {
+          return items.filter(item => {
+            if (item.path === path) return false;
+            if (item.subRows && Array.isArray(item.subRows)) {
+              item.subRows = removeItem(item.subRows);
+            }
+            return true;
+          });
+        };
+        
+        return sortFiles(removeItem(prevData));
       }
-      return prevData?.filter((item: any) => item.path !== path);
+      
+      // For items renamed within the same folder, update the item
+      return sortFiles(updateNestedData(prevData));
     });
   }, []);
 
@@ -226,19 +271,72 @@ export function CollectionView({
       accessorKey: "actions",
       header: "Actions",
       cell: ({ row }: { row: any }) => (
-        <div className="flex gap-1">
-          <Link
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8")}
-            href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${name}/edit/${encodeURIComponent(row.original.path)}`}
-            prefetch={true}
-          >
-            Edit
-          </Link>
-          <FileOptions path={row.original.path} sha={row.original.sha} type="collection" name={name} onDelete={handleDelete} onRename={handleRename}>
-            <Button variant="outline" size="icon-sm" className="h-8">
-              <Ellipsis className="h-4 w-4" />
-            </Button>
-          </FileOptions>
+        <div className="flex gap-1 justify-end">
+          {row.original.type === 'file' &&
+            <>
+              <Link
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8")}
+                href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${name}/edit/${encodeURIComponent(row.original.path)}`}
+                prefetch={true}
+              >
+                Edit
+              </Link>
+              <FileOptions path={row.original.path} sha={row.original.sha} type="collection" name={name} onDelete={handleDelete} onRename={handleRename}>
+                <Button variant="outline" size="icon-sm" className="w-8 h-8">
+                  <Ellipsis className="h-4 w-4" />
+                </Button>
+              </FileOptions>
+            </>
+          }
+          {schema.view?.mode === 'tree' && (
+            row.original.type === 'file' &&
+            !row.original.isNode &&
+            !(row.depth === 0 && row.original.name === schema.view?.node?.filename)
+              ? <AlertDialog>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="icon-sm" className="w-8 h-8">
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>Add children entry</TooltipContent>
+                  </Tooltip>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Rename this file first?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Before adding children to this file, you must rename it from "{row.original.path}" to 
+                        "{row.original.path.replace(`.${schema.extension}`, `/${schema.view?.node?.filename}`)}".
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleConfirmRenameNode(row.original.path, row.original.path.replace(`.${schema.extension}`, `/${schema.view?.node?.filename}`))}>Rename</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              :  <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      className={cn(buttonVariants({ variant: "outline", size: "icon-sm" }), "w-8 h-8")}
+                      href={row.original.isNode
+                        ? `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new?parent=${encodeURIComponent(row.original.parentPath)}`
+                        : row.original.type === 'dir'
+                          ? `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new?parent=${encodeURIComponent(row.original.path)}`
+                          : `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new?parent=${encodeURIComponent(row.original.path)}`
+                      }
+                      prefetch={true}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Add children entry
+                  </TooltipContent>
+                </Tooltip>
+          )}
         </div>
       ),
       enableSorting: false
@@ -308,6 +406,49 @@ export function CollectionView({
     handleNavigate(getParentPath(path));
   }
 
+  // TODO: handle case where there is no extension?
+  const handleConfirmRenameNode = (path: string, newPath: string) => {
+    try {
+      const normalizedPath = normalizePath(path);
+      const normalizedNewPath = normalizePath(newPath);
+      
+      const renamePromise = new Promise(async (resolve, reject) => {
+        try {
+          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/files/${encodeURIComponent(normalizedPath)}/rename`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "content",
+              name,
+              newPath: normalizedNewPath,
+            }),
+          });
+          if (!response.ok) throw new Error(`Failed to rename file: ${response.status} ${response.statusText}`);
+
+          const data: any = await response.json();
+
+          if (data.status !== "success") throw new Error(data.message);
+
+          router.push(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new?parent=${encodeURIComponent(getParentPath(normalizedNewPath))}`);
+
+          resolve(data);
+        } catch (error) {
+          reject(error);
+        }
+      });
+
+      toast.promise(renamePromise, {
+        loading: `Renaming "${path}" to "${newPath}"`,
+        success: (data: any) => {
+          return data.message;
+        },
+        error: (error: any) => error.message,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   const handleExpand = useCallback(async (row: any) => {
     if (!row) return;
     const subRows = await fetchCollectionData(row.isNode ? row.parentPath : row.path);
@@ -364,9 +505,14 @@ export function CollectionView({
             <td className="pl-3 pr-0 align-middle h-14">
               <div className="flex gap-1">
                 <Button variant="outline" size="sm" className="h-8" disabled>Edit</Button>
-                <Button variant="outline" size="icon-sm" className="h-8" disabled>
+                <Button variant="outline" size="icon-sm" className="w-8 h-8" disabled>
                   <Ellipsis className="h-4 w-4" />
                 </Button>
+                {schema.view?.mode === 'tree' && (
+                  <Button variant="outline" size="icon-sm" className="w-8 h-8" disabled>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </td>
           </tr>
@@ -422,7 +568,7 @@ export function CollectionView({
           </FolderCreate>
           <Link
             className={cn(buttonVariants({size: "sm"}), "hidden sm:flex")}
-            href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new${path && path !== schema.path ? `?parent=${encodeURIComponent(path)}` : ""}`}
+            href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new${schema.view?.mode !== 'tree' && path && path !== schema.path ? `?parent=${encodeURIComponent(path)}` : ""}`}
           >
               Add an entry
           </Link>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef, forwardRef, useCallback } from "react";
+import { useState, useMemo, useEffect, useRef, forwardRef, useCallback, Fragment } from "react";
 import Link from "next/link";
 import {
   useForm,
@@ -61,8 +61,20 @@ import {
   restrictToParentElement
 } from "@dnd-kit/modifiers";
 import { CSS } from "@dnd-kit/utilities";
-import { ChevronLeft, GripVertical, Loader, Plus, Trash2, Ellipsis } from "lucide-react";
+import {
+  ChevronLeft,
+  GripVertical,
+  Loader,
+  Plus,
+  Trash2,
+  Ellipsis,
+  ChevronRight,
+  Folder,
+  Pencil
+} from "lucide-react";
 import { toast } from "sonner";
+import { getRelativePath } from "@/lib/utils/file";
+
 const SortableItem = ({
   id,
   type,
@@ -378,6 +390,7 @@ const EntryForm = ({
   onSubmit = (values) => console.log("Default onSubmit:", values),
   history,
   path,
+  filePath,
   options,
 }: {
   title: string;
@@ -387,9 +400,14 @@ const EntryForm = ({
   onSubmit: (values: any) => void;
   history?: Record<string, any>[];
   path?: string;
+  filePath?: React.ReactNode;
   options: React.ReactNode;
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const pathSegments = useMemo(() => {
+    return path?.split('/') || [];
+  }, [path]);
 
   const zodSchema = useMemo(() => {
     return generateZodSchema(fields);
@@ -474,7 +492,16 @@ const EntryForm = ({
 
               <h1 className="font-semibold text-lg md:text-2xl truncate">{title}</h1>
             </header>
+            
             <div onSubmit={form.handleSubmit(handleSubmit)} className="grid items-start gap-6">
+              {filePath &&
+                <div className="space-y-2 overflow-hidden">
+                  <FormLabel>
+                    Filename
+                  </FormLabel>
+                  {filePath}
+                </div>
+              }
               {renderFields(fields)}
             </div>
           </div>

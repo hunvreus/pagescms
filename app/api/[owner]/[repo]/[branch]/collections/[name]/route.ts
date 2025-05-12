@@ -65,12 +65,12 @@ export async function GET(
       errors: []
     };
 
-    if (schema.view?.node.filename) {
+    if (schema.view?.node?.filename) {
       // Remove node entries from subfolders
       entries = entries.filter((item: any) => item.isNode || item.parentPath === schema.path || item.name !== schema.view.node.filename);
     }
 
-    if (schema.view?.node.dir === false) {
+    if (schema.view?.node?.dir === false) {
       // Remove dirs with a node entry
       entries = entries.filter((item: any) => item.type !== 'dir' || !entries.some((subItem: any) => subItem.parentPath === item.path && subItem.isNode));
     }

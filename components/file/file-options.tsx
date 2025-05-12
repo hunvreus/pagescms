@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { ArrowUpRight } from "lucide-react";
+import { FileRename } from "@/components/file/file-rename";
 
 export function FileOptions({
   path,
@@ -59,12 +60,11 @@ export function FileOptions({
   if (!config) throw new Error(`Configuration not found.`);
 
   const normalizedPath = useMemo(() => normalizePath(path), [path]);
-
   const rootPath = useMemo(() => getParentPath(path), [path]);
-
   const relativePath = useMemo(() => getRelativePath(normalizedPath, rootPath), [normalizedPath, rootPath]);
 
   const [newPath, setNewPath] = useState(relativePath);
+  const [isRenameOpen, setIsRenameOpen] = useState(false);
 
   const handleConfirmDelete = async () => {
     try {
@@ -147,7 +147,7 @@ export function FileOptions({
   };
   
   return (
-    <Dialog>
+    <>
       <AlertDialog>
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
@@ -164,9 +164,9 @@ export function FileOptions({
               ? <>
                   <DropdownMenuSeparator />
                   {type !== "file" &&
-                    <DialogTrigger asChild>
-                      <DropdownMenuItem>Rename</DropdownMenuItem>
-                    </DialogTrigger>
+                    <DropdownMenuItem onSelect={() => setIsRenameOpen(true)}>
+                      Rename
+                    </DropdownMenuItem>
                   }
                   <AlertDialogTrigger asChild>
                     <DropdownMenuItem>
@@ -187,26 +187,20 @@ export function FileOptions({
               <AlertDialogAction onClick={handleConfirmDelete}>Delete</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Rename file</DialogTitle>
-              <DialogDescription></DialogDescription>
-            </DialogHeader>
-            <Input
-              defaultValue={relativePath}
-              onChange={(e) => setNewPath(e.target.value)}
-            />
-            <DialogFooter className="max-sm:gap-y-2">
-              <DialogClose asChild>
-                <Button type="button" variant="outline">Cancel</Button>
-              </DialogClose>
-              <DialogClose asChild>
-                <Button type="submit" onClick={handleRename}>Rename</Button>
-              </DialogClose>
-            </DialogFooter>
-          </DialogContent>
         </DropdownMenu>
       </AlertDialog>
-    </Dialog>
+
+      {type !== "settings" &&
+        <FileRename
+          isOpen={isRenameOpen}
+          onOpenChange={setIsRenameOpen}
+          path={path}
+          type={type}
+          sha={sha}
+          name={name}
+          onRename={onRename}
+        />
+      }
+    </>
   );
 }

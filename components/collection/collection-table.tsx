@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -45,6 +45,16 @@ export type TableData = {
   fields?: Record<string, any>;
 }
 
+const LShapeIcon = ({ className }: { className?: string }) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path d="M4 4V11C4 12.0609 4.42143 13.0783 5.17157 13.8284C5.92172 14.5786 6.93913 15 8 15H20" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"/>
+  </svg>
+);
+
 export function CollectionTable<TData extends TableData>({
   columns,
   data,
@@ -54,7 +64,7 @@ export function CollectionTable<TData extends TableData>({
   onExpand,
   pathname,
   path,
-  isTree = false,
+  isTree = false
 }: {
   columns: any[],
   data: Record<string, any>[],
@@ -64,21 +74,27 @@ export function CollectionTable<TData extends TableData>({
   onExpand: (row: any) => Promise<any>,
   pathname: string,
   path: string,
-  isTree?: boolean,
+  isTree?: boolean
 }) {
   const [expanded, setExpanded] = useState<ExpandedState>({});
   
   const [loadingRows, setLoadingRows] = useState<Record<string, boolean>>({});
 
-  const handleRowExpansion = async (row: Row<TData>) => {
-    const needsLoading = !row.getIsExpanded() && row.original.subRows === undefined && row.original.parentPath;
+  const handleRowExpansion = useCallback(async (row: Row<TData>) => {
+    const needsLoading = row.getCanExpand() && !row.getIsExpanded() && row.original.subRows === undefined;
 
     if (needsLoading) {
       setLoadingRows(prev => ({ ...prev, [row.id]: true }));
       try {
         await onExpand(row.original);
       } catch (error) {
-        console.error("onExpand failed:", error);
+        console.error("onExpand failed for row:", row.id, error);
+        setLoadingRows(prev => {
+          const newState = { ...prev };
+          delete newState[row.id];
+          return newState;
+        });
+        return;
       } finally {
         setLoadingRows(prev => {
           const newState = { ...prev };
@@ -88,7 +104,7 @@ export function CollectionTable<TData extends TableData>({
       }
     }
     row.toggleExpanded();
-  };
+  }, [onExpand]);
 
   const table = useReactTable({
     data,
@@ -114,14 +130,16 @@ export function CollectionTable<TData extends TableData>({
     
     table.getRowModel().rows.forEach((row) => {
       if (
-        (row.original.isNode && path.startsWith(row.original.parentPath)) ||
-        (row.original.type === "dir" && path.startsWith(row.original.path))
+        !row.getIsExpanded() &&
+        (
+          (row.original.isNode && row.original.parentPath && path.startsWith(row.original.parentPath)) ||
+          (row.original.type === "dir" && path.startsWith(row.original.path))
+        )
       ) {
         handleRowExpansion(row as Row<TData>);
-        row.toggleExpanded(true);
       }
     });
-  }, [isTree, path, table, handleRowExpansion]);
+  }, [isTree, path, handleRowExpansion, table, data]);
 
   useEffect(() => {
     table.setOptions(prev => ({
@@ -141,7 +159,7 @@ export function CollectionTable<TData extends TableData>({
                   <TableHead
                     key={header.id}
                     className={cn(
-                      "text-xs px-3 first:pl-0 last:pr-0 border-b hover:bg-muted/50 cursor-pointer select-none last:cursor-default last:hover:bg-background truncate",
+                      "text-xs px-3 h-12 first:pl-0 last:pr-0 border-b hover:bg-muted/50 cursor-pointer select-none last:cursor-default last:hover:bg-background truncate",
                       header.column.columnDef.meta?.className
                     )}
                     onClick={header.column.getToggleSortingHandler()}
@@ -179,8 +197,9 @@ export function CollectionTable<TData extends TableData>({
               <TableRow key={row.id}>
                 {
                   row.original.type === "dir"
-                    ? <TableCell
-                        colSpan={columns.length}
+                    ? <>
+                      <TableCell
+                        colSpan={columns.length - 1}
                         className="px-3 first:pl-0 last:pr-0 border-b py-0 h-14"
                         style={{
                           paddingLeft: row.depth > 0
@@ -210,6 +229,15 @@ export function CollectionTable<TData extends TableData>({
                             </Link>
                         }
                       </TableCell>
+                      <TableCell className="px-3 first:pl-0 last:pr-0 border-b py-0 h-14">
+                        {
+                          (() => {
+                            const lastCell = row.getVisibleCells()[row.getVisibleCells().length - 1];
+                            return flexRender(lastCell.column.columnDef.cell, lastCell.getContext());
+                          })()
+                        }
+                      </TableCell>
+                      </>
                     : row.getVisibleCells().map((cell, index) => (
                       <TableCell
                         key={cell.id}
@@ -219,11 +247,12 @@ export function CollectionTable<TData extends TableData>({
                         )}
                         style={{
                           paddingLeft: (index === 0 && row.depth > 0)
-                            ? `${row.depth * 2}rem`
+                            ? `${row.depth * 1.5}rem`
                             : undefined
                         }}
                       >
                         <div className="flex items-center gap-x-1">
+                          {row.depth > 0 && index === 0 && <LShapeIcon className="h-4 w-4 text-muted-foreground opacity-50"/>}
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                           {isTree && row.getCanExpand() && index === 0 && (
                             loadingRows[row.id]
