@@ -288,7 +288,7 @@ export function CollectionView({
               </FileOptions>
             </>
           }
-          {schema.view?.mode === 'tree' && (
+          {schema.view?.layout === 'tree' && (
             row.original.type === 'file' &&
             !row.original.isNode &&
             !(row.depth === 0 && row.original.name === schema.view?.node?.filename)
@@ -370,7 +370,7 @@ export function CollectionView({
   }, [schema, primaryField, viewFields]);
 
   useEffect(() => {
-    const currentPath = schema.view?.mode === 'tree'
+    const currentPath = schema.view?.layout === 'tree'
       ? schema.path
       : path || schema.path;
     let isMounted = true;
@@ -506,7 +506,7 @@ export function CollectionView({
                 <Button variant="outline" size="icon-sm" className="w-8 h-8" disabled>
                   <Ellipsis className="h-4 w-4" />
                 </Button>
-                {schema.view?.mode === 'tree' && (
+                {schema.view?.layout === 'tree' && (
                   <Button variant="outline" size="icon-sm" className="w-8 h-8" disabled>
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -546,7 +546,7 @@ export function CollectionView({
       <div className="flex-1 flex flex-col space-y-6">
         <header className="flex items-center gap-x-2">
           <div className="sm:flex-1">
-            {schema.view?.mode !== 'tree' && (
+            {schema.view?.layout !== 'tree' && (
               <>
                 <PathBreadcrumb path={path || schema.path} rootPath={schema.path} handleNavigate={handleNavigate} className="hidden sm:block"/>
                 <Button onClick={handleNavigateParent} size="icon-sm" variant="outline" className="shrink-0 sm:hidden" disabled={!path || path === schema.path}>
@@ -566,7 +566,7 @@ export function CollectionView({
           </FolderCreate>
           <Link
             className={cn(buttonVariants({size: "sm"}), "hidden sm:flex")}
-            href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new${schema.view?.mode !== 'tree' && path && path !== schema.path ? `?parent=${encodeURIComponent(path)}` : ""}`}
+            href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new${schema.view?.layout !== 'tree' && path && path !== schema.path ? `?parent=${encodeURIComponent(path)}` : ""}`}
           >
               Add an entry
           </Link>
@@ -588,7 +588,7 @@ export function CollectionView({
               onExpand={handleExpand}
               pathname={pathname}
               path={path || schema.path}
-              isTree={schema.view?.mode === 'tree'}
+              isTree={schema.view?.layout === 'tree'}
             />
         }
       </div>

@@ -320,7 +320,7 @@ const getPrimaryField = (schema: Record<string, any>) => {
     || (
       schema?.fields?.some(field => field.name === "title")
         ? "title"
-        : schema?.fields?.[0]?.name;
+        : schema?.fields?.[0]?.name
     )
 }
 

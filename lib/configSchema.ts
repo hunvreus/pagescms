@@ -227,6 +227,27 @@ const ContentObjectSchema = z.object({
     message: "'exclude' must be an array of strings."
   }).optional(),
   view: z.object({
+    layout: z.enum(["tree", "list"], {
+      message: "'layout' must be either 'tree' or 'list'."
+    }).optional(),
+    node: z.union([
+      z.object({
+        filename: z.string({
+          required_error: "'filename' is required.",
+          invalid_type_error: "'filename' must be a string."
+        }),
+        hideDirs: z.enum(["all", "nodes", "others"], {
+          message: "'hideDirs' must be one of 'nodes', 'others', or 'all'."
+        }).optional()
+      }, {
+        message: "'node' (if an object) must contain 'filename' and optionally 'hideDirs'."
+      }),
+      z.string({
+        message: "'node' must be a string or an object with 'filename' and optionally 'hideDirs' attributes."
+      }),
+    ], {
+      message: "'node' must be a string or an object with 'filename' and 'hideDirs'."
+    }).optional(),
     fields: z.array(z.string({
       message: "Entries in the 'fields' array must be strings."
     }), {
