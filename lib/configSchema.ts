@@ -240,7 +240,7 @@ const ContentObjectSchema = z.object({
           message: "'hideDirs' must be one of 'nodes', 'others', or 'all'."
         }).optional()
       }, {
-        message: "'node' (if an object) must contain 'filename' and optionally 'hideDirs'."
+        message: "'node' must contain 'filename' and optionally 'hideDirs'."
       }),
       z.string({
         message: "'node' must be a string or an object with 'filename' and optionally 'hideDirs' attributes."
@@ -320,9 +320,25 @@ const ConfigSchema = z.object({
     }),
     generateFieldObjectSchema(true)
   ).optional(),
-  settings: z.literal(false, {
-    errorMap: () => ({ message: "'settings' must be 'false'." })
-  }).optional(),
+  settings: z.union([
+    z.object({
+      hide: z.boolean({
+        message: "'hide' must be a boolean."
+      }).optional(),
+      content: z.object({
+        merge: z.boolean({
+          message: "'merge' must be a boolean."
+        }).optional(),
+      }, {
+        message: "'content' must be an object."
+      }).optional(),
+    }, {
+      message: "'settings' must be an object."
+    }).strict().optional(),
+    z.boolean({
+      message: "'settings' must be a boolean or an object."
+    }),
+  ]).optional(),
 }).strict().nullable();
 
 export { ConfigSchema };

@@ -11,7 +11,7 @@ import { ConfigSchema } from "@/lib/configSchema";
 import { z } from "zod";
 import { deepMergeObjects } from "@/lib/helpers";
 
-const configVersion = "2.2";
+const configVersion = "2.3";
 
 // Parse the config file (YAML to JSON)
 const parseConfig = (content: string) => {
@@ -147,6 +147,11 @@ const normalizeConfig = (configObject: any) => {
       
       return item;
     });
+  }
+
+  // Normalize settings
+  if (configObjectCopy.settings === false) {
+    configObjectCopy.settings = { hide: true };
   }
   
   return configObjectCopy;

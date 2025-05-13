@@ -15,7 +15,7 @@ export default function Page() {
       router.replace(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/${config.object.content[0].type}/${config.object.content[0].name}`);
     } else if (config?.object.media) {
       router.replace(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/media/${config.object.media[0].name}`);
-    } else if (config?.object.settings !== false) {
+    } else if (!config?.object?.settings?.hide) {
       router.replace(`/${config?.owner}/${config?.repo}/${encodeURIComponent(config!.branch)}/settings`);
     } else {
       setError(true);

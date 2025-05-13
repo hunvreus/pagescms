@@ -318,7 +318,7 @@ function getFieldByPath(schema: Field[], path: string): Field | undefined {
 const getPrimaryField = (schema: Record<string, any>) => {
   return schema?.view?.primary
     || (
-      schema?.fields?.some(field => field.name === "title")
+      schema?.fields?.some((field: any) => field.name === "title")
         ? "title"
         : schema?.fields?.[0]?.name
     )

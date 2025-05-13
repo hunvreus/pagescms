@@ -2,13 +2,15 @@ import { type NextRequest } from "next/server";
 import { createOctokitInstance } from "@/lib/utils/octokit";
 import { writeFns } from "@/fields/registry";
 import { configVersion, parseConfig, normalizeConfig } from "@/lib/config";
-import { stringify } from "@/lib/serialization";
+import { stringify, parse } from "@/lib/serialization";
 import { deepMap, generateZodSchema, getSchemaByName, sanitizeObject } from "@/lib/schema";
 import { getConfig, updateConfig } from "@/lib/utils/config";
 import { getFileExtension, getFileName, normalizePath, serializedTypes, getParentPath } from "@/lib/utils/file";
 import { getAuth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
 import { updateFileCache } from "@/lib/githubCache";
+import { deepMergeObjects } from "@/lib/helpers";
+import { ConsoleLogWriter } from "drizzle-orm";
 
 /**
  * Create, update and delete individual files in a GitHub repository.
@@ -99,8 +101,33 @@ export async function POST(
               ? sanitizeObject(validatedContentObject.listWrapper)
               : sanitizeObject(validatedContentObject);
 
+            console.log("sanitizedContentObject", sanitizedContentObject);
+
+            let finalContentObject = JSON.parse(JSON.stringify(sanitizedContentObject));
+
+            if (config?.object?.settings?.content?.merge) {
+              const octokit = createOctokitInstance(token);
+              const response = await octokit.rest.repos.getContent({
+                owner: params.owner,
+                repo: params.repo,
+                path: normalizedPath,
+                ref: params.branch
+              });
+              
+              if (Array.isArray(response.data)) {
+                throw new Error("Expected a file but found a directory");
+              } else if (response.data.type !== "file") {
+                throw new Error("Invalid response type");
+              }
+
+              const existingContent = Buffer.from(response.data.content, "base64").toString();
+              const existingContentObject = parse(existingContent, { format: schema.format, delimiters: schema.delimiters });
+
+              finalContentObject = deepMergeObjects(sanitizedContentObject, sanitizeObject(existingContentObject));
+            }
+            
             const stringifiedContentObject = stringify(
-              sanitizedContentObject,
+              finalContentObject,
               {
                 format: schema.format,
                 delimiters: schema.delimiters
