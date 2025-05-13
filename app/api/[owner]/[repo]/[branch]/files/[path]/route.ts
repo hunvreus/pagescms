@@ -97,13 +97,11 @@ export async function POST(
               }
             );
 
-            const sanitizedContentObject = schema.list
-              ? sanitizeObject(validatedContentObject.listWrapper)
-              : sanitizeObject(validatedContentObject);
+            const unwrappedContentObject = schema.list
+              ? validatedContentObject.listWrapper
+              : validatedContentObject;
 
-            console.log("sanitizedContentObject", sanitizedContentObject);
-
-            let finalContentObject = JSON.parse(JSON.stringify(sanitizedContentObject));
+            let finalContentObject = JSON.parse(JSON.stringify(unwrappedContentObject));
 
             if (config?.object?.settings?.content?.merge) {
               const octokit = createOctokitInstance(token);
@@ -123,11 +121,11 @@ export async function POST(
               const existingContent = Buffer.from(response.data.content, "base64").toString();
               const existingContentObject = parse(existingContent, { format: schema.format, delimiters: schema.delimiters });
 
-              finalContentObject = deepMergeObjects(sanitizedContentObject, sanitizeObject(existingContentObject));
+              finalContentObject = deepMergeObjects(unwrappedContentObject, existingContentObject);
             }
             
             const stringifiedContentObject = stringify(
-              finalContentObject,
+              sanitizeObject(finalContentObject),
               {
                 format: schema.format,
                 delimiters: schema.delimiters
