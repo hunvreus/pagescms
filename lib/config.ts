@@ -91,6 +91,7 @@ const normalizeConfig = (configObject: any) => {
     });
   }
 
+  // Normalize content
   if (configObjectCopy.content && Array.isArray(configObjectCopy?.content) && configObjectCopy.content.length > 0) {
     configObjectCopy.content = configObjectCopy.content.map((item: any) => {
       if (item.path != null) {
@@ -129,6 +130,12 @@ const normalizeConfig = (configObject: any) => {
         } else if (item.extension === "csv") {
           item.format = "datagrid";
         }
+      }
+      if (item.view?.node && typeof item.view.node === "string") {
+        item.view.node = {
+          filename: item.view.node,
+          hideDirs: "nodes"
+        };
       }
       
       // Process content fields to resolve component references
