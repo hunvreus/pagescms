@@ -248,15 +248,15 @@ export function CollectionTable<TData extends TableData>({
                           cell.column.columnDef.meta?.className,
                         )}
                         style={{
-                          paddingLeft: (index === 0 && row.depth > 0)
+                          paddingLeft: (cell.column.id === primaryField && row.depth > 0)
                             ? `${row.depth * 1.5}rem`
                             : undefined
                         }}
                       >
                         <div className="flex items-center gap-x-1">
-                          {row.depth > 0 && index === 0 && <LShapeIcon className="h-4 w-4 text-muted-foreground opacity-50"/>}
+                          {row.depth > 0 && cell.column.id === primaryField && <LShapeIcon className="h-4 w-4 text-muted-foreground opacity-50"/>}
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          {isTree && row.getCanExpand() && index === 0 && (
+                          {isTree && row.getCanExpand() && cell.column.id === primaryField && (
                             loadingRows[row.id]
                               ? <Button variant="ghost" size="icon-sm" className="h-6 w-6 rounded-full" disabled>
                                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
