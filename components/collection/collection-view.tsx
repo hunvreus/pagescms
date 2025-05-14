@@ -589,6 +589,7 @@ export function CollectionView({
               pathname={pathname}
               path={path || schema.path}
               isTree={schema.view?.layout === 'tree'}
+              primaryField={primaryField}
             />
         }
       </div>

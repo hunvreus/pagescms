@@ -64,7 +64,8 @@ export function CollectionTable<TData extends TableData>({
   onExpand,
   pathname,
   path,
-  isTree = false
+  isTree = false,
+  primaryField
 }: {
   columns: any[],
   data: Record<string, any>[],
@@ -74,7 +75,8 @@ export function CollectionTable<TData extends TableData>({
   onExpand: (row: any) => Promise<any>,
   pathname: string,
   path: string,
-  isTree?: boolean
+  isTree?: boolean,
+  primaryField?: string
 }) {
   const [expanded, setExpanded] = useState<ExpandedState>({});
   
