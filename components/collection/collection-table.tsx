@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/table";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { ArrowUp, ArrowDown, Ban, ChevronLeft, ChevronRight, Loader2, SquareMinus, SquarePlus, CircleMinus, CirclePlus, Folder, FolderOpen } from "lucide-react";
+import { ArrowUp, ArrowDown, Ban, ChevronLeft, ChevronRight, Loader2, CircleMinus, CirclePlus, Folder, FolderOpen } from "lucide-react";
 
 declare module '@tanstack/react-table' {
   interface ColumnMeta<TData extends RowData, TValue> {

@@ -8,7 +8,7 @@ import { getFileName, getParentPath } from "@/lib/utils/file";
 
 const ttl = 10000; // TTL for the cache (in milliseconds)
 const cache: { [key: string]: any } = {};
-const requests: { [key: string]: Promise<any> } = {};
+const requests: { [key: string]: Promise<any> | undefined } = {};
 
 // Get the relative path for an image.
 const getRelativeUrl = (
@@ -48,7 +48,13 @@ const getRawUrl = async (
     
     const parentFullPath = `${owner}/${repo}/${encodeURIComponent(branch)}/${parentPath}`;
     
-    if (!cache[parentFullPath]?.files?.[filename] || (Date.now() - (cache[parentFullPath]?.time || 0) > ttl)) {
+    if (requests[parentFullPath]) {
+      await requests[parentFullPath];
+      return cache[parentFullPath]?.files?.[filename];
+    }
+
+    if (cache[parentFullPath]?.files?.[filename]) return cache[parentFullPath].files[filename];
+    if ((Date.now() - (cache[parentFullPath]?.time || 0) > ttl)) {
       delete cache[parentFullPath];
       
       if (!requests[parentFullPath]) {
