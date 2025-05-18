@@ -157,7 +157,7 @@ export function CollectionView({
       }
       return undefined;
     }
-  }, [config, name, path, schema.path]);
+  }, [config, name, path, schema.path, schema.view?.foldersFirst]);
 
   const handleDelete = useCallback((path: string) => {
     setData((prevData) => prevData?.filter((item: any) => item.path !== path));
@@ -225,6 +225,46 @@ export function CollectionView({
       return sortFiles([...prevData, parent]);
     });
   }, []);
+
+  const handleConfirmRenameNode = useCallback((path: string, newPath: string) => {
+    try {
+      const normalizedPath = normalizePath(path);
+      const normalizedNewPath = normalizePath(newPath);
+      
+      const renamePromise = new Promise(async (resolve, reject) => {
+        try {
+          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/files/${encodeURIComponent(normalizedPath)}/rename`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "content",
+              name,
+              newPath: normalizedNewPath,
+            }),
+          });
+          if (!response.ok) throw new Error(`Failed to rename file: ${response.status} ${response.statusText}`);
+
+          const data: any = await response.json();
+          if (data.status !== "success") throw new Error(data.message);
+
+          resolve(data);
+        } catch (error) {
+          reject(error);
+        }
+      });
+
+      toast.promise(renamePromise, {
+        loading: `Renaming "${path}" to "${newPath}"`,
+        success: (data: any) => {
+          router.push(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new?parent=${encodeURIComponent(getParentPath(normalizedNewPath))}`);
+          return data.message;
+        },
+        error: (error: any) => error.message,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }, [config.owner, config.repo, config.branch, name, router]);
 
   const columns = useMemo(() => {
     let tableColumns: any;
@@ -343,7 +383,7 @@ export function CollectionView({
     });
 
     return tableColumns;
-  }, [config.owner, config.repo, config.branch, name, viewFields, primaryField, handleDelete, handleRename]);
+  }, [config.owner, config.repo, config.branch, name, viewFields, primaryField, handleDelete, handleRename, schema.view?.foldersFirst, schema.view?.layout, schema.view?.node?.filename, schema.extension, handleConfirmRenameNode]);
 
   const initialState = useMemo(() => {
     const sortId = viewFields == null
@@ -391,7 +431,7 @@ export function CollectionView({
       });
 
     return () => { isMounted = false };
-  }, [fetchCollectionData, path, schema.path]);
+  }, [fetchCollectionData, path, schema.path, schema.view?.layout]);
 
   const handleNavigate = (newPath: string) => {
     // setPath(newPath);
@@ -404,47 +444,6 @@ export function CollectionView({
   const handleNavigateParent = () => {
     if (!path || path === schema.path) return;
     handleNavigate(getParentPath(path));
-  }
-
-  // TODO: handle case where there is no extension?
-  const handleConfirmRenameNode = (path: string, newPath: string) => {
-    try {
-      const normalizedPath = normalizePath(path);
-      const normalizedNewPath = normalizePath(newPath);
-      
-      const renamePromise = new Promise(async (resolve, reject) => {
-        try {
-          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/files/${encodeURIComponent(normalizedPath)}/rename`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              type: "content",
-              name,
-              newPath: normalizedNewPath,
-            }),
-          });
-          if (!response.ok) throw new Error(`Failed to rename file: ${response.status} ${response.statusText}`);
-
-          const data: any = await response.json();
-          if (data.status !== "success") throw new Error(data.message);
-
-          resolve(data);
-        } catch (error) {
-          reject(error);
-        }
-      });
-
-      toast.promise(renamePromise, {
-        loading: `Renaming "${path}" to "${newPath}"`,
-        success: (data: any) => {
-          router.push(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new?parent=${encodeURIComponent(getParentPath(normalizedNewPath))}`);
-          return data.message;
-        },
-        error: (error: any) => error.message,
-      });
-    } catch (error) {
-      console.error(error);
-    }
   }
 
   const handleExpand = useCallback(async (row: any) => {
@@ -468,7 +467,7 @@ export function CollectionView({
         return updateNestedData(currentData);
       });
     }
-  }, [fetchCollectionData, config.owner, config.repo, config.branch, name]);
+  }, [fetchCollectionData]);
 
   const loadingSkeleton = useMemo(() => (
     <table className="w-full">
@@ -517,7 +516,7 @@ export function CollectionView({
         ))}
       </tbody>
     </table>
-  ), []);
+  ), [schema.view?.layout]);
   
   if (error) {
     if (error === "Not found") {

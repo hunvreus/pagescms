@@ -114,7 +114,7 @@ const ListField = ({
   fieldName: string;
   renderFields: Function;
 }) => {
-  const { control, setValue, watch } = useFormContext();
+  const { setValue, watch } = useFormContext();
   const { fields: arrayFields, append, remove, move } = useFieldArray({
     name: fieldName,
   });
@@ -135,7 +135,7 @@ const ListField = ({
       openStatesRef.current = Array(arrayFields.length).fill(!defaultCollapsed);
       forceUpdate({});
     }
-  }, []);
+  }, [arrayFields.length, field.list]);
   
   const toggleOpen = (index: number) => {
     if (index >= 0 && index < openStatesRef.current.length) {
@@ -259,7 +259,7 @@ const ListField = ({
 
 const BlocksField = forwardRef((props: any, ref) => {
   const { field, fieldName, renderFields, isOpen = true, onToggleOpen = () => {}, index } = props;
-  const { control, setValue, watch, formState: { errors } } = useFormContext();
+  const { setValue, watch, formState: { errors } } = useFormContext();
   
   const value = watch(fieldName);
   const onChange = (val: any) => {
@@ -336,10 +336,10 @@ const BlocksField = forwardRef((props: any, ref) => {
             {field.list?.collapsible &&
               <>
                 <ChevronRight className={cn("h-4 w-4 transition-transform", isOpen ? 'rotate-90' : '')} />
-                <span className={hasErrors() ? 'text-red-500' : ''}>{itemLabel}</span>
+                <span className={cn(hasErrors() ? 'text-red-500' : '', "mr-2")}>{itemLabel}</span>
               </>
             }
-            <div className="flex items-center rounded-full border text-xs h-6 pl-2.5 text-muted-foreground bg-muted">
+            <div className="flex items-center rounded border text-xs h-6 pl-1.5 text-muted-foreground bg-muted">
               {selectedBlockDefinition.label || selectedBlockDefinition.name}
             
               <DropdownMenu>
@@ -435,7 +435,7 @@ const SingleField = ({
   toggleOpen?: () => void;
   index?: number;
 }) => {
-  const { control } = useFormContext();
+  const { control, formState: { errors } } = useFormContext();
   const fieldConfig = field;
   let FieldComponent;
 
@@ -459,8 +459,6 @@ const SingleField = ({
   }
   
   if (['object', 'block'].includes(fieldConfig.type)) {
-    const { formState: { errors } } = useFormContext();
-
     const hasErrors = () => {
       let curr: any = errors;
       return fieldName.split('.').every((part: string) => (curr = curr?.[part]) !== undefined) && !!curr;
@@ -563,7 +561,7 @@ const EntryForm = ({
       }
       return <SingleField key={currentFieldName} field={field} fieldName={currentFieldName} renderFields={renderFields} />;
     });
-  }, [form.control]);
+  }, []);
 
   const handleSubmit = async (values: any) => {
     setIsSubmitting(true);

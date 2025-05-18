@@ -41,7 +41,7 @@ export function Thumbnail({
     };
 
     fetchRawUrl();
-  }, [path, owner, repo, branch, isPrivate, name]);
+  }, [path, owner, repo, branch, isPrivate, name, rawUrl]);
 
   return (
     <div
