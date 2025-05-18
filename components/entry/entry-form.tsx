@@ -6,7 +6,6 @@ import {
   useForm,
   useFieldArray,
   useFormState,
-  Control,
   useFormContext
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -67,7 +66,7 @@ import {
   Loader,
   Plus,
   Trash2,
-  Ellipsis,
+  X,
   ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -107,21 +106,18 @@ const SortableItem = ({
 };
 
 const ListField = ({
-  control,
   field,
   fieldName,
   renderFields,
 }: {
-  control: Control;
   field: Field;
   fieldName: string;
   renderFields: Function;
 }) => {
+  const { control, setValue, watch } = useFormContext();
   const { fields: arrayFields, append, remove, move } = useFieldArray({
-    control,
     name: fieldName,
   });
-  const { setValue, watch } = useFormContext();
   const fieldValues = watch(fieldName);
   
   // Use an index-to-state map with a ref to survive re-renders
@@ -200,7 +196,6 @@ const ListField = ({
   return (
     <FormField
       name={fieldName}
-      control={control}
       render={({ field: formField, fieldState: { error } }) => (
         <FormItem>
           {field.label !== false &&
@@ -217,16 +212,15 @@ const ListField = ({
                 {arrayFields.map((arrayField, index) => (
                   <SortableItem key={arrayField.id} id={arrayField.id} type={field.type}>
                     <div className="grid gap-6 flex-1">
-                      {renderSingleField(
-                        field, 
-                        `${fieldName}.${index}`, 
-                        control, 
-                        renderFields, 
-                        false,
-                        openStatesRef.current[index], 
-                        () => toggleOpen(index),
-                        index
-                      )}
+                      <SingleField
+                        field={field}
+                        fieldName={`${fieldName}.${index}`}
+                        renderFields={renderFields}
+                        showLabel={false}
+                        isOpen={openStatesRef.current[index]}
+                        toggleOpen={() => toggleOpen(index)}
+                        index={index}
+                      />
                     </div>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -264,8 +258,18 @@ const ListField = ({
 };
 
 const BlocksField = forwardRef((props: any, ref) => {
-  const { value, onChange } = props;
-  const { field, fieldName, renderFields, control } = props;
+  const { field, fieldName, renderFields, isOpen = true, onToggleOpen = () => {}, index } = props;
+  const { control, setValue, watch, formState: { errors } } = useFormContext();
+  
+  const value = watch(fieldName);
+  const onChange = (val: any) => {
+    setValue(fieldName, val, { shouldDirty: true });
+  }
+
+  const hasErrors = () => {
+    let curr: any = errors;
+    return fieldName.split('.').every((part: string) => (curr = curr?.[part]) !== undefined) && !!curr;
+  };
 
   const { blocks = [] } = field;
   const blockKey = field.blockKey || "_block";
@@ -290,6 +294,15 @@ const BlocksField = forwardRef((props: any, ref) => {
     const definition = blocks.find((b: Field) => b.name === selectedBlockName);
     return definition;
   }, [blocks, selectedBlockName]);
+
+  const fieldValues = watch(fieldName);
+  const itemLabel = 
+    typeof field.list === 'object' && 
+    field.list.collapsible && 
+    typeof field.list.collapsible === 'object' && 
+    field.list.collapsible.summary
+      ? interpolate(field.list.collapsible.summary, fieldValues || {})
+      : `${field.label || 'Item'} ${index !== undefined ? `#${index + 1}` : ''}`;
 
   return (
     <div className="space-y-3" ref={ref as React.Ref<HTMLDivElement>}>
@@ -316,14 +329,23 @@ const BlocksField = forwardRef((props: any, ref) => {
         </div>
       ) : (
         <div className="rounded-lg border">
-          <header className="flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-10 border-b text-sm font-medium">
-            <div className="flex items-center gap-x-2 rounded-full bg-muted text-muted-foreground text-xs h-6 pl-2">
+          <header
+            className={cn("flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-10 text-sm font-medium hover:bg-muted transition-colors cursor-pointer", isOpen ? 'border-b' : 'rounded-b-lg')}
+            onClick={onToggleOpen}
+          >
+            {field.list?.collapsible &&
+              <>
+                <ChevronRight className={cn("h-4 w-4 transition-transform", isOpen ? 'rotate-90' : '')} />
+                <span className={hasErrors() ? 'text-red-500' : ''}>{itemLabel}</span>
+              </>
+            }
+            <div className="flex items-center rounded-full border text-xs h-6 pl-2.5 text-muted-foreground bg-muted">
               {selectedBlockDefinition.label || selectedBlockDefinition.name}
             
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button type="button" className="p-0 h-6 w-6 text-muted-foreground hover:text-foreground">
-                    <Ellipsis className="h-4 w-4" />
+                  <Button variant="ghost" type="button" className="p-0 h-6 w-6 text-muted-foreground hover:text-foreground bg-transparent">
+                    <X className="h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
@@ -334,7 +356,7 @@ const BlocksField = forwardRef((props: any, ref) => {
               </DropdownMenu>
             </div>
           </header>
-          <div className="p-4 grid gap-6">
+          <div className={cn("p-4 grid gap-6", isOpen ? '' : 'hidden')}>
             {selectedBlockDefinition.type === 'object' ? (
               (() => {
                 const renderedElements = renderFields(
@@ -344,16 +366,12 @@ const BlocksField = forwardRef((props: any, ref) => {
                 return renderedElements;
               })()
             ) : (
-              (() => {
-                 const renderedElement = renderSingleField(
-                    selectedBlockDefinition,
-                    fieldName,
-                    control,
-                    renderFields,
-                    false
-                 );
-                 return renderedElement;
-              })()
+              <SingleField
+                field={selectedBlockDefinition}
+                fieldName={fieldName}
+                renderFields={renderFields}
+                showLabel={false}
+              />
             )}
           </div>
         </div>
@@ -365,9 +383,9 @@ const BlocksField = forwardRef((props: any, ref) => {
 BlocksField.displayName = 'BlocksField';
 
 const ObjectField = forwardRef((props: any, ref) => {
-  const { field, fieldName, renderFields, control, isOpen = true, onToggleOpen = () => {}, index } = props;
+  const { field, fieldName, renderFields, isOpen = true, onToggleOpen = () => {}, index } = props;
   
-  const { formState: { errors }, watch } = useFormContext();
+  const { watch, formState: { errors } } = useFormContext();
 
   const hasErrors = () => {
     let curr: any = errors;
@@ -400,16 +418,24 @@ const ObjectField = forwardRef((props: any, ref) => {
 
 ObjectField.displayName = 'ObjectField';
 
-const renderSingleField = (
-  field: Field,
-  fieldName: string,
-  control: Control,
-  renderFields: Function,
+const SingleField = ({
+  field,
+  fieldName,
+  renderFields,
   showLabel = true,
   isOpen = true,
-  toggleOpen: () => void = () => {},
-  index: number = 0
-) => {
+  toggleOpen = () => {},
+  index = 0
+}: {
+  field: Field;
+  fieldName: string;
+  renderFields: Function;
+  showLabel?: boolean;
+  isOpen?: boolean;
+  toggleOpen?: () => void;
+  index?: number;
+}) => {
+  const { control } = useFormContext();
   const fieldConfig = field;
   let FieldComponent;
 
@@ -426,17 +452,24 @@ const renderSingleField = (
 
   let fieldComponentProps: any = { field: fieldConfig };
   if (['object', 'block'].includes(fieldConfig.type)) {
-    fieldComponentProps = { ...fieldComponentProps, fieldName, renderFields, control };
+    fieldComponentProps = { ...fieldComponentProps, fieldName, renderFields };
     if (typeof fieldConfig.list === 'object' && fieldConfig.list?.collapsible) {
       fieldComponentProps = { ...fieldComponentProps, isOpen, onToggleOpen: toggleOpen, index };
     }
   }
   
   if (['object', 'block'].includes(fieldConfig.type)) {
+    const { formState: { errors } } = useFormContext();
+
+    const hasErrors = () => {
+      let curr: any = errors;
+      return fieldName.split('.').every((part: string) => (curr = curr?.[part]) !== undefined) && !!curr;
+    };
+
     return (
       <FormItem key={fieldName}>
         {showLabel && fieldConfig.label !== false &&
-          <FormLabel className="h-5">
+          <FormLabel className={cn("h-5", hasErrors() ? "text-red-500" : "")}>
             {fieldConfig.label || fieldConfig.name}
           </FormLabel>
         }
@@ -473,6 +506,8 @@ const renderSingleField = (
     );
   }
 };
+
+SingleField.displayName = 'SingleField';
 
 const EntryForm = ({
   title,
@@ -511,7 +546,7 @@ const EntryForm = ({
     reValidateMode: "onSubmit"
   });
 
-  const { isDirty, errors } = useFormState({
+  const { isDirty } = useFormState({
     control: form.control
   });
 
@@ -524,11 +559,11 @@ const EntryForm = ({
       const currentFieldName = parentName ? `${parentName}.${field.name}` : field.name;
 
       if (field.list === true || (typeof field.list === 'object' && field.list !== null)) {
-        return <ListField key={currentFieldName} control={form.control} field={field} fieldName={currentFieldName} renderFields={renderFields} />;
+        return <ListField key={currentFieldName} field={field} fieldName={currentFieldName} renderFields={renderFields} />;
       }
-      return renderSingleField(field, currentFieldName, form.control, renderFields, true);
+      return <SingleField key={currentFieldName} field={field} fieldName={currentFieldName} renderFields={renderFields} />;
     });
-  }, [form.control, errors]);
+  }, [form.control]);
 
   const handleSubmit = async (values: any) => {
     setIsSubmitting(true);
