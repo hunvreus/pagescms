@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef, forwardRef, useCallback, Fragment } from "react";
+import { useState, useMemo, useEffect, useRef, forwardRef, useCallback } from "react";
 import Link from "next/link";
 import {
   useForm,
@@ -69,11 +69,9 @@ import {
   Trash2,
   Ellipsis,
   ChevronRight,
-  Folder,
-  Pencil
 } from "lucide-react";
 import { toast } from "sonner";
-import { getRelativePath } from "@/lib/utils/file";
+import { interpolate } from "@/lib/schema";
 
 const SortableItem = ({
   id,
@@ -123,27 +121,72 @@ const ListField = ({
     control,
     name: fieldName,
   });
-  // TODO: why is this not used?
-  const { errors } = useFormState({ control });
-
   const { setValue, watch } = useFormContext();
   const fieldValues = watch(fieldName);
-
-  const hasAppended = useRef(false);
-
+  
+  // Use an index-to-state map with a ref to survive re-renders
+  const openStatesRef = useRef<boolean[]>([]);
+  const [, forceUpdate] = useState({});
+  
   useEffect(() => {
-    if ((field.list && typeof field.list === 'object' && field.list.min === undefined) || field.list === true) {
-      return;
+    if (openStatesRef.current.length === 0 && arrayFields.length > 0) {
+      const defaultCollapsed =
+        typeof field.list === 'object' &&
+        field.list.collapsible &&
+        typeof field.list.collapsible === 'object' &&
+        field.list.collapsible.collapsed;
+      
+      openStatesRef.current = Array(arrayFields.length).fill(!defaultCollapsed);
+      forceUpdate({});
     }
-
-    const defaultValue = getDefaultValue(field);
-
-    if (arrayFields.length === 0 && !hasAppended.current && defaultValue) {
-      append(defaultValue);
-      hasAppended.current = true;
+  }, []);
+  
+  const toggleOpen = (index: number) => {
+    if (index >= 0 && index < openStatesRef.current.length) {
+      openStatesRef.current[index] = !openStatesRef.current[index];
+      forceUpdate({});
     }
-  }, [arrayFields, append, field]);
+  };
 
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event;
+    if (active.id !== over.id) {
+      const oldIndex = arrayFields.findIndex(item => item.id === active.id);
+      const newIndex = arrayFields.findIndex(item => item.id === over.id);
+      
+      // Reorder the open states array the same way as the items
+      const newOpenStates = [...openStatesRef.current];
+      const [movedState] = newOpenStates.splice(oldIndex, 1);
+      newOpenStates.splice(newIndex, 0, movedState);
+      openStatesRef.current = newOpenStates;
+      
+      // Perform the move
+      move(oldIndex, newIndex);
+      
+      // Update form values
+      const updatedValues = arrayMove(fieldValues, oldIndex, newIndex);
+      setValue(fieldName, updatedValues);
+      
+      // Force update to reflect the reordered open states
+      forceUpdate({});
+    }
+  };
+
+  const addItem = () => {
+    append(field.type === 'object'
+      ? initializeState(field.fields, {})
+      : getDefaultValue(field)
+    );
+    openStatesRef.current.push(true);
+    forceUpdate({});
+  };
+
+  const removeItem = (index: number) => {
+    remove(index);
+    openStatesRef.current.splice(index, 1);
+    forceUpdate({});
+  };
+  
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -153,18 +196,6 @@ const ListField = ({
 
   const modifiers = [restrictToVerticalAxis, restrictToParentElement]
 
-  const handleDragEnd = (event: any) => {
-    const { active, over } = event;
-    if (active.id !== over.id) {
-      const oldIndex = arrayFields.findIndex((item) => item.id === active.id);
-      const newIndex = arrayFields.findIndex((item) => item.id === over.id);
-      move(oldIndex, newIndex);
-
-      const updatedValues = arrayMove(fieldValues, oldIndex, newIndex);
-      setValue(fieldName, updatedValues);
-    }
-  };
-  
   // We don't render <FormMessage/> in ListField, because it's already rendered in the individual fields
   return (
     <FormField
@@ -186,18 +217,25 @@ const ListField = ({
                 {arrayFields.map((arrayField, index) => (
                   <SortableItem key={arrayField.id} id={arrayField.id} type={field.type}>
                     <div className="grid gap-6 flex-1">
-                      {field.type === 'object' && field.fields
-                        ? renderFields(field.fields, `${fieldName}.${index}`)
-                        : renderSingleField(field, `${fieldName}.${index}`, control, renderFields, false)}
+                      {renderSingleField(
+                        field, 
+                        `${fieldName}.${index}`, 
+                        control, 
+                        renderFields, 
+                        false,
+                        openStatesRef.current[index], 
+                        () => toggleOpen(index),
+                        index
+                      )}
                     </div>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button type="button" variant="ghost" size="icon-sm" className="bg-muted/50 text-muted-foreground self-start" onClick={() => remove(index)}>
+                        <Button type="button" variant="ghost" size="icon" className="bg-muted/50 text-muted-foreground self-start" onClick={() => removeItem(index)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        Remove entry
+                        Remove item
                       </TooltipContent>
                     </Tooltip>
                   </SortableItem>
@@ -210,16 +248,11 @@ const ListField = ({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    append(field.type === 'object'
-                      ? initializeState(field.fields, {})
-                      : getDefaultValue(field)
-                    );
-                  }}
+                  onClick={addItem}
                   className="gap-x-2"
                 >
                   <Plus className="h-4 w-4" />
-                  Add an entry
+                  Add an item
                 </Button>
             }
             <FormMessage />
@@ -283,20 +316,23 @@ const BlocksField = forwardRef((props: any, ref) => {
         </div>
       ) : (
         <div className="rounded-lg border">
-          <header className="flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-10 border-b text-sm font-medium text-muted-foreground">
-            {selectedBlockDefinition.label || selectedBlockDefinition.name}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button type="button" variant="ghost" size="icon-xs">
-                  <Ellipsis className="h-4 w-4 text-muted-foreground" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={handleRemoveBlock}>
-                  Remove block
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <header className="flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-10 border-b text-sm font-medium">
+            <div className="flex items-center gap-x-2 rounded-full bg-muted text-muted-foreground text-xs h-6 pl-2">
+              {selectedBlockDefinition.label || selectedBlockDefinition.name}
+            
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button type="button" className="p-0 h-6 w-6 text-muted-foreground hover:text-foreground">
+                    <Ellipsis className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={handleRemoveBlock}>
+                    Remove block
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </header>
           <div className="p-4 grid gap-6">
             {selectedBlockDefinition.type === 'object' ? (
@@ -328,12 +364,51 @@ const BlocksField = forwardRef((props: any, ref) => {
 
 BlocksField.displayName = 'BlocksField';
 
+const ObjectField = forwardRef((props: any, ref) => {
+  const { field, fieldName, renderFields, control, isOpen = true, onToggleOpen = () => {}, index } = props;
+  
+  const { formState: { errors }, watch } = useFormContext();
+
+  const hasErrors = () => {
+    let curr: any = errors;
+    return fieldName.split('.').every((part: string) => (curr = curr?.[part]) !== undefined) && !!curr;
+  };
+
+  const fieldValues = watch(fieldName);
+  const itemLabel = 
+    typeof field.list === 'object' && 
+    field.list.collapsible && 
+    typeof field.list.collapsible === 'object' && 
+    field.list.collapsible.summary
+      ? interpolate(field.list.collapsible.summary, fieldValues || {})
+      : `${field.label || 'Item'} ${index !== undefined ? `#${index + 1}` : ''}`;
+  
+  return (
+    <div className="border rounded-lg">
+      {field.list?.collapsible && (
+        <header className={cn("flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-10 text-sm font-medium hover:bg-muted transition-colors cursor-pointer", isOpen ? 'border-b' : 'rounded-b-lg')} onClick={onToggleOpen}>
+          <ChevronRight className={cn("h-4 w-4 transition-transform", isOpen ? 'rotate-90' : '')} />
+          <span className={hasErrors() ? 'text-red-500' : ''}>{itemLabel}</span>
+        </header>
+      )}
+      <div className={cn("p-4 grid gap-6", isOpen ? '' : 'hidden')}>
+        {renderFields(field.fields, fieldName)}
+      </div>
+    </div>
+  );
+});
+
+ObjectField.displayName = 'ObjectField';
+
 const renderSingleField = (
   field: Field,
   fieldName: string,
   control: Control,
   renderFields: Function,
-  showLabel = true
+  showLabel = true,
+  isOpen = true,
+  toggleOpen: () => void = () => {},
+  index: number = 0
 ) => {
   const fieldConfig = field;
   let FieldComponent;
@@ -341,12 +416,7 @@ const renderSingleField = (
   if (fieldConfig.type === 'block') {
     FieldComponent = BlocksField;
   } else if (fieldConfig.type === 'object') {
-    console.error(`renderSingleField should not handle 'object' type directly for: ${fieldName}`);
-    return (
-      <FormItem key={fieldName}>
-        <p className="text-muted-foreground bg-muted rounded-md px-3 py-2">Render Error: Object type misrouted.</p>
-      </FormItem>
-    );
+    FieldComponent = ObjectField;
   } else if (typeof fieldConfig.type === 'string' && editComponents[fieldConfig.type]) {
     FieldComponent = editComponents[fieldConfig.type];
   } else {
@@ -354,32 +424,54 @@ const renderSingleField = (
     FieldComponent = editComponents['text'];
   }
 
-  return (
-    <FormField
-      name={fieldName}
-      key={fieldName}
-      control={control}
-      render={({ field: rhfFieldProps, fieldState }) => (
-        <FormItem>
-          {showLabel && fieldConfig.label !== false &&
-            <FormLabel className="h-5">
-              {fieldConfig.label || fieldConfig.name}
-            </FormLabel>
-          }
-          {showLabel && fieldConfig.required && <span className="ml-2 rounded-md bg-muted px-2 py-0.5 text-xs font-medium">Required</span>}
-          <FormControl>
-            <FieldComponent
-              {...rhfFieldProps}
-              field={fieldConfig}
-              {...(fieldConfig.type === 'block' ? { fieldName, renderFields, control } : {})}
-            />
-          </FormControl>
-          {fieldConfig.description && <FormDescription>{fieldConfig.description}</FormDescription>}
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-  );
+  let fieldComponentProps: any = { field: fieldConfig };
+  if (['object', 'block'].includes(fieldConfig.type)) {
+    fieldComponentProps = { ...fieldComponentProps, fieldName, renderFields, control };
+    if (typeof fieldConfig.list === 'object' && fieldConfig.list?.collapsible) {
+      fieldComponentProps = { ...fieldComponentProps, isOpen, onToggleOpen: toggleOpen, index };
+    }
+  }
+  
+  if (['object', 'block'].includes(fieldConfig.type)) {
+    return (
+      <FormItem key={fieldName}>
+        {showLabel && fieldConfig.label !== false &&
+          <FormLabel className="h-5">
+            {fieldConfig.label || fieldConfig.name}
+          </FormLabel>
+        }
+        {showLabel && fieldConfig.required && <span className="ml-2 rounded-md bg-muted px-2 py-0.5 text-xs font-medium">Required</span>}
+        <FieldComponent {...fieldComponentProps} />
+        {fieldConfig.description && <FormDescription>{fieldConfig.description}</FormDescription>}
+      </FormItem>
+    );
+  } else {
+    return (
+      <FormField
+        name={fieldName}
+        key={fieldName}
+        control={control}
+        render={({ field: rhfManagedFieldProps, fieldState }) => (
+          <FormItem>
+            {showLabel && fieldConfig.label !== false &&
+              <FormLabel className="h-5">
+                {fieldConfig.label || fieldConfig.name}
+              </FormLabel>
+            }
+            {showLabel && fieldConfig.required && <span className="ml-2 rounded-md bg-muted px-2 py-0.5 text-xs font-medium">Required</span>}
+            <FormControl>
+              <FieldComponent 
+                {...rhfManagedFieldProps}
+                {...fieldComponentProps}
+              />
+            </FormControl>
+            {fieldConfig.description && <FormDescription>{fieldConfig.description}</FormDescription>}
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    );
+  }
 };
 
 const EntryForm = ({
@@ -404,10 +496,6 @@ const EntryForm = ({
   options: React.ReactNode;
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const pathSegments = useMemo(() => {
-    return path?.split('/') || [];
-  }, [path]);
 
   const zodSchema = useMemo(() => {
     return generateZodSchema(fields);
@@ -437,26 +525,6 @@ const EntryForm = ({
 
       if (field.list === true || (typeof field.list === 'object' && field.list !== null)) {
         return <ListField key={currentFieldName} control={form.control} field={field} fieldName={currentFieldName} renderFields={renderFields} />;
-      } else if (field.type === "object" && Array.isArray(field.fields)) {
-        const objectErrors = errors?.[currentFieldName];
-        const hasNestedErrors = typeof objectErrors === 'object' && objectErrors !== null && Object.keys(objectErrors).length > 0;
-
-        return (
-          <div className="rounded-lg border" key={currentFieldName}>
-            {field.label !== false &&
-              <header className={cn(
-                "flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-10 border-b text-sm font-medium bg-muted",
-                hasNestedErrors && "text-red-500"
-              )}>
-                {field.label || field.name}
-                {field.required && <span className="ml-2 rounded-md bg-muted px-2 py-0.5 text-xs font-medium">Required</span>}
-              </header>
-            }
-            <div className="grid gap-6 p-4">
-              {renderFields(field.fields, currentFieldName)}
-            </div>
-          </div>
-        );
       }
       return renderSingleField(field, currentFieldName, form.control, renderFields, true);
     });
