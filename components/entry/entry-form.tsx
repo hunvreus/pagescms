@@ -66,8 +66,9 @@ import {
   Loader,
   Plus,
   Trash2,
-  X,
+  Ellipsis,
   ChevronRight,
+  Dot,
 } from "lucide-react";
 import { toast } from "sonner";
 import { interpolate } from "@/lib/schema";
@@ -198,14 +199,16 @@ const ListField = ({
       name={fieldName}
       render={({ field: formField, fieldState: { error } }) => (
         <FormItem>
-          {field.label !== false &&
-            <FormLabel className="text-sm font-medium">
-              {field.label || field.name}
-            </FormLabel>
-          }
-          {field.required && (
-            <span className="ml-2 rounded-md bg-muted px-2 py-0.5 text-xs font-medium">Required</span>
-          )}
+          <div className="flex items-center h-5 gap-x-2">
+            {field.label !== false &&
+              <FormLabel className="text-sm font-medium">
+                {field.label || field.name}   
+              </FormLabel>
+            }
+            {field.required && (
+              <span className="inline-flex items-center rounded-full bg-muted border px-2 h-5 text-xs font-medium">Required</span>
+            )}
+          </div>
           <div className="space-y-2">
             <DndContext sensors={sensors} modifiers={modifiers} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={arrayFields.map(item => item.id)} strategy={verticalListSortingStrategy}>
@@ -336,16 +339,18 @@ const BlocksField = forwardRef((props: any, ref) => {
             {field.list?.collapsible &&
               <>
                 <ChevronRight className={cn("h-4 w-4 transition-transform", isOpen ? 'rotate-90' : '')} />
-                <span className={cn(hasErrors() ? 'text-red-500' : '', "mr-2")}>{itemLabel}</span>
+                <span className={hasErrors() ? 'text-red-500' : ''}>{itemLabel}</span>
+                <Dot className="h-4 w-4 text-muted-foreground" />
               </>
             }
-            <div className="flex items-center rounded border text-xs h-6 pl-1.5 text-muted-foreground bg-muted">
+            
+            <div className="inline-flex items-center gap-x-1 text-muted-foreground">
               {selectedBlockDefinition.label || selectedBlockDefinition.name}
             
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" type="button" className="p-0 h-6 w-6 text-muted-foreground hover:text-foreground bg-transparent">
-                    <X className="h-3 w-3" />
+                    <Ellipsis className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
@@ -466,12 +471,18 @@ const SingleField = ({
 
     return (
       <FormItem key={fieldName}>
-        {showLabel && fieldConfig.label !== false &&
-          <FormLabel className={cn("h-5", hasErrors() ? "text-red-500" : "")}>
-            {fieldConfig.label || fieldConfig.name}
-          </FormLabel>
+        {showLabel &&
+          <div className="flex items-center h-5 gap-x-2">
+            {fieldConfig.label !== false &&
+              <FormLabel className={hasErrors() ? "text-red-500" : ""}>
+                {fieldConfig.label || fieldConfig.name}
+              </FormLabel>
+            }
+            {fieldConfig.required &&
+              <span className="inline-flex items-center rounded-full bg-muted border px-2 h-5 text-xs font-medium">Required</span>
+            }
+          </div>
         }
-        {showLabel && fieldConfig.required && <span className="ml-2 rounded-md bg-muted px-2 py-0.5 text-xs font-medium">Required</span>}
         <FieldComponent {...fieldComponentProps} />
         {fieldConfig.description && <FormDescription>{fieldConfig.description}</FormDescription>}
       </FormItem>
@@ -484,12 +495,14 @@ const SingleField = ({
         control={control}
         render={({ field: rhfManagedFieldProps, fieldState }) => (
           <FormItem>
-            {showLabel && fieldConfig.label !== false &&
-              <FormLabel className="h-5">
-                {fieldConfig.label || fieldConfig.name}
-              </FormLabel>
-            }
-            {showLabel && fieldConfig.required && <span className="ml-2 rounded-md bg-muted px-2 py-0.5 text-xs font-medium">Required</span>}
+            <div className="flex items-center h-5 gap-x-2">
+              {showLabel && fieldConfig.label !== false &&
+                <FormLabel>
+                  {fieldConfig.label || fieldConfig.name}
+                </FormLabel>
+              }
+              {showLabel && fieldConfig.required && <span className="inline-flex items-center rounded-full bg-muted border px-2 h-5 text-xs font-medium">Required</span>}
+            </div>
             <FormControl>
               <FieldComponent 
                 {...rhfManagedFieldProps}
