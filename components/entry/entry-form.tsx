@@ -340,7 +340,7 @@ const BlocksField = forwardRef((props: any, ref) => {
               <>
                 <ChevronRight className={cn("h-4 w-4 transition-transform", isOpen ? 'rotate-90' : '')} />
                 <span className={hasErrors() ? 'text-red-500' : ''}>{itemLabel}</span>
-                <Dot className="h-4 w-4" />
+                <Dot className="h-4 w-4 text-muted-foreground" />
               </>
             }
             <div className="inline-flex items-center gap-x-0.5 text-muted-foreground">

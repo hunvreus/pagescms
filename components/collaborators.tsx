@@ -19,13 +19,18 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Avatar,
   AvatarFallback,
   AvatarImage
 } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Ban, Loader } from "lucide-react";
+import { Ban, Loader, Trash2 } from "lucide-react";
 
 export function Collaborators({
   owner,
@@ -116,7 +121,7 @@ export function Collaborators({
         <Skeleton className="h-6 w-6 rounded-full" />
         <Skeleton className="h-5 w-24 text-left rounded" />
         <Button variant="outline" size="xs" className="ml-auto" disabled>
-          Remove
+          <Trash2 className="h-4 w-4" />
         </Button>
       </li>
     </ul>
@@ -151,12 +156,21 @@ export function Collaborators({
                     {collaborator.email}
                   </div>
                   <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="xs" className="ml-auto" disabled={removing.includes(collaborator.id)}>
-                        Remove
-                        {removing.includes(collaborator.id) && (<Loader className="ml-2 h-4 w-4 animate-spin" />)}
-                      </Button>
-                    </AlertDialogTrigger>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <AlertDialogTrigger asChild>                          
+                          <Button variant="ghost" size="xs" className="ml-auto" disabled={removing.includes(collaborator.id)}>
+                            {removing.includes(collaborator.id)
+                              ? <Loader className="ml-2 h-4 w-4 animate-spin" />
+                              : <Trash2 className="h-4 w-4" />
+                            }
+                          </Button>
+                        </AlertDialogTrigger>      
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Remove collaborator
+                      </TooltipContent>
+                    </Tooltip>  
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
