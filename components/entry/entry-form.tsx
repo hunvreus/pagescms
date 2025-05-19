@@ -66,7 +66,7 @@ import {
   Loader,
   Plus,
   Trash2,
-  Ellipsis,
+  Settings,
   ChevronRight,
   Dot,
 } from "lucide-react";
@@ -336,21 +336,20 @@ const BlocksField = forwardRef((props: any, ref) => {
             className={cn("flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-10 text-sm font-medium hover:bg-muted transition-colors cursor-pointer", isOpen ? 'border-b' : 'rounded-b-lg')}
             onClick={onToggleOpen}
           >
-            {field.list?.collapsible &&
+            {field.list?.collapsible && 
               <>
                 <ChevronRight className={cn("h-4 w-4 transition-transform", isOpen ? 'rotate-90' : '')} />
                 <span className={hasErrors() ? 'text-red-500' : ''}>{itemLabel}</span>
-                <Dot className="h-4 w-4 text-muted-foreground" />
+                <Dot className="h-4 w-4" />
               </>
             }
-            
-            <div className="inline-flex items-center gap-x-1 text-muted-foreground">
+            <div className="inline-flex items-center gap-x-0.5 text-muted-foreground">
               {selectedBlockDefinition.label || selectedBlockDefinition.name}
-            
+              
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" type="button" className="p-0 h-6 w-6 text-muted-foreground hover:text-foreground bg-transparent">
-                    <Ellipsis className="h-4 w-4" />
+                    <Settings className="h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
@@ -402,6 +401,7 @@ const ObjectField = forwardRef((props: any, ref) => {
     typeof field.list === 'object' && 
     field.list.collapsible && 
     typeof field.list.collapsible === 'object' && 
+    field.list.collapsible.summary !== false &&
     field.list.collapsible.summary
       ? interpolate(field.list.collapsible.summary, fieldValues || {})
       : `${field.label || 'Item'} ${index !== undefined ? `#${index + 1}` : ''}`;
