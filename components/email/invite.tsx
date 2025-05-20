@@ -17,13 +17,13 @@ import {
 export const InviteEmailTemplate = ({
   email,
   repoName,
-  repoUrl,
+  inviteUrl,
   invitedByName,
   invitedByUrl
 }: {
   email: string,
   repoName: string,
-  repoUrl: string,
+  inviteUrl: string,
   invitedByName: string,
   invitedByUrl: string,
 }) => {
@@ -56,7 +56,7 @@ export const InviteEmailTemplate = ({
             <Section className="text-center mt-[24px] mb-[24px]">
               <Button
                 className="bg-[#171717] rounded-lg text-white text-[14px] font-medium no-underline text-center px-5 py-3"
-                href={repoUrl}
+                href={inviteUrl}
               >
                 Join &quot;{repoName}&quot;
               </Button>
@@ -65,8 +65,8 @@ export const InviteEmailTemplate = ({
               or copy and paste this URL into your browser:{" "}
             </Text>
             <Text className="text-[#0a0a0a] text-[16px] leading-[24px]">
-              <Link href={repoUrl} className="text-[#0a0a0a] underline rounded-md">
-                {repoUrl}
+              <Link href={inviteUrl} className="text-[#0a0a0a] underline rounded-md">
+                {inviteUrl}
               </Link>
             </Text>
             <Text className="text-[#737373] text-[14px] leading-[24px] mt-[36px]">

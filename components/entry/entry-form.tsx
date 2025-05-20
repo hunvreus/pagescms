@@ -66,7 +66,7 @@ import {
   Loader,
   Plus,
   Trash2,
-  Settings,
+  Ellipsis,
   ChevronRight,
   Dot,
 } from "lucide-react";
@@ -193,6 +193,13 @@ const ListField = ({
 
   const modifiers = [restrictToVerticalAxis, restrictToParentElement]
 
+  const toggleAll = (collapsed: boolean) => {
+    openStatesRef.current = Array(openStatesRef.current.length).fill(!collapsed);
+    forceUpdate({});
+  };
+
+  const isCollapsible = typeof field.list === 'object' && field.list?.collapsible !== false;
+
   // We don't render <FormMessage/> in ListField, because it's already rendered in the individual fields
   return (
     <FormField
@@ -208,6 +215,26 @@ const ListField = ({
             {field.required && (
               <span className="inline-flex items-center rounded-full bg-muted border px-2 h-5 text-xs font-medium">Required</span>
             )}
+            
+            {
+              isCollapsible && arrayFields.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" type="button" size="icon-xs" className="h-5 w-5 text-muted-foreground hover:text-foreground bg-transparent">
+                      <Ellipsis className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => toggleAll(true)}>
+                      Collapse all
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => toggleAll(false)}>
+                      Expand all
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )
+            }
           </div>
           <div className="space-y-2">
             <DndContext sensors={sensors} modifiers={modifiers} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -331,16 +358,15 @@ const BlocksField = forwardRef((props: any, ref) => {
           </div>
         </div>
       ) : (
-        <div className="rounded-lg border">
+        <div className="border rounded-lg">
           <header
-            className={cn("flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-10 text-sm font-medium hover:bg-muted transition-colors cursor-pointer", isOpen ? 'border-b' : 'rounded-b-lg')}
+            className={cn("flex items-center gap-x-2 px-4 h-10 text-sm font-medium hover:bg-muted transition-colors cursor-pointer rounded-t-lg", isOpen ? 'border-b' : 'rounded-b-lg')}
             onClick={onToggleOpen}
           >
             {field.list?.collapsible && 
               <>
                 <ChevronRight className={cn("h-4 w-4 transition-transform", isOpen ? 'rotate-90' : '')} />
-                <span className={hasErrors() ? 'text-red-500' : ''}>{itemLabel}</span>
-                <Dot className="h-4 w-4 text-muted-foreground" />
+                <span className={cn('mr-auto', hasErrors() ? 'text-red-500' : '')}>{itemLabel}</span>
               </>
             }
             <div className="inline-flex items-center gap-x-0.5 text-muted-foreground">
@@ -348,8 +374,8 @@ const BlocksField = forwardRef((props: any, ref) => {
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" type="button" className="p-0 h-6 w-6 text-muted-foreground hover:text-foreground bg-transparent">
-                    <Settings className="h-3 w-3" />
+                  <Button variant="ghost" type="button" size="icon-xs" className="text-muted-foreground hover:text-foreground bg-transparent">
+                    <Ellipsis className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>

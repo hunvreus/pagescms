@@ -5,6 +5,7 @@ import { getInstallations, getInstallationRepos } from "@/lib/githubApp";
 import { getUserToken } from "@/lib/token";
 import { InviteEmailTemplate } from "@/components/email/invite";
 import { Resend } from "resend";
+import { createLoginToken } from "@/lib/actions/auth";
 import { db } from "@/db";
 import { and, eq} from "drizzle-orm";
 import { collaboratorTable } from "@/db/schema";
@@ -53,11 +54,13 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
 		});
 		if (collaborator) throw new Error(`${email} is already invited to "${owner}/${repo}".`);
 
+    const loginToken = await createLoginToken(email as string);
 		const baseUrl = process.env.BASE_URL
 			? process.env.BASE_URL
 			: process.env.VERCEL_PROJECT_PRODUCTION_URL
 				? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
 				: "";
+    const inviteUrl = `${baseUrl}/sign-in/collaborator/${loginToken}?redirect=/${owner}/${repo}`;
 
 		const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -67,7 +70,7 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
 				to: [email],
 				subject: `Join "${owner}/${repo}" on Pages CMS`,
 				react: InviteEmailTemplate({
-					repoUrl: `${baseUrl}/${owner}/${repo}`,
+					inviteUrl,
 					repoName: `${formData.get("owner")}/${formData.get("repo")}`,
 					email: email,
 					invitedByName: user.githubName || user.githubUsername,
