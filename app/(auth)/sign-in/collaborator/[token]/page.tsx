@@ -25,7 +25,12 @@ export default async function Page({
     }
   }
 
-  const { tokenHash, emailLoginToken } = await getTokenData(params.token);
+  let tokenHash, emailLoginToken;
+  try {
+    ({ tokenHash, emailLoginToken } = await getTokenData(params.token));
+  } catch (error: any) {
+    redirect(`/sign-in?error=${encodeURIComponent(error.message)}`);
+  }
 
   return <SignInFromInvite token={params.token} githubUsername={user?.githubUsername} redirectTo={searchParams.redirect} email={emailLoginToken.email} />;
 }

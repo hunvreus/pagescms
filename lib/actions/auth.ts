@@ -110,9 +110,7 @@ const getTokenData = async (token: string) => {
 
 // Sign in with token (collaborator)
 const handleSignInWithToken = async (token: string, redirectTo?: string) => {
-  let tokenHash: string;
-  let emailLoginToken: any;
-
+  let tokenHash, emailLoginToken;
   try {
     ({ tokenHash, emailLoginToken } = await getTokenData(token));
   } catch (error: any) {

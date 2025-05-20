@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { handleSignOutAndSignIn, handleSignInWithToken } from "@/lib/actions/auth";
 import { Button, buttonVariants } from "@/components/ui/button";
 import Link from "next/link";
@@ -18,6 +18,22 @@ export function SignInFromInvite({
   redirectTo?: string;
 }) {
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!githubUsername) {
+      const timer = setTimeout(handleSignIn, 300);
+      clearTimeout(timer);
+    }
+  }, []);
+
+  const handleSignIn = async () => {
+    setIsLoading(true);
+    try {
+      await handleSignInWithToken(token, redirectTo);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="h-screen p-4 md:p-6 flex justify-center items-center">
@@ -52,10 +68,7 @@ export function SignInFromInvite({
                 Please confirm that you want to sign in with {email}.
               </p>
               <footer className="flex flex-col gap-y-2">
-                <Button variant="default" onClick={() => {
-                  setIsLoading(true);
-                  handleSignInWithToken(token, redirectTo);
-                }} disabled={isLoading}>
+                <Button variant="default" onClick={handleSignIn} disabled={isLoading}>
                   Sign in
                   {isLoading && <Loader className="ml-2 h-4 w-4 animate-spin" />}
                 </Button>
