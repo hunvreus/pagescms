@@ -26,10 +26,10 @@ export function SignInFromInvite({
           ? <>
               <h1 className="text-xl lg:text-2xl font-semibold tracking-tight text-center">Sign out from your GitHub account?</h1>
               <p className="text-sm text-muted-foreground">
-                You are already signed in with your GitHub account (@{githubUsername}).
+                You are already signed in with your GitHub account (@{githubUsername}). 
                 {redirectTo
-                  ? `Do you want to sign out from your GitHub account and sign in as a collaborator with ${email}) or try to access "${redirectTo}" with your GitHub account?`
-                  : `Do you want to sign out from your GitHub account and sign in as a collaborator with ${email}?`
+                  ? ` Do you want to sign out from your GitHub account and sign in as a collaborator with ${email} or try to access "${redirectTo}" with your GitHub account?`
+                  : ` Do you want to sign out from your GitHub account and sign in as a collaborator with ${email}?`
                 }
               </p>
               <footer className="flex flex-col gap-y-2">
