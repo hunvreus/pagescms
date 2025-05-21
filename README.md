@@ -44,7 +44,7 @@ This online version is identical to what's in this repo, but you can also instal
 
 Whether you're installing Pages CMS locally or deploying it online, you will need a GitHub App.
 
-You can either create it under your personal account (https://github.com/settings/apps) or under one of your organizations (https://github.com/organizations/<org-name>/settings/apps).
+You can either create it under your personal account (https://github.com/settings/apps) or under one of your organizations (`https://github.com/organizations/<org-name>/settings/apps`).
 
 You will need to fill in the following information:
 
