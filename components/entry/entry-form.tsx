@@ -115,6 +115,8 @@ const ListField = ({
   fieldName: string;
   renderFields: Function;
 }) => {
+  const isCollapsible = !!(field.list && !(typeof field.list === 'object' && field.list?.collapsible === false));
+  
   const { setValue, watch } = useFormContext();
   const { fields: arrayFields, append, remove, move } = useFieldArray({
     name: fieldName,
@@ -128,6 +130,7 @@ const ListField = ({
   useEffect(() => {
     if (openStatesRef.current.length === 0 && arrayFields.length > 0) {
       const defaultCollapsed =
+        isCollapsible &&
         typeof field.list === 'object' &&
         field.list.collapsible &&
         typeof field.list.collapsible === 'object' &&
@@ -197,8 +200,6 @@ const ListField = ({
     openStatesRef.current = Array(openStatesRef.current.length).fill(!collapsed);
     forceUpdate({});
   };
-
-  const isCollapsible = typeof field.list === 'object' && field.list?.collapsible !== false;
 
   // We don't render <FormMessage/> in ListField, because it's already rendered in the individual fields
   return (
@@ -288,7 +289,10 @@ const ListField = ({
 };
 
 const BlocksField = forwardRef((props: any, ref) => {
-  const { field, fieldName, renderFields, isOpen = true, onToggleOpen = () => {}, index } = props;
+  const { field, fieldName, renderFields, isOpen, onToggleOpen, index } = props;
+
+  const isCollapsible = !!(field.list && !(typeof field.list === 'object' && field.list?.collapsible === false));
+  
   const { setValue, watch, formState: { errors } } = useFormContext();
   
   const value = watch(fieldName);
@@ -326,13 +330,17 @@ const BlocksField = forwardRef((props: any, ref) => {
   }, [blocks, selectedBlockName]);
 
   const fieldValues = watch(fieldName);
+  const interpolateData = {
+    index: index !== undefined ? `${index + 1}` : '',
+    fields: fieldValues,
+  }
   const itemLabel = 
     typeof field.list === 'object' && 
     field.list.collapsible && 
     typeof field.list.collapsible === 'object' && 
     field.list.collapsible.summary
-      ? interpolate(field.list.collapsible.summary, fieldValues || {})
-      : `${field.label || 'Item'} ${index !== undefined ? `#${index + 1}` : ''}`;
+      ? interpolate(field.list.collapsible.summary, interpolateData)
+      : `Item ${index !== undefined ? `#${index + 1}` : ''}`;
 
   return (
     <div className="space-y-3" ref={ref as React.Ref<HTMLDivElement>}>
@@ -360,15 +368,19 @@ const BlocksField = forwardRef((props: any, ref) => {
       ) : (
         <div className="border rounded-lg">
           <header
-            className={cn("flex items-center gap-x-2 px-4 h-10 text-sm font-medium hover:bg-muted transition-colors cursor-pointer rounded-t-lg", isOpen ? 'border-b' : 'rounded-b-lg')}
-            onClick={onToggleOpen}
+            className={cn(
+              "flex items-center gap-x-2 px-4 h-10 text-sm font-medium transition-colors rounded-t-lg", 
+              isOpen ? 'border-b' : 'rounded-b-lg', 
+              isCollapsible ? 'cursor-pointer hover:bg-muted' : ''
+            )}
+            onClick={isCollapsible ? onToggleOpen : undefined}
           >
-            {field.list?.collapsible && 
+            {isCollapsible && (
               <>
                 <ChevronRight className={cn("h-4 w-4 transition-transform", isOpen ? 'rotate-90' : '')} />
                 <span className={cn('mr-auto', hasErrors() ? 'text-red-500' : '')}>{itemLabel}</span>
               </>
-            }
+            )}
             <div className="inline-flex items-center gap-x-0.5 text-muted-foreground">
               {selectedBlockDefinition.label || selectedBlockDefinition.name}
               
@@ -415,6 +427,8 @@ BlocksField.displayName = 'BlocksField';
 const ObjectField = forwardRef((props: any, ref) => {
   const { field, fieldName, renderFields, isOpen = true, onToggleOpen = () => {}, index } = props;
   
+  const isCollapsible = !!(field.list && !(typeof field.list === 'object' && field.list?.collapsible === false));
+
   const { watch, formState: { errors } } = useFormContext();
 
   const hasErrors = () => {
@@ -423,18 +437,21 @@ const ObjectField = forwardRef((props: any, ref) => {
   };
 
   const fieldValues = watch(fieldName);
+  const interpolateData = {
+    index: index !== undefined ? `${index + 1}` : '',
+    fields: fieldValues,
+  }
   const itemLabel = 
     typeof field.list === 'object' && 
     field.list.collapsible && 
     typeof field.list.collapsible === 'object' && 
-    field.list.collapsible.summary !== false &&
     field.list.collapsible.summary
-      ? interpolate(field.list.collapsible.summary, fieldValues || {})
-      : `${field.label || 'Item'} ${index !== undefined ? `#${index + 1}` : ''}`;
+      ? interpolate(field.list.collapsible.summary, interpolateData)
+      : `Item ${index !== undefined ? `#${index + 1}` : ''}`;
   
   return (
     <div className="border rounded-lg">
-      {field.list?.collapsible && (
+      {isCollapsible && (
         <header className={cn("flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-10 text-sm font-medium hover:bg-muted transition-colors cursor-pointer", isOpen ? 'border-b' : 'rounded-b-lg')} onClick={onToggleOpen}>
           <ChevronRight className={cn("h-4 w-4 transition-transform", isOpen ? 'rotate-90' : '')} />
           <span className={hasErrors() ? 'text-red-500' : ''}>{itemLabel}</span>
@@ -467,29 +484,31 @@ const SingleField = ({
   index?: number;
 }) => {
   const { control, formState: { errors } } = useFormContext();
-  const fieldConfig = field;
+  
   let FieldComponent;
 
-  if (fieldConfig.type === 'block') {
+  const isCollapsible = !!(field.list && !(typeof field.list === 'object' && field.list?.collapsible === false));
+
+  if (field.type === 'block') {
     FieldComponent = BlocksField;
-  } else if (fieldConfig.type === 'object') {
+  } else if (field.type === 'object') {
     FieldComponent = ObjectField;
-  } else if (typeof fieldConfig.type === 'string' && editComponents[fieldConfig.type]) {
-    FieldComponent = editComponents[fieldConfig.type];
+  } else if (typeof field.type === 'string' && editComponents[field.type]) {
+    FieldComponent = editComponents[field.type];
   } else {
-    console.warn(`No component found for field type: ${fieldConfig.type}. Defaulting to 'text'.`);
+    console.warn(`No component found for field type: ${field.type}. Defaulting to 'text'.`);
     FieldComponent = editComponents['text'];
   }
 
-  let fieldComponentProps: any = { field: fieldConfig };
-  if (['object', 'block'].includes(fieldConfig.type)) {
-    fieldComponentProps = { ...fieldComponentProps, fieldName, renderFields };
-    if (typeof fieldConfig.list === 'object' && fieldConfig.list?.collapsible) {
-      fieldComponentProps = { ...fieldComponentProps, isOpen, onToggleOpen: toggleOpen, index };
+  let fieldComponentProps: any = { field: field };
+  if (['object', 'block'].includes(field.type)) {
+    fieldComponentProps = { ...fieldComponentProps, fieldName, renderFields, isOpen };
+    if (isCollapsible) {
+      fieldComponentProps = { ...fieldComponentProps, onToggleOpen: toggleOpen, index };
     }
   }
   
-  if (['object', 'block'].includes(fieldConfig.type)) {
+  if (['object', 'block'].includes(field.type)) {
     const hasErrors = () => {
       let curr: any = errors;
       return fieldName.split('.').every((part: string) => (curr = curr?.[part]) !== undefined) && !!curr;
@@ -499,18 +518,18 @@ const SingleField = ({
       <FormItem key={fieldName}>
         {showLabel &&
           <div className="flex items-center h-5 gap-x-2">
-            {fieldConfig.label !== false &&
+            {field.label !== false &&
               <FormLabel className={hasErrors() ? "text-red-500" : ""}>
-                {fieldConfig.label || fieldConfig.name}
+                {field.label || field.name}
               </FormLabel>
             }
-            {fieldConfig.required &&
+            {field.required &&
               <span className="inline-flex items-center rounded-full bg-muted border px-2 h-5 text-xs font-medium">Required</span>
             }
           </div>
         }
         <FieldComponent {...fieldComponentProps} />
-        {fieldConfig.description && <FormDescription>{fieldConfig.description}</FormDescription>}
+        {field.description && <FormDescription>{field.description}</FormDescription>}
       </FormItem>
     );
   } else {
@@ -522,12 +541,12 @@ const SingleField = ({
         render={({ field: rhfManagedFieldProps, fieldState }) => (
           <FormItem>
             <div className="flex items-center h-5 gap-x-2">
-              {showLabel && fieldConfig.label !== false &&
+              {showLabel && field.label !== false &&
                 <FormLabel>
-                  {fieldConfig.label || fieldConfig.name}
+                  {field.label || field.name}
                 </FormLabel>
               }
-              {showLabel && fieldConfig.required && <span className="inline-flex items-center rounded-full bg-muted border px-2 h-5 text-xs font-medium">Required</span>}
+              {showLabel && field.required && <span className="inline-flex items-center rounded-full bg-muted border px-2 h-5 text-xs font-medium">Required</span>}
             </div>
             <FormControl>
               <FieldComponent 
@@ -535,7 +554,7 @@ const SingleField = ({
                 {...fieldComponentProps}
               />
             </FormControl>
-            {fieldConfig.description && <FormDescription>{fieldConfig.description}</FormDescription>}
+            {field.description && <FormDescription>{field.description}</FormDescription>}
             <FormMessage />
           </FormItem>
         )}
