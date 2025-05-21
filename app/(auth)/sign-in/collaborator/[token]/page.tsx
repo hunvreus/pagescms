@@ -11,22 +11,23 @@ export default async function Page({
   searchParams: { redirect?: string }
 }) {
   const { user } = await getAuth();
-  const redirectPage = user ? '/' : '/sign-in';
+  
   if (!params.token) {
-    const error = 'Your sign in link is invalid (token is missing).';
-    redirect(`${redirectPage}?error=${encodeURIComponent(error)}&redirect=${searchParams.redirect}`);
+    throw new Error("Your sign in link is invalid (token is missing).");
   }
   
   if (user && !user.githubId) {
     redirect(searchParams.redirect || '/');
   }
 
-  let tokenHash, emailLoginToken;
-  try {
-    ({ tokenHash, emailLoginToken } = await getTokenData(params.token));
-  } catch (error: any) {
-    redirect(`${redirectPage}?error=${encodeURIComponent(error.message)}&redirect=${searchParams.redirect}`);
-  }
+  const { tokenHash, emailLoginToken } = await getTokenData(params.token);
 
-  return <SignInFromInvite token={params.token} githubUsername={user?.githubUsername} redirectTo={searchParams.redirect} email={emailLoginToken.email} />;
+  return (
+    <SignInFromInvite
+      token={params.token}
+      githubUsername={user?.githubUsername}
+      redirectTo={searchParams.redirect}
+      email={emailLoginToken.email}
+    />
+  );
 }

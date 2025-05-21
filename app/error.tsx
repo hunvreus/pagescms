@@ -2,8 +2,9 @@
 
 import { useEffect } from "react";
 import { Message  } from "@/components/message";
-import { Button } from "@/components/ui/button";
- 
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
+
 export default function Error({
   error,
   reset,
@@ -21,7 +22,7 @@ export default function Error({
       description={error.message}
       className="absolute inset-0"
     >
-      <Button size="sm" onClick={() => reset()}>Try again</Button>
+      <Link className={buttonVariants({ variant: "default" })} href="/">Go to home</Link>
     </Message>
   );
 }

@@ -1,9 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useSearchParams } from "next/navigation";
-import { toast } from "sonner";
+import { useState } from "react";
 import { handleAppInstall } from "@/lib/actions/app";
 import { useUser } from "@/contexts/user-context";
 import { RepoSelect } from "@/components/repo/repo-select";
@@ -17,21 +14,9 @@ import { Github } from "lucide-react";
 export default function Page() {
 	const [defaultAccount, setDefaultAccount] = useState<any>(null);
   const { user } = useUser();
-  const router = useRouter();
-
+	
 	if (!user) throw new Error("User not found");
 	if (!user.accounts) throw new Error("Accounts not found");
-
-  const searchParams = useSearchParams();
-  const error = searchParams.get("error") || "";
-  const redirect = searchParams.get("redirect") || "";
-  useEffect(() => {
-    if (error) toast.error(error);
-  }, [error]);
-
-  useEffect(() => {
-    if (redirect) router.push(redirect);
-  }, [redirect]);
 
 	return (
     <MainRootLayout>
