@@ -103,7 +103,7 @@ export async function POST(
 
             let finalContentObject = JSON.parse(JSON.stringify(unwrappedContentObject));
 
-            if (config?.object?.settings?.content?.merge) {
+            if (config?.object?.settings?.content?.merge && data.sha) {
               const octokit = createOctokitInstance(token);
               const response = await octokit.rest.repos.getContent({
                 owner: params.owner,
