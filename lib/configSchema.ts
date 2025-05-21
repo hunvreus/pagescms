@@ -55,6 +55,26 @@ const MediaSchema = z.union([
   })
 ]);
 
+// Schema for list attribute (used in both field and content entries)
+const ListSchema = z.union([
+  z.boolean(),
+  z.object({
+    min: z.number().min(0, "'min' must be a positive integer (minimum 0).").optional(),
+    max: z.number().min(1, "'max' must be a positive integer (minimum 1).").optional(),
+    collapsible: z.union([
+      z.boolean(),
+      z.object({
+        collapsed: z.boolean(),
+        summary: z.string().optional(),
+      }, {
+        message: "'collapsbile' must be either a boolean or an object with 'collapsed' and 'summary' properties."
+      }),
+    ]),
+  }, {
+    message: "'list' must be either a boolean or an object with 'min' and 'max' properties."
+  }).strict()
+]);
+
 // Generator for Field Object Schema (components do not have a `name` field)
 const generateFieldObjectSchema = (isComponent?: boolean, isBlock?: boolean): z.ZodType<any> => {
   let baseObjectSchema = {
@@ -102,15 +122,7 @@ const generateFieldObjectSchema = (isComponent?: boolean, isBlock?: boolean): z.
             path: ['type']
           })
           .optional(),
-        list: z.union([
-          z.boolean(),
-          z.object({
-            min: z.number().min(0, "'min' must be a positive integer (minimum 0).").optional(),
-            max: z.number().min(1, "'max' must be a positive integer (minimum 1).").optional(),
-          }, {
-            message: "'list' must be either a boolean or an object with 'min' and 'max' properties."
-          }).strict()
-        ]).optional(),
+        list: ListSchema.optional(),
         hidden: z.boolean({
           message: "'hidden' must be a boolean."
         }).optional().nullable(),
@@ -207,7 +219,6 @@ const ContentObjectSchema = z.object({
   }),
   label: z.string().optional(),
   description: z.string().optional().nullable(),
-  icon: z.string().optional(),
   type: z.enum(["collection", "file"], {
     required_error: "'type' is required.",
     message:  "'type' must be either 'collection' or 'file'."
@@ -303,9 +314,7 @@ const ContentObjectSchema = z.object({
     generateFieldObjectSchema(),
     { message: "'fields' must be an array of field definitions." }
   ).optional(),
-  list: z.boolean({
-    message: "'list' must be a boolean."
-  }).optional(),
+  list: ListSchema.optional(),
 }).strict();
 
 // Main schema with media and content
