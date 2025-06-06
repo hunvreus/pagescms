@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useConfig } from "@/contexts/config-context";
-import { getParentPath, getRelativePath, joinPathSegments, normalizePath } from "@/lib/utils/file";
+import { getRelativePath, joinPathSegments, normalizePath } from "@/lib/utils/file";
 import { getSchemaByName } from "@/lib/schema";
 import {
   Dialog,
@@ -42,14 +42,15 @@ export function FileRename({
   const schema = getSchemaByName(config.object, name, type);
   if (!schema) throw new Error(`Schema not found for ${name}.`);
 
+  const rootPath = useMemo(() => type === "media" ? schema.input : schema.path, [type, schema.input, schema.path]);
   const normalizedPath = useMemo(() => normalizePath(path), [path]);
-  const relativePath = useMemo(() => getRelativePath(normalizedPath, schema.path), [normalizedPath, schema.path]);
+  const relativePath = useMemo(() => getRelativePath(normalizedPath, rootPath), [normalizedPath, rootPath]);
 
   const [newRelativePath, setNewRelativePath] = useState(relativePath);
 
   const handleRename = async () => {
     try {
-      const newPath = joinPathSegments([schema.path, normalizePath(newRelativePath)]);
+      const newPath = joinPathSegments([rootPath, normalizePath(newRelativePath)]);
       
       const renamePromise = new Promise(async (resolve, reject) => {
         try {

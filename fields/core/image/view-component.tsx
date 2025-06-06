@@ -23,7 +23,8 @@ const ViewComponent = ({
   }, [value]);
 
   const { config } = useConfig();
-  const mediaName = field.options?.media || config?.object.media[0].name;
+
+  const mediaName = field.options?.media || config?.object.media?.[0]?.name;
 
   return (
     <span className="flex items-center gap-x-1.5">

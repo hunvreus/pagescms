@@ -10,11 +10,11 @@ const read = (value: any, field: Field, config: Record<string, any>): string | s
   if (!value) return null;
   if (Array.isArray(value) && !value.length) return null;
   
-  const mediaConfig = field.options?.media === false
-    ? undefined
-    : field.options?.media && typeof field.options.media === 'string'
+  const mediaConfig = (config?.object?.media?.length && field.options?.media !== false)
+    ? field.options?.media && typeof field.options.media === 'string'
       ? getSchemaByName(config.object, field.options.media, "media")
-      : config.object.media[0];
+      : config.object.media[0]
+    : undefined;
 
   if (!mediaConfig) return value;
 
@@ -29,11 +29,11 @@ const write = (value: any, field: Field, config: Record<string, any>): string | 
   if (!value) return null;
   if (Array.isArray(value) && !value.length) return null;
 
-  const mediaConfig = field.options?.media === false
-    ? undefined
-    : field.options?.media && typeof field.options.media === 'string'
+  const mediaConfig = (config?.object?.media?.length && field.options?.media !== false)
+    ? field.options?.media && typeof field.options.media === 'string'
       ? getSchemaByName(config.object, field.options.media, "media")
-      : config.object.media[0];
+      : config.object.media[0]
+    : undefined;
 
   if (!mediaConfig) return value;
 

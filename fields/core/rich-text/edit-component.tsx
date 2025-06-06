@@ -69,11 +69,8 @@ const EditComponent = forwardRef((props: any, ref) => {
   const { value, field, onChange } = props;
 
   const mediaConfig = useMemo(() => {
-    if (!config?.object?.media?.length) {
-      return undefined;
-    }
-    return field.options?.media !== false
-      ? field.options?.media
+    return (config?.object?.media?.length && field.options?.media !== false)
+      ? field.options?.media && typeof field.options.media === 'string'
         ? getSchemaByName(config.object, field.options.media, "media")
         : config.object.media[0]
       : undefined;
@@ -101,10 +98,10 @@ const EditComponent = forwardRef((props: any, ref) => {
     return extensions;
   }, [field.options?.extensions, field.options?.categories, mediaConfig]);
 
-  const mediaName = mediaConfig?.name || config?.object.media[0].name;
-  if (!mediaName) throw new Error("No media defined.");
+  const mediaDialogRef = mediaConfig
+    ? useRef<MediaDialogHandle>(null)
+    : undefined;
 
-  const mediaDialogRef = useRef<MediaDialogHandle>(null);
   const bubbleMenuRef = useRef<HTMLDivElement | null>(null);
 
   const [isContentReady, setContentReady] = useState(false);
@@ -113,13 +110,13 @@ const EditComponent = forwardRef((props: any, ref) => {
   const [imageAlt, setImageAlt] = useState("");
 
   const openMediaDialog = mediaConfig?.input
-    ? () => { if (mediaDialogRef.current) mediaDialogRef.current.open() }
+    ? () => { if (mediaDialogRef?.current) mediaDialogRef.current.open() }
     : undefined;
 
   const rootPath = useMemo(() => {
-    if (!field.options?.path) {
-      return mediaConfig?.input;
-    }
+    if (!mediaConfig) return undefined;
+    
+    if (!field.options?.path) return mediaConfig?.input;
 
     const normalizedPath = normalizePath(field.options.path);
     const normalizedMediaPath = normalizePath(mediaConfig?.input);
@@ -174,7 +171,9 @@ const EditComponent = forwardRef((props: any, ref) => {
     onCreate: async ({ editor }) => {
       if (config && value) {
         try {
-          const initialContent = await relativeToRawUrls(config.owner, config.repo, config.branch, mediaName, value, isPrivate);
+          const initialContent = mediaConfig
+            ? await relativeToRawUrls(config.owner, config.repo, config.branch, mediaConfig.name, value, isPrivate)
+            : value;
           editor.commands.setContent(initialContent || "<p></p>");
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -188,10 +187,12 @@ const EditComponent = forwardRef((props: any, ref) => {
   });
 
   const handleMediaDialogSubmit = useCallback(async (images: string[]) => {
+    if (!mediaConfig) return;
+
     if (config && editor) {
       const content = await Promise.all(images.map(async (image) => {
         try {
-          const url = await getRawUrl(config.owner, config.repo, config.branch, mediaName, image, isPrivate);
+          const url = await getRawUrl(config.owner, config.repo, config.branch, mediaConfig?.name, image, isPrivate);
           return `<p><img src="${url}"></p>`;
         } catch {
           toast.error(`Failed to load image: ${image}`);
@@ -201,7 +202,7 @@ const EditComponent = forwardRef((props: any, ref) => {
       }));
       editor.chain().focus().insertContent(content.join('\n')).run();
     }
-  }, [config, editor, isPrivate, mediaName]);
+  }, [config, editor, isPrivate, mediaConfig?.name]);
 
   const getBlockIcon = (editor: any) => {
     if (editor.isActive("heading", { level: 1 })) return <Heading1 className="h-4 w-4" />;
@@ -431,7 +432,7 @@ const EditComponent = forwardRef((props: any, ref) => {
                 </DropdownMenuContent>
               </DropdownMenu>
             }
-            {editor.isActive("image") &&
+            {mediaConfig && editor.isActive("image") &&
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -479,14 +480,14 @@ const EditComponent = forwardRef((props: any, ref) => {
           </div>
         </BubbleMenu>}
         <EditorContent editor={editor} />
-        <MediaDialog 
+        {mediaConfig && <MediaDialog 
           ref={mediaDialogRef} 
           media={mediaConfig?.name}
           initialPath={rootPath}
           extensions={allowedExtensions}
           selected={[]} 
           onSubmit={handleMediaDialogSubmit} 
-        />
+        />}
       </div>
     </>
   )

@@ -131,12 +131,11 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
   );
 
   const mediaConfig = useMemo(() => {
-    if (!config?.object?.media?.length) {
-      return undefined;
-    }
-    return field.options?.media
-      ? getSchemaByName(config.object, field.options?.media, "media")
-      : config.object.media[0];
+    return (config?.object?.media?.length && field.options?.media !== false)
+      ? field.options?.media && typeof field.options.media === 'string'
+        ? getSchemaByName(config.object, field.options.media, "media")
+        : config.object.media[0]
+      : undefined;
   }, [field.options?.media, config?.object]);
 
   const rootPath = useMemo(() => {

@@ -46,15 +46,23 @@ const MediaDialog = forwardRef(({
     : config.object.media[0];
 
   const selectedImagesRef = useRef(selected || []);
+  const [selectedImages, setSelectedImages] = useState(selected || []);
   const [open, setOpen] = useState(false);
 
   const handleSelect = useCallback((newSelected: string[]) => {
     selectedImagesRef.current = newSelected;
+    setSelectedImages(newSelected);
   }, []);
 
   const handleSubmit = useCallback(() => {
     onSubmit(selectedImagesRef.current);
   }, [onSubmit]);
+
+  const handleUpload = useCallback((entry: any) => {
+    const newSelected = [...selectedImagesRef.current, entry.path];
+    selectedImagesRef.current = newSelected;
+    setSelectedImages(newSelected);
+  }, []);
 
   useImperativeHandle(ref, () => ({
     open: () => setOpen(true),
@@ -74,11 +82,25 @@ const MediaDialog = forwardRef(({
           <DialogDescription></DialogDescription>
         </DialogHeader>
         
-        <MediaView media={configMedia.name} extensions={extensions} initialSelected={selected || []} onSelect={handleSelect} maxSelected={maxSelected} initialPath={initialPath || ""}/>
+        <MediaView 
+          media={configMedia.name} 
+          extensions={extensions} 
+          initialSelected={selectedImages} 
+          onSelect={handleSelect} 
+          onUpload={handleUpload}
+          maxSelected={maxSelected} 
+          initialPath={initialPath || ""}
+        />
         {configMedia.input &&
           <DialogFooter>
             <DialogClose asChild>
-              <Button type="submit" onClick={handleSubmit}>Select</Button>
+              <Button 
+                type="submit" 
+                onClick={handleSubmit} 
+                disabled={selectedImages.length === 0}
+              >
+                Select
+              </Button>
             </DialogClose>
           </DialogFooter>
         }
