@@ -9,8 +9,7 @@ import { getFileExtension, getFileName, normalizePath, serializedTypes, getParen
 import { getAuth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
 import { updateFileCache } from "@/lib/githubCache";
-import { deepMergeObjects } from "@/lib/helpers";
-import { ConsoleLogWriter } from "drizzle-orm";
+import merge from "lodash.merge";
 
 /**
  * Create, update and delete individual files in a GitHub repository.
@@ -121,7 +120,7 @@ export async function POST(
               const existingContent = Buffer.from(response.data.content, "base64").toString();
               const existingContentObject = parse(existingContent, { format: schema.format, delimiters: schema.delimiters });
 
-              finalContentObject = deepMergeObjects(unwrappedContentObject, existingContentObject);
+              finalContentObject = merge({}, existingContentObject, unwrappedContentObject);
             }
             
             const stringifiedContentObject = stringify(

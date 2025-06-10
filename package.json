@@ -71,6 +71,8 @@
     "drizzle-orm": "^0.31.2",
     "install": "^0.13.0",
     "joplin-turndown-plugin-gfm": "^1.0.12",
+    "lodash.merge": "^4.6.2",
+    "lodash.mergewith": "^4.6.2",
     "lucia": "^3.2.0",
     "lucide-react": "^0.479.0",
     "marked": "^12.0.2",
@@ -95,6 +97,8 @@
   },
   "devDependencies": {
     "@next/bundle-analyzer": "^15.2.4",
+    "@types/lodash.merge": "^4.6.9",
+    "@types/lodash.mergewith": "^4.6.9",
     "@types/node": "^20.12.8",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.0",

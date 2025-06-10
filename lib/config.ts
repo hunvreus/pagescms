@@ -9,7 +9,7 @@ import YAML from "yaml";
 import { getFileExtension, extensionCategories } from "@/lib/utils/file";
 import { ConfigSchema } from "@/lib/configSchema";
 import { z } from "zod";
-import { deepMergeObjects } from "@/lib/helpers";
+import mergeWith from "lodash.mergewith";
 
 const configVersion = "2.3";
 
@@ -170,7 +170,11 @@ function resolveComponent(field: any, componentsMap: Record<string, any>): any {
       const originalName = result.name;
       const componentType = componentCopy.type;
       delete result.component;
-      result = deepMergeObjects(componentCopy, result);
+      result = mergeWith({}, componentCopy, result, (objValue: any, srcValue: any) => {
+        if (Array.isArray(srcValue)) {
+          return srcValue;
+        }
+      });
       result.name = originalName;
       result.type = componentType;
     } else {
