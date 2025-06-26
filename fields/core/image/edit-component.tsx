@@ -151,13 +151,13 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
   }, [field, mediaConfig]);
 
   const isMultiple = useMemo(() => 
-    field.options?.multiple === true,
+    !!field.options?.multiple,
     [field.options?.multiple]
   );
 
   const remainingSlots = useMemo(() => 
     field.options?.multiple
-      ? field.options.multiple.max
+      ? (typeof field.options.multiple === 'object' && field.options.multiple.max)
         ? field.options.multiple.max - files.length
         : Infinity
       : 1 - files.length,

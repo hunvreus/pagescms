@@ -199,11 +199,13 @@ const MediaView = ({
         ? newSelected.filter(item => item !== path)
         : [...newSelected, path];
       
-      if (onSelect) onSelect(newSelected);
-      
       return newSelected;
     });
-  }, [onSelect, maxSelected]);
+  }, [maxSelected]);
+
+  useEffect(() => {
+    if (onSelect) onSelect(selected);
+  }, [selected, onSelect]);
 
   const loadingSkeleton = useMemo(() => (
     <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">

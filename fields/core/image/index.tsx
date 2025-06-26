@@ -79,12 +79,13 @@ const schema = (field: Field, configObject?: Record<string, any>) => {
   const allowedExtensions = getAllowedExtensions(field, mediaConfig);
   let zodSchema: z.ZodTypeAny;
 
-  zodSchema = field.options?.multiple
+  const isMultiple = !!field.options?.multiple;
+
+  zodSchema = isMultiple
     ? z.array(z.string()).optional().nullable()
     : z.string().optional().nullable();
 
   zodSchema = zodSchema.superRefine((data, ctx) => {
-    const isMultiple = field.options?.multiple;
     let isEmpty = false;
     let hasEmptyElementInArray = false;
 
