@@ -49,7 +49,11 @@ const getRawUrl = async (
     const parentFullPath = `${owner}/${repo}/${encodeURIComponent(branch)}/${parentPath}`;
     
     if (requests[parentFullPath]) {
-      await requests[parentFullPath];
+      try {
+        await requests[parentFullPath];
+      } finally {
+        delete requests[parentFullPath];
+      }
       return cache[parentFullPath]?.files?.[filename];
     }
 
@@ -63,10 +67,19 @@ const getRawUrl = async (
             if (!response.ok) throw new Error(`Failed to fetch media: ${response.status} ${response.statusText}`);
             
             return response.json();
+          })
+          .catch(err => {
+            delete requests[parentFullPath];
+            throw err;
           });
       }
 
-      const response = await requests[parentFullPath];
+      let response;
+      try {
+        response = await requests[parentFullPath];
+      } finally {
+        delete requests[parentFullPath];
+      }
       
       if (!cache[parentFullPath] && response.status === "success") {
         cache[parentFullPath] = {
@@ -79,8 +92,6 @@ const getRawUrl = async (
       } else if (response.status === "error") {
         throw new Error(response.message);
       }
-
-      delete requests[parentFullPath];
     }
 
     return cache[parentFullPath]?.files?.[filename];
