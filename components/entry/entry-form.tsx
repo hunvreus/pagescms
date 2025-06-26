@@ -383,7 +383,7 @@ const BlocksField = forwardRef((props: any, ref) => {
               </>
             )}
             <div className="inline-flex items-center gap-x-0.5 text-muted-foreground">
-              {selectedBlockDefinition.label || selectedBlockDefinition.name}
+              <span className={hasErrors() ? 'text-red-500' : ''}>{selectedBlockDefinition.label || selectedBlockDefinition.name}</span>
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
