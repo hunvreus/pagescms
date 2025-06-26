@@ -60,7 +60,7 @@ function normalizePath(path: string): string {
   return normalizedPathSegments.join("/");
 }
 
-function getParentPath(path: string): string {
+const getParentPath = (path: string): string => {
   return (path === "" || path === "/")
     ? ""
     : path.split("/").slice(0, -1).join("/") || "";

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useConfig } from "@/contexts/config-context";
 import { getParentPath, getRelativePath, joinPathSegments, normalizePath } from "@/lib/utils/file";
+import { getSchemaByName } from "@/lib/schema";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,7 +49,17 @@ export function FileOptions({
   if (!config) throw new Error(`Configuration not found.`);
 
   const normalizedPath = useMemo(() => normalizePath(path), [path]);
-  const rootPath = useMemo(() => getParentPath(path), [path]);
+  const rootPath = useMemo(() => {
+    if (type === "media" && name) {
+      const schema = getSchemaByName(config.object, name, "media");
+      return schema?.input || getParentPath(path);
+    }
+    if ((type === "collection" || type === "file") && name) {
+      const schema = getSchemaByName(config.object, name);
+      return schema?.path || getParentPath(path);
+    }
+    return getParentPath(path);
+  }, [type, name, config.object, path]);
   const relativePath = useMemo(() => getRelativePath(normalizedPath, rootPath), [normalizedPath, rootPath]);
 
   const [newPath, setNewPath] = useState(relativePath);
