@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { eq, and, inArray, gt, count, min } from "drizzle-orm";
 import { cacheFileTable, cachePermissionTable } from "@/db/schema";
 import { createOctokitInstance } from "@/lib/utils/octokit";
+import { getParentPath } from "@/lib/utils/file";
 import path from "path";
 
 type FileChange = {
@@ -30,10 +31,10 @@ type FileOperation = {
 // Helper to get all non-root ancestor paths (e.g., [a, a/b, a/b/c] for a/b/c/file.txt)
 const getAncestorPaths = (filePath: string): string[] => {
   const ancestors: string[] = [];
-  let currentPath = path.dirname(filePath);
-  while (currentPath !== '.') {
+  let currentPath = getParentPath(filePath);
+  while (currentPath !== '') {
     ancestors.push(currentPath);
-    currentPath = path.dirname(currentPath);
+    currentPath = getParentPath(currentPath);
   }
   return ancestors.reverse();
 };
@@ -55,8 +56,8 @@ const updateParentFolderCachesBatch = async (
   // 1. Collect all unique directory paths potentially affected
   const allRelevantPaths = new Set<string>();
   affectedPaths.forEach(p => {
-    const parent = path.dirname(p);
-    if (parent !== '.') allRelevantPaths.add(parent);
+    const parent = getParentPath(p);
+    if (parent !== '') allRelevantPaths.add(parent);
     getAncestorPaths(p).forEach(ancestor => allRelevantPaths.add(ancestor));
   });
 
@@ -86,13 +87,13 @@ const updateParentFolderCachesBatch = async (
   if (addedPaths.length > 0) {
     for (const filePath of addedPaths) {
       const ancestors = getAncestorPaths(filePath);
-      const directParent = path.dirname(filePath);
-      const pathsToCheckForAdd = directParent === '.' ? ancestors : [directParent, ...ancestors];
+      const directParent = getParentPath(filePath);
+      const pathsToCheckForAdd = directParent === '' ? ancestors : [directParent, ...ancestors];
 
       for (const dirPath of pathsToCheckForAdd) {
         if (!existingDirMap.has(dirPath) && !dirsToInsertData.has(dirPath)) {
-          const parentDir = path.dirname(dirPath);
-          if (parentDir !== '.') {
+          const parentDir = getParentPath(dirPath);
+          if (parentDir !== '') {
             parentPathsNeedingContext.add(parentDir);
           }
           // Add placeholder, context will be filled later if possible
@@ -160,8 +161,8 @@ const updateParentFolderCachesBatch = async (
     const dirPathsToDelete = new Set<string>();
     for (const filePath of deletedPaths) {
       const ancestors = getAncestorPaths(filePath);
-      const directParent = path.dirname(filePath);
-      const pathsToCheckForDelete = directParent === '.' ? ancestors : [directParent, ...ancestors];
+      const directParent = getParentPath(filePath);
+      const pathsToCheckForDelete = directParent === '' ? ancestors : [directParent, ...ancestors];
 
       for (const dirPath of [...pathsToCheckForDelete].reverse()) { // Check bottom-up
         if (existingDirMap.has(dirPath) && !nonEmptyDirs.has(dirPath)) {
@@ -216,8 +217,8 @@ const updateParentFolderCache = async (
   const lowerOwner = owner.toLowerCase();
   const lowerRepo = repo.toLowerCase();
   const ancestors = getAncestorPaths(filePath);
-  const directParent = path.dirname(filePath);
-  const relevantPaths = directParent === '.' ? ancestors : [directParent, ...ancestors];
+  const directParent = getParentPath(filePath);
+  const relevantPaths = directParent === '' ? ancestors : [directParent, ...ancestors];
 
   if (relevantPaths.length === 0) return; // We're at the root, no need to update
 
@@ -237,9 +238,9 @@ const updateParentFolderCache = async (
       });
 
       if (!existingEntry) {
-        const parentDir = path.dirname(dirPath);
+        const parentDir = getParentPath(dirPath);
         let context = 'collection'; // Default
-        if (parentDir !== '.') {
+        if (parentDir !== '') {
           const contextEntry = await db.query.cacheFileTable.findFirst({
             where: and(
               eq(cacheFileTable.owner, lowerOwner), eq(cacheFileTable.repo, lowerRepo), eq(cacheFileTable.branch, branch),
@@ -342,9 +343,9 @@ const updateMultipleFilesCache = async (
 
   // 2. Collect unique non-root parent paths for added/modified files
   const parentPaths = Array.from(new Set([
-    ...modifiedFiles.map(f => path.dirname(f.path)),
-    ...addedFiles.map(f => path.dirname(f.path))
-  ])).filter(p => p !== '.');
+    ...modifiedFiles.map(f => getParentPath(f.path)),
+    ...addedFiles.map(f => getParentPath(f.path))
+  ])).filter(p => p !== '');
 
   let pathContextMap = new Map<string, string>();
   if (parentPaths.length > 0) {
@@ -443,8 +444,8 @@ const updateMultipleFilesCache = async (
           continue;
         }
 
-        const parentPath = path.dirname(file.path);
-        const context = parentPath === '.' ? 'collection' : (pathContextMap.get(parentPath) || 'collection');
+        const parentPath = getParentPath(file.path);
+        const context = parentPath === '' ? 'collection' : (pathContextMap.get(parentPath) || 'collection');
         const now = Date.now();
 
         const entryData = {
@@ -486,7 +487,7 @@ const updateFileCache = async (
 ) => {
   const lowerOwner = owner.toLowerCase();
   const lowerRepo = repo.toLowerCase();
-  const parentPath = path.dirname(operation.path);
+  const parentPath = getParentPath(operation.path);
 
   switch (operation.type) {
     case 'delete':
@@ -537,7 +538,7 @@ const updateFileCache = async (
       if (!operation.newPath) throw new Error('newPath is required for rename operations');
 
       const renameNow = Date.now();
-      const newParentPath = path.dirname(operation.newPath);
+      const newParentPath = getParentPath(operation.newPath);
       const newName = path.basename(operation.newPath);
 
       // Update the existing entry to the new path/name
