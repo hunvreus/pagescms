@@ -558,11 +558,13 @@ export function CollectionView({
             <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none"/>
             <Input className="h-9 pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <FolderCreate path={path || schema.path} type="content" name={name} onCreate={handleFolderCreate}>
-            <Button type="button" variant="outline" className="ml-auto shrink-0" size="icon-sm">
-              <FolderPlus className="h-3.5 w-3.5"/>
-            </Button>
-          </FolderCreate>
+          {schema.subfolders !== false && (
+            <FolderCreate path={path || schema.path} type="content" name={name} onCreate={handleFolderCreate}>
+              <Button type="button" variant="outline" className="ml-auto shrink-0" size="icon-sm">
+                <FolderPlus className="h-3.5 w-3.5"/>
+              </Button>
+            </FolderCreate>
+          )}
           <Link
             className={cn(buttonVariants({size: "sm"}), "hidden sm:flex")}
             href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new${schema.view?.layout !== 'tree' && path && path !== schema.path ? `?parent=${encodeURIComponent(path)}` : ""}`}
