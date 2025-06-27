@@ -6,7 +6,7 @@
 
 import { getFileName, getParentPath } from "@/lib/utils/file";
 
-const ttl = 120000; // TTL for the cache (2 minutes in milliseconds)
+const ttl = 10000; // TTL for the cache (10 seconds)
 const cache: { [key: string]: any } = {};
 const requests: { [key: string]: Promise<any> | undefined } = {};
 
