@@ -50,6 +50,13 @@ export async function POST(
 
         if (!normalizedPath.startsWith(schema.path)) throw new Error(`Invalid path "${params.path}" for ${data.type} "${data.name}".`);
 
+        if (schema.subfolders === false) {
+          const relativePath = normalizedPath.slice(schema.path.length);
+          if (relativePath.startsWith('/') && relativePath.includes('/')) {
+            throw new Error(`Subfolders are not allowed for collection "${data.name}".`);
+          }
+        }
+
         if (getFileName(normalizedPath) === ".gitkeep") {
           // Folder creation
           contentBase64 = "";
@@ -351,6 +358,13 @@ export async function DELETE(
         if (!schema) throw new Error(`Content schema not found for ${name}.`);
         
         if (!normalizedPath.startsWith(schema.path)) throw new Error(`Invalid path "${params.path}" for ${type} "${name}".`);
+        
+        if (schema.subfolders === false) {
+          const relativePath = normalizedPath.slice(schema.path.length);
+          if (relativePath.startsWith('/') && relativePath.includes('/')) {
+            throw new Error(`Subfolders are not allowed for collection "${name}".`);
+          }
+        }
         
         if (getFileExtension(normalizedPath) !== schema.extension) throw new Error(`Invalid extension "${getFileExtension(normalizedPath)}" for ${type} "${name}".`);
         break;
