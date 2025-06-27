@@ -6,7 +6,7 @@
 
 import { getFileName, getParentPath } from "@/lib/utils/file";
 
-const ttl = 10000; // TTL for the cache (10 seconds)
+const ttl = 30000; // TTL for the cache (30 seconds)
 const cache: { [key: string]: any } = {};
 const requests: { [key: string]: Promise<any> | undefined } = {};
 
@@ -57,12 +57,14 @@ const getRawUrl = async (
       return cache[parentFullPath]?.files?.[filename];
     }
 
-    const cacheExpired = (Date.now() - (cache[parentFullPath]?.time || 0) > ttl);
-    if (cache[parentFullPath]?.files?.[filename] && !cacheExpired) {
+    const cacheExists = cache[parentFullPath]?.files?.[filename];
+    const cacheExpired = !cache[parentFullPath]?.time || (Date.now() - cache[parentFullPath].time > ttl);
+    
+    if (cacheExists && !cacheExpired) {
       return cache[parentFullPath].files[filename];
     }
     
-    if (cacheExpired) {
+    if (cacheExpired || !cacheExists) {
       delete cache[parentFullPath];
       
       if (!requests[parentFullPath]) {
