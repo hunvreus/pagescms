@@ -9,7 +9,7 @@ import { getFileExtension, getFileName, normalizePath, serializedTypes, getParen
 import { getAuth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
 import { updateFileCache } from "@/lib/githubCache";
-import merge from "lodash.merge";
+import mergeWith from "lodash.mergewith";
 
 /**
  * Create, update and delete individual files in a GitHub repository.
@@ -124,7 +124,11 @@ export async function POST(
               const existingContent = Buffer.from(response.data.content, "base64").toString();
               const existingContentObject = parse(existingContent, { format: schema.format, delimiters: schema.delimiters });
 
-              finalContentObject = merge({}, existingContentObject, unwrappedContentObject);
+              finalContentObject = mergeWith({}, existingContentObject, unwrappedContentObject, (objValue: any, srcValue: any) => {
+                if (Array.isArray(srcValue)) {
+                  return srcValue;
+                }
+              });
             }
             
             const stringifiedContentObject = stringify(
