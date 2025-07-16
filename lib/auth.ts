@@ -4,14 +4,13 @@
 
 import { cache } from "react";
 import { Session, User, Lucia } from "lucia";
-import { DrizzleSQLiteAdapter, SQLiteSessionTable, SQLiteUserTable } from "@lucia-auth/adapter-drizzle";
+import { DrizzlePostgreSQLAdapter, PostgreSQLSessionTable, PostgreSQLUserTable } from "@lucia-auth/adapter-drizzle";
 import { db } from "@/db";
 import { userTable, sessionTable } from "@/db/schema";
 import { GitHub } from "arctic";
 import { cookies } from "next/headers";
 
-// TODO: why do I have to cast sessions and users???
-const adapter = new DrizzleSQLiteAdapter(db, sessionTable as unknown as SQLiteSessionTable, userTable as unknown as SQLiteUserTable);
+const adapter = new DrizzlePostgreSQLAdapter(db, sessionTable as unknown as PostgreSQLSessionTable, userTable as unknown as PostgreSQLUserTable);
 
 export const lucia = new Lucia(adapter, {
 	sessionCookie: {
