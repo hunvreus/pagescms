@@ -46,7 +46,7 @@ const getInstallationToken = cache(async (owner: string, repo: string) => {
     where: eq(githubInstallationTokenTable.installationId, repoInstallation.data.id)
   });
 
-  if (tokenData && Math.floor(Date.now() / 1000) < tokenData.expiresAt - 60) {
+  if (tokenData && Date.now() < tokenData.expiresAt.getTime() - 60_000) {
     const token = await decrypt(tokenData.ciphertext, tokenData.iv);
     if (!token) throw new Error(`Token could not be retrieved and/or decrypted.`);
 
@@ -59,7 +59,7 @@ const getInstallationToken = cache(async (owner: string, repo: string) => {
 
   const { ciphertext, iv } = await encrypt(installationToken.data.token);
     
-  const expiresAt = Math.floor(new Date(installationToken.data.expires_at).getTime() / 1000)
+  const expiresAt = new Date(installationToken.data.expires_at)
 
   if (tokenData) {
     await db.update(githubInstallationTokenTable).set({
