@@ -61,7 +61,6 @@ const collaboratorTable = pgTable("collaborator", {
   branch: text("branch"),
   email: text("email").notNull(),
   userId: text("user_id").references(() => userTable.id),
-  status: text("status"),
   invitedBy: text("invited_by").notNull().references(() => userTable.id)
 }, table => ({
   idx_collaborator_owner_repo_email: index("idx_collaborator_owner_repo_email").on(table.owner, table.repo, table.email),

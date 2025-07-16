@@ -15,6 +15,13 @@
       "when": 1752630907567,
       "tag": "0001_warm_silver_surfer",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1752656062455,
+      "tag": "0002_sweet_molly_hayes",
+      "breakpoints": true
     }
   ]
 }
