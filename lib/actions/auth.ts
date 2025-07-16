@@ -103,8 +103,7 @@ const getTokenData = async (token: string) => {
 
 	if (!emailLoginToken) throw new Error("Your sign in link is invalid (token is invalid).");
 		
-  const expiresAtDate = new Date(Number(emailLoginToken.expiresAt) * 1000);
-  if (!isWithinExpirationDate(expiresAtDate)) throw new Error("Your sign in link has expired.");
+  if (!isWithinExpirationDate(emailLoginToken.expiresAt as Date)) throw new Error("Your sign in link has expired.");
 
   return { tokenHash, emailLoginToken };
 }

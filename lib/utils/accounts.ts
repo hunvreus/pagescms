@@ -28,14 +28,13 @@ const getAccounts = async (user: User) => {
 		];
 	} else {
 		const groupedRepos = await db
-			.select({
+			.selectDistinct({
 				owner: collaboratorTable.owner,
 				type: collaboratorTable.type,
         installationId: collaboratorTable.installationId
 			})
 			.from(collaboratorTable)
-			.where(eq(collaboratorTable.email, user.email))
-			.groupBy(collaboratorTable.ownerId);
+			.where(eq(collaboratorTable.email, user.email));
 
 		accounts = groupedRepos.map(collaborator => ({
 			login: collaborator.owner,
