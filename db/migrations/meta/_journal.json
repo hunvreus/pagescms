@@ -8,6 +8,13 @@
       "when": 1752627191754,
       "tag": "0000_icy_eddie_brock",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1752630907567,
+      "tag": "0001_warm_silver_surfer",
+      "breakpoints": true
     }
   ]
 }
