@@ -192,8 +192,16 @@ const EditComponent = forwardRef((props: any, ref) => {
     if (config && editor) {
       const content = await Promise.all(images.map(async (image) => {
         try {
+          // Use unencoded path for API call, but encode for the final URL
           const url = await getRawUrl(config.owner, config.repo, config.branch, mediaConfig?.name, image, isPrivate);
-          return `<p><img src="${url}"></p>`;
+          if (url) {
+            // Replace the unencoded path with encoded path in the URL
+            const encodedImage = image.split('/').map(encodeURIComponent).join('/');
+            const encodedUrl = url.replace(image, encodedImage);
+            return `<p><img src="${encodedUrl}"></p>`;
+          }
+          // return `<p><img src="${url}"></p>`;
+          return `<p><img src="" alt="${image}" class="border border-destructive bg-destructive/10 rounded-md" /></p>`;
         } catch {
           toast.error(`Failed to load image: ${image}`);
           // Return a placeholder with error styling
