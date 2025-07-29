@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { cacheFileTable, cachePermissionTable } from "@/db/schema";
-import { lt } from "drizzle-orm";
+import { lt, sql } from "drizzle-orm";
 
 export async function GET(request: Request) {
   if (request.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -20,6 +20,10 @@ export async function GET(request: Request) {
     const permissionExpiryDate = new Date(Date.now() - permissionCacheTTL);
     await db.delete(cachePermissionTable)
       .where(lt(cachePermissionTable.lastUpdated, permissionExpiryDate));
+
+    // Run VACUUM on the tables we just cleaned up
+    await db.execute(sql`VACUUM cache_file`);
+    await db.execute(sql`VACUUM cache_permission`);
 
     return NextResponse.json({ success: true });
   } catch (error) {
