@@ -95,7 +95,7 @@ Variable | Comments
 `GITHUB_APP_CLIENT_SECRET` | GitHub App Client Secret you generate on theGitHub App details page.
 `RESEND_FROM_EMAIL` | The sender for authentication emails. Must be a verified domain in your Resend account and follow the format `email@example.com` or `Name <email@example.com>`.
 `RESEND_API_KEY` | You'll get that when you create a (free) [Resend](https://resend.com) account to handle emails.
-`FILE_CACHE_TTL` | **OPTIONAL**. Time to live (in minutes) for file cache (collections and media folders). Defaults to 10080 (7 days). Set to "-1" to prevent the cache from ever expiring, or "0" if you want no cache.
+`FILE_CACHE_TTL` | **OPTIONAL**. Time to live (in minutes) for file cache (collections and media folders). Defaults to 1440 (1 day). Set to "-1" to prevent the cache from ever expiring, or "0" if you want no cache.
 `PERMISSION_CACHE_TTL` | **OPTIONAL**. Time to live (in minutes) for the permission cache, which controls access to file cache. Defaults to 60. Set to "0" if you want to always check permissions against the GitHub API.
 `CRON_SECRET` | Secret token used to secure the access of the cron API endpoint.
 
