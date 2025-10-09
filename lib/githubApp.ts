@@ -31,10 +31,11 @@ const getInstallations = async (
     installations = installations.concat(response.data.installations);
 
     if (owners) {
+      const lowercaseOwners = owners.map((o) => o.toLowerCase());
       for (const installation of installations) {
         const matches = filterById
           ? owners.includes(installation.account.id.toString()) // Match by ID
-          : owners.includes(installation.account.login.toLowerCase()); // Match by name
+          : lowercaseOwners.includes(installation.account.login.toLowerCase()); // Match by name
 
         if (matches && !matchedInstallations.find((m: any) => m.id === installation.id)) {
           matchedInstallations.push(installation);
