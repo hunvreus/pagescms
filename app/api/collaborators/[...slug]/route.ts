@@ -16,9 +16,10 @@ import { getInstallations, getInstallationRepos } from "@/lib/githubApp";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string[] } }
+  context: { params: Promise<{ slug: string[] }> }
 ) {
   try {
+    const params = await context.params;
     const { user, session } = await getAuth();
     if (!session) return new Response(null, { status: 401 });
 

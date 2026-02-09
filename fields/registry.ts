@@ -1,34 +1,60 @@
-// TODO: split into separate files to improve bundling/tree-shaking?
 import { Field } from "@/types/field";
 import { z } from "zod";
+import * as booleanField from "@/fields/core/boolean";
+import * as codeField from "@/fields/core/code";
+import * as dateField from "@/fields/core/date";
+import * as fileField from "@/fields/core/file";
+import * as imageField from "@/fields/core/image";
+import * as numberField from "@/fields/core/number";
+import * as referenceField from "@/fields/core/reference";
+import * as richTextField from "@/fields/core/rich-text";
+import * as selectField from "@/fields/core/select";
+import * as stringField from "@/fields/core/string";
+import * as textField from "@/fields/core/text";
+import * as uuidField from "@/fields/core/uuid";
+
+type FieldModule = {
+  label?: string;
+  schema?: (...args: any[]) => z.ZodTypeAny;
+  defaultValue?: any;
+  read?: (...args: any[]) => any;
+  write?: (...args: any[]) => any;
+  EditComponent?: React.ComponentType<any>;
+  ViewComponent?: React.ComponentType<any>;
+};
 
 const fieldTypes = new Set<string>();
-let labels: Record<string, string> = {};
-let schemas: Record<string, (field: Field, configObject?: Record<string, any>) => z.ZodTypeAny> = {};
-let defaultValues: Record<string, any> = {};
-let readFns: Record<string, (value: any, field: Field, configObject?: Record<string, any>) => void> = {};
-let writeFns: Record<string, (value: any, field: Field, configObject?: Record<string, any>) => void> = {};
-let editComponents: Record<string, React.ComponentType<any>> = {};
-let viewComponents: Record<string, React.ComponentType<any>> = {};
+const labels: Record<string, string> = {};
+const schemas: Record<string, (field: Field, configObject?: Record<string, any>) => z.ZodTypeAny> = {};
+const defaultValues: Record<string, any> = {};
+const readFns: Record<string, (value: any, field: Field, configObject?: Record<string, any>) => void> = {};
+const writeFns: Record<string, (value: any, field: Field, configObject?: Record<string, any>) => void> = {};
+const editComponents: Record<string, React.ComponentType<any>> = {};
+const viewComponents: Record<string, React.ComponentType<any>> = {};
 
-const importCoreFieldComponents = (require as any).context('@/fields/core', true, /index\.(ts|tsx)$/);
-const importCustomFieldComponents = (require as any).context('@/fields/custom', true, /index\.(ts|tsx)$/);
+const registerField = (fieldName: string, fieldModule: FieldModule) => {
+  fieldTypes.add(fieldName);
 
-[importCoreFieldComponents, importCustomFieldComponents].forEach(importComponents => {
-  importComponents.keys().forEach((key: string) => {
-    const fieldName = key.split('/')[1];
-    const fieldModule = importComponents(key);
+  if (fieldModule.label) labels[fieldName] = fieldModule.label;
+  if (fieldModule.schema) schemas[fieldName] = fieldModule.schema;
+  if (fieldModule.defaultValue !== undefined) defaultValues[fieldName] = fieldModule.defaultValue;
+  if (fieldModule.read) readFns[fieldName] = fieldModule.read;
+  if (fieldModule.write) writeFns[fieldName] = fieldModule.write;
+  if (fieldModule.EditComponent) editComponents[fieldName] = fieldModule.EditComponent;
+  if (fieldModule.ViewComponent) viewComponents[fieldName] = fieldModule.ViewComponent;
+};
 
-    fieldTypes.add(fieldName);
-
-    if (fieldModule.label) labels[fieldName] = fieldModule.label;
-    if (fieldModule.schema) schemas[fieldName] = fieldModule.schema;
-    if (fieldModule.defaultValue) defaultValues[fieldName] = fieldModule.defaultValue;
-    if (fieldModule.read) readFns[fieldName] = fieldModule.read;
-    if (fieldModule.write) writeFns[fieldName] = fieldModule.write;
-    if (fieldModule.EditComponent) editComponents[fieldName] = fieldModule.EditComponent;
-    if (fieldModule.ViewComponent) viewComponents[fieldName] = fieldModule.ViewComponent;
-  });
-});
+registerField("boolean", booleanField);
+registerField("code", codeField);
+registerField("date", dateField);
+registerField("file", fileField);
+registerField("image", imageField);
+registerField("number", numberField);
+registerField("reference", referenceField);
+registerField("rich-text", richTextField);
+registerField("select", selectField);
+registerField("string", stringField);
+registerField("text", textField);
+registerField("uuid", uuidField);
 
 export { labels, schemas, readFns, writeFns, defaultValues, editComponents, viewComponents, fieldTypes };

@@ -34,7 +34,7 @@ export async function POST(request: Request) {
 
     const data = JSON.parse(body);
 
-    const headersList = headers();
+    const headersList = await headers();
     const event = headersList.get("X-GitHub-Event");
 
     try {

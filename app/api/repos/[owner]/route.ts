@@ -19,9 +19,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { owner: string } }
+  context: { params: Promise<{ owner: string }> }
 ) {
   try {
+    const params = await context.params;
     const { user, session } = await getAuth();
     if (!session) return new Response(null, { status: 401 });
 

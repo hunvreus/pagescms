@@ -163,7 +163,8 @@ const generateZodSchema = (
         fieldSchema = fieldSchemaFn(field);
       } else {
         console.warn(`Unknown or invalid type "${field.type}" for field "${field.name}". Defaulting to text validation.`);
-        fieldSchema = schemas["text"](field);
+        const fallbackSchema = schemas["text"];
+        fieldSchema = fallbackSchema ? fallbackSchema(field) : z.string();
       }
 
       if (field.list) {

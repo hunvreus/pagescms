@@ -79,3 +79,17 @@ Definition of done:
 1. Finalize Phase 0 on this branch (Next 16 baseline checkpoint).
 2. Then start Phase 1 (shadcn/ui).
 3. Then Phase 2 (Better Auth).
+
+## Deferred technical debt (track explicitly)
+### React 19 readiness (post-baseline)
+We intentionally stayed on React 18 for compatibility during the Next 16 baseline. Track and revisit upgrades/replacements for packages that currently block or risk React 19 adoption:
+- `cmdk`
+- `@tiptap/react`
+- `next-themes`
+- `react-day-picker`
+- `@react-email/components`
+- `sonner`
+
+Definition of done:
+- These packages are upgraded/replaced to React 19-compatible versions.
+- Project compiles and type-checks cleanly on React 19.

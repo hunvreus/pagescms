@@ -8,11 +8,12 @@ import { Repo } from "@/types/repo";
 
 export default async function Layout({
   children,
-  params: { owner, repo }
+  params
 }: {
   children: React.ReactNode;
-  params: { owner: string; repo: string; };
+  params: Promise<{ owner: string; repo: string; }>;
 }) {
+  const { owner, repo } = await params;
   const { session, user } = await getAuth();
   if (!session) return redirect("/sign-in");
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { use } from "react";
 import { useSearchParams } from "next/navigation";
 import { useConfig } from "@/contexts/config-context";
 import { MediaView} from "@/components/media/media-view";
@@ -7,10 +8,11 @@ import { MediaView} from "@/components/media/media-view";
 export default function Page({
   params
 }: {
-  params: {
+  params: Promise<{
     name: string;
-  }
+  }>
 }) {
+  const resolvedParams = use(params);
   const searchParams = useSearchParams();
   const path = searchParams.get("path") || "";
 
@@ -23,7 +25,7 @@ export default function Page({
         <h1 className="font-semibold text-lg md:text-2xl">Media</h1>
       </header>
       <div className="flex flex-col relative flex-1">
-        <MediaView initialPath={path} media={params.name} />
+        <MediaView initialPath={path} media={resolvedParams.name} />
       </div>
     </div>
   );

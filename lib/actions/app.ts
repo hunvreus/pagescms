@@ -8,8 +8,9 @@ import { generateState } from "arctic";
 const handleAppInstall = async () => {
 	const state = generateState();
 	const url = `https://github.com/apps/${process.env.GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
+	const cookieStore = await cookies();
 	
-	cookies().set("github_oauth_state", state, {
+	cookieStore.set("github_oauth_state", state, {
 		path: "/",
 		secure: process.env.NODE_ENV === "production",
 		httpOnly: true,

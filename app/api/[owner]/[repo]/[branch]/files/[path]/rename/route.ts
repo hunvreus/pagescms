@@ -16,9 +16,10 @@ import { updateFileCache } from "@/lib/githubCache";
 
 export async function POST(
   request: Request,
-  { params }: { params: { owner: string, repo: string, branch: string, path: string } }
+  context: { params: Promise<{ owner: string, repo: string, branch: string, path: string }> }
 ) {
   try {
+    const params = await context.params;
     const { user, session } = await getAuth();
     if (!session) return new Response(null, { status: 401 });
 

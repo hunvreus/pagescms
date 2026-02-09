@@ -11,11 +11,12 @@ import { Message } from "@/components/message";
 
 export default async function Layout({
   children,
-  params: { owner, repo, branch },
+  params,
 }: {
   children: React.ReactNode;
-  params: { owner: string; repo: string; branch: string; };
+  params: Promise<{ owner: string; repo: string; branch: string; }>;
 }) {
+  const { owner, repo, branch } = await params;
   const { session, user } = await getAuth();
   if (!session) return redirect("/sign-in");
 

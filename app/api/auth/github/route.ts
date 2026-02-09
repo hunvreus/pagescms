@@ -19,11 +19,12 @@ import { eq } from "drizzle-orm";
 export async function GET(request: Request): Promise<Response> {
 	const { session } = await getAuth();
   if (session) return redirect("/");
+  const cookieStore = await cookies();
 
 	const url = new URL(request.url);
 	const code = url.searchParams.get("code");
 	const state = url.searchParams.get("state");
-	const storedState = cookies().get("github_oauth_state")?.value ?? null;
+	const storedState = cookieStore.get("github_oauth_state")?.value ?? null;
 	if (!code || !state || !storedState || state !== storedState) {
 		return new Response(null, {
 			status: 400
@@ -53,7 +54,7 @@ export async function GET(request: Request): Promise<Response> {
 			);
 			const session = await lucia.createSession(existingUser.id as string, {});
 			const sessionCookie = lucia.createSessionCookie(session.id);
-			cookies().set(sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
+			cookieStore.set(sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
 			return new Response(null, {
 				status: 302,
 				headers: {
@@ -79,7 +80,7 @@ export async function GET(request: Request): Promise<Response> {
 
 		const session = await lucia.createSession(userId, {});
 		const sessionCookie = lucia.createSessionCookie(session.id);
-		cookies().set(sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
+		cookieStore.set(sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
 		return new Response(null, {
 			status: 302,
 			headers: {

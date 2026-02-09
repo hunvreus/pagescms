@@ -69,8 +69,9 @@ const handleEmailSignIn = async (prevState: any, formData: FormData) => {
 const handleGithubSignIn = async () => {
   const state = generateState();
 	const url = await github.createAuthorizationURL(state, { scopes: ["repo", "user:email"] });
+	const cookieStore = await cookies();
 
-	cookies().set("github_oauth_state", state, {
+	cookieStore.set("github_oauth_state", state, {
 		path: "/",
 		secure: process.env.NODE_ENV === "production",
 		httpOnly: true,
@@ -89,7 +90,8 @@ const handleSignOut = async () => {
 	await lucia.invalidateSession(session.id);
 	
 	const sessionCookie = lucia.createBlankSessionCookie();
-	cookies().set(sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
+	const cookieStore = await cookies();
+	cookieStore.set(sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
 	
 	return redirect("/");
 };
@@ -143,7 +145,8 @@ const handleSignInWithToken = async (token: string, redirectTo?: string) => {
   // await lucia.invalidateUserSessions(userId);
   const session = await lucia.createSession(userId, {});
   const sessionCookie = lucia.createSessionCookie(session.id);
-  cookies().set(sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
+  const cookieStore = await cookies();
+  cookieStore.set(sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
     
   if (redirectTo) {
     return redirect(redirectTo);
@@ -160,7 +163,8 @@ const handleSignOutAndSignIn = async (token: string, redirectTo?: string) => {
 	await lucia.invalidateSession(session.id);
 	
 	const sessionCookie = lucia.createBlankSessionCookie();
-	cookies().set(sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
+	const cookieStore = await cookies();
+	cookieStore.set(sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
 
   return handleSignInWithToken(token, redirectTo);
 }
