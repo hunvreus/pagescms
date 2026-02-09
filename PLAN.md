@@ -1,117 +1,81 @@
-# Pages CMS Cost-First Migration Plan (No RSC)
+# Pages CMS Step-by-Step Migration Plan
 
-## Goal
-Move this codebase to a client-first architecture that minimizes paid runtime on Vercel:
-- Remove all React Server Components used for app logic (`async` pages/layouts that hit DB/GitHub/auth).
-- Use Server Actions selectively where they are the best fit; avoid overuse on hot paths.
-- Remove middleware-level request handling where possible.
-- Keep Vercel runtime invocations to the minimum required for auth/webhooks/API.
+## Ground rules
+- We go step by step and allow temporary in-between broken states.
+- We follow official upgrade docs first, then optimize.
+- Server Actions are allowed when they are a good fit; we avoid overuse on hot paths.
 
-## Current findings in this repo
-- Middleware currently runs on all non-webhook API calls: `middleware.ts`.
-- Server actions are active: `lib/actions/auth.ts`, `lib/actions/app.ts`, `lib/actions/template.ts`, `lib/actions/collaborator.ts`.
-- Several layouts/pages are server components with DB/GitHub/auth calls:
-  - `app/(main)/layout.tsx`
-  - `app/(main)/[owner]/[repo]/layout.tsx`
-  - `app/(main)/[owner]/[repo]/[branch]/layout.tsx`
-  - `app/(main)/settings/page.tsx`
-  - `app/(auth)/sign-in/page.tsx`
-  - `app/(auth)/sign-in/collaborator/[token]/page.tsx`
-- Runtime-heavy dependencies are in active request paths: `octokit`, `drizzle-orm`/`postgres`, `resend`.
+## Mandatory references
+- Next.js 16 upgrade guide: `https://nextjs.org/docs/app/guides/upgrading/version-16`
+- Middleware -> Proxy note: `https://nextjs.org/docs/messages/middleware-to-proxy`
+- If a Next.js MCP server is available, use it to validate/assist upgrade steps; otherwise follow the docs above directly.
 
-## Target architecture
-- UI routes are client components only.
-- UI bootstraps via API calls (`/api/session`, `/api/repo`, `/api/config`, etc.), not server layouts.
-- Mutations can use route handlers or Server Actions, chosen per use case and measured performance.
-- Webhooks and scheduled cleanup are isolated from user-facing request path.
-- Caching and revalidation rules are explicit per endpoint.
+## Execution order
 
-## Phased plan
-
-### Phase 1: Baseline and hotspots
-1. Capture a baseline of current runtime behavior:
-  - top invoked endpoints
-  - slowest endpoints
-  - middleware invocation volume
-2. Identify top 3 hot paths causing cost/latency.
-3. Prioritize fixes by impact, not by pattern (RSC vs API vs Server Action).
+### Phase 0: Next.js 16 baseline (first priority)
+1. Upgrade framework/tooling to Next 16-compatible versions.
+2. Apply required Next 16 code changes:
+  - async `params` / `searchParams` typing updates
+  - async `cookies()` / `headers()` usage
+  - `middleware.ts` -> `proxy.ts` convention
+3. Get a clean framework build checkpoint.
 
 Definition of done:
-- We have a ranked hotspot list and baseline metrics to compare against.
+- `next@16.x` is installed.
+- `npx next build` passes.
+- Any remaining `npm run build` failure is only from env-dependent postbuild scripts (not framework compile errors).
 
-### Phase 2: Remove middleware + tighten boundaries
-1. Replace global middleware CSRF handling with route-level helpers on mutating endpoints (`POST/PUT/PATCH/DELETE`).
-2. Remove `middleware.ts` matcher once coverage exists in route handlers.
-3. Review each Server Action:
-  - keep if low-frequency and simple
-  - migrate if high-frequency, hard to cache, or causing latency/cold-start issues
-
-Definition of done:
-- No `middleware.ts` request handling remains.
-- Kept actions are intentional and documented; migrated actions have API equivalents.
-
-### Phase 3: Remove RSC from app routes
-1. Convert remaining async server layouts/pages to client routes.
-2. Add bootstrap APIs for session/user/accounts/repo/config data currently loaded in layouts.
-3. Keep redirects/access checks in client router guards + API auth responses (`401/403/404`) rather than server redirects.
+### Phase 1: shadcn/ui refresh
+1. Validate `components.json` and CLI compatibility.
+2. Run shadcn migration/diff/update flow.
+3. Update selected UI components deliberately (no blind wholesale rewrites unless required).
 
 Definition of done:
-- `app/**/layout.tsx` and `app/**/page.tsx` used in main UX are client-side for data loading.
-- No DB/GitHub/auth calls directly from RSC layouts/pages.
+- shadcn updates applied or explicitly deferred with rationale.
+- Main UI flows still render and function.
 
-### Phase 4: Cut Vercel runtime invocation volume
-1. Audit and classify each route:
-  - user-interactive hot path
-  - background/admin-only
-2. Remove or externalize background work from Vercel where practical:
-  - for `app/api/cron/route.ts`, prefer lazy cleanup in normal request flow or move execution off Vercel; external HTTP cron alone does not reduce Vercel invocations.
-3. Add response caching headers for read endpoints where safe.
-4. Remove `dynamic = "force-dynamic"` unless required.
-
-Definition of done:
-- Hot-path API calls are reduced and cacheable where possible.
-- No Vercel Cron dependency unless justified with cost numbers.
-
-### Phase 5: Optional hard cut (near-zero Vercel runtime)
-1. Move backend API/webhook/auth to a separate runtime (Cloudflare Worker or other service).
-2. Deploy Vercel as static frontend only (or remove Vercel entirely).
+### Phase 2: Auth migration (Lucia -> Better Auth)
+1. Replace Lucia wiring in `lib/auth.ts` and auth routes.
+2. Migrate session/cookie flow and proxy/auth guards.
+3. Migrate schema/tables and data access required by Better Auth.
+4. Preserve existing auth UX:
+  - GitHub login
+  - collaborator sign-in by token/email
+  - sign-out
 
 Definition of done:
-- Vercel is serving static assets only, or runtime invocations are intentionally retained and measured.
+- Active auth path no longer depends on Lucia.
+- Better Auth handles sign-in/session validation end-to-end.
 
-## Measurement workflow (every phase)
-1. Baseline before/after each phase:
-  - Vercel function invocations/day
-  - Edge middleware invocations/day
-  - bandwidth and execution duration
-2. Validate behavior:
-  - `npm run build`
-  - smoke test auth + repo navigation + edit/save + collaborator flows
-3. Record deltas in this file.
+### Phase 3: Cost/perf baseline
+1. Capture Vercel baseline:
+  - top endpoint invocations
+  - p95 latency by route
+  - proxy invocation volume
+2. Rank top 3 cost/perf hotspots.
 
-## Guardrails
-- If a change does not lower runtime invocations or simplify boundaries, it is out of scope.
-- Do not add new RSC/server-action usage without a clear performance/cost justification.
-- Server Action rule:
-  - keep for low-frequency UX operations with minimal overhead
-  - avoid for high-frequency reads/writes where caching, batching, or transport control matters more
-- Keep app shippable at each phase; migrate incrementally behind stable endpoints.
+Definition of done:
+- We have measurable baseline and ranked hotspot targets.
 
-## Start here (execution order)
-1. Instrument and baseline this week:
-  - capture endpoint invocation counts and p95 latency from Vercel
-  - list middleware invocations/day
-2. First code changes:
-  - remove `dynamic = "force-dynamic"` from `app/api/repos/[owner]/route.ts` unless proven necessary
-  - add safe caching (`Cache-Control` + ETag/304) on 2 high-read GET endpoints
-3. Middleware removal:
-  - implement route-level CSRF checks on mutating endpoints
-  - delete `middleware.ts` once parity is verified
-4. RSC reduction kickoff:
-  - migrate `app/(main)/layout.tsx`
-  - then `app/(main)/[owner]/[repo]/layout.tsx`
-  - then `app/(main)/[owner]/[repo]/[branch]/layout.tsx`
-5. Server Action review:
-  - keep each action unless metrics show it is a hotspot or architectural blocker
-6. Parallel track:
-  - plan Lucia -> Better Auth migration after baseline is in place so impact is measurable
+### Phase 4: Cost/perf optimization
+1. Add safe caching for high-read GET endpoints (`Cache-Control`, ETag/304 where useful).
+2. Remove unnecessary forced dynamic behavior.
+3. Re-evaluate proxy usage:
+  - keep only if still needed
+  - otherwise replace with route-level checks and remove global proxy matcher.
+4. Review each Server Action:
+  - keep low-frequency/simple cases
+  - migrate high-frequency/latency-sensitive ones.
+
+Definition of done:
+- Hot-path invocations and/or latency are measurably reduced vs baseline.
+
+### Phase 5: Architecture simplification (optional, later)
+1. Reduce RSC usage where it improves cost/perf/clarity.
+2. Keep API + client boundaries explicit.
+3. Optional hard cut: move backend runtime off Vercel if near-zero Vercel runtime is the goal.
+
+## Immediate next action
+1. Finalize Phase 0 on this branch (Next 16 baseline checkpoint).
+2. Then start Phase 1 (shadcn/ui).
+3. Then Phase 2 (Better Auth).
