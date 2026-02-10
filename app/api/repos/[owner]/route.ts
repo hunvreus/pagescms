@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 import { getInstallations, getInstallationRepos } from "@/lib/githubApp";
 import { getUserToken } from "@/lib/token";
 import { db } from "@/db";
-import { and, eq } from "drizzle-orm";
+import { and, sql } from "drizzle-orm";
 import { collaboratorTable } from "@/db/schema";
 import { getGithubAccount } from "@/lib/githubAccount";
 
@@ -75,8 +75,8 @@ export async function GET(
     } else {
       repos = await db.query.collaboratorTable.findMany({
         where: and(
-          eq(collaboratorTable.email, user.email),
-          eq(collaboratorTable.owner, params.owner)
+          sql`lower(${collaboratorTable.email}) = lower(${user.email})`,
+          sql`lower(${collaboratorTable.owner}) = lower(${params.owner})`
         )
       });
     }

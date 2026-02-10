@@ -4,7 +4,7 @@
 
 import { db } from "@/db";
 import { collaboratorTable } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { getUserToken } from "@/lib/token";
 import { getInstallations } from "@/lib/githubApp";
 import { User } from "@/types/user";
@@ -34,9 +34,9 @@ const getAccounts = async (user: User) => {
 				owner: collaboratorTable.owner,
 				type: collaboratorTable.type,
         installationId: collaboratorTable.installationId
-			})
-			.from(collaboratorTable)
-			.where(eq(collaboratorTable.email, user.email));
+				})
+				.from(collaboratorTable)
+				.where(sql`lower(${collaboratorTable.email}) = lower(${user.email})`);
 
 		accounts = groupedRepos.map(collaborator => ({
 			login: collaborator.owner,

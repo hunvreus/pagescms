@@ -75,6 +75,8 @@ Definition of done:
   - `app/api/[owner]/[repo]/[branch]/media/[name]/[path]/route.ts`
   - `lib/actions/collaborator.ts`
   - `lib/actions/template.ts`
+- API error-code hardening follow-up:
+  - Replace remaining generic `200 + { status: "error" }` responses with explicit route-level HTTP status codes (`4xx` for domain errors, `5xx` for unexpected failures), decided in each route by context rather than message parsing.
 - UI checks (GitHub vs collaborator):
   - `app/(main)/page.tsx`
   - `app/(main)/settings/page.tsx`

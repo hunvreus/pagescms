@@ -7,7 +7,7 @@ import { getUserToken } from "@/lib/token";
 import { InviteEmailTemplate } from "@/components/email/invite";
 import { Resend } from "resend";
 import { db } from "@/db";
-import { and, eq} from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { collaboratorTable } from "@/db/schema";
 import { z } from "zod";
 
@@ -37,7 +37,7 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
 		const emailValidation = z.string().trim().email().safeParse(formData.get("email"));
 		if (!emailValidation.success) throw new Error ("Invalid email");
 
-		const email = emailValidation.data;
+		const email = emailValidation.data.toLowerCase();
 
 		const token = await getUserToken(user.id);
   	if (!token) throw new Error("Token not found");
@@ -48,13 +48,13 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
 		const installationRepos =  await getInstallationRepos(token, installations[0].id, [repo]);
 		if (installationRepos.length !== 1) throw new Error(`"${owner}/${repo}" is not part of your GitHub App installations`);
 
-		const collaborator = await db.query.collaboratorTable.findFirst({
-			where: and(
+			const collaborator = await db.query.collaboratorTable.findFirst({
+				where: and(
         eq(collaboratorTable.ownerId, installationRepos[0].owner.id),
         eq(collaboratorTable.repoId, installationRepos[0].id),
-				eq(collaboratorTable.email, email)
+					sql`lower(${collaboratorTable.email}) = lower(${email})`
       ),
-		});
+			});
 		if (collaborator) throw new Error(`${email} is already invited to "${owner}/${repo}".`);
 
 		const baseUrl = process.env.BASE_URL
