@@ -2,7 +2,8 @@ import { createOctokitInstance } from "@/lib/utils/octokit";
 import { getSchemaByName } from "@/lib/schema";
 import { getConfig } from "@/lib/utils/config";
 import { getFileExtension, normalizePath } from "@/lib/utils/file";
-import { getAuth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
 import { updateFileCache } from "@/lib/githubCache";
 
@@ -20,8 +21,11 @@ export async function POST(
 ) {
   try {
     const params = await context.params;
-    const { user, session } = await getAuth();
-    if (!session) return new Response(null, { status: 401 });
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session?.user) return new Response(null, { status: 401 });
+    const user = session.user;
 
     const token = await getToken(user, params.owner, params.repo);
     if (!token) throw new Error("Token not found");

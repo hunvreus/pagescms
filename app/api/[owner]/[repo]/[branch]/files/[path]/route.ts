@@ -6,7 +6,8 @@ import { stringify, parse } from "@/lib/serialization";
 import { deepMap, generateZodSchema, getSchemaByName, sanitizeObject } from "@/lib/schema";
 import { getConfig, updateConfig } from "@/lib/utils/config";
 import { getFileExtension, getFileName, normalizePath, serializedTypes, getParentPath } from "@/lib/utils/file";
-import { getAuth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
 import { updateFileCache } from "@/lib/githubCache";
 import mergeWith from "lodash.mergewith";
@@ -26,8 +27,11 @@ export async function POST(
 ) {
   try {
     const params = await context.params;
-    const { user, session } = await getAuth();
-    if (!session) return new Response(null, { status: 401 });
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session?.user) return new Response(null, { status: 401 });
+    const user = session.user;
 
     const token = await getToken(user, params.owner, params.repo);
     if (!token) throw new Error("Token not found");
@@ -330,8 +334,11 @@ export async function DELETE(
 ) {
   try {
     const params = await context.params;
-    const { user, session } = await getAuth();
-    if (!session) return new Response(null, { status: 401 });
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session?.user) return new Response(null, { status: 401 });
+    const user = session.user;
 
     const token = await getToken(user, params.owner, params.repo);
     if (!token) throw new Error("Token not found");

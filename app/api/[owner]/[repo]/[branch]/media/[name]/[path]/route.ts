@@ -1,9 +1,11 @@
 import { createOctokitInstance } from "@/lib/utils/octokit";
 import { getConfig } from "@/lib/utils/config";
 import { getFileExtension, normalizePath } from "@/lib/utils/file";
-import { getAuth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
 import { getMediaCache, checkRepoAccess } from "@/lib/githubCache";
+import { getGithubId } from "@/lib/githubAccount";
 
 // Add docs
 
@@ -21,14 +23,18 @@ export async function GET(
 ) {
   try {
     const params = await context.params;
-    const { user, session } = await getAuth();
-    if (!session) return new Response(null, { status: 401 });
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session?.user) return new Response(null, { status: 401 });
+    const user = session.user;
 
     const token = await getToken(user, params.owner, params.repo);
     if (!token) throw new Error("Token not found");
 
-    if (user.githubId) {
-      const hasAccess = await checkRepoAccess(token, params.owner, params.repo, user.githubId);
+    const githubId = await getGithubId(user.id);
+    if (githubId) {
+      const hasAccess = await checkRepoAccess(token, params.owner, params.repo, githubId);
       if (!hasAccess) throw new Error(`No access to repository ${params.owner}/${params.repo}.`);
     }
 

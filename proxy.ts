@@ -1,6 +1,14 @@
-import { verifyRequestOrigin } from "lucia";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+
+function isAllowedOrigin(originHeader: string, hostHeader: string): boolean {
+	try {
+		const originUrl = new URL(originHeader);
+		return originUrl.host.toLowerCase() === hostHeader.toLowerCase();
+	} catch {
+		return false;
+	}
+}
 
 export function proxy(request: NextRequest) {
 	if (request.method === "GET") {
@@ -8,7 +16,7 @@ export function proxy(request: NextRequest) {
 	}
 	const originHeader = request.headers.get("Origin");
 	const hostHeader = request.headers.get("Host");
-	if (!originHeader || !hostHeader || !verifyRequestOrigin(originHeader, [hostHeader])) {
+	if (!originHeader || !hostHeader || !isAllowedOrigin(originHeader, hostHeader)) {
 		return new NextResponse(null, {
 			status: 403
 		});

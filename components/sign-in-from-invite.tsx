@@ -1,35 +1,47 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { handleSignOutAndSignIn, handleSignInWithToken } from "@/lib/actions/auth";
+import { signIn, signOut } from "@/lib/auth-client";
 import { Button, buttonVariants } from "@/components/ui/button";
 import Link from "next/link";
 import { Loader } from "lucide-react";
 
 export function SignInFromInvite({
-  token,
   githubUsername,
   email,
   redirectTo
 }: {
-  token: string;
   githubUsername?: string;
   email?: string;
   redirectTo?: string;
 }) {
   const [isLoading, setIsLoading] = useState(false);
 
+  const getNameFromEmail = (value: string) => {
+    const localPart = value.split("@")[0]?.trim();
+    return localPart || value;
+  };
+
   useEffect(() => {
     if (!githubUsername) {
-      const timer = setTimeout(handleSignIn, 300);
-      clearTimeout(timer);
+      const timer = setTimeout(() => {
+        void handleSignIn();
+      }, 300);
+      return () => clearTimeout(timer);
     }
-  }, []);
+  }, [githubUsername]);
 
   const handleSignIn = async () => {
+    if (!email) throw new Error("Invite email not found");
     setIsLoading(true);
     try {
-      await handleSignInWithToken(token, redirectTo);
+      const result = await signIn.magicLink({
+        email: email as string,
+        name: getNameFromEmail(email as string),
+        callbackURL: redirectTo || "/",
+        errorCallbackURL: "/sign-in",
+      });
+      if (result.error?.message) throw new Error(result.error.message);
     } finally {
       setIsLoading(false);
     }
@@ -49,9 +61,14 @@ export function SignInFromInvite({
                 }
               </p>
               <footer className="flex flex-col gap-y-2">
-                <Button variant="default" onClick={() => {
+                <Button variant="default" onClick={async () => {
                   setIsLoading(true);
-                  handleSignOutAndSignIn(token, redirectTo);
+                  try {
+                    await signOut();
+                    await handleSignIn();
+                  } finally {
+                    setIsLoading(false);
+                  }
                 }} disabled={isLoading}>
                   Sign in as collaborator
                   {isLoading && <Loader className="ml-2 h-4 w-4 animate-spin" />}

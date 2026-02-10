@@ -1,11 +1,13 @@
 import { type NextRequest } from "next/server";
+import { headers } from "next/headers";
 import { createOctokitInstance } from "@/lib/utils/octokit";
-import { getAuth } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { getInstallations, getInstallationRepos } from "@/lib/githubApp";
 import { getUserToken } from "@/lib/token";
 import { db } from "@/db";
 import { and, eq } from "drizzle-orm";
 import { collaboratorTable } from "@/db/schema";
+import { getGithubAccount } from "@/lib/githubAccount";
 
 export const dynamic = "force-dynamic";
 
@@ -23,16 +25,20 @@ export async function GET(
 ) {
   try {
     const params = await context.params;
-    const { user, session } = await getAuth();
-    if (!session) return new Response(null, { status: 401 });
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session?.user) return new Response(null, { status: 401 });
+    const user = session.user;
 
     let repos: any[] = [];
 
     const searchParams = request.nextUrl.searchParams;
     const type = searchParams.get("type");
 
-    if (user.githubId) {
-      const token = await getUserToken();
+    const githubAccount = await getGithubAccount(user.id);
+    if (githubAccount?.accessToken) {
+      const token = await getUserToken(user.id);
       if (!token) throw new Error("Token not found");
 
       const repositorySelection = searchParams.get("repository_selection");

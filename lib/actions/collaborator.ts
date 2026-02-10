@@ -1,11 +1,11 @@
 "use server";
 
-import { getAuth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { getInstallations, getInstallationRepos } from "@/lib/githubApp";
 import { getUserToken } from "@/lib/token";
 import { InviteEmailTemplate } from "@/components/email/invite";
 import { Resend } from "resend";
-import { createLoginToken } from "@/lib/actions/auth";
 import { db } from "@/db";
 import { and, eq} from "drizzle-orm";
 import { collaboratorTable } from "@/db/schema";
@@ -15,8 +15,11 @@ import { z } from "zod";
 const handleAddCollaborator = async (prevState: any, formData: FormData) => {
 	try {
 		// TODO: remove the requirement for Github account, let any collaborator invite others
-		const { user } = await getAuth();
-		if (!user || !user.githubId) throw new Error("You must be signed in with GitHub to invite collaborators.");
+		const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    const user = session?.user;
+		if (!user) throw new Error("You must be signed in with GitHub to invite collaborators.");
 
 		// TODO: add support for branches
 		const ownerAndRepoValidation = z.object({
@@ -36,7 +39,7 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
 
 		const email = emailValidation.data;
 
-		const token = await getUserToken();
+		const token = await getUserToken(user.id);
   	if (!token) throw new Error("Token not found");
 		
 		const installations = await getInstallations(token, [owner]);
@@ -54,13 +57,12 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
 		});
 		if (collaborator) throw new Error(`${email} is already invited to "${owner}/${repo}".`);
 
-    const loginToken = await createLoginToken(email as string);
 		const baseUrl = process.env.BASE_URL
 			? process.env.BASE_URL
 			: process.env.VERCEL_PROJECT_PRODUCTION_URL
 				? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
 				: "";
-    const inviteUrl = `${baseUrl}/sign-in/collaborator/${loginToken}?redirect=/${owner}/${repo}`;
+    const inviteUrl = `${baseUrl}/sign-in/collaborator?email=${encodeURIComponent(email)}&owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&redirect=${encodeURIComponent(`/${owner}/${repo}`)}`;
 
 		const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -72,7 +74,7 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
         inviteUrl,
         repoName: `${formData.get("owner")}/${formData.get("repo")}`,
         email: email,
-        invitedByName: user.githubName || user.githubUsername,
+        invitedByName: user.name || user.githubUsername || user.email,
         invitedByUrl: `https://github.com/${user.githubUsername}`,
       }),
     });
@@ -106,10 +108,13 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
 // Remove a collaborator from a repository.
 const handleRemoveCollaborator = async (collaboratorId: number, owner: string, repo: string) => {
 	try {
-		const { user } = await getAuth();
-		if (!user || !user.githubId) throw new Error("You must be signed in with GitHub to invite collaborators.");
+		const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    const user = session?.user;
+		if (!user) throw new Error("You must be signed in with GitHub to invite collaborators.");
 
-		const token = await getUserToken();
+		const token = await getUserToken(user.id);
   	if (!token) throw new Error("Token not found");
 
 		const collaborator = await db.query.collaboratorTable.findFirst({ where: eq(collaboratorTable.id, collaboratorId) });

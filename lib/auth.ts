@@ -1,76 +1,59 @@
-/**
- * Auth helper functions for Lucia auth.
- */
-
-import { cache } from "react";
-import { Session, User, Lucia } from "lucia";
-import { DrizzlePostgreSQLAdapter, PostgreSQLSessionTable, PostgreSQLUserTable } from "@lucia-auth/adapter-drizzle";
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { nextCookies } from "better-auth/next-js";
+import { magicLink } from "better-auth/plugins";
+import { Resend } from "resend";
 import { db } from "@/db";
-import { userTable, sessionTable } from "@/db/schema";
-import { GitHub } from "arctic";
-import { cookies } from "next/headers";
+import * as schema from "@/db/schema";
+import { LoginEmailTemplate } from "@/components/email/login";
 
-const adapter = new DrizzlePostgreSQLAdapter(db, sessionTable as unknown as PostgreSQLSessionTable, userTable as unknown as PostgreSQLUserTable);
+export const auth = betterAuth({
+  baseURL: process.env.BASE_URL as string,
+  secret: (process.env.AUTH_SECRET || process.env.BETTER_AUTH_SECRET) as string,
+  user: {
+    additionalFields: {
+      githubUsername: {
+        type: "string",
+        required: false,
+        input: false,
+      },
+    },
+  },
+  socialProviders: {
+    github: {
+      clientId: process.env.GITHUB_APP_CLIENT_ID as string,
+      clientSecret: process.env.GITHUB_APP_CLIENT_SECRET as string,
+      overrideUserInfoOnSignIn: true,
+      mapProfileToUser: (profile) => ({
+        name: profile.name ?? profile.login,
+        image: profile.avatar_url ?? null,
+        githubUsername: profile.login,
+      }),
+      scope: ["repo", "user:email"],
+    },
+  },
+  database: drizzleAdapter(db, {
+    provider: "pg",
+    schema,
+  }),
+  plugins: [
+    nextCookies(),
+    magicLink({
+      sendMagicLink: async ({ email, url }) => {
+        const resend = new Resend(process.env.RESEND_API_KEY);
 
-export const lucia = new Lucia(adapter, {
-	sessionCookie: {
-		expires: false,
-		attributes: {
-			secure: process.env.NODE_ENV === "production"
-		}
-	},
-	getUserAttributes: (attributes) => {
-		return {
-			githubId: attributes.githubId,
-			githubUsername: attributes.githubUsername,
-			githubEmail: attributes.githubEmail,
-			githubName: attributes.githubName,
-			email: attributes.email
-		};
-	}
+        const { error } = await resend.emails.send({
+          from: process.env.RESEND_FROM_EMAIL!,
+          to: [email],
+          subject: "Sign in link for Pages CMS",
+          react: LoginEmailTemplate({
+            url,
+            email,
+          }),
+        });
+
+        if (error) throw new Error(error.message);
+      },
+    }),
+  ],
 });
-
-declare module "lucia" {
-	interface Register {
-		Lucia: typeof lucia;
-		DatabaseUserAttributes: DatabaseUserAttributes;
-	}
-}
-
-export interface DatabaseUserAttributes {
-	id: string;
-	githubId: number;
-	githubUsername: string;
-	githubEmail: string;
-	githubName: string;
-	email: string;
-}
-
-export const github = new GitHub(process.env.GITHUB_APP_CLIENT_ID!, process.env.GITHUB_APP_CLIENT_SECRET!);
-
-export const getAuth = cache(
-	async (): Promise<{ user: User; session: Session } | { user: null; session: null }> => {
-		const cookieStore = await cookies();
-		const sessionId = cookieStore.get(lucia.sessionCookieName)?.value ?? null;
-		if (!sessionId) {
-			return {
-				user: null,
-				session: null
-			};
-		}
-
-		const result = await lucia.validateSession(sessionId);
-		// next.js throws when you attempt to set cookie when rendering page
-		try {
-			if (result.session && result.session.fresh) {
-				const sessionCookie = lucia.createSessionCookie(result.session.id);
-				cookieStore.set(sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
-			}
-			if (!result.session) {
-				const sessionCookie = lucia.createBlankSessionCookie();
-				cookieStore.set(sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
-			}
-		} catch {}
-		return result;
-	}
-);

@@ -1,6 +1,6 @@
-import { redirect} from "next/navigation";
 import { createOctokitInstance } from "@/lib/utils/octokit";
-import { getAuth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
 import { RepoProvider } from "@/contexts/repo-context";
 import { Message } from "@/components/message";
@@ -14,8 +14,11 @@ export default async function Layout({
   params: Promise<{ owner: string; repo: string; }>;
 }) {
   const { owner, repo } = await params;
-  const { session, user } = await getAuth();
-  if (!session) return redirect("/sign-in");
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const user = session?.user;
+  if (!user) throw new Error("User not found");
 
   const token = await getToken(user, owner, repo);
   if (!token) throw new Error("Token not found");

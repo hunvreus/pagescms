@@ -1,10 +1,9 @@
-import { User as LuciaUser } from 'lucia';
-
-export interface User extends LuciaUser {
-  githubId: number;
-  githubUsername: string;
-  githubEmail: string;
-  githubName: string;
+export interface User {
+  id: string;
   email: string;
+  name: string;
+  image?: string | null;
+  emailVerified: boolean;
+  githubUsername?: string | null;
   accounts?: any[];
-};
+}

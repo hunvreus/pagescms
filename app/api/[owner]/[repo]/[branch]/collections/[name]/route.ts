@@ -1,14 +1,16 @@
 export const maxDuration = 30;
 
 import { type NextRequest } from "next/server";
+import { headers } from "next/headers";
 import { readFns } from "@/fields/registry";
 import { parse } from "@/lib/serialization";
 import { deepMap, getDateFromFilename, getSchemaByName, safeAccess } from "@/lib/schema";
 import { getConfig } from "@/lib/utils/config";
 import { normalizePath } from "@/lib/utils/file";
-import { getAuth } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
 import { getCollectionCache, checkRepoAccess } from "@/lib/githubCache";
+import { getGithubId } from "@/lib/githubAccount";
 
 /**
  * Fetches and parses collection contents from GitHub repositories
@@ -26,14 +28,18 @@ export async function GET(
 ) {
   try {
     const params = await context.params;
-    const { user, session } = await getAuth();
-    if (!session) return new Response(null, { status: 401 });
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session?.user) return new Response(null, { status: 401 });
+    const user = session.user;
 
     const token = await getToken(user, params.owner, params.repo);
     if (!token) throw new Error("Token not found");
 
-    if (user.githubId) {
-      const hasAccess = await checkRepoAccess(token, params.owner, params.repo, user.githubId);
+    const githubId = await getGithubId(user.id);
+    if (githubId) {
+      const hasAccess = await checkRepoAccess(token, params.owner, params.repo, githubId);
       if (!hasAccess) throw new Error(`No access to repository ${params.owner}/${params.repo}.`);
     }
 

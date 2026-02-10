@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { getAuth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { MainRootLayout } from "../main-root-layout";
 import { getInitialsFromName } from "@/lib/utils/avatar";
 import { Installations } from "@/components/installations";
@@ -24,10 +25,13 @@ import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default async function Page() {
-	const { user } = await getAuth();
+	const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const user = session?.user;
 	if (!user) throw new Error("User not found");
 
-  const displayName = user.githubId ? user.githubName || user.githubUsername : user.email;
+  const displayName = user.githubUsername ? user.name || user.githubUsername : user.email;
 
   return (
     <MainRootLayout>
@@ -64,14 +68,12 @@ export default async function Page() {
                       <Avatar className="h-24 w-24 rounded-md">
                         <AvatarImage
                           src={
-                            user?.githubId
-                              ? `https://avatars.githubusercontent.com/u/${user.githubId}`
+                            user?.githubUsername
+                              ? `https://github.com/${user.githubUsername}.png`
                               : `https://unavatar.io/${user?.email}?fallback=false`
                           }
                           alt={
-                            user?.githubId
-                              ? user.githubUsername
-                              : user.email
+                            user?.name || user.email
                           }
                         />
                         <AvatarFallback className="rounded-md">{getInitialsFromName(displayName)}</AvatarFallback>
@@ -86,7 +88,7 @@ export default async function Page() {
             </CardFooter>
           </Card>
           
-          {user.githubId &&
+          {user.githubUsername &&
             <Card>
               <CardHeader>
                 <CardTitle className="text-base md:text-lg">Installations</CardTitle>

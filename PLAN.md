@@ -35,17 +35,52 @@ Definition of done:
 - Main UI flows still render and function.
 
 ### Phase 2: Auth migration (Lucia -> Better Auth)
-1. Replace Lucia wiring in `lib/auth.ts` and auth routes.
-2. Migrate session/cookie flow and proxy/auth guards.
-3. Migrate schema/tables and data access required by Better Auth.
-4. Preserve existing auth UX:
+1. Schema model (Better Auth + our app):
+  - `user/session/account/verification` as auth core tables.
+  - GitHub identity is canonical in `account` (`provider_id='github'`, `account_id=<github user id>`).
+  - Keep `user.githubUsername` as convenience profile field.
+  - Remove `user.githubId` usage across code.
+2. Replace Lucia wiring in `lib/auth.ts` and auth routes.
+3. Migrate session/cookie flow and proxy/auth guards.
+4. Migrate data access to account-based lookups:
+  - GitHub token source: `account.accessToken` (not `github_user_token`).
+  - GitHub numeric id source: `Number(account.accountId)` for `cache_permission`.
+5. Preserve existing auth UX:
   - GitHub login
   - collaborator sign-in by token/email
   - sign-out
+6. Auth UX improvements (follow-up):
+  - Support collaborator invite input in `Name <email@domain.com>` format (store both parsed name + normalized email).
+  - On first magic-link account creation/login, ask for display name and persist it.
 
 Definition of done:
 - Active auth path no longer depends on Lucia.
 - Better Auth handles sign-in/session validation end-to-end.
+
+### Phase 2 checklist (file map)
+- Schema/migrations:
+  - `db/schema.ts`
+  - `db/migrations/*`
+- Auth runtime:
+  - `lib/auth.ts`
+  - `app/api/auth/[...all]/route.ts`
+- Token/access helpers:
+  - `lib/token.ts`
+  - `lib/githubAccount.ts`
+  - `lib/utils/accounts.ts`
+  - collaborator invite flow now uses Better Auth magic-link entrypoint (`/sign-in/collaborator?...`), no custom email login token table.
+- Routes/actions relying on old `user.githubId`:
+  - `app/api/repos/[owner]/route.ts`
+  - `app/api/[owner]/[repo]/[branch]/collections/[name]/route.ts`
+  - `app/api/[owner]/[repo]/[branch]/media/[name]/[path]/route.ts`
+  - `lib/actions/collaborator.ts`
+  - `lib/actions/template.ts`
+- UI checks (GitHub vs collaborator):
+  - `app/(main)/page.tsx`
+  - `app/(main)/settings/page.tsx`
+  - `components/user.tsx`
+  - `components/repo/repo-select.tsx`
+  - `components/repo/repo-nav.tsx`
 
 ### Phase 3: Cost/perf baseline
 1. Capture Vercel baseline:
@@ -53,6 +88,10 @@ Definition of done:
   - p95 latency by route
   - proxy invocation volume
 2. Rank top 3 cost/perf hotspots.
+3. Access-check strategy (agreed):
+  - Keep repo picker as fresh as possible (live GitHub data / very short cache only).
+  - Use `cache_permission` fast-path for collaborators page authz.
+  - On cache miss/stale only, do live GitHub authz checks and refresh `cache_permission`.
 
 Definition of done:
 - We have measurable baseline and ranked hotspot targets.
@@ -66,6 +105,9 @@ Definition of done:
 4. Review each Server Action:
   - keep low-frequency/simple cases
   - migrate high-frequency/latency-sensitive ones.
+5. Collaborators endpoint optimization:
+  - avoid repeated installation/repo fan-out on every page load.
+  - authorize via cached repo permission first; fallback to live GitHub validation only when needed.
 
 Definition of done:
 - Hot-path invocations and/or latency are measurably reduced vs baseline.
@@ -74,11 +116,15 @@ Definition of done:
 1. Reduce RSC usage where it improves cost/perf/clarity.
 2. Keep API + client boundaries explicit.
 3. Optional hard cut: move backend runtime off Vercel if near-zero Vercel runtime is the goal.
+4. Add dual database support (PostgreSQL + SQLite):
+  - Introduce dialect selection (`DB_DIALECT=postgres|sqlite`) with optional inference from `DATABASE_URL` when not explicitly set.
+  - Split Drizzle schema/migration pipelines per dialect while keeping shared domain modeling where practical.
+  - Isolate dialect-specific SQL/queries behind helpers to keep route/action code portable.
+  - Validate Better Auth adapter wiring for both dialects.
 
 ## Immediate next action
-1. Finalize Phase 0 on this branch (Next 16 baseline checkpoint).
-2. Then start Phase 1 (shadcn/ui).
-3. Then Phase 2 (Better Auth).
+1. Start Phase 2 (Better Auth migration) on this branch.
+2. After auth cutover, run Phase 3/4 perf pass with the collaborators/repo-picker policy above.
 
 ## Deferred technical debt (track explicitly)
 ### React 19 readiness (post-baseline)

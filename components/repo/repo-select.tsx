@@ -131,7 +131,7 @@ export function RepoSelect({
                 {account.login}
               </DropdownMenuItem>
             ))}
-            {user?.githubId &&
+            {user?.githubUsername &&
               <>
                 <DropdownMenuSeparator/>
                 <DropdownMenuItem onClick={() => handleAppInstall()}>Add a GitHub account</DropdownMenuItem>

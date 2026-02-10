@@ -73,7 +73,7 @@ const RepoNav = ({
       }
       : null;
 
-    const collaboratorsItem = configObject && Object.keys(configObject).length !== 0 && user?.githubId
+    const collaboratorsItem = configObject && Object.keys(configObject).length !== 0 && user?.githubUsername
       ? {
         key: "collaborators",
         icon: <Users className="h-5 w-5 mr-2" />,
@@ -88,7 +88,7 @@ const RepoNav = ({
       settingsItem,
       collaboratorsItem
     ].filter(Boolean);
-  }, [config, user?.githubId]);
+  }, [config, user?.githubUsername]);
 
   if (!items.length) return null;
 

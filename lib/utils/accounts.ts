@@ -8,12 +8,14 @@ import { eq } from "drizzle-orm";
 import { getUserToken } from "@/lib/token";
 import { getInstallations } from "@/lib/githubApp";
 import { User } from "@/types/user";
+import { getGithubAccount } from "@/lib/githubAccount";
 
 const getAccounts = async (user: User) => {
-  let accounts;
+	let accounts;
+  const githubAccount = await getGithubAccount(user.id);
 
-	if (user.githubId) {
-		const token = await getUserToken();
+	if (githubAccount?.accessToken) {
+		const token = await getUserToken(user.id);
 		if (!token) throw new Error("Token not found");
 		
 		const installations = await getInstallations(token);

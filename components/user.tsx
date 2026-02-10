@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useUser } from "@/contexts/user-context";
-import { handleSignOut }  from "@/lib/actions/auth";
+import { signOut } from "@/lib/auth-client";
 import { getInitialsFromName } from "@/lib/utils/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,31 +43,29 @@ export function User({
           <Avatar className="h-8 w-8">
             <AvatarImage
               src={
-                user?.githubId
-                  ? `https://avatars.githubusercontent.com/u/${user.githubId}`
+                user?.githubUsername
+                  ? `https://github.com/${user.githubUsername}.png`
                   : `https://unavatar.io/${user?.email}?fallback=false`
               }
               alt={
-                user?.githubId
-                  ? user.githubUsername
-                  : user.email
+                user?.name || user.email
               }
             />
-            <AvatarFallback>{getInitialsFromName(user.githubName)}</AvatarFallback>
+            <AvatarFallback>{getInitialsFromName(user.name ?? undefined)}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent forceMount align="start" className="max-w-[12.5rem]">
         <DropdownMenuLabel>
-          {user?.githubId
+          {user?.githubUsername
             ? <>
-                <div className="text-sm font-medium truncate">{user.githubName ? user.githubName : user.githubUsername}</div>
-                <div className="text-xs font-normal text-muted-foreground truncate">{user.githubEmail}</div>
+                <div className="text-sm font-medium truncate">{user.name || user.githubUsername}</div>
+                <div className="text-xs font-normal text-muted-foreground truncate">{user.email}</div>
               </>
             : <div className="text-sm font-medium truncate">{user.email}</div>
           }
         </DropdownMenuLabel>
-        {user?.githubId && (
+        {user?.githubUsername && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
@@ -92,7 +90,7 @@ export function User({
           <Link href="/settings">Settings</Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={async () => { if (onClick) onClick(); await handleSignOut() }}>
+        <DropdownMenuItem onClick={async () => { if (onClick) onClick(); await signOut(); }}>
           Log out
         </DropdownMenuItem>
       </DropdownMenuContent>

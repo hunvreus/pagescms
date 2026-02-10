@@ -4,23 +4,24 @@
 
 import { cache } from "react";
 import { App } from "octokit";
-import { getAuth } from "@/lib/auth";
 import { decrypt, encrypt } from "@/lib/crypto";
 import { db } from "@/db";
 import {
   collaboratorTable,
-  githubUserTokenTable,
   githubInstallationTokenTable
 } from "@/db/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { User } from "@/types/user";
+import { getGithubAccount } from "@/lib/githubAccount";
 
 // Get a token for a user (including collagborators who need to provide an owner/repo scope).
 const getToken = cache(async (user: User, owner: string, repo: string) => {
-  if (user.githubId) return await getUserToken();
+  const githubAccount = await getGithubAccount(user.id);
+  if (githubAccount?.accessToken) return githubAccount.accessToken;
 
   const permission = await db.query.collaboratorTable.findFirst({
     where: and(
+      sql`lower(${collaboratorTable.email}) = lower(${user.email})`,
       sql`lower(${collaboratorTable.owner}) = lower(${owner})`,
       sql`lower(${collaboratorTable.repo}) = lower(${repo})`
     )
@@ -82,22 +83,11 @@ const getInstallationToken = cache(async (owner: string, repo: string) => {
 });
 
 // Get the GitHub user token.
-const getUserToken = cache(async () => {
-  const { user } = await getAuth();
-	if (!user) throw new Error("User not found");
-  if (!user.githubId) throw new Error("User must be logged in with Github");
-  
-  let token;
-  
-  const tokenData = await db.query.githubUserTokenTable.findFirst({
-    where: eq(githubUserTokenTable.userId, user.id)
-  });
-  if (!tokenData) throw new Error(`Token not found for user ${user.id}.`);
-  
-  token = await decrypt(tokenData.ciphertext, tokenData.iv);
-  if (!token) throw new Error(`Token could not be retrieved and/or decrypted.`);
+const getUserToken = cache(async (userId: string) => {
+  const githubAccount = await getGithubAccount(userId);
+  if (!githubAccount?.accessToken) throw new Error(`GitHub token not found for user ${userId}.`);
 
-  return token;
+  return githubAccount.accessToken;
 });
 
 export { getInstallationToken, getUserToken, getToken };

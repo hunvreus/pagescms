@@ -1,18 +1,22 @@
 import { redirect } from "next/navigation";
-import { getAuth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { getAccounts } from "@/lib/utils/accounts";
 import { Providers } from "@/components/providers";
+import { User } from "@/types/user";
 
 export default async function Layout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { session, user } = await getAuth();
-  if (!session) return redirect("/sign-in");
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  if (!session?.user) return redirect("/sign-in");
 
-  const accounts = await getAccounts(user);
-  const userWithAccounts = { ...user, accounts };
+  const accounts = await getAccounts(session.user as User);
+  const userWithAccounts = { ...session.user, accounts };
   
 	return (
     <Providers user={userWithAccounts}>

@@ -13,7 +13,7 @@ import { Github } from "lucide-react";
 
 export default function Page() {
 	const [defaultAccount, setDefaultAccount] = useState<any>(null);
-  const { user } = useUser();
+    const { user } = useUser();
 	
 	if (!user) throw new Error("User not found");
 	if (!user.accounts) throw new Error("Accounts not found");
@@ -27,14 +27,14 @@ export default function Page() {
 							<RepoLatest/>
 							<h2 className="font-semibold text-lg md:text-2xl tracking-tight">Open a project</h2>
 							<RepoSelect onAccountSelect={(account) => setDefaultAccount(account)}/>
-							{user?.githubId &&
+							{user?.githubUsername &&
 								<>
 									<h2 className="font-semibold text-lg md:text-2xl tracking-tight">Create from a template</h2>
 									<RepoTemplates defaultAccount={defaultAccount}/>
 								</>
 							}
 						</>
-					:	user.githubId
+					:	user.githubUsername
 							? <Message
 									title="Install the GitHub app"
 									description="You must install the GitHub application for the accounts you want to use Pages CMS with."

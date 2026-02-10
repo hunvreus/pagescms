@@ -2,6 +2,7 @@ import {
   pgTable,
   text,
   integer,
+  boolean,
   serial,
   timestamp,
   index,
@@ -10,28 +11,56 @@ import {
 
 const userTable = pgTable("user", {
   id: text("id").notNull().primaryKey(),
-  githubEmail: text("github_email"),
-  githubName: text("github_name"),
-  githubId: integer("github_id").unique(),
+  name: text("name").notNull(),
+  image: text("image"),
   githubUsername: text("github_username"),
-  email: text("email").unique()
+  email: text("email").notNull().unique(),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
 
 const sessionTable = pgTable("session", {
   id: text("id").notNull().primaryKey(),
   expiresAt: timestamp("expires_at").notNull(),
-  userId: text("user_id").notNull().references(() => userTable.id)
+  token: text("token").notNull().unique(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  userId: text("user_id").notNull().references(() => userTable.id, { onDelete: "cascade" })
 }, table => ({
   idx_session_userId: index("idx_session_userId").on(table.userId)
 }));
 
-const githubUserTokenTable = pgTable("github_user_token", {
-  id: serial("id").primaryKey(),
-  ciphertext: text("ciphertext").notNull(),
-  iv: text("iv").notNull(),
-  userId: text("user_id").notNull().references(() => userTable.id)
+const accountTable = pgTable("account", {
+  id: text("id").notNull().primaryKey(),
+  accountId: text("account_id").notNull(),
+  providerId: text("provider_id").notNull(),
+  userId: text("user_id").notNull().references(() => userTable.id, { onDelete: "cascade" }),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  idToken: text("id_token"),
+  accessTokenExpiresAt: timestamp("access_token_expires_at"),
+  refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
+  scope: text("scope"),
+  password: text("password"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
 }, table => ({
-  idx_github_user_token_userId: uniqueIndex("idx_github_user_token_userId").on(table.userId)
+  idx_account_userId: index("idx_account_userId").on(table.userId),
+  idx_account_providerId: index("idx_account_providerId").on(table.providerId)
+}));
+
+const verificationTable = pgTable("verification", {
+  id: text("id").notNull().primaryKey(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+}, table => ({
+  idx_verification_identifier: index("idx_verification_identifier").on(table.identifier)
 }));
 
 const githubInstallationTokenTable = pgTable("github_installation_token", {
@@ -43,12 +72,6 @@ const githubInstallationTokenTable = pgTable("github_installation_token", {
 }, table => ({
   idx_github_installation_token_installationId: index("idx_github_installation_token_installationId").on(table.installationId)
 }));
-
-const emailLoginTokenTable = pgTable("email_login_token", {
-  tokenHash: text("token_hash").notNull().unique(),
-  email: text("email").notNull(),
-  expiresAt: timestamp("expires_at").notNull()
-});
 
 const collaboratorTable = pgTable("collaborator", {
   id: serial("id").primaryKey(),
@@ -114,9 +137,9 @@ const cachePermissionTable = pgTable("cache_permission", {
 export {
   userTable,
   sessionTable,
-  githubUserTokenTable,
+  accountTable,
+  verificationTable,
   githubInstallationTokenTable,
-  emailLoginTokenTable,
   collaboratorTable,
   configTable,
   cacheFileTable,

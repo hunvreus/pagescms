@@ -1,5 +1,6 @@
 import { type NextRequest } from "next/server";
-import { getAuth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { getUserToken } from "@/lib/token";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -20,10 +21,12 @@ export async function GET(
 ) {
   try {
     const params = await context.params;
-    const { user, session } = await getAuth();
-    if (!session) return new Response(null, { status: 401 });
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session?.user) return new Response(null, { status: 401 });
 
-    const token = await getUserToken();
+    const token = await getUserToken(session.user.id);
     if (!token) throw new Error("Token not found");
 
     // TODO: support for branches and account collaborators
