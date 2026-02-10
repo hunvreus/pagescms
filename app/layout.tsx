@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/sonner"
+import { Providers } from "@/components/providers";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
@@ -27,7 +28,9 @@ export default async function RootLayout({
           inter.className
         )}
       >
-        {children}
+        <Providers user={null}>
+          {children}
+        </Providers>
         <Toaster/>
       </body>
     </html>

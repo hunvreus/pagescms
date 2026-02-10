@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { getAccounts } from "@/lib/utils/accounts";
-import { Providers } from "@/components/providers";
+import { UserProvider } from "@/contexts/user-context";
 import { User } from "@/types/user";
 
 export default async function Layout({
@@ -19,8 +19,8 @@ export default async function Layout({
   const userWithAccounts = { ...session.user, accounts };
   
 	return (
-    <Providers user={userWithAccounts}>
+    <UserProvider user={userWithAccounts}>
       {children}
-    </Providers>
+    </UserProvider>
   );
 }

@@ -3,7 +3,6 @@
 import { forwardRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { v4 as uuidv4 } from 'uuid';
 import { RefreshCcw } from "lucide-react";
 import {
   Tooltip,
@@ -13,10 +12,10 @@ import {
 } from "@/components/ui/tooltip";
 
 const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) => {
-  const { value, field, onChange } = props;
+  const { field, onChange } = props;
 
   const generateNewUUID = () => {
-    onChange(uuidv4());
+    onChange(crypto.randomUUID());
   };
 
   return (

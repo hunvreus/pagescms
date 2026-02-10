@@ -98,9 +98,7 @@ const EditComponent = forwardRef((props: any, ref) => {
     return extensions;
   }, [field.options?.extensions, field.options?.categories, mediaConfig]);
 
-  const mediaDialogRef = mediaConfig
-    ? useRef<MediaDialogHandle>(null)
-    : undefined;
+  const mediaDialogRef = useRef<MediaDialogHandle>(null);
 
   const bubbleMenuRef = useRef<HTMLDivElement | null>(null);
 

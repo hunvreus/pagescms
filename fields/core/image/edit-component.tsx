@@ -17,14 +17,13 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, rectSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { v4 as uuidv4 } from 'uuid';
 import { getSchemaByName } from "@/lib/schema";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { Thumbnail } from "@/components/thumbnail";
 import { getAllowedExtensions } from "./index";
 
-const generateId = () => uuidv4().slice(0, 8);
+const generateId = () => crypto.randomUUID().replace(/-/g, "").slice(0, 8);
 
 const ImageTeaser = ({ file, config, media, onRemove }: { 
   file: string;
