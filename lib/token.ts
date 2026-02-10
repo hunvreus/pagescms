@@ -3,7 +3,7 @@
  */
 
 import { cache } from "react";
-import { App } from "octokit";
+import { App } from "@octokit/app";
 import { decrypt, encrypt } from "@/lib/crypto";
 import { db } from "@/db";
 import {

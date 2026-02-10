@@ -112,7 +112,7 @@ export function RepoSelect({
       <div className="flex w-full max-w items-center gap-x-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="px-3">
+            <Button variant="outline">
               <img className="h-6 w-6 rounded mr-2" src={`https://github.com/${selectedAccount?.login}.png`} alt={`${selectedAccount?.login}'s avatar`}/>
               <span className="mr-2">{selectedAccount?.login}</span>
               <ChevronsUpDown className="ml-auto h-4 w-4 opacity-50"/>
@@ -155,7 +155,11 @@ export function RepoSelect({
           ? <ul>
               {searchResults.map((result: any) => (
                 <li key={`${result.owner}/${result.repo}`} className="flex gap-x-2 items-center border border-b-0 last:border-b first:rounded-t-md last:rounded-b-md px-3 py-2 text-sm">
-                  <div className="truncate font-medium">{result.repo}</div>
+                  <Link
+                    className="truncate font-medium"
+                    href={`/${result.owner}/${result.repo}/${result.defaultBranch ? encodeURIComponent(result.defaultBranch) : ""}`}
+                    prefetch={true}
+                  >{result.repo}</Link>
                   {result.private && <LockKeyhole className="h-3 w-3 opacity-50"/>}
                   {result.updatedAt &&
                     <div className="text-muted-foreground truncate">{formatDistanceToNow(new Date(result.updatedAt))} ago</div>

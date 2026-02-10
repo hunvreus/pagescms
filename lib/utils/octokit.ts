@@ -3,7 +3,7 @@
  * to surface revoked/lost access (401 Bad credentials).
  */
 
-import { Octokit } from "octokit";
+import { Octokit } from "@octokit/rest";
 
 export const createOctokitInstance = (token: string, options?: any) => {
   if (!token) throw new Error("Auth token is required to initialize Octokit");

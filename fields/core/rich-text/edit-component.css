@@ -1,3 +1,8 @@
+<<<<<<< ours
+=======
+@reference "../../../app/globals.css";
+
+>>>>>>> theirs
 .ProseMirror {
   @apply rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background min-h-[8.5rem];
 }
@@ -7,7 +12,11 @@
 }
 
 .ProseMirror > * {
+<<<<<<< ours
   @apply first:!mt-0 last:!mb-0;
+=======
+  @apply first:mt-0! last:mb-0!;
+>>>>>>> theirs
 }
 
 .ProseMirror h1 {
@@ -82,7 +91,11 @@
 .tiptap img.ProseMirror-separator,
 .tiptap p > img + .ProseMirror-separator + .ProseMirror-trailingBreak,
 .tiptap code > .ProseMirror-trailingBreak {
+<<<<<<< ours
   @apply !hidden;
+=======
+  @apply hidden!;
+>>>>>>> theirs
 }
 
 .tiptap img,
@@ -106,4 +119,8 @@
 
 div[data-tippy-root] {
   @apply transition-all;
+<<<<<<< ours
 }
+=======
+}
+>>>>>>> theirs
