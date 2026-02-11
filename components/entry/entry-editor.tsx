@@ -272,7 +272,7 @@ export function EntryEditor({
               </Button>
             }
           </div>
-          {path && 
+          {path && (
             <div className="flex flex-col gap-y-1 text-sm">
               <div className="flex items-center rounded-lg px-3 py-2">
                 <Skeleton className="rounded-full h-8 w-8"/>
@@ -299,15 +299,15 @@ export function EntryEditor({
                 <Skeleton className="w-28 h-5 rounded mb-2"/>
               </div>
             </div>
-          }
+          )}
         </div>
       </div>
       <div className="lg:hidden fixed top-0 right-0 h-14 flex items-center gap-x-2 z-10 pr-4 md:pr-6">
-      {path &&
+        {path && (
           <Button variant="outline" size="icon" className="shrink-0" disabled>
             <History className="h-4 w-4" />
           </Button>
-        }
+        )}
         <Button type="submit" disabled>Save</Button>
         {path &&
           <Button variant="outline" size="icon" className="shrink-0" disabled>

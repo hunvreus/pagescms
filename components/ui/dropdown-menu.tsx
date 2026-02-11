@@ -34,13 +34,10 @@ function DropdownMenuTrigger({
 function DropdownMenuContent({
   className,
   sideOffset = 4,
-  portalProps,
   ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Content> & {
-  portalProps?: React.ComponentProps<typeof DropdownMenuPrimitive.Portal>
-}) {
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
   return (
-    <DropdownMenuPrimitive.Portal {...portalProps}>
+    <DropdownMenuPrimitive.Portal>
       <DropdownMenuPrimitive.Content
         data-slot="dropdown-menu-content"
         sideOffset={sideOffset}
