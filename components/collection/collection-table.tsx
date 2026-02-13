@@ -143,12 +143,12 @@ export function CollectionTable<TData extends TableData>({
     });
   }, [isTree, path, handleRowExpansion, table, data]);
 
-  useEffect(() => {
-    table.setOptions(prev => ({
-      ...prev,
-      data
-    }));
-  }, [data, table]);
+  // useEffect(() => {
+  //   table.setOptions(prev => ({
+  //     ...prev,
+  //     data
+  //   }));
+  // }, [data, table]);
 
   return (
     <div className="space-y-2">

@@ -650,13 +650,15 @@ export function Collection({
         </Message>
       );
     } else {
-      <Message
-        title="Something's wrong"
-        description={error}
-        className="absolute inset-0"
-        cta="Go to settings"
-        href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/settings`}
-      />
+      return (
+        <Message
+          title="Something's wrong"
+          description={error}
+          className="absolute inset-0"
+          cta="Go to settings"
+          href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/settings`}
+        />
+      );
     }
   }
 
