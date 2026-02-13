@@ -4,8 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from "react";
 
 type RepoHeaderSlots = {
-  breadcrumb: ReactNode | null;
-  actions: ReactNode | null;
+  header: ReactNode | null;
 };
 
 type RepoHeaderContextValue = {
@@ -18,14 +17,13 @@ const RepoHeaderContext = createContext<RepoHeaderContextValue | null>(null);
 
 export function RepoHeaderProvider({ children }: { children: ReactNode }) {
   const [slots, setSlotsState] = useState<RepoHeaderSlots>({
-    breadcrumb: null,
-    actions: null,
+    header: null,
   });
 
   const setSlots = useCallback((next: Partial<RepoHeaderSlots>) => {
     setSlotsState((prev) => {
       const merged = { ...prev, ...next };
-      if (prev.breadcrumb === merged.breadcrumb && prev.actions === merged.actions) {
+      if (prev.header === merged.header) {
         return prev;
       }
       return merged;
@@ -34,8 +32,7 @@ export function RepoHeaderProvider({ children }: { children: ReactNode }) {
 
   const clearSlots = useCallback(() => {
     setSlotsState({
-      breadcrumb: null,
-      actions: null,
+      header: null,
     });
   }, []);
 
@@ -70,10 +67,9 @@ export function useRepoHeader(slots: Partial<RepoHeaderSlots>) {
 
   useEffect(() => {
     setSlots({
-      breadcrumb: slots.breadcrumb ?? null,
-      actions: slots.actions ?? null,
+      header: slots.header ?? null,
     });
-  }, [slots.breadcrumb, slots.actions, setSlots]);
+  }, [slots.header, setSlots]);
 
   useEffect(() => {
     return () => {

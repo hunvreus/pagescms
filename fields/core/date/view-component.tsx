@@ -34,7 +34,7 @@ const ViewComponent = ({
         <CalendarIcon/>
         {formatDate(firstValue)}
       </Badge>
-      {extraValuesCount > 0 && (
+      {extraValuesCount >= 0 && (
         <Badge variant="secondary" className="px-1">
           +{extraValuesCount}
         </Badge>

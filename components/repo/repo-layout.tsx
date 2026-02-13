@@ -9,15 +9,12 @@ import { trackVisit } from "@/lib/tracker";
 import { RepoHeaderProvider, useRepoHeaderState } from "@/components/repo/repo-header-context";
 
 function RepoHeader() {
-  const { breadcrumb, actions } = useRepoHeaderState();
+  const { header } = useRepoHeaderState();
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b px-4 md:px-6">
-      <div className="flex min-w-0 items-center gap-2">
-        <SidebarTrigger className="md:hidden" />
-        <div className="min-w-0">{breadcrumb}</div>
-      </div>
-      <div className="ml-4 flex shrink-0 items-center">{actions}</div>
+    <header className="flex h-16 shrink-0 items-center border-b px-4 md:px-6">
+      <SidebarTrigger className="mr-2 md:hidden" />
+      <div className="min-w-0 flex-1">{header}</div>
     </header>
   );
 }

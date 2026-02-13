@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, memo, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useConfig } from "@/contexts/config-context";
@@ -60,6 +60,51 @@ import {
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
+const CollectionHeaderActions = memo(function CollectionHeaderActions({
+  addEntryHref,
+  collectionPath,
+  name,
+  showFolderCreate,
+  onFolderCreate,
+  onSearchChange,
+}: {
+  addEntryHref: string;
+  collectionPath: string;
+  name: string;
+  showFolderCreate: boolean;
+  onFolderCreate: (entry: any) => void;
+  onSearchChange: (value: string) => void;
+}) {
+  const [searchInput, setSearchInput] = useState("");
+
+  useEffect(() => {
+    const timeout = setTimeout(() => onSearchChange(searchInput), 200);
+    return () => clearTimeout(timeout);
+  }, [searchInput, onSearchChange]);
+
+  return (
+    <div className="flex items-center gap-x-2">
+      <div className="relative hidden sm:block w-52 md:w-64">
+        <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" />
+        <Input className="h-9 pl-9" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
+      </div>
+      {showFolderCreate && (
+        <FolderCreate path={collectionPath} type="content" name={name} onCreate={onFolderCreate}>
+          <Button type="button" variant="outline" size="icon" className="shrink-0">
+            <FolderPlus />
+          </Button>
+        </FolderCreate>
+      )}
+      <Link className={cn(buttonVariants(), "hidden sm:flex")} href={addEntryHref}>
+        Add an entry
+      </Link>
+      <Link className={cn(buttonVariants({ size: "icon" }), "sm:hidden shrink-0")} href={addEntryHref}>
+        <Plus className="h-4 w-4" />
+      </Link>
+    </div>
+  );
+});
+
 export function Collection({
   name,
   path,
@@ -67,7 +112,7 @@ export function Collection({
   name: string;
   path?: string;
 }) {
-  const [search, setSearch] = useState("");
+  const [tableSearch, setTableSearch] = useState("");
   const [data, setData] = useState<Record<string, any>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -132,6 +177,10 @@ export function Collection({
   }, [schema]);
 
   const primaryField = useMemo(() => getPrimaryField(schema) ?? "name", [schema]);
+
+  const handleTableSearchChange = useCallback((value: string) => {
+    setTableSearch(value);
+  }, []);
 
   const fetchCollectionData = useCallback(async (fetchPath: string): Promise<Record<string, any>[] | undefined> => {
     if (!config) return undefined;
@@ -615,31 +664,22 @@ export function Collection({
     );
   }, [collectionPath, handleNavigate, schema.label, schema.name, schema.path]);
 
-  const actionsNode = useMemo(() => (
-    <div className="flex items-center gap-x-2">
-      <div className="relative hidden sm:block w-52 md:w-64">
-        <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" />
-        <Input className="h-9 pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
-      </div>
-      {schema.subfolders !== false && (
-        <FolderCreate path={collectionPath} type="content" name={name} onCreate={handleFolderCreate}>
-          <Button type="button" variant="outline" size="icon" className="shrink-0">
-            <FolderPlus />
-          </Button>
-        </FolderCreate>
-      )}
-      <Link className={cn(buttonVariants(), "hidden sm:flex")} href={addEntryHref}>
-        Add an entry
-      </Link>
-      <Link className={cn(buttonVariants({ size: "icon" }), "sm:hidden shrink-0")} href={addEntryHref}>
-        <Plus className="h-4 w-4" />
-      </Link>
+  const headerNode = useMemo(() => (
+    <div className="flex items-center justify-between gap-2">
+      <div className="min-w-0">{breadcrumbNode}</div>
+      <CollectionHeaderActions
+        addEntryHref={addEntryHref}
+        collectionPath={collectionPath}
+        name={name}
+        showFolderCreate={schema.subfolders !== false}
+        onFolderCreate={handleFolderCreate}
+        onSearchChange={handleTableSearchChange}
+      />
     </div>
-  ), [addEntryHref, collectionPath, handleFolderCreate, name, schema.subfolders, search]);
+  ), [addEntryHref, breadcrumbNode, collectionPath, handleFolderCreate, handleTableSearchChange, name, schema.subfolders]);
 
   useRepoHeader({
-    breadcrumb: breadcrumbNode,
-    actions: actionsNode,
+    header: headerNode,
   });
   
   if (error) {
@@ -674,8 +714,8 @@ export function Collection({
           : <CollectionTable
               columns={columns}
               data={data}
-              search={search}
-              setSearch={setSearch}
+              search={tableSearch}
+              setSearch={setTableSearch}
               initialState={initialState}
               onExpand={handleExpand}
               pathname={pathname}
