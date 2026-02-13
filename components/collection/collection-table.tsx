@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -39,7 +39,7 @@ export type TableData = {
   content?: string;
   object?: Record<string, any>;
   type: "file" | "dir";
-  node?: boolean;
+  isNode?: boolean;
   parentPath?: string;
   subRows?: TableData[];
   fields?: Record<string, any>;
@@ -81,11 +81,17 @@ export function CollectionTable<TData extends TableData>({
   const [expanded, setExpanded] = useState<ExpandedState>({});
   
   const [loadingRows, setLoadingRows] = useState<Record<string, boolean>>({});
+  const loadingPathSetRef = useRef<Set<string>>(new Set());
 
   const handleRowExpansion = useCallback(async (row: Row<TData>) => {
     const needsLoading = row.getCanExpand() && !row.getIsExpanded() && row.original.subRows === undefined;
+    const loadPath = row.original.isNode ? row.original.parentPath : row.original.path;
 
     if (needsLoading) {
+      if (!loadPath) return;
+      if (loadingPathSetRef.current.has(loadPath)) return;
+
+      loadingPathSetRef.current.add(loadPath);
       setLoadingRows(prev => ({ ...prev, [row.id]: true }));
       try {
         await onExpand(row.original);
@@ -98,6 +104,7 @@ export function CollectionTable<TData extends TableData>({
         });
         return;
       } finally {
+        loadingPathSetRef.current.delete(loadPath);
         setLoadingRows(prev => {
           const newState = { ...prev };
           delete newState[row.id];
@@ -142,13 +149,6 @@ export function CollectionTable<TData extends TableData>({
       }
     });
   }, [isTree, path, handleRowExpansion, table, data]);
-
-  // useEffect(() => {
-  //   table.setOptions(prev => ({
-  //     ...prev,
-  //     data
-  //   }));
-  // }, [data, table]);
 
   return (
     <div className="space-y-2">
@@ -266,7 +266,7 @@ export function CollectionTable<TData extends TableData>({
                                   size="icon-sm"
                                   className="h-6 w-6 rounded-full"
                                   onClick={() => handleRowExpansion(row as Row<TData>)}
-                                  disabled={row.getIsExpanded() && row.subRows.length === 0}
+                                  disabled={row.getIsExpanded() && Array.isArray(row.original.subRows) && row.original.subRows.length === 0}
                                 >
                                   {row.getIsExpanded() ? <CircleMinus className="text-muted-foreground hover:text-foreground h-4 w-4" /> : <CirclePlus className="text-muted-foreground hover:text-foreground h-4 w-4" />}
                                   <span className="sr-only">{row.getIsExpanded() ? 'Collapse row' : 'Expand row'}</span>

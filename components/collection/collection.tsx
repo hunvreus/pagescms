@@ -210,13 +210,17 @@ export function Collection({
         // For items moved to a different folder, we need to:
         // 1. Remove the item from its original location (recursively)
         const removeItem = (items: any[]): any[] => {
-          return items.filter(item => {
-            if (item.path === path) return false;
-            if (item.subRows && Array.isArray(item.subRows)) {
-              item.subRows = removeItem(item.subRows);
-            }
-            return true;
-          });
+          return items
+            .filter((item) => item.path !== path)
+            .map((item) => {
+              if (item.subRows && Array.isArray(item.subRows)) {
+                const updatedSubRows = removeItem(item.subRows);
+                if (updatedSubRows !== item.subRows) {
+                  return { ...item, subRows: updatedSubRows };
+                }
+              }
+              return item;
+            });
         };
         
         return sortFiles(removeItem(prevData));
@@ -322,7 +326,7 @@ export function Collection({
         },
         sortUndefined: schema.view?.foldersFirst ? "first" : "last"
       };
-    }) || [];
+    }).filter(Boolean) || [];
 
     tableColumns.push({
       accessorKey: "actions",
