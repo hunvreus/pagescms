@@ -6,6 +6,21 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { useConfig } from "@/contexts/config-context";
 import { useRepo } from "@/contexts/repo-context";
 import { trackVisit } from "@/lib/tracker";
+import { RepoHeaderProvider, useRepoHeaderState } from "@/components/repo/repo-header-context";
+
+function RepoHeader() {
+  const { breadcrumb, actions } = useRepoHeaderState();
+
+  return (
+    <header className="flex h-16 shrink-0 items-center justify-between border-b px-4 md:px-6">
+      <div className="flex min-w-0 items-center gap-2">
+        <SidebarTrigger className="md:hidden" />
+        <div className="min-w-0">{breadcrumb}</div>
+      </div>
+      <div className="ml-4 flex shrink-0 items-center">{actions}</div>
+    </header>
+  );
+}
 
 export function RepoLayout({
   children,
@@ -23,13 +38,13 @@ export function RepoLayout({
 
   return (
     <SidebarProvider>
-      <RepoSidebar />
-      <SidebarInset className="h-screen overflow-hidden">
-        <header className="flex h-12 shrink-0 items-center border-b px-4 md:px-6">
-          <SidebarTrigger className="md:hidden" />
-        </header>
-        <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
-      </SidebarInset>
+      <RepoHeaderProvider>
+        <RepoSidebar />
+        <SidebarInset className="h-screen overflow-hidden">
+          <RepoHeader />
+          <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
+        </SidebarInset>
+      </RepoHeaderProvider>
     </SidebarProvider>
   );
 }

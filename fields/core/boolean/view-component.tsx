@@ -1,4 +1,5 @@
 "use client";
+import { Badge } from "@/components/ui/badge";
 
 const ViewComponent = ({ value }: { value: boolean}) => {
   if (value == null) return null;
@@ -10,8 +11,8 @@ const ViewComponent = ({ value }: { value: boolean}) => {
   return (
     <span className="flex items-center gap-x-1.5">
       {value
-        ? <span className="inline-block rounded-full border border-primary bg-primary text-primary-foreground px-2 py-0.5 text-sm font-medium">True</span>
-        : <span className="inline-block rounded-full border bg-muted px-2 py-0.5 text-sm font-medium">False</span>
+        ? <Badge>True</Badge>
+        : <Badge variant="secondary">False</Badge>
       }
       {extraValuesCount > 0 && (
         <span className="text-muted-foreground text-xs">

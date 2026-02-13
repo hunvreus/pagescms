@@ -152,7 +152,7 @@ export function CollectionTable<TData extends TableData>({
 
   return (
     <div className="space-y-2">
-      <Table className="border-separate border-spacing-0 text-base"> 
+      <Table className="border-separate border-spacing-0 text-sm">
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id} className="sticky -top-4 md:-top-6 z-20 bg-background hover:bg-background">
@@ -161,7 +161,7 @@ export function CollectionTable<TData extends TableData>({
                   <TableHead
                     key={header.id}
                     className={cn(
-                      "text-xs px-3 h-12 first:pl-0 last:pr-0 border-b hover:bg-muted/50 cursor-pointer select-none last:cursor-default last:hover:bg-background truncate",
+                      "p-2 h-10 border-b hover:bg-muted/50 cursor-pointer select-none last:cursor-default last:hover:bg-background truncate",
                       header.column.columnDef.meta?.className
                     )}
                     onClick={header.column.getToggleSortingHandler()}
@@ -202,7 +202,7 @@ export function CollectionTable<TData extends TableData>({
                     ? <>
                       <TableCell
                         colSpan={columns.length - 1}
-                        className="px-3 first:pl-0 last:pr-0 border-b py-0 h-14"
+                        className="p-2 border-b py-0 h-12"
                         style={{
                           paddingLeft: row.depth > 0
                             ? `${row.depth * 2}rem`
@@ -231,7 +231,7 @@ export function CollectionTable<TData extends TableData>({
                             </Link>
                         }
                       </TableCell>
-                      <TableCell className="px-3 first:pl-0 last:pr-0 border-b py-0 h-14">
+                      <TableCell className="p-2 border-b py-0 h-12">
                         {
                           (() => {
                             const lastCell = row.getVisibleCells()[row.getVisibleCells().length - 1];
@@ -244,7 +244,7 @@ export function CollectionTable<TData extends TableData>({
                       <TableCell
                         key={cell.id}
                         className={cn(
-                          "px-3 first:pl-0 last:pr-0 border-b py-0 h-14",
+                          "p-2 border-b py-0 h-12",
                           cell.column.columnDef.meta?.className,
                         )}
                         style={{
@@ -296,13 +296,11 @@ export function CollectionTable<TData extends TableData>({
           <div className="text-muted-foreground text-sm mr-auto">
             {`Page ${table.getState().pagination.pageIndex + 1} of ${table.getPageCount()}`}
           </div>
-          <div className="flex">
-            <Button size="sm" variant="ghost" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+          <div className="flex gap-x-2 items-center">
+            <Button size="icon-sm" variant="outline" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
               <ChevronLeft className="h-4 w-4 mr-1"/>
-              Previous
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-              Next
+            <Button size="icon-sm" variant="outline" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
               <ChevronRight className="h-4 w-4 ml-1"/>
             </Button>
           </div>

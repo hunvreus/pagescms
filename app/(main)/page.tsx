@@ -22,18 +22,22 @@ export default function Page() {
     <MainRootLayout>
 			<div className="max-w-screen-sm mx-auto p-4 md:p-6 space-y-6">
 				{user.accounts.length > 0
-					? <>
-							<h2 className="font-semibold text-lg md:text-2xl tracking-tight">Last visited</h2>
-							<RepoLatest/>
-							<h2 className="font-semibold text-lg md:text-2xl tracking-tight">Open a project</h2>
-							<RepoSelect onAccountSelect={(account) => setDefaultAccount(account)}/>
+					? <div className="space-y-6">
+						    <div className="space-y-4">
+								<h2 className="text-lg leading-none font-semibold">Last visited</h2>
+								<RepoLatest/>
+							</div>
+							<div className="space-y-4">
+								<h2 className="text-lg leading-none font-semibold">Open a project</h2>
+								<RepoSelect onAccountSelect={(account) => setDefaultAccount(account)}/>
+							</div>
 							{user?.githubUsername &&
-								<>
-									<h2 className="font-semibold text-lg md:text-2xl tracking-tight">Create from a template</h2>
+								<div className="space-y-4">
+									<h2 className="text-lg leading-none font-semibold">Create from a template</h2>
 									<RepoTemplates defaultAccount={defaultAccount}/>
-								</>
+								</div>
 							}
-						</>
+						</div>
 					:	user.githubUsername
 							? <Message
 									title="Install the GitHub app"

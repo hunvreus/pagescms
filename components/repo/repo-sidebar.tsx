@@ -34,7 +34,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
@@ -105,6 +104,10 @@ function RepoSwitcher() {
           <DialogTrigger asChild>
             <DropdownMenuItem>Manage branches</DropdownMenuItem>
           </DialogTrigger>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link href="/" prefetch={true}>Change project</Link>
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       <DialogContent>
@@ -127,7 +130,7 @@ function AccountMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
-          <Avatar className="h-8 w-8 rounded-md">
+          <Avatar className="size-8 rounded-md">
             <AvatarImage
               src={user.githubUsername ? `https://github.com/${user.githubUsername}.png` : `https://unavatar.io/${user.email}?fallback=false`}
               alt={user.name || user.email}
@@ -266,18 +269,6 @@ export function RepoSidebar() {
   return (
     <Sidebar collapsible="offcanvas">
       <SidebarHeader>
-        <div className="flex items-center gap-2 justify-between">
-          <Link
-            className={buttonVariants({ variant: "ghost", size: "xs"})}
-            href="/"
-            prefetch={true}
-          >
-            <ArrowLeft />
-            All projects
-          </Link>
-          <About />
-        </div>
-        <SidebarSeparator />
         <SidebarMenu>
           <SidebarMenuItem>
             <RepoSwitcher />
@@ -289,8 +280,7 @@ export function RepoSidebar() {
           <Fragment key={index}>{group}</Fragment>
         ))}
       </SidebarContent>
-      <SidebarSeparator />
-      <SidebarFooter>
+      <SidebarFooter className="border-t">
         <SidebarMenu>
           <SidebarMenuItem>
             <AccountMenu />

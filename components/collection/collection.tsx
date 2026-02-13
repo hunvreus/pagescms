@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useConfig } from "@/contexts/config-context";
 import {
   getParentPath,
   getFileName,
+  getRelativePath,
+  joinPathSegments,
   normalizePath,
   sortFiles
 } from "@/lib/utils/file";
@@ -17,8 +19,18 @@ import { FileOptions } from "@/components/file/file-options";
 import { CollectionTable } from "./collection-table";
 import { FolderCreate} from "@/components/folder-create";
 import { Message } from "@/components/message";
-import { PathBreadcrumb } from "@/components/path-breadcrumb";
+import { useRepoHeader } from "@/components/repo/repo-header-context";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
+import {
+  Breadcrumb,
+  BreadcrumbEllipsis,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,7 +47,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
-  CornerLeftUp,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Ellipsis,
   FolderPlus,
   Plus,
@@ -43,7 +60,7 @@ import {
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-export function CollectionView({
+export function Collection({
   name,
   path,
 }: {
@@ -313,20 +330,20 @@ export function CollectionView({
       cell: ({ row }: { row: any }) => (
         <div className="flex gap-1 justify-end">
           {row.original.type === 'file' &&
-            <>
+            <ButtonGroup>
               <Link
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8")}
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
                 href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${name}/edit/${encodeURIComponent(row.original.path)}`}
                 prefetch={true}
               >
                 Edit
               </Link>
               <FileOptions path={row.original.path} sha={row.original.sha} type="collection" name={name} onDelete={handleDelete} onRename={handleRename}>
-                <Button variant="outline" size="icon-sm" className="w-8 h-8">
-                  <Ellipsis className="h-4 w-4" />
+                <Button variant="outline" size="icon-sm">
+                  <Ellipsis />
                 </Button>
               </FileOptions>
-            </>
+            </ButtonGroup>
           }
           {schema.view?.layout === 'tree' && (
             row.original.type === 'file' &&
@@ -433,18 +450,11 @@ export function CollectionView({
     return () => { isMounted = false };
   }, [fetchCollectionData, path, schema.path, schema.view?.layout]);
 
-  const handleNavigate = (newPath: string) => {
-    // setPath(newPath);
-    // Optionally update the URL to reflect the state
+  const handleNavigate = useCallback((newPath: string) => {
     const params = new URLSearchParams(Array.from(searchParams.entries()));
     params.set("path", newPath || schema.path);
     router.push(`${pathname}?${params.toString()}`);
-  }
-
-  const handleNavigateParent = () => {
-    if (!path || path === schema.path) return;
-    handleNavigate(getParentPath(path));
-  }
+  }, [pathname, router, schema.path, searchParams]);
 
   const handleExpand = useCallback(async (row: any) => {
     if (!row) return;
@@ -472,17 +482,17 @@ export function CollectionView({
   const loadingSkeleton = useMemo(() => (
     <table className="w-full">
       <thead>
-        <tr className="border-b">
-          <th className="pr-3 align-middle h-12">
+        <tr className="border-b font-medium">
+          <th className="p-2 align-middle">
             <Skeleton className="w-8 h-4 rounded" />
           </th>
-          <th className="px-3 align-middle h-12">
+          <th className="p-2 align-middle">
             <Skeleton className="w-16 h-4 rounded" />
           </th>
-          <th className="px-3 align-middle h-12">
+          <th className="p-2 align-middle">
             <Skeleton className="w-12 h-4 rounded" />
           </th>
-          <th className="pl-3 align-middle h-12">
+          <th className="p-2 align-middle">
             <Skeleton className="w-12 h-4 rounded" />
           </th>
         </tr>
@@ -490,19 +500,19 @@ export function CollectionView({
       <tbody>
         {[...Array(5)].map((_, index) => (
           <tr className="border-b" key={index}>
-            <td className="pr-3 pl-0 align-middle h-14">
+            <td className="p-2 align-middle">
               <Skeleton className="h-8 w-8 rounded-md" />
             </td>
-            <td className="px-3 align-middle w-full min-w-[12rem] max-w-[1px] h-14">
+            <td className="p-2 align-middle w-full min-w-[12rem] max-w-px">
               <Skeleton className="w-full h-5 rounded" />
             </td>
-            <td className="px-3 align-middle h-14">
+            <td className="p-2 align-middle">
               <Skeleton className="w-24 h-5 rounded" />
             </td>
-            <td className="pl-3 pr-0 align-middle h-14">
+            <td className="p-2 align-middle">
               <div className="flex gap-1">
-                <Button variant="outline" size="sm" className="h-8" disabled>Edit</Button>
-                <Button variant="outline" size="icon-sm" className="w-8 h-8" disabled>
+                <Button variant="outline" size="sm" disabled>Edit</Button>
+                <Button variant="outline" size="icon-sm" disabled>
                   <Ellipsis className="h-4 w-4" />
                 </Button>
                 {schema.view?.layout === 'tree' && (
@@ -517,6 +527,116 @@ export function CollectionView({
       </tbody>
     </table>
   ), [schema.view?.layout]);
+
+  const collectionPath = schema.view?.layout === "tree"
+    ? schema.path
+    : path || schema.path;
+
+  const addEntryHref = `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new${
+    schema.view?.layout !== "tree" && path && path !== schema.path
+      ? `?parent=${encodeURIComponent(path)}`
+      : ""
+  }`;
+
+  const breadcrumbNode = useMemo(() => {
+    const normalizedRootPath = normalizePath(schema.path);
+    const normalizedCurrentPath = normalizePath(collectionPath);
+    const relativePath = getRelativePath(normalizedCurrentPath, normalizedRootPath);
+    const segments = relativePath ? relativePath.split("/").filter(Boolean) : [];
+
+    const entries = segments.map((segment, index) => ({
+      name: segment,
+      path: joinPathSegments([normalizedRootPath, segments.slice(0, index + 1).join("/")]),
+    }));
+
+    const middleEntries = entries.length > 3 ? entries.slice(1, -1) : [];
+    const visibleEntries = entries.length > 3
+      ? [entries[0], entries[entries.length - 1]]
+      : entries;
+
+    return (
+      <Breadcrumb>
+        <BreadcrumbList className="font-semibold text-lg">
+          <BreadcrumbItem>
+            {entries.length > 0 ? (
+              <BreadcrumbLink className="cursor-pointer" onClick={() => handleNavigate(schema.path)}>
+                {schema.label || schema.name}
+              </BreadcrumbLink>
+            ) : (
+              <BreadcrumbPage className="font-semibold">{schema.label || schema.name}</BreadcrumbPage>
+            )}
+          </BreadcrumbItem>
+          {entries.length > 0 && <BreadcrumbSeparator/>}
+
+          {entries.length > 3 && (
+            <>
+              <BreadcrumbItem>
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="flex items-center">
+                    <BreadcrumbEllipsis className="h-4 w-4" />
+                    <span className="sr-only">Show hidden segments</span>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {middleEntries.map((entry) => (
+                      <DropdownMenuItem key={entry.path} onClick={() => handleNavigate(entry.path)} className="cursor-pointer">
+                        {entry.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator/>
+            </>
+          )}
+
+          {visibleEntries.map((entry, index) => {
+            const isLast = index === visibleEntries.length - 1;
+            return (
+              <Fragment key={entry.path}>
+                <BreadcrumbItem>
+                  {isLast ? (
+                    <BreadcrumbPage className="font-semibold">{entry.name}</BreadcrumbPage>
+                  ) : (
+                    <BreadcrumbLink className="cursor-pointer" onClick={() => handleNavigate(entry.path)}>
+                      {entry.name}
+                    </BreadcrumbLink>
+                  )}
+                </BreadcrumbItem>
+                {!isLast && <BreadcrumbSeparator/>}
+              </Fragment>
+            );
+          })}
+        </BreadcrumbList>
+      </Breadcrumb>
+    );
+  }, [collectionPath, handleNavigate, schema.label, schema.name, schema.path]);
+
+  const actionsNode = useMemo(() => (
+    <div className="flex items-center gap-x-2">
+      <div className="relative hidden sm:block w-52 md:w-64">
+        <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" />
+        <Input className="h-9 pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+      </div>
+      {schema.subfolders !== false && (
+        <FolderCreate path={collectionPath} type="content" name={name} onCreate={handleFolderCreate}>
+          <Button type="button" variant="outline" size="icon" className="shrink-0">
+            <FolderPlus />
+          </Button>
+        </FolderCreate>
+      )}
+      <Link className={cn(buttonVariants(), "hidden sm:flex")} href={addEntryHref}>
+        Add an entry
+      </Link>
+      <Link className={cn(buttonVariants({ size: "icon" }), "sm:hidden shrink-0")} href={addEntryHref}>
+        <Plus className="h-4 w-4" />
+      </Link>
+    </div>
+  ), [addEntryHref, collectionPath, handleFolderCreate, name, schema.subfolders, search]);
+
+  useRepoHeader({
+    breadcrumb: breadcrumbNode,
+    actions: actionsNode,
+  });
   
   if (error) {
     if (error === "Not found") {
@@ -543,41 +663,6 @@ export function CollectionView({
   return (
     <>
       <div className="flex-1 flex flex-col space-y-6">
-        <header className="flex items-center gap-x-2">
-          <div className="sm:flex-1">
-            {schema.view?.layout !== 'tree' && (
-              <>
-                <PathBreadcrumb path={path || schema.path} rootPath={schema.path} handleNavigate={handleNavigate} className="hidden sm:block"/>
-                <Button onClick={handleNavigateParent} size="icon-sm" variant="outline" className="shrink-0 sm:hidden" disabled={!path || path === schema.path}>
-                  <CornerLeftUp className="w-4 h-4"/>
-                </Button>
-              </>
-            )}
-          </div>
-          <div className="relative flex-1">
-            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none"/>
-            <Input className="h-9 pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
-          {schema.subfolders !== false && (
-            <FolderCreate path={path || schema.path} type="content" name={name} onCreate={handleFolderCreate}>
-              <Button type="button" variant="outline" className="ml-auto shrink-0" size="icon-sm">
-                <FolderPlus className="h-3.5 w-3.5"/>
-              </Button>
-            </FolderCreate>
-          )}
-          <Link
-            className={cn(buttonVariants({size: "sm"}), "hidden sm:flex")}
-            href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new${schema.view?.layout !== 'tree' && path && path !== schema.path ? `?parent=${encodeURIComponent(path)}` : ""}`}
-          >
-              Add an entry
-          </Link>
-          <Link
-            className={cn(buttonVariants({size: "icon-sm"}), "sm:hidden shrink-0")}
-            href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new${schema.view?.layout !== 'tree' && path && path !== schema.path ? `?parent=${encodeURIComponent(path)}` : ""}`}
-          >
-              <Plus className="h-4 w-4"/>
-          </Link>
-        </header>
         {isLoading
           ? loadingSkeleton
           : <CollectionTable

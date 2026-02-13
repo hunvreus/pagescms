@@ -46,7 +46,7 @@ export default async function Page() {
         <div className="flex flex-col relative flex-1 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base md:text-lg">Profile</CardTitle>
+              <CardTitle>Profile</CardTitle>
               <CardDescription>Manage the information displayed to other users.</CardDescription>
             </CardHeader>
             <CardContent>

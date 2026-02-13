@@ -2,6 +2,7 @@
 import { parse, format, isValid } from "date-fns";
 import { Field } from "@/types/field";
 import { CalendarIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const ViewComponent = ({
   value,
@@ -29,16 +30,14 @@ const ViewComponent = ({
   
   return (
     <span className="flex items-center gap-x-1.5">
-      <span className="inline-flex rounded-full border px-2 py-0.5 text-sm font-medium items-center gap-x-1.5">
-        <CalendarIcon className="w-3 h-3 shrink-0"/>
-        <span className="text-ellipsis overflow-hidden whitespace-nowrap">
-          {formatDate(firstValue)}
-        </span>
-      </span>
+      <Badge variant="secondary">
+        <CalendarIcon/>
+        {formatDate(firstValue)}
+      </Badge>
       {extraValuesCount > 0 && (
-        <span className="text-muted-foreground text-xs">
+        <Badge variant="secondary" className="px-1">
           +{extraValuesCount}
-        </span>
+        </Badge>
       )}
     </span>
   );

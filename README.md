@@ -51,9 +51,9 @@ You will need to fill in the following information:
 - **GitHub App name**: use "Pages CMS" or whatever you think is appropriate (e.g. "Pages CMS (dev)").
 - **Homepage URL**: whatever you want, https://pagescms.org will do.
 - **Identifying and authorizing users**:
-    - Callback URL: the URL for `/api/auth/github`:
-        - `http://localhost:3000/api/auth/github` for development,
-        - something like `https://my-vercel-url.vercel.app/api/auth/github` (or whatever custom domain you're using) if you're deploying on Vercel.
+    - Callback URL: the URL for `/api/auth/callback/github`:
+        - `http://localhost:3000/api/auth/callback/github` for development,
+        - something like `https://my-vercel-url.vercel.app/api/auth/callback/github` (or whatever custom domain you're using) if you're deploying on Vercel.
     - Expire user authorization tokens: no.
     - Request user authorization (OAuth) during installation: yes.
     - Enable Device Flow: no.
@@ -85,6 +85,7 @@ You will need to fill in the following information:
 Variable | Comments
 --- | ---
 `BASE_URL` | **OPTIONAL**. If you're deploying to Vercel or working locally, you won't need that. If you're deploying elsewhere, you'll need to specify the base URL for the app (e.g. `https://mycustomdomain.com`).
+`BETTER_AUTH_SECRET` | Secret used by Better Auth to sign/encrypt auth artifacts. Generate a long random value (e.g. `openssl rand -base64 32`).
 `DATABASE_URL` | The database URL, including your credentials (e.g. `postgresql://user:password@example.com:6543`). If you're using [Supabase](https://supabase.com), use the "Transaction pooler" url.
 `CRYPTO_KEY` | Used to encrypt/decrypt GitHub tokens in the database. On MacOS/Linux*, you can use `openssl rand -base64 32`.
 `GITHUB_APP_ID` | GitHub App ID from your GitHub App details page.
