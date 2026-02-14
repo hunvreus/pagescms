@@ -67,6 +67,7 @@ export function EntryEditor({
   });
   const [history, setHistory] = useState<Record<string, any>[]>();
   const [isLoading, setIsLoading] = useState(path ? true : false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | undefined | null>(null);
   // TODO: this feels like a bit of a hack
   const [refetchTrigger, setRefetchTrigger] = useState<number>(0);
@@ -184,6 +185,8 @@ export function EntryEditor({
   }, [config.branch, config.owner, config.repo, path, sha, refetchTrigger, name]);
 
   const onSubmit = async (contentObject: any) => {
+    setIsSaving(true);
+
     const savePromise = new Promise(async (resolve, reject) => {
       try {
         const savePath = path ?? `${parent ?? schema.path}/${generateFilename(schema.filename, schema, contentObject)}`;
@@ -228,8 +231,12 @@ export function EntryEditor({
       await savePromise;
     } catch (error: any) {
       console.error(error.message);
+    } finally {
+      setIsSaving(false);
     }
   };
+
+  const isBusy = isLoading || isSaving;
 
   const handleDelete = useCallback((path: string) => {
     // TODO: disable save button or freeze form while deleting?
@@ -328,130 +335,66 @@ export function EntryEditor({
         </Breadcrumb>
       </div>
       <div className="flex items-center gap-x-2">
-        {path && history && <EntryHistoryDropdown history={history} path={path} />}
-        <Button type="submit" form="entry-form" disabled={isLoading}>
+        {isBusy
+          ? <Button variant="ghost" size="icon" className="shrink-0" disabled><History /></Button>
+          : path && history && <EntryHistoryDropdown history={history} path={path} />
+        }
+        <Button type="submit" form="entry-form" disabled={isBusy}>
           Save
         </Button>
-        {path && sha && (
-          <FileOptions
-            path={path}
-            sha={sha}
-            type={path === ".pages.yml" ? "settings" : (schemaType ?? "content")}
-            name={name}
-            onDelete={handleDelete}
-            onRename={handleRename}
-          >
-            <Button variant="ghost" size="icon" className="shrink-0" disabled={isLoading}>
-              <EllipsisVertical className="h-4 w-4" />
-            </Button>
-          </FileOptions>
-        )}
+        {isBusy
+          ? <Button variant="ghost" size="icon" className="shrink-0" disabled><EllipsisVertical className="h-4 w-4" /></Button>
+          : path && sha && (
+            <FileOptions
+              path={path}
+              sha={sha}
+              type={path === ".pages.yml" ? "settings" : (schemaType ?? "content")}
+              name={name}
+              onDelete={handleDelete}
+              onRename={handleRename}
+            >
+              <Button variant="ghost" size="icon" className="shrink-0" disabled={isBusy}>
+                <EllipsisVertical className="h-4 w-4" />
+              </Button>
+            </FileOptions>
+          )
+        }
       </div>
     </div>
-  ), [breadcrumbNode, handleDelete, handleRename, history, isLoading, name, path, schemaType, sha]);
+  ), [breadcrumbNode, handleDelete, handleRename, history, isBusy, name, path, schemaType, sha]);
 
   useRepoHeader({ header: headerNode });
 
   const loadingSkeleton = useMemo(() => (
-    <div className="max-w-screen-xl mx-auto flex w-full gap-x-8">
-      <div className="flex-1 w-0">
-        <header className="flex items-center mb-6">
-          {navigateBack &&
-            <Link
-              className={cn(buttonVariants({ variant: "outline", size: "icon-xs" }), "mr-4 shrink-0")}
-              href={navigateBack}
-              prefetch={true}
-            >
-              <ChevronLeft className="h-4 w-4"/>
-            </Link>
-          }
-          
-          <h1 className="font-semibold text-lg md:text-2xl truncate">{displayTitle}</h1>
-        </header>
-        <div className="grid items-start gap-6">
-          {path !== ".pages.yml"
-            ? 
-              <>
-                <div className="space-y-2">
-                  <Skeleton className="w-24 h-5 rounded" />
-                  <Skeleton className="w-full h-10 rounded-md" />
-                </div>
-                <div className="space-y-2">
-                  <Skeleton className="w-24 h-5 rounded" />
-                  <Skeleton className="w-48 h-10 rounded-md" />
-                </div>
-                <div className="space-y-2">
-                  <Skeleton className="w-24 h-5 rounded" />
-                  <div className="grid grid-flow-col auto-cols-max gap-4">
-                    <Skeleton className="w-28 h-28 rounded-md" />
-                    <Skeleton className="w-28 h-28 rounded-md" />
-                    <Skeleton className="w-28 h-28 rounded-md" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Skeleton className="w-24 h-5 rounded" />
-                  <Skeleton className="w-full h-60 rounded-md" />
-                </div>
-              </>
-            : <Skeleton className="w-full h-96 rounded-md" />
-          }
-        </div>
-      </div>
-      <div className="hidden lg:block w-64">
-        <div className="flex flex-col gap-y-4 sticky top-0">
-          <div className="flex gap-x-2">
-            <Button type="submit" className="w-full" disabled>Save</Button>
-            {path &&
-              <Button variant="outline" size="icon" className="shrink-0" disabled>
-                <EllipsisVertical className="h-4 w-4" />
-              </Button>
-            }
-          </div>
-          {path && (
-            <div className="flex flex-col gap-y-1 text-sm">
-              <div className="flex items-center rounded-lg px-3 py-2">
-                <Skeleton className="rounded-full h-8 w-8"/>
-                <div className="ml-3">
-                  <Skeleton className="w-24 h-5 rounded mb-2"/>
-                  <Skeleton className="w-16 h-2 rounded"/>
-                </div>
-              </div>
-              <div className="flex items-center rounded-lg px-3 py-2">
-                <Skeleton className="rounded-full h-8 w-8"/>
-                <div className="ml-3">
-                  <Skeleton className="w-24 h-5 rounded mb-2"/>
-                  <Skeleton className="w-16 h-2 rounded"/>
-                </div>
-              </div>
-              <div className="flex items-center rounded-lg px-3 py-2">
-                <Skeleton className="rounded-full h-8 w-8"/>
-                <div className="ml-3">
-                  <Skeleton className="w-24 h-5 rounded mb-2"/>
-                  <Skeleton className="w-16 h-2 rounded"/>
-                </div>
-              </div>
-              <div className="px-3 py-2">
-                <Skeleton className="w-28 h-5 rounded mb-2"/>
+    <div className="w-full max-w-screen-md mx-auto grid items-start gap-6">
+      {path !== ".pages.yml"
+        ? 
+          <>
+            <div className="space-y-2">
+              <Skeleton className="w-24 h-5 rounded" />
+              <Skeleton className="w-full h-10 rounded-md" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="w-24 h-5 rounded" />
+              <Skeleton className="w-full h-10 rounded-md" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="w-24 h-5 rounded" />
+              <div className="grid grid-flow-col auto-cols-max gap-4">
+                <Skeleton className="w-28 h-28 rounded-md" />
+                <Skeleton className="w-28 h-28 rounded-md" />
+                <Skeleton className="w-28 h-28 rounded-md" />
               </div>
             </div>
-          )}
-        </div>
-      </div>
-      <div className="lg:hidden fixed top-0 right-0 h-14 flex items-center gap-x-2 z-10 pr-4 md:pr-6">
-        {path && (
-          <Button variant="outline" size="icon" className="shrink-0" disabled>
-            <History className="h-4 w-4" />
-          </Button>
-        )}
-        <Button type="submit" disabled>Save</Button>
-        {path &&
-          <Button variant="outline" size="icon" className="shrink-0" disabled>
-            <EllipsisVertical className="h-4 w-4" />
-          </Button>
-        }
-      </div>
+            <div className="space-y-2">
+              <Skeleton className="w-24 h-5 rounded" />
+              <Skeleton className="w-full h-60 rounded-md" />
+            </div>
+          </>
+        : <Skeleton className="w-full h-96 rounded-md" />
+      }
     </div>
-  ), [displayTitle, navigateBack, path]);
+  ), [path]);
 
   
   if (error) {
@@ -510,7 +453,7 @@ export function EntryEditor({
             onDelete={handleDelete}
             onRename={handleRename}
           >
-            <Button variant="outline" size="icon" className="shrink-0" disabled={isLoading}>
+            <Button variant="outline" size="icon" className="shrink-0" disabled={isBusy}>
               <EllipsisVertical className="h-4 w-4" />
             </Button>
           </FileOptions>

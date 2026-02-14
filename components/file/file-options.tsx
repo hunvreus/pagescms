@@ -21,9 +21,10 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuShortcut,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { ArrowUpRight, Trash2, Pen, Github } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { FileRename } from "@/components/file/file-rename";
 
 export function FileOptions({
@@ -114,8 +115,8 @@ export function FileOptions({
           <DropdownMenuContent align="end" portalProps={portalProps}>
             <DropdownMenuItem asChild>
               <a href={`https://github.com/${config.owner}/${config.repo}/blob/${encodeURIComponent(config.branch)}/${path}`} target="_blank">
-                <Github />
                 See on GitHub
+                <DropdownMenuShortcut><ArrowUpRight /></DropdownMenuShortcut>
               </a>
             </DropdownMenuItem>
             {type !== "settings"
@@ -123,13 +124,11 @@ export function FileOptions({
                   <DropdownMenuSeparator />
                   {type !== "file" &&
                     <DropdownMenuItem onSelect={() => setIsRenameOpen(true)}>
-                      <Pen />
                       Rename
                     </DropdownMenuItem>
                   }
                   <AlertDialogTrigger asChild>
                     <DropdownMenuItem variant="destructive">
-                      <Trash2 />
                       Delete
                     </DropdownMenuItem>
                   </AlertDialogTrigger>

@@ -246,35 +246,33 @@ export function Entry({
 
   const loadingSkeleton = useMemo(() => (
     <div className="max-w-screen-xl mx-auto flex w-full">
-      <div className="flex-1 w-0">
-        <div className="grid items-start gap-6">
-          {path !== ".pages.yml"
-            ?
-              <>
-                <div className="space-y-2">
-                  <Skeleton className="w-24 h-5 rounded" />
-                  <Skeleton className="w-full h-10 rounded-md" />
+      <div className="grid items-start gap-6">
+        {path !== ".pages.yml"
+          ?
+            <>
+              <div className="space-y-2">
+                <Skeleton className="w-24 h-5 rounded" />
+                <Skeleton className="w-full h-10 rounded-md" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="w-24 h-5 rounded" />
+                <Skeleton className="w-48 h-10 rounded-md" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="w-24 h-5 rounded" />
+                <div className="grid grid-flow-col auto-cols-max gap-4">
+                  <Skeleton className="w-28 h-28 rounded-md" />
+                  <Skeleton className="w-28 h-28 rounded-md" />
+                  <Skeleton className="w-28 h-28 rounded-md" />
                 </div>
-                <div className="space-y-2">
-                  <Skeleton className="w-24 h-5 rounded" />
-                  <Skeleton className="w-48 h-10 rounded-md" />
-                </div>
-                <div className="space-y-2">
-                  <Skeleton className="w-24 h-5 rounded" />
-                  <div className="grid grid-flow-col auto-cols-max gap-4">
-                    <Skeleton className="w-28 h-28 rounded-md" />
-                    <Skeleton className="w-28 h-28 rounded-md" />
-                    <Skeleton className="w-28 h-28 rounded-md" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Skeleton className="w-24 h-5 rounded" />
-                  <Skeleton className="w-full h-60 rounded-md" />
-                </div>
-              </>
-            : <Skeleton className="w-full h-96 rounded-md" />
-          }
-        </div>
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="w-24 h-5 rounded" />
+                <Skeleton className="w-full h-60 rounded-md" />
+              </div>
+            </>
+          : <Skeleton className="w-full h-96 rounded-md" />
+        }
       </div>
     </div>
   ), [path]);

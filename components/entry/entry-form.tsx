@@ -637,7 +637,7 @@ const EntryForm = ({
 
   return (
     <Form {...form}>
-      <form id="entry-form" onSubmit={form.handleSubmit(handleSubmit, handleError)} className="grid items-start gap-6">
+      <form id="entry-form" onSubmit={form.handleSubmit(handleSubmit, handleError)} className="w-full max-w-screen-md mx-auto grid items-start gap-6">
         {filePath &&
           <div className="space-y-2 overflow-hidden">
             <FormLabel>
