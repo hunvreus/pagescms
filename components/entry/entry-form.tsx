@@ -577,7 +577,7 @@ const EntryForm = ({
   filePath,
   options,
 }: {
-  title: string;
+  title?: string;
   navigateBack?: string;
   fields: Field[];
   contentObject?: any;
@@ -585,7 +585,7 @@ const EntryForm = ({
   history?: Record<string, any>[];
   path?: string;
   filePath?: React.ReactNode;
-  options: React.ReactNode;
+  options?: React.ReactNode;
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -637,56 +637,16 @@ const EntryForm = ({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit, handleError)}>
-        <div className="max-w-screen-xl mx-auto flex w-full gap-x-8">
-          <div className="flex-1 w-0">
-            <header className="flex items-center mb-6">
-              {navigateBack &&
-                <Link
-                  className={cn(buttonVariants({ variant: "outline", size: "icon-xs" }), "mr-4 shrink-0")}
-                  href={navigateBack}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Link>
-              }
-
-              <h1 className="font-semibold text-lg md:text-2xl truncate">{title}</h1>
-            </header>
-            
-            <div onSubmit={form.handleSubmit(handleSubmit)} className="grid items-start gap-6">
-              {filePath &&
-                <div className="space-y-2 overflow-hidden">
-                  <FormLabel>
-                    Filename
-                  </FormLabel>
-                  {filePath}
-                </div>
-              }
-              {renderFields(fields)}
-            </div>
+      <form id="entry-form" onSubmit={form.handleSubmit(handleSubmit, handleError)} className="grid items-start gap-6">
+        {filePath &&
+          <div className="space-y-2 overflow-hidden">
+            <FormLabel>
+              Filename
+            </FormLabel>
+            {filePath}
           </div>
-
-          <div className="hidden lg:block w-64">
-            <div className="flex flex-col gap-y-4 sticky top-0">
-              <div className="flex gap-x-2">
-                <Button type="submit" className="w-full" disabled={isSubmitting || !isDirty}>
-                  Save
-                  {isSubmitting && (<Loader className="ml-2 h-4 w-4 animate-spin" />)}
-                </Button>
-                {options ? options : null}
-              </div>
-              {path && history && <EntryHistoryBlock history={history} path={path} />}
-            </div>
-          </div>
-          <div className="lg:hidden fixed top-0 right-0 h-14 flex items-center gap-x-2 z-10 pr-4 md:pr-6">
-            {path && history && <EntryHistoryDropdown history={history} path={path} />}
-            <Button type="submit" disabled={isSubmitting}>
-              Save
-              {isSubmitting && (<Loader className="ml-2 h-4 w-4 animate-spin" />)}
-            </Button>
-            {options ? options : null}
-          </div>
-        </div>
+        }
+        {renderFields(fields)}
       </form>
     </Form>
   );

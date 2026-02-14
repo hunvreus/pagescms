@@ -12,6 +12,7 @@ import { getInitialsFromName } from "@/lib/utils/avatar";
 import { RepoBranches } from "@/components/repo/repo-branches";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { buttonVariants } from "@/components/ui/button";
+import { User } from "@/components/user";
 import { About } from "@/components/about";
 import {
   DropdownMenu,
@@ -120,65 +121,6 @@ function RepoSwitcher() {
   );
 }
 
-function AccountMenu() {
-  const { user } = useUser();
-  const { theme, setTheme } = useTheme();
-
-  if (!user) return null;
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
-          <Avatar className="size-8 rounded-md">
-            <AvatarImage
-              src={user.githubUsername ? `https://github.com/${user.githubUsername}.png` : `https://unavatar.io/${user.email}?fallback=false`}
-              alt={user.name || user.email}
-            />
-            <AvatarFallback>{getInitialsFromName(user.name ?? undefined)}</AvatarFallback>
-          </Avatar>
-          <div className="grid flex-1 text-left text-sm leading-tight">
-            <span className="truncate font-medium">{user.name || user.githubUsername || user.email}</span>
-            <span className="truncate text-xs text-muted-foreground">{user.email}</span>
-          </div>
-          <ChevronsUpDown className="ml-auto size-4" />
-        </SidebarMenuButton>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg" align="end" sideOffset={4}>
-        {user.githubUsername && (
-          <DropdownMenuItem asChild>
-            <a href={`https://github.com/${user.githubUsername}`} target="_blank" rel="noreferrer">
-              <span>View on GitHub</span>
-              <ArrowUpRight className="ml-auto h-3 w-3 opacity-60" />
-            </a>
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-xs text-muted-foreground">Theme</DropdownMenuLabel>
-        <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
-          <DropdownMenuRadioItem value="light">
-            <Sun className="mr-2 size-3.5" />
-            Light
-          </DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="dark">
-            <Moon className="mr-2 size-3.5" />
-            Dark
-          </DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="system">System</DropdownMenuRadioItem>
-        </DropdownMenuRadioGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href="/settings">Settings</Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={async () => signOut()}>
-          <LogOut className="mr-2 size-4" />
-          Log out
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
 export function RepoSidebar() {
   const pathname = usePathname();
   const { user } = useUser();
@@ -281,11 +223,10 @@ export function RepoSidebar() {
         ))}
       </SidebarContent>
       <SidebarFooter className="border-t">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <AccountMenu />
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <div className="flex items-center justify-between gap-2">
+          <User />
+          <About />
+        </div>
       </SidebarFooter>
     </Sidebar>
   );

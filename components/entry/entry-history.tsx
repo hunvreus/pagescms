@@ -3,7 +3,6 @@
 import { formatDistanceToNow } from "date-fns";
 import { getInitialsFromName } from "@/lib/utils/avatar";
 import { useConfig } from "@/contexts/config-context";
-import { ArrowUpRight } from "lucide-react";
 import {
   Avatar,
   AvatarFallback,
@@ -17,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { History } from "lucide-react";
+import { Github, History } from "lucide-react";
 
 export function EntryHistoryBlock({
   path,
@@ -57,7 +56,7 @@ export function EntryHistoryBlock({
             className="flex items-center rounded-lg px-3 py-2 transition-all hover:bg-accent ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             <span className="mr-4">See all changes</span>
-            <ArrowUpRight className="h-3 w-3 ml-auto min-ml-4 opacity-50" />
+            {/* <ArrowUpRight className="h-3 w-3 ml-auto min-ml-4 opacity-50" /> */}
           </a>
         )}
       </div>
@@ -80,7 +79,7 @@ export function EntryHistoryDropdown({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button type="button" variant="outline" size="icon">
+          <Button type="button" variant="ghost" size="icon">
             <History className="h-4 w-4"/>
           </Button>
         </DropdownMenuTrigger>
@@ -108,8 +107,8 @@ export function EntryHistoryDropdown({
                   target="_blank"
                   className="flex items-center w-full"
                 >
-                  <span className="mr-4">See all changes</span>
-                  <ArrowUpRight className="h-3 w-3 ml-auto min-ml-4 opacity-50" />
+                  <Github />
+                  View on GitHub
                 </a>
               </DropdownMenuItem>
             </>

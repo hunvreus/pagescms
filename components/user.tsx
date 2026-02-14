@@ -22,7 +22,7 @@ import {
   AvatarImage,
 } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Settings, LogOut } from "lucide-react";
 
 export function User({
   className,
@@ -40,7 +40,7 @@ export function User({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon-sm" className={cn(className, "rounded-full")}>
-          <Avatar className="h-8 w-8">
+          <Avatar className="size-6">
             <AvatarImage
               src={
                 user?.githubUsername
@@ -65,7 +65,8 @@ export function User({
             : <div className="text-sm font-medium truncate">{user.email}</div>
           }
         </DropdownMenuLabel>
-        {user?.githubUsername && (
+        <DropdownMenuSeparator />
+        {/* {user?.githubUsername && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
@@ -85,14 +86,12 @@ export function User({
           <DropdownMenuRadioItem value="dark" onClick={onClick}>Dark</DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="system" onClick={onClick}>System</DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator /> */}
         <DropdownMenuItem asChild>
           <Link href="/settings">Settings</Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={async () => { if (onClick) onClick(); await signOut(); }}>
-          Log out
-        </DropdownMenuItem>
+        <DropdownMenuItem variant="destructive" onClick={async () => { if (onClick) onClick(); await signOut(); }}>Sign out</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )
