@@ -50,7 +50,7 @@ const FileTeaser = ({ file, config, onRemove, getFileIcon }: {
               </a>
             </TooltipTrigger>
             <TooltipContent>
-              See on GitHub
+              View on GitHub
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

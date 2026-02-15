@@ -6,11 +6,12 @@ import Link from "next/link";
 import { useConfig } from "@/contexts/config-context";
 import { parseAndValidateConfig } from "@/lib/config";
 import { generateFilename, getPrimaryField, getSchemaByName } from "@/lib/schema";
-import { ButtonGroup } from "@/components/ui/button-group";
 import {
   getFileExtension,
   getFileName,
   getParentPath,
+  getRelativePath,
+  joinPathSegments,
   normalizePath
 } from "@/lib/utils/file";
 import { EntryForm } from "./entry-form";
@@ -22,14 +23,22 @@ import { Button } from "@/components/ui/button";
 import { useRepoHeader } from "@/components/repo/repo-header-context";
 import {
   Breadcrumb,
+  BreadcrumbEllipsis,
   BreadcrumbItem,
+  BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner";
-import { EllipsisVertical } from "lucide-react";
+import { EllipsisVertical, History } from "lucide-react";
 import { FilePath } from "@/components/file/file-path";
 
 export function Entry({
@@ -57,6 +66,7 @@ export function Entry({
   });
   const [history, setHistory] = useState<Record<string, any>[]>();
   const [isLoading, setIsLoading] = useState(path ? true : false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | undefined | null>(null);
   // TODO: this feels like a bit of a hack
   const [refetchTrigger, setRefetchTrigger] = useState<number>(0);
@@ -109,23 +119,6 @@ export function Entry({
         : {};
   }, [schema, entry, path]);
 
-  const collectionBreadcrumb = useMemo(() => {
-    if (!path || !schema || schema.type !== "collection") return [];
-
-    const currentParent = getParentPath(path);
-    if (!currentParent || currentParent === schema.path) return [];
-
-    const relativePath = currentParent.startsWith(`${schema.path}/`)
-      ? currentParent.slice(schema.path.length + 1)
-      : currentParent;
-    const segments = relativePath.split("/").filter(Boolean);
-
-    return segments.map((segment, index) => ({
-      label: segment,
-      fullPath: `${schema.path}/${segments.slice(0, index + 1).join("/")}`,
-    }));
-  }, [path, schema]);
-
   useEffect(() => {
     const fetchEntry = async () => {
       if (path) {
@@ -159,7 +152,7 @@ export function Entry({
 
     fetchEntry();
   }, [config.branch, config.owner, config.repo, name, path, refetchTrigger, initialPath, schema, title]);
-  
+
   useEffect(() => {
     // TODO: add loading for history ?
     const fetchHistory = async () => {
@@ -183,6 +176,8 @@ export function Entry({
   }, [config.branch, config.owner, config.repo, path, sha, refetchTrigger, name]);
 
   const onSubmit = async (contentObject: any) => {
+    setIsSaving(true);
+
     const savePromise = new Promise(async (resolve, reject) => {
       try {
         const savePath = path ?? `${parent ?? schema.path}/${generateFilename(schema.filename, schema, contentObject)}`;
@@ -227,8 +222,12 @@ export function Entry({
       await savePromise;
     } catch (error: any) {
       console.error(error.message);
+    } finally {
+      setIsSaving(false);
     }
   };
+
+  const isBusy = isLoading || isSaving;
 
   const handleDelete = useCallback((path: string) => {
     // TODO: disable save button or freeze form while deleting?
@@ -244,85 +243,99 @@ export function Entry({
     router.replace(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/edit/${encodeURIComponent(newPath)}`);
   }, [config.branch, config.owner, config.repo, name, router]);
 
-  const loadingSkeleton = useMemo(() => (
-    <div className="max-w-screen-xl mx-auto flex w-full">
-      <div className="grid items-start gap-6">
-        {path !== ".pages.yml"
-          ?
-            <>
-              <div className="space-y-2">
-                <Skeleton className="w-24 h-5 rounded" />
-                <Skeleton className="w-full h-10 rounded-md" />
-              </div>
-              <div className="space-y-2">
-                <Skeleton className="w-24 h-5 rounded" />
-                <Skeleton className="w-48 h-10 rounded-md" />
-              </div>
-              <div className="space-y-2">
-                <Skeleton className="w-24 h-5 rounded" />
-                <div className="grid grid-flow-col auto-cols-max gap-4">
-                  <Skeleton className="w-28 h-28 rounded-md" />
-                  <Skeleton className="w-28 h-28 rounded-md" />
-                  <Skeleton className="w-28 h-28 rounded-md" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Skeleton className="w-24 h-5 rounded" />
-                <Skeleton className="w-full h-60 rounded-md" />
-              </div>
-            </>
-          : <Skeleton className="w-full h-96 rounded-md" />
-        }
-      </div>
-    </div>
-  ), [path]);
+  const breadcrumbNode = useMemo(() => {
+    if (!path || schemaType !== "collection" || !schema) {
+      return <BreadcrumbPage className="font-semibold truncate">{displayTitle}</BreadcrumbPage>;
+    }
+
+    const rootLabel = schema.label || schema.name || name;
+    const rootPath = normalizePath(schema.path);
+    const parentPath = normalizePath(getParentPath(path));
+    const relativePath = getRelativePath(parentPath, rootPath);
+    const segments = relativePath ? relativePath.split("/").filter(Boolean) : [];
+
+    const parentEntries = segments.map((segment, index) => ({
+      name: segment,
+      path: joinPathSegments([rootPath, segments.slice(0, index + 1).join("/")]),
+    }));
+
+    const immediateParent = parentEntries.length > 0 ? parentEntries[parentEntries.length - 1] : null;
+    const middleEntries = parentEntries.length > 1 ? parentEntries.slice(0, -1) : [];
+
+    return (
+      <>
+        <BreadcrumbItem>
+          <BreadcrumbLink asChild>
+            <Link href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}`}>
+              {rootLabel}
+            </Link>
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+
+        {middleEntries.length > 0 && (
+          <>
+            <BreadcrumbItem>
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center">
+                  <BreadcrumbEllipsis className="h-4 w-4" />
+                  <span className="sr-only">Show hidden segments</span>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  {middleEntries.map((entry) => (
+                    <DropdownMenuItem key={entry.path} asChild>
+                      <Link href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}?path=${encodeURIComponent(entry.path)}`}>
+                        {entry.name}
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+          </>
+        )}
+
+        {immediateParent && (
+          <>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}?path=${encodeURIComponent(immediateParent.path)}`}>
+                  {immediateParent.name}
+                </Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+          </>
+        )}
+
+        <BreadcrumbItem>
+          <BreadcrumbPage className="font-semibold truncate">{displayTitle}</BreadcrumbPage>
+        </BreadcrumbItem>
+      </>
+    );
+  }, [config.branch, config.owner, config.repo, displayTitle, name, path, schema, schemaType]);
 
   const headerNode = useMemo(() => (
     <div className="flex items-center justify-between gap-2">
       <div className="min-w-0">
         <Breadcrumb>
           <BreadcrumbList className="font-semibold text-lg">
-            {schemaType === "collection" && (
-              <span className="inline-flex items-center">
-                <BreadcrumbItem>
-                  <Link
-                    href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}`}
-                    prefetch={true}
-                    className="transition-colors hover:text-foreground/80"
-                  >
-                    {schema?.label || schema?.name || name}
-                  </Link>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-              </span>
-            )}
-            {collectionBreadcrumb.map((segment) => (
-              <span key={segment.fullPath} className="inline-flex items-center">
-                <BreadcrumbItem>
-                  <Link
-                    href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}?path=${encodeURIComponent(segment.fullPath)}`}
-                    prefetch={true}
-                    className="transition-colors hover:text-foreground/80"
-                  >
-                    {segment.label}
-                  </Link>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-              </span>
-            ))}
-            <BreadcrumbItem>
-              <BreadcrumbPage className="font-semibold truncate">{displayTitle}</BreadcrumbPage>
-            </BreadcrumbItem>
+            {breadcrumbNode}
           </BreadcrumbList>
         </Breadcrumb>
       </div>
       <div className="flex items-center gap-x-2">
-        {path && history && <EntryHistoryDropdown history={history} path={path} />}
-        <ButtonGroup>
-          <Button type="submit" form="entry-form" disabled={isLoading}>
-            Save
-          </Button>
-          {path && sha && (
+        {isBusy
+          ? <Button variant="ghost" size="icon" className="shrink-0" disabled><History /></Button>
+          : path && history && <EntryHistoryDropdown history={history} path={path} />
+        }
+        <Button type="submit" form="entry-form" disabled={isBusy}>
+          Save
+        </Button>
+        {isBusy
+          ? <Button variant="ghost" size="icon" className="shrink-0" disabled><EllipsisVertical className="h-4 w-4" /></Button>
+          : path && sha && (
             <FileOptions
               path={path}
               sha={sha}
@@ -331,19 +344,48 @@ export function Entry({
               onDelete={handleDelete}
               onRename={handleRename}
             >
-              <Button variant="ghost" size="icon" className="shrink-0" disabled={isLoading}>
+              <Button variant="ghost" size="icon" className="shrink-0" disabled={isBusy}>
                 <EllipsisVertical className="h-4 w-4" />
               </Button>
             </FileOptions>
-          )}
-        </ButtonGroup>
+          )
+        }
       </div>
     </div>
-  ), [collectionBreadcrumb, config.branch, config.owner, config.repo, displayTitle, handleDelete, handleRename, history, isLoading, name, path, schema?.label, schema?.name, schemaType, sha]);
+  ), [breadcrumbNode, handleDelete, handleRename, history, isBusy, name, path, schemaType, sha]);
 
-  useRepoHeader({
-    header: headerNode,
-  });
+  useRepoHeader({ header: headerNode });
+
+  const loadingSkeleton = useMemo(() => (
+    <div className="w-full max-w-screen-md mx-auto grid items-start gap-6">
+      {path !== ".pages.yml"
+        ? 
+          <>
+            <div className="space-y-2">
+              <Skeleton className="w-24 h-5 rounded" />
+              <Skeleton className="w-full h-10 rounded-md" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="w-24 h-5 rounded" />
+              <Skeleton className="w-full h-10 rounded-md" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="w-24 h-5 rounded" />
+              <div className="grid grid-flow-col auto-cols-max gap-4">
+                <Skeleton className="w-28 h-28 rounded-md" />
+                <Skeleton className="w-28 h-28 rounded-md" />
+                <Skeleton className="w-28 h-28 rounded-md" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="w-24 h-5 rounded" />
+              <Skeleton className="w-full h-60 rounded-md" />
+            </div>
+          </>
+        : <Skeleton className="w-full h-96 rounded-md" />
+      }
+    </div>
+  ), [path]);
 
   
   if (error) {
@@ -351,12 +393,12 @@ export function Entry({
     // TODO: errors show no header (unlike collection and media). Consider standardizing templates.
     if (error === "Not found") {
       return (
-            <Message
+        <Message
             title="File missing"
-            description={`The file "${path ?? schema?.path ?? "unknown"}" has not been created yet.`}
+            description={`The file "${schema.path}" has not been created yet.`}
             className="absolute inset-0"
           >
-          <EmptyCreate type="content" name={schema?.name ?? name}>Create file</EmptyCreate>
+          <EmptyCreate type="content" name={schema.name}>Create file</EmptyCreate>
         </Message>
       );
     } else {
@@ -379,16 +421,6 @@ export function Entry({
         fields={entryFields}
         contentObject={entryContentObject}
         onSubmit={onSubmit}
-        filePath={(path && schema?.type === 'collection')
-          ? <FilePath
-              path={path}
-              sha={sha ?? ""}
-              type={schema.type}
-              name={name}
-              onRename={handleRename}
-            />
-          : undefined
-        }
       />
   );
 };

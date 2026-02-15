@@ -75,8 +75,8 @@ export function RepoDropdown({
         <DropdownMenuContent align="end">
           <DropdownMenuItem asChild>
             <a href={`https://github.com/${owner}/${repo}`} target="_blank" onClick={onClick} >
-              <span className="mr-4">See on GitHub</span>
-              <ArrowUpRight className="h-3 w-3 ml-auto min-ml-4 opacity-50" />
+              View on GitHub
+              <ArrowUpRight className="size-3 ml-auto"/>
             </a>
           </DropdownMenuItem>
           <DropdownMenuSeparator/>

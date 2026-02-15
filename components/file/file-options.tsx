@@ -21,7 +21,6 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuShortcut,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { ArrowUpRight } from "lucide-react";
@@ -115,8 +114,8 @@ export function FileOptions({
           <DropdownMenuContent align="end" portalProps={portalProps}>
             <DropdownMenuItem asChild>
               <a href={`https://github.com/${config.owner}/${config.repo}/blob/${encodeURIComponent(config.branch)}/${path}`} target="_blank">
-                See on GitHub
-                <DropdownMenuShortcut><ArrowUpRight /></DropdownMenuShortcut>
+                View on GitHub
+                <ArrowUpRight className="size-3 ml-auto"/>
               </a>
             </DropdownMenuItem>
             {type !== "settings"

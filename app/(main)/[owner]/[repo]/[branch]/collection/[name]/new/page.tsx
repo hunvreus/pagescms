@@ -2,7 +2,7 @@
 
 import { use } from "react";
 import { useSearchParams } from "next/navigation";
-import { EntryEditor } from "@/components/entry/entry-editor";
+import { Entry } from "@/components/entry/entry";
 
 export default function Page({
   params
@@ -20,6 +20,6 @@ export default function Page({
   const parent = searchParams.get("parent") || undefined;
 
   return (
-    <EntryEditor name={decodeURIComponent(resolvedParams.name)} title="Create a new entry" parent={parent}/>
+    <Entry name={decodeURIComponent(resolvedParams.name)} title="Create a new entry" parent={parent}/>
   );
 }

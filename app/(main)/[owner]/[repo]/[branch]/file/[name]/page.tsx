@@ -2,7 +2,7 @@
 
 import { use, useMemo } from "react";
 import { useConfig } from "@/contexts/config-context";
-import { EntryEditor } from "@/components/entry/entry-editor";
+import { Entry } from "@/components/entry/entry";
 import { getSchemaByName } from "@/lib/schema";
 
 export default function Page({
@@ -23,6 +23,6 @@ export default function Page({
   if (!schema) throw new Error(`Schema not found for ${decodeURIComponent(resolvedParams.name)}.`);
   
   return (
-    <EntryEditor name={resolvedParams.name} path={schema.path} title={schema.label || schema.name}/>
+    <Entry name={resolvedParams.name} path={schema.path} title={schema.label || schema.name}/>
   );
 }

@@ -88,8 +88,8 @@ function RepoSwitcher() {
         <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] rounded-lg" align="start">
           <DropdownMenuItem asChild>
             <a href={`https://github.com/${owner}/${repo}`} target="_blank" rel="noreferrer">
-              <span>See on GitHub</span>
-              <ArrowUpRight className="ml-auto h-3 w-3 opacity-60" />
+              View on GitHub
+              <ArrowUpRight className="size-3 ml-auto"/>
             </a>
           </DropdownMenuItem>
           <DropdownMenuSeparator />

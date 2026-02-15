@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Github, History } from "lucide-react";
+import { ArrowUpRight, History } from "lucide-react";
 
 export function EntryHistoryBlock({
   path,
@@ -80,39 +80,35 @@ export function EntryHistoryDropdown({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button type="button" variant="ghost" size="icon">
-            <History className="h-4 w-4"/>
+            <History />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent>
+        <DropdownMenuContent align="end" className="max-w-3xs">
           {history.slice(0, 3).map((item: any) => (
             <DropdownMenuItem key={item.sha} asChild>
-              <a href={item.html_url} target="_blank" className="w-full truncate">
-                <Avatar className="h-8 w-8">
+              <a href={item.html_url} target="_blank" className="w-full truncate flex items-center gap-3">
+                <Avatar className="size-7">
                   <AvatarImage src={item.author?.login ? `https://github.com/${item.author.login}.png` : undefined} alt={`${item.commit.author.name}'s avatar`} />
                   <AvatarFallback>{getInitialsFromName(item.commit.author.name)}</AvatarFallback>
                 </Avatar>
-                <div className="text-left overflow-hidden ml-3">
+                <div className="text-left overflow-hidden">
                   <div className="truncate">{item.commit.author.name || item.author.login}</div>
                   <div className="text-xs text-muted-foreground truncate">{formatDistanceToNow(new Date(item.commit.author.date))} ago</div>
                 </div>
               </a>
             </DropdownMenuItem>
           ))}
-          {history.length > 3 && (
-            <>
-              <DropdownMenuSeparator/>
-              <DropdownMenuItem>
-                <a
-                  href={`https://github.com/${config?.owner}/${config?.repo}/commits/${encodeURIComponent(config!.branch)}/${path}`}
-                  target="_blank"
-                  className="flex items-center w-full"
-                >
-                  <Github />
-                  View on GitHub
-                </a>
-              </DropdownMenuItem>
-            </>
-          )}
+          <DropdownMenuSeparator/>
+          <DropdownMenuItem>
+            <a
+              href={`https://github.com/${config?.owner}/${config?.repo}/commits/${encodeURIComponent(config!.branch)}/${path}`}
+              target="_blank"
+              className="flex items-center w-full"
+            >
+              View on GitHub
+              <ArrowUpRight className="size-3 ml-auto"/>
+            </a>
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </>

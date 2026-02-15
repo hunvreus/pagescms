@@ -1,6 +1,6 @@
 "use client";
 
-import { EntryEditor } from "@/components/entry/entry-editor";
+import { Entry } from "@/components/entry/entry";
 import { useConfig } from "@/contexts/config-context";
 
 export default function Page() {
@@ -11,6 +11,6 @@ export default function Page() {
   };
   
   return (
-    <EntryEditor path=".pages.yml" onSave={handleSave} title="Settings"/>
+    <Entry path=".pages.yml" onSave={handleSave} title="Settings"/>
   );
 }

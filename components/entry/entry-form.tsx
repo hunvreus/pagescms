@@ -1,11 +1,9 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef, forwardRef, useCallback } from "react";
-import Link from "next/link";
 import {
   useForm,
   useFieldArray,
-  useFormState,
   useFormContext
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,8 +15,7 @@ import {
   sanitizeObject
 } from "@/lib/schema";
 import { Field } from "@/types/field";
-import { EntryHistoryBlock, EntryHistoryDropdown } from "./entry-history";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   Form,
@@ -62,14 +59,11 @@ import {
 } from "@dnd-kit/modifiers";
 import { CSS } from "@dnd-kit/utilities";
 import {
-  ChevronLeft,
   GripVertical,
-  Loader,
   Plus,
   Trash2,
   Ellipsis,
   ChevronRight,
-  Dot,
 } from "lucide-react";
 import { toast } from "sonner";
 import { interpolate } from "@/lib/schema";
@@ -567,28 +561,16 @@ const SingleField = ({
 SingleField.displayName = 'SingleField';
 
 const EntryForm = ({
-  title,
-  navigateBack,
   fields,
   contentObject,
   onSubmit = (values) => console.log("Default onSubmit:", values),
-  history,
-  path,
   filePath,
-  options,
 }: {
-  title?: string;
-  navigateBack?: string;
   fields: Field[];
   contentObject?: any;
   onSubmit: (values: any) => void;
-  history?: Record<string, any>[];
-  path?: string;
   filePath?: React.ReactNode;
-  options?: React.ReactNode;
 }) => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   const zodSchema = useMemo(() => {
     return generateZodSchema(fields);
   }, [fields]);
@@ -601,10 +583,6 @@ const EntryForm = ({
     resolver: zodSchema && zodResolver(zodSchema),
     defaultValues,
     reValidateMode: "onSubmit"
-  });
-
-  const { isDirty } = useFormState({
-    control: form.control
   });
 
   const renderFields = useCallback((
@@ -623,12 +601,7 @@ const EntryForm = ({
   }, []);
 
   const handleSubmit = async (values: any) => {
-    setIsSubmitting(true);
-    try {
-      await onSubmit(values);
-    } finally {
-      setIsSubmitting(false);
-    }
+    await onSubmit(values);
   };
 
   const handleError = (errors: any) => {
