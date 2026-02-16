@@ -309,7 +309,7 @@ export function Entry({
           </>
         )}
 
-        <BreadcrumbItem>
+        <BreadcrumbItem className="truncate">
           <BreadcrumbPage className="font-semibold truncate">{displayTitle}</BreadcrumbPage>
         </BreadcrumbItem>
       </>
@@ -318,9 +318,9 @@ export function Entry({
 
   const headerNode = useMemo(() => (
     <div className="flex items-center justify-between gap-2">
-      <div className="min-w-0">
+      <div className="min-w-0 truncate">
         <Breadcrumb>
-          <BreadcrumbList className="font-semibold text-lg">
+          <BreadcrumbList className="font-semibold text-lg flex-nowrap">
             {breadcrumbNode}
           </BreadcrumbList>
         </Breadcrumb>
@@ -395,10 +395,10 @@ export function Entry({
       return (
         <Message
             title="File missing"
-            description={`The file "${schema.path}" has not been created yet.`}
+            description={`The file "${path ?? schema?.path ?? "unknown"}" has not been created yet.`}
             className="absolute inset-0"
           >
-          <EmptyCreate type="content" name={schema.name}>Create file</EmptyCreate>
+          <EmptyCreate type="content" name={schema?.name ?? name}>Create file</EmptyCreate>
         </Message>
       );
     } else {

@@ -66,7 +66,7 @@ export function User({
           }
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {/* {user?.githubUsername && (
+        {user?.githubUsername && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
@@ -86,7 +86,7 @@ export function User({
           <DropdownMenuRadioItem value="dark" onClick={onClick}>Dark</DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="system" onClick={onClick}>System</DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
-        <DropdownMenuSeparator /> */}
+        <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link href="/settings">Settings</Link>
         </DropdownMenuItem>

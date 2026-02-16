@@ -27,12 +27,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Label } from "@/components/ui/label";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,
@@ -59,10 +54,12 @@ import {
 } from "@dnd-kit/modifiers";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  X,
   GripVertical,
   Plus,
   Trash2,
-  Ellipsis,
+  ChevronsDownUp,
+  ChevronsUpDown,
   ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -92,9 +89,9 @@ const SortableItem = ({
   };
   
   return (
-    <div ref={setNodeRef} className={cn("flex gap-x-2 items-center", isDragging ? "opacity-50 z-50" : "z-10")} style={style}>
-      <Button type="button" variant="ghost" size="icon-sm" className="h-auto w-5 bg-muted/50 self-stretch rounded-md text-muted-foreground cursor-move" {...attributes} {...listeners}>
-        <GripVertical className="h-4 w-4" />
+    <div ref={setNodeRef} className={cn("flex items-center gap-x-1", isDragging ? "opacity-50 z-50" : "z-10")} style={style}>
+      <Button type="button" variant="ghost" size="icon-sm" className="h-auto w-6 self-stretch cursor-move opacity-50 hover:opacity-100 transition-opacity" {...attributes} {...listeners}>
+        <GripVertical />
       </Button>
       {children}
     </div>
@@ -134,7 +131,7 @@ const ListField = ({
       openStatesRef.current = Array(arrayFields.length).fill(!defaultCollapsed);
       forceUpdate({});
     }
-  }, [arrayFields.length, field.list]);
+  }, [arrayFields.length, field.list, isCollapsible]);
   
   const toggleOpen = (index: number) => {
     if (index >= 0 && index < openStatesRef.current.length) {
@@ -145,26 +142,28 @@ const ListField = ({
 
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
-    if (active.id !== over.id) {
-      const oldIndex = arrayFields.findIndex(item => item.id === active.id);
-      const newIndex = arrayFields.findIndex(item => item.id === over.id);
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = arrayFields.findIndex(item => item.id === active.id);
+    const newIndex = arrayFields.findIndex(item => item.id === over.id);
+
+    if (oldIndex < 0 || newIndex < 0) return;
       
-      // Reorder the open states array the same way as the items
-      const newOpenStates = [...openStatesRef.current];
-      const [movedState] = newOpenStates.splice(oldIndex, 1);
-      newOpenStates.splice(newIndex, 0, movedState);
-      openStatesRef.current = newOpenStates;
-      
-      // Perform the move
-      move(oldIndex, newIndex);
-      
-      // Update form values
-      const updatedValues = arrayMove(fieldValues, oldIndex, newIndex);
-      setValue(fieldName, updatedValues);
-      
-      // Force update to reflect the reordered open states
-      forceUpdate({});
-    }
+    // Reorder the open states array the same way as the items
+    const newOpenStates = [...openStatesRef.current];
+    const [movedState] = newOpenStates.splice(oldIndex, 1);
+    newOpenStates.splice(newIndex, 0, movedState);
+    openStatesRef.current = newOpenStates;
+    
+    // Perform the move
+    move(oldIndex, newIndex);
+    
+    // Update form values
+    const updatedValues = arrayMove(fieldValues, oldIndex, newIndex);
+    setValue(fieldName, updatedValues);
+    
+    // Force update to reflect the reordered open states
+    forceUpdate({});
   };
 
   const addItem = () => {
@@ -177,6 +176,9 @@ const ListField = ({
   };
 
   const removeItem = (index: number) => {
+    const shouldRemove = window.confirm("Remove this item?");
+    if (!shouldRemove) return;
+
     remove(index);
     openStatesRef.current.splice(index, 1);
     forceUpdate({});
@@ -209,28 +211,33 @@ const ListField = ({
               </FormLabel>
             }
             {field.required && (
-              <span className="inline-flex items-center rounded-full bg-muted border px-2 h-5 text-xs font-medium">Required</span>
+              <Badge variant="secondary" className="text-muted-foreground">Required</Badge>
             )}
             
-            {
-              isCollapsible && arrayFields.length > 0 && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" type="button" size="icon-xs" className="h-5 w-5 text-muted-foreground hover:text-foreground bg-transparent">
-                      <Ellipsis className="h-4 w-4" />
+            {isCollapsible && arrayFields.length > 0 && (() => {
+              const isAllExpanded = openStatesRef.current.length > 0 && openStatesRef.current.every(Boolean);
+              return (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      type="button"
+                      size="icon-sm"
+                      className="ml-auto opacity-50 hover:opacity-100 transition-opacity"
+                      onClick={() => toggleAll(isAllExpanded)}
+                    >
+                      {isAllExpanded
+                        ? <ChevronsDownUp className="h-4 w-4" />
+                        : <ChevronsUpDown className="h-4 w-4" />
+                      }
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => toggleAll(true)}>
-                      Collapse all
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => toggleAll(false)}>
-                      Expand all
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )
-            }
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {isAllExpanded ? "Collapse all" : "Expand all"}
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })()}
           </div>
           <div className="space-y-2">
             <DndContext sensors={sensors} modifiers={modifiers} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -250,8 +257,8 @@ const ListField = ({
                     </div>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button type="button" variant="ghost" size="icon" className="bg-muted/50 text-muted-foreground self-start" onClick={() => removeItem(index)}>
-                          <Trash2 className="h-4 w-4" />
+                        <Button type="button" variant="ghost" size="icon-sm" className="opacity-50 hover:opacity-100 transition-opacity self-start mt-1.25" onClick={() => removeItem(index)}>
+                          <Trash2 />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -271,7 +278,7 @@ const ListField = ({
                   onClick={addItem}
                   className="gap-x-2"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus />
                   Add an item
                 </Button>
             }
@@ -316,6 +323,8 @@ const BlocksField = forwardRef((props: any, ref) => {
   };
 
   const handleRemoveBlock = () => {
+    const shouldRemove = window.confirm("Remove this block?");
+    if (!shouldRemove) return;
     onChange(null);
   };
 
@@ -349,13 +358,12 @@ const BlocksField = forwardRef((props: any, ref) => {
               <Button
                 key={blockDef.name}
                 type="button"
-                variant="secondary"
+                variant="outline"
                 size="sm"
                 className="gap-x-2"
                 onClick={() => handleBlockSelect(blockDef.name)}
               >
                 {blockDef.label || blockDef.name}
-                <Plus className="h-4 w-4 text-muted-foreground" />
               </Button>
             ))}
           </div>
@@ -370,28 +378,35 @@ const BlocksField = forwardRef((props: any, ref) => {
             )}
             onClick={isCollapsible ? onToggleOpen : undefined}
           >
-            {isCollapsible && (
-              <>
-                <ChevronRight className={cn("h-4 w-4 transition-transform", isOpen ? 'rotate-90' : '')} />
-                <span className={cn('mr-auto', hasErrors() ? 'text-red-500' : '')}>{itemLabel}</span>
-              </>
-            )}
-            <div className="inline-flex items-center gap-x-0.5 text-muted-foreground">
-              <span className={hasErrors() ? 'text-red-500' : ''}>{selectedBlockDefinition.label || selectedBlockDefinition.name}</span>
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" type="button" size="icon-xs" className="text-muted-foreground hover:text-foreground bg-transparent">
-                    <Ellipsis className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={handleRemoveBlock}>
-                    Remove block
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+            
+              {isCollapsible && (
+                <>
+                  <ChevronRight className={cn("size-4 transition-transform shrink-0", isOpen ? 'rotate-90' : '')} />
+                  <span className={cn("truncate", hasErrors() ? 'text-destructive' : '')}>{itemLabel}</span>
+                </>
+              )}
+            <Badge className="text-muted-foreground" variant="outline">
+              {selectedBlockDefinition.label || selectedBlockDefinition.name}
+            </Badge>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  type="button"
+                  size="icon-sm"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleRemoveBlock();
+                  }}
+                  className="ml-auto -mr-2 opacity-50 hover:opacity-100 transition-opacity"
+                >
+                  <X />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                Remove block
+              </TooltipContent>
+            </Tooltip>
           </header>
           <div className={cn("p-4 grid gap-6", isOpen ? '' : 'hidden')}>
             {selectedBlockDefinition.type === 'object' ? (
@@ -479,6 +494,7 @@ const SingleField = ({
   index?: number;
 }) => {
   const { control, formState: { errors } } = useFormContext();
+  const shouldShowFieldMeta = showLabel && (field.label !== false || field.required);
   
   let FieldComponent;
 
@@ -511,16 +527,16 @@ const SingleField = ({
 
     return (
       <FormItem key={fieldName}>
-        {showLabel &&
+        {shouldShowFieldMeta &&
           <div className="flex items-center h-5 gap-x-2">
             {field.label !== false &&
               <Label className={hasErrors() ? "text-red-500" : ""}>
                 {field.label || field.name}
               </Label>
             }
-            {field.required &&
-              <span className="inline-flex items-center rounded-full bg-muted border px-2 h-5 text-xs font-medium">Required</span>
-            }
+            {field.required && (
+              <Badge variant="secondary" className="text-muted-foreground">Required</Badge>
+            )}
           </div>
         }
         <FieldComponent {...fieldComponentProps} />
@@ -535,14 +551,18 @@ const SingleField = ({
         control={control}
         render={({ field: rhfManagedFieldProps, fieldState }) => (
           <FormItem>
-            <div className="flex items-center h-5 gap-x-2">
-              {showLabel && field.label !== false &&
+            {shouldShowFieldMeta && (
+              <div className="flex items-center h-5 gap-x-2">
+                {field.label !== false &&
                 <FormLabel>
                   {field.label || field.name}
                 </FormLabel>
-              }
-              {showLabel && field.required && <span className="inline-flex items-center rounded-full bg-muted border px-2 h-5 text-xs font-medium">Required</span>}
-            </div>
+                }
+                {field.required && (
+                  <Badge variant="secondary" className="text-muted-foreground">Required</Badge>
+                )}
+              </div>
+            )}
             <FormControl>
               <FieldComponent 
                 {...rhfManagedFieldProps}

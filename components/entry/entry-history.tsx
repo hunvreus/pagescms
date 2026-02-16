@@ -36,6 +36,7 @@ export function EntryHistoryBlock({
           <a
             href={item.html_url}
             target="_blank"
+            rel="noopener noreferrer"
             key={item.sha}
             className="flex items-center rounded-lg px-3 py-2 transition-all hover:bg-accent ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
@@ -53,6 +54,7 @@ export function EntryHistoryBlock({
           <a
             href={`https://github.com/${config?.owner}/${config?.repo}/commits/${encodeURIComponent(config!.branch)}/${path}`}
             target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center rounded-lg px-3 py-2 transition-all hover:bg-accent ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             <span className="mr-4">See all changes</span>
@@ -86,7 +88,7 @@ export function EntryHistoryDropdown({
         <DropdownMenuContent align="end" className="max-w-3xs">
           {history.slice(0, 3).map((item: any) => (
             <DropdownMenuItem key={item.sha} asChild>
-              <a href={item.html_url} target="_blank" className="w-full truncate flex items-center gap-3">
+              <a href={item.html_url} target="_blank" rel="noopener noreferrer" className="w-full truncate flex items-center gap-3">
                 <Avatar className="size-7">
                   <AvatarImage src={item.author?.login ? `https://github.com/${item.author.login}.png` : undefined} alt={`${item.commit.author.name}'s avatar`} />
                   <AvatarFallback>{getInitialsFromName(item.commit.author.name)}</AvatarFallback>
@@ -103,6 +105,7 @@ export function EntryHistoryDropdown({
             <a
               href={`https://github.com/${config?.owner}/${config?.repo}/commits/${encodeURIComponent(config!.branch)}/${path}`}
               target="_blank"
+              rel="noopener noreferrer"
               className="flex items-center w-full"
             >
               View on GitHub

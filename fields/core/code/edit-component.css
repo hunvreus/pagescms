@@ -1,7 +1,7 @@
 @reference "../../../app/globals.css";
 
 .cm-editor {
-  @apply bg-background! rounded-md border pr-[10px] pl-[6px] py-1 text-sm ring-offset-background;
+  @apply bg-background! border-input rounded-md border pr-[10px] pl-[6px] py-1 text-sm outline-none transition-[color,box-shadow];
 }
 
 .cm-editor .cm-content {
@@ -9,7 +9,7 @@
 }
 
 .cm-editor.cm-focused {
-  @apply outline-none ring-2 ring-ring ring-offset-2;
+  @apply border-ring ring-[3px] ring-ring/50 outline-none;
 }
 
 .cm-tooltip {
