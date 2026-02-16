@@ -34,7 +34,7 @@ const FileTeaser = ({ file, config, onRemove, getFileIcon }: {
     <>
       <div className="flex items-center gap-x-1 overflow-hidden text-sm">
         {getFileIcon(file)}
-        <span className="font-medium truncate">{getFileName(file)}</span>
+        <div className="truncate">{getFileName(file)}</div>
       </div>
 
       <ButtonGroup>

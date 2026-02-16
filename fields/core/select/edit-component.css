@@ -1,7 +1,7 @@
 @reference "../../../app/globals.css";
 
 .react-select__control {
-  @apply min-h-10! rounded-md! border-input! bg-background! transition-[color,box-shadow]! cursor-pointer! box-border! px-3! py-2! shadow-xs!;
+  @apply min-h-10! rounded-md! border-input! bg-background! transition-[color,box-shadow]! cursor-pointer! box-border! px-3! py-2! shadow-xs! text-sm!;
 }
 
 .react-select__control--is-focused {
