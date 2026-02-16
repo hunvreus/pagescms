@@ -90,7 +90,7 @@ const SortableItem = ({
   
   return (
     <div ref={setNodeRef} className={cn("flex items-center gap-x-1", isDragging ? "opacity-50 z-50" : "z-10")} style={style}>
-      <Button type="button" variant="ghost" size="icon-sm" className="h-auto w-6 self-stretch cursor-move opacity-50 hover:opacity-100 transition-opacity" {...attributes} {...listeners}>
+      <Button type="button" variant="ghost" size="icon-sm" className="h-auto w-6 self-stretch cursor-move text-muted-foreground hover:text-foreground" {...attributes} {...listeners}>
         <GripVertical />
       </Button>
       {children}
@@ -223,7 +223,7 @@ const ListField = ({
                       variant="ghost"
                       type="button"
                       size="icon-sm"
-                      className="ml-auto opacity-50 hover:opacity-100 transition-opacity"
+                      className="ml-auto text-muted-foreground hover:text-foreground"
                       onClick={() => toggleAll(isAllExpanded)}
                     >
                       {isAllExpanded
@@ -257,7 +257,7 @@ const ListField = ({
                     </div>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button type="button" variant="ghost" size="icon-sm" className="opacity-50 hover:opacity-100 transition-opacity self-start mt-1.25" onClick={() => removeItem(index)}>
+                        <Button type="button" variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground self-start mt-1.25" onClick={() => removeItem(index)}>
                           <Trash2 />
                         </Button>
                       </TooltipTrigger>
@@ -385,28 +385,27 @@ const BlocksField = forwardRef((props: any, ref) => {
                   <span className={cn("truncate", hasErrors() ? 'text-destructive' : '')}>{itemLabel}</span>
                 </>
               )}
-            <Badge className="text-muted-foreground" variant="outline">
+            <Badge className="text-muted-foreground ml-auto -mr-2" variant="outline">
               {selectedBlockDefinition.label || selectedBlockDefinition.name}
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleRemoveBlock();
+                    }}
+                    className="text-muted-foreground hover:text-foreground -my-0.5 -mx-2 px-2 transition-colors"
+                  >
+                    <X className="size-3"/>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Remove block
+                </TooltipContent>
+              </Tooltip>
             </Badge>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  type="button"
-                  size="icon-sm"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    handleRemoveBlock();
-                  }}
-                  className="ml-auto -mr-2 opacity-50 hover:opacity-100 transition-opacity"
-                >
-                  <X />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                Remove block
-              </TooltipContent>
-            </Tooltip>
           </header>
           <div className={cn("p-4 grid gap-6", isOpen ? '' : 'hidden')}>
             {selectedBlockDefinition.type === 'object' ? (
