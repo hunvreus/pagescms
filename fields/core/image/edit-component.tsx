@@ -2,11 +2,12 @@
 
 import { forwardRef, useCallback, useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
 import { MediaUpload } from "@/components/media/media-upload";
 import { MediaDialog } from "@/components/media/media-dialog";
 import { Trash2, Upload, FolderOpen, ArrowUpRight } from "lucide-react";
 import { useConfig } from "@/contexts/config-context";
-import { extensionCategories, normalizePath } from "@/lib/utils/file";
+import { normalizePath } from "@/lib/utils/file";
 import {
   Tooltip,
   TooltipContent,
@@ -14,11 +15,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, rectSortingStrategy } from '@dnd-kit/sortable';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { getSchemaByName } from "@/lib/schema";
-import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { Thumbnail } from "@/components/thumbnail";
 import { getAllowedExtensions } from "./index";
@@ -34,41 +34,42 @@ const ImageTeaser = ({ file, config, media, onRemove }: {
   return (
     <>
       <div className="absolute bottom-1.5 right-1.5">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <a
-                href={`https://github.com/${config.owner}/${config.repo}/blob/${config.branch}/${file}`}
-                target="_blank"
-                className={cn(buttonVariants({ variant: "secondary", size: "icon-xs" }), "rounded-r-none")}
-              >
-                <ArrowUpRight className="h-4 w-4" />
-              </a>
-            </TooltipTrigger>
-            <TooltipContent>
-              View on GitHub
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <ButtonGroup className="bg-background rounded-md">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  href={`https://github.com/${config.owner}/${config.repo}/blob/${config.branch}/${file}`}
+                  target="_blank"
+                  className={buttonVariants({ variant: "ghost", size: "icon-xs" })}
+                >
+                  <ArrowUpRight className="size-3"/>
+                </a>
+              </TooltipTrigger>
+              <TooltipContent>
+                View on GitHub
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                size="icon-xs"
-                variant="secondary"
-                onClick={() => onRemove(file)}
-                className="rounded-l-none"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              Remove
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  onClick={() => onRemove(file)}
+                >
+                  <Trash2 />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                Remove
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </ButtonGroup>
       </div>
     </>
   )

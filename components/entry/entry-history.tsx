@@ -18,12 +18,26 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ArrowUpRight, History } from "lucide-react";
 
+type EntryHistoryItem = {
+  sha: string;
+  html_url: string;
+  author?: {
+    login?: string;
+  } | null;
+  commit: {
+    author: {
+      name: string;
+      date: string;
+    };
+  };
+};
+
 export function EntryHistoryBlock({
   path,
   history,
 }: {
   path: string;
-  history: any;
+  history: EntryHistoryItem[];
 }) {
   const { config } = useConfig();
 
@@ -32,7 +46,7 @@ export function EntryHistoryBlock({
   return (
     <>
       <div className="flex flex-col gap-y-1 text-sm">
-        {history.slice(0, 3).map((item: any) => (
+        {history.slice(0, 3).map((item) => (
           <a
             href={item.html_url}
             target="_blank"
@@ -45,7 +59,7 @@ export function EntryHistoryBlock({
               <AvatarFallback>{getInitialsFromName(item.commit.author.name)}</AvatarFallback>
             </Avatar>
             <div className="text-left overflow-hidden ml-3">
-              <div className="text-sm font-medium truncate">{item.commit.author.name || item.author.login}</div>
+              <div className="text-sm font-medium truncate">{item.commit.author.name || item.author?.login}</div>
               <div className="text-xs text-muted-foreground truncate">{formatDistanceToNow(new Date(item.commit.author.date))} ago</div>
             </div>
           </a>
@@ -71,7 +85,7 @@ export function EntryHistoryDropdown({
   history,
 }: {
   path: string;
-  history: any;
+  history: EntryHistoryItem[];
 }) {
   const { config } = useConfig();
 
@@ -86,7 +100,7 @@ export function EntryHistoryDropdown({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="max-w-3xs">
-          {history.slice(0, 3).map((item: any) => (
+          {history.slice(0, 3).map((item) => (
             <DropdownMenuItem key={item.sha} asChild>
               <a href={item.html_url} target="_blank" rel="noopener noreferrer" className="w-full truncate flex items-center gap-3">
                 <Avatar className="size-7">
@@ -94,7 +108,7 @@ export function EntryHistoryDropdown({
                   <AvatarFallback>{getInitialsFromName(item.commit.author.name)}</AvatarFallback>
                 </Avatar>
                 <div className="text-left overflow-hidden">
-                  <div className="truncate">{item.commit.author.name || item.author.login}</div>
+                  <div className="truncate">{item.commit.author.name || item.author?.login}</div>
                   <div className="text-xs text-muted-foreground truncate">{formatDistanceToNow(new Date(item.commit.author.date))} ago</div>
                 </div>
               </a>

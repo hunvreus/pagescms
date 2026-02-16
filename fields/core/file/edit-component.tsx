@@ -7,6 +7,7 @@ import { MediaDialog } from "@/components/media/media-dialog";
 import { Trash2, Upload, File, FileText, FileVideo, FileImage, FileAudio, FileArchive, FileCode, FileType, FileSpreadsheet, GripVertical, FolderOpen, ArrowUpRight } from "lucide-react";
 import { useConfig } from "@/contexts/config-context";
 import { getFileExtension, getFileName, extensionCategories, normalizePath } from "@/lib/utils/file";
+import { ButtonGroup } from "@/components/ui/button-group";
 import {
   Tooltip,
   TooltipContent,
@@ -31,22 +32,21 @@ const FileTeaser = ({ file, config, onRemove, getFileIcon }: {
 }) => {
   return (
     <>
-      <div className="flex items-center overflow-hidden">
+      <div className="flex items-center gap-x-1 overflow-hidden text-sm">
         {getFileIcon(file)}
-        <span className="ml-1 font-medium whitespace-nowrap">{getFileName(file)}</span>
-        <span className="ml-2 text-muted-foreground truncate">{file}</span>
+        <span className="font-medium truncate">{getFileName(file)}</span>
       </div>
 
-      <div className="flex items-center">
+      <ButtonGroup>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <a
                 href={`https://github.com/${config.owner}/${config.repo}/blob/${config.branch}/${file}`}
                 target="_blank"
-                className={cn(buttonVariants({ variant: "ghost", size: "icon-xs" }), "text-muted-foreground hover:text-foreground transition-colors")}
+                className={buttonVariants({ variant: "ghost", size: "icon-xs" })}
               >
-                <ArrowUpRight className="h-4 w-4" />
+                <ArrowUpRight className="size-3" />
               </a>
             </TooltipTrigger>
             <TooltipContent>
@@ -63,9 +63,8 @@ const FileTeaser = ({ file, config, onRemove, getFileIcon }: {
                 variant="ghost"
                 size="icon-xs"
                 onClick={() => onRemove(file)}
-                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground transition-colors"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -73,7 +72,7 @@ const FileTeaser = ({ file, config, onRemove, getFileIcon }: {
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-      </div>
+      </ButtonGroup>
     </>
   )
 };
@@ -109,7 +108,7 @@ const SortableItem = ({ id, file, config, onRemove, getFileIcon }: {
           {...attributes} {...listeners}
           className="text-muted-foreground hover:text-foreground cursor-grab transition-colors"
         >
-          <GripVertical className="h-4 w-4" />
+          <GripVertical className="size-4" />
         </div>
         <FileTeaser file={file} config={config} onRemove={onRemove} getFileIcon={getFileIcon} />
       </div>

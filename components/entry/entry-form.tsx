@@ -65,6 +65,8 @@ import {
 import { toast } from "sonner";
 import { interpolate } from "@/lib/schema";
 
+type RenderFields = (fields: Field[], parentName?: string) => React.ReactNode[];
+
 const SortableItem = ({
   id,
   type,
@@ -105,7 +107,7 @@ const ListField = ({
 }: {
   field: Field;
   fieldName: string;
-  renderFields: Function;
+  renderFields: RenderFields;
 }) => {
   const isCollapsible = !!(field.list && !(typeof field.list === 'object' && field.list?.collapsible === false));
   
@@ -484,7 +486,7 @@ const SingleField = ({
 }: {
   field: Field;
   fieldName: string;
-  renderFields: Function;
+  renderFields: RenderFields;
   showLabel?: boolean;
   isOpen?: boolean;
   toggleOpen?: () => void;
@@ -602,7 +604,7 @@ const EntryForm = ({
     reValidateMode: "onSubmit"
   });
 
-  const renderFields = useCallback((
+  const renderFields: RenderFields = useCallback((
     fields: Field[],
     parentName?: string
   ): React.ReactNode[] => {

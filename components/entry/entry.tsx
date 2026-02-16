@@ -39,7 +39,38 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner";
 import { EllipsisVertical, History } from "lucide-react";
-import { FilePath } from "@/components/file/file-path";
+
+type EntryHistoryItem = {
+  sha: string;
+  html_url: string;
+  author?: {
+    login?: string;
+  } | null;
+  commit: {
+    author: {
+      name: string;
+      date: string;
+    };
+  };
+};
+
+type EntryData = {
+  sha: string;
+  path: string;
+  name?: string;
+  contentObject?: Record<string, unknown>;
+};
+
+type ApiSuccess<T> = {
+  status: "success";
+  message: string;
+  data: T;
+};
+
+type ApiResponse<T> = ApiSuccess<T> | {
+  status: string;
+  message: string;
+};
 
 export function Entry({
   name = "",
@@ -52,10 +83,10 @@ export function Entry({
   path?: string;
   parent?: string;
   title?: string;
-  onSave?: (data: any) => void;
+  onSave?: (data: Record<string, unknown>) => void;
 }) {
   const [path, setPath] = useState<string | undefined>(initialPath);
-  const [entry, setEntry] = useState<Record<string, any> | null | undefined>({});
+  const [entry, setEntry] = useState<EntryData | null>();
   const [sha, setSha] = useState<string | undefined>();
   const [displayTitle, setDisplayTitle] = useState<string>(() => {
     if (title) return title;
@@ -64,7 +95,7 @@ export function Entry({
     }
     return "Edit";
   });
-  const [history, setHistory] = useState<Record<string, any>[]>();
+  const [history, setHistory] = useState<EntryHistoryItem[]>();
   const [isLoading, setIsLoading] = useState(path ? true : false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | undefined | null>(null);
@@ -76,13 +107,13 @@ export function Entry({
   const { config } = useConfig();
   if (!config) throw new Error(`Configuration not found.`);
   
-  let schema = useMemo(() => {
+  const schema = useMemo(() => {
     if (!name) return;
     return getSchemaByName(config?.object, name)
   }, [config, name]);
   const schemaType = schema?.type;
   
-  let entryFields = useMemo(() => {
+  const entryFields = useMemo(() => {
     return !schema?.fields || schema.fields.length === 0
       ? [{
           name: "body",
@@ -109,7 +140,7 @@ export function Entry({
         : schema.fields;
   }, [schema, entry, path]);
 
-  let entryContentObject = useMemo(() => {
+  const entryContentObject = useMemo(() => {
     return path
       ? schema?.list === true
         ? { listWrapper: entry?.contentObject }
@@ -120,18 +151,23 @@ export function Entry({
   }, [schema, entry, path]);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchEntry = async () => {
       if (path) {
         setIsLoading(true);
         setError(null);
 
         try {
-          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/entries/${encodeURIComponent(path)}?name=${encodeURIComponent(name)}`);
+          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/entries/${encodeURIComponent(path)}?name=${encodeURIComponent(name)}`, {
+            signal: controller.signal,
+          });
           if (!response.ok) throw new Error(`Failed to fetch entry: ${response.status} ${response.statusText}`);
 
-          const data: any = await response.json();
+          const data: ApiResponse<EntryData> = await response.json();
           
           if (data.status !== "success") throw new Error(data.message);
+          if (controller.signal.aborted) return;
           
           setEntry(data.data);
           setSha(data.data.sha);
@@ -142,43 +178,61 @@ export function Entry({
           } else if (!title && path && path !== ".pages.yml") {
             setDisplayTitle(`Editing "${getFileName(normalizePath(path))}"`);
           }
-        } catch (error: any) {
-          setError(error.message);
+        } catch (error: unknown) {
+          if (error instanceof DOMException && error.name === "AbortError") return;
+          const message = error instanceof Error ? error.message : "Failed to fetch entry.";
+          setError(message);
         } finally {
-          setIsLoading(false);
+          if (!controller.signal.aborted) {
+            setIsLoading(false);
+          }
         }
       }
     };
 
     fetchEntry();
+
+    return () => {
+      controller.abort();
+    };
   }, [config.branch, config.owner, config.repo, name, path, refetchTrigger, initialPath, schema, title]);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     // TODO: add loading for history ?
     const fetchHistory = async () => {
       if (path) {
         try {
-          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/entries/${encodeURIComponent(path)}/history?name=${encodeURIComponent(name)}`);
+          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/entries/${encodeURIComponent(path)}/history?name=${encodeURIComponent(name)}`, {
+            signal: controller.signal,
+          });
           if (!response.ok) throw new Error(`Failed to fetch entry's history: ${response.status} ${response.statusText}`);
           
-          const data: any = await response.json();
+          const data: ApiResponse<EntryHistoryItem[]> = await response.json();
           
           if (data.status !== "success") throw new Error(data.message);
+          if (controller.signal.aborted) return;
           
           setHistory(data.data);
-        } catch (error: any) {
+        } catch (error: unknown) {
+          if (error instanceof DOMException && error.name === "AbortError") return;
           console.error(error);
         }
       }
     };
 
     fetchHistory();
+
+    return () => {
+      controller.abort();
+    };
   }, [config.branch, config.owner, config.repo, path, sha, refetchTrigger, name]);
 
-  const onSubmit = async (contentObject: any) => {
+  const onSubmit = async (contentObject: Record<string, unknown>) => {
     setIsSaving(true);
 
-    const savePromise = new Promise(async (resolve, reject) => {
+    const savePromise = new Promise<ApiSuccess<EntryData>>(async (resolve, reject) => {
       try {
         const savePath = path ?? `${parent ?? schema.path}/${generateFilename(schema.filename, schema, contentObject)}`;
 
@@ -195,7 +249,7 @@ export function Entry({
           }),
         });
         if (!response.ok) throw new Error(`Failed to save file: ${response.status} ${response.statusText}`);
-        const data: any = await response.json();
+        const data: ApiResponse<EntryData> = await response.json();
       
         if (data.status !== "success") throw new Error(data.message);
         
@@ -211,17 +265,21 @@ export function Entry({
 
     toast.promise(savePromise, {
       loading: "Saving your file",
-      success: (response: any) => {
+      success: (response: ApiSuccess<EntryData>) => {
         if (onSave) onSave(response.data);
         return response.message;
       },
-      error: (error: any) => error.message,
+      error: (error: unknown) => error instanceof Error ? error.message : "Failed to save file.",
     });
 
     try {
       await savePromise;
-    } catch (error: any) {
-      console.error(error.message);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error(error.message);
+      } else {
+        console.error(error);
+      }
     } finally {
       setIsSaving(false);
     }
