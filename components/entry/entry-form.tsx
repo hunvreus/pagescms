@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef, forwardRef, useCallback } from "react";
+import { useState, useMemo, useEffect, forwardRef, useCallback } from "react";
 import {
   useForm,
   useFieldArray,
@@ -78,13 +78,38 @@ type NestedFieldProps = {
   index?: number;
 };
 
+const hasFieldPathError = (errors: unknown, fieldName: string): boolean => {
+  let current: unknown = errors;
+  for (const part of fieldName.split(".")) {
+    if (typeof current !== "object" || current === null || !(part in current)) {
+      return false;
+    }
+    current = (current as Record<string, unknown>)[part];
+  }
+  return Boolean(current);
+};
+
+const getCollapsibleItemLabel = (field: Field, fieldValues: unknown, index?: number): string => {
+  if (
+    typeof field.list === "object" &&
+    field.list.collapsible &&
+    typeof field.list.collapsible === "object" &&
+    field.list.collapsible.summary
+  ) {
+    return interpolate(field.list.collapsible.summary, {
+      index: index !== undefined ? `${index + 1}` : "",
+      fields: fieldValues as Record<string, unknown>,
+    });
+  }
+
+  return `Item ${index !== undefined ? `#${index + 1}` : ""}`;
+};
+
 const SortableItem = ({
   id,
-  type,
   children
 }: {
   id: string,
-  type: string,
   children: React.ReactNode
 }) => {
   const {
@@ -121,40 +146,44 @@ const ListField = ({
   renderFields: RenderFields;
 }) => {
   const isCollapsible = !!(field.list && !(typeof field.list === 'object' && field.list?.collapsible === false));
+  const defaultOpen = useMemo(() => {
+    const defaultCollapsed =
+      isCollapsible &&
+      typeof field.list === "object" &&
+      field.list.collapsible &&
+      typeof field.list.collapsible === "object" &&
+      field.list.collapsible.collapsed;
+    return !defaultCollapsed;
+  }, [field.list, isCollapsible]);
+
+  const { fields: arrayFields, append, remove, move } = useFieldArray({
+    name: fieldName,
+  });
+  const [openStates, setOpenStates] = useState<boolean[]>([]);
   const shouldShowListHeader =
     field.label !== false ||
     field.required ||
     (isCollapsible && arrayFields.length > 0);
   
-  const { control, setValue } = useFormContext();
-  const { fields: arrayFields, append, remove, move } = useFieldArray({
-    name: fieldName,
-  });
-  const fieldValues = useWatch({ control, name: fieldName });
-  
-  // Use an index-to-state map with a ref to survive re-renders
-  const openStatesRef = useRef<boolean[]>([]);
-  const [, forceUpdate] = useState({});
-  
   useEffect(() => {
-    if (openStatesRef.current.length === 0 && arrayFields.length > 0) {
-      const defaultCollapsed =
-        isCollapsible &&
-        typeof field.list === 'object' &&
-        field.list.collapsible &&
-        typeof field.list.collapsible === 'object' &&
-        field.list.collapsible.collapsed;
-      
-      openStatesRef.current = Array(arrayFields.length).fill(!defaultCollapsed);
-      forceUpdate({});
-    }
-  }, [arrayFields.length, field.list, isCollapsible]);
+    setOpenStates((prev) => {
+      if (prev.length === arrayFields.length) {
+        return prev;
+      }
+      if (prev.length === 0 && arrayFields.length > 0) {
+        return Array(arrayFields.length).fill(defaultOpen);
+      }
+      if (prev.length < arrayFields.length) {
+        return [...prev, ...Array(arrayFields.length - prev.length).fill(defaultOpen)];
+      }
+      return prev.slice(0, arrayFields.length);
+    });
+  }, [arrayFields.length, defaultOpen]);
   
   const toggleOpen = (index: number) => {
-    if (index >= 0 && index < openStatesRef.current.length) {
-      openStatesRef.current[index] = !openStatesRef.current[index];
-      forceUpdate({});
-    }
+    setOpenStates((prev) =>
+      prev.map((isOpen, currentIndex) => (currentIndex === index ? !isOpen : isOpen))
+    );
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -165,22 +194,9 @@ const ListField = ({
     const newIndex = arrayFields.findIndex(item => item.id === over.id);
 
     if (oldIndex < 0 || newIndex < 0) return;
-      
-    // Reorder the open states array the same way as the items
-    const newOpenStates = [...openStatesRef.current];
-    const [movedState] = newOpenStates.splice(oldIndex, 1);
-    newOpenStates.splice(newIndex, 0, movedState);
-    openStatesRef.current = newOpenStates;
-    
-    // Perform the move
+
+    setOpenStates((prev) => arrayMove(prev, oldIndex, newIndex));
     move(oldIndex, newIndex);
-    
-    // Update form values
-    const updatedValues = arrayMove(fieldValues, oldIndex, newIndex);
-    setValue(fieldName, updatedValues);
-    
-    // Force update to reflect the reordered open states
-    forceUpdate({});
   };
 
   const addItem = () => {
@@ -188,8 +204,7 @@ const ListField = ({
       ? initializeState(field.fields, {})
       : getDefaultValue(field)
     );
-    openStatesRef.current.push(true);
-    forceUpdate({});
+    setOpenStates((prev) => [...prev, true]);
   };
 
   const removeItem = (index: number) => {
@@ -197,8 +212,7 @@ const ListField = ({
     if (!shouldRemove) return;
 
     remove(index);
-    openStatesRef.current.splice(index, 1);
-    forceUpdate({});
+    setOpenStates((prev) => prev.filter((_, currentIndex) => currentIndex !== index));
   };
   
   const sensors = useSensors(
@@ -211,8 +225,7 @@ const ListField = ({
   const modifiers = [restrictToVerticalAxis, restrictToParentElement]
 
   const toggleAll = (collapsed: boolean) => {
-    openStatesRef.current = Array(openStatesRef.current.length).fill(!collapsed);
-    forceUpdate({});
+    setOpenStates(Array(arrayFields.length).fill(!collapsed));
   };
 
   // We don't render <FormMessage/> in ListField, because it's already rendered in the individual fields
@@ -233,7 +246,7 @@ const ListField = ({
               )}
               
               {isCollapsible && arrayFields.length > 0 && (() => {
-                const isAllExpanded = openStatesRef.current.length > 0 && openStatesRef.current.every(Boolean);
+                const isAllExpanded = openStates.length > 0 && openStates.every(Boolean);
                 return (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -262,14 +275,14 @@ const ListField = ({
             <DndContext sensors={sensors} modifiers={modifiers} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={arrayFields.map(item => item.id)} strategy={verticalListSortingStrategy}>
                 {arrayFields.map((arrayField, index) => (
-                  <SortableItem key={arrayField.id} id={arrayField.id} type={field.type}>
+                  <SortableItem key={arrayField.id} id={arrayField.id}>
                     <div className="grid gap-6 flex-1">
                       <SingleField
                         field={field}
                         fieldName={`${fieldName}.${index}`}
                         renderFields={renderFields}
                         showLabel={false}
-                        isOpen={openStatesRef.current[index]}
+                        isOpen={openStates[index] ?? defaultOpen}
                         toggleOpen={() => toggleOpen(index)}
                         index={index}
                       />
@@ -322,10 +335,7 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>((props, ref) =>
   }
 
   const hasErrors = () => {
-    let curr: unknown = errors;
-    return fieldName
-      .split(".")
-      .every((part) => (curr = (curr as Record<string, unknown> | undefined)?.[part]) !== undefined) && !!curr;
+    return hasFieldPathError(errors, fieldName);
   };
 
   const { blocks = [] } = field;
@@ -355,17 +365,7 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>((props, ref) =>
   }, [blocks, selectedBlockName]);
 
   const fieldValues = useWatch({ control, name: fieldName });
-  const interpolateData = {
-    index: index !== undefined ? `${index + 1}` : '',
-    fields: fieldValues,
-  }
-  const itemLabel = 
-    typeof field.list === 'object' && 
-    field.list.collapsible && 
-    typeof field.list.collapsible === 'object' && 
-    field.list.collapsible.summary
-      ? interpolate(field.list.collapsible.summary, interpolateData)
-      : `Item ${index !== undefined ? `#${index + 1}` : ''}`;
+  const itemLabel = getCollapsibleItemLabel(field, fieldValues, index);
 
   return (
     <div className="space-y-3" ref={ref as React.Ref<HTMLDivElement>}>
@@ -460,24 +460,11 @@ const ObjectField = forwardRef<HTMLDivElement, NestedFieldProps>((props, ref) =>
   const { control, formState: { errors } } = useFormContext();
 
   const hasErrors = () => {
-    let curr: unknown = errors;
-    return fieldName
-      .split(".")
-      .every((part) => (curr = (curr as Record<string, unknown> | undefined)?.[part]) !== undefined) && !!curr;
+    return hasFieldPathError(errors, fieldName);
   };
 
   const fieldValues = useWatch({ control, name: fieldName });
-  const interpolateData = {
-    index: index !== undefined ? `${index + 1}` : '',
-    fields: fieldValues,
-  }
-  const itemLabel = 
-    typeof field.list === 'object' && 
-    field.list.collapsible && 
-    typeof field.list.collapsible === 'object' && 
-    field.list.collapsible.summary
-      ? interpolate(field.list.collapsible.summary, interpolateData)
-      : `Item ${index !== undefined ? `#${index + 1}` : ''}`;
+  const itemLabel = getCollapsibleItemLabel(field, fieldValues, index);
   
   return (
     <div className="border rounded-lg">
@@ -488,7 +475,7 @@ const ObjectField = forwardRef<HTMLDivElement, NestedFieldProps>((props, ref) =>
         </header>
       )}
       <div className={cn("p-4 grid gap-6", isOpen ? '' : 'hidden')}>
-        {renderFields(field.fields, fieldName)}
+        {renderFields(field.fields || [], fieldName)}
       </div>
     </div>
   );
@@ -515,35 +502,12 @@ const SingleField = ({
 }) => {
   const { control, formState: { errors } } = useFormContext();
   const shouldShowFieldMeta = showLabel && (field.label !== false || field.required);
-  
-  let FieldComponent;
 
   const isCollapsible = !!(field.list && !(typeof field.list === 'object' && field.list?.collapsible === false));
-
-  if (field.type === 'block') {
-    FieldComponent = BlocksField;
-  } else if (field.type === 'object') {
-    FieldComponent = ObjectField;
-  } else if (typeof field.type === 'string' && editComponents[field.type]) {
-    FieldComponent = editComponents[field.type];
-  } else {
-    console.warn(`No component found for field type: ${field.type}. Defaulting to 'text'.`);
-    FieldComponent = editComponents['text'];
-  }
-
-  let fieldComponentProps: any = { field: field };
-  if (['object', 'block'].includes(field.type)) {
-    fieldComponentProps = { ...fieldComponentProps, fieldName, renderFields, isOpen };
-    if (isCollapsible) {
-      fieldComponentProps = { ...fieldComponentProps, onToggleOpen: toggleOpen, index };
-    }
-  }
   
   if (['object', 'block'].includes(field.type)) {
-    const hasErrors = () => {
-      let curr: any = errors;
-      return fieldName.split('.').every((part: string) => (curr = curr?.[part]) !== undefined) && !!curr;
-    };
+    const hasErrors = () => hasFieldPathError(errors, fieldName);
+    const NestedComponent = field.type === "block" ? BlocksField : ObjectField;
 
     return (
       <FormItem key={fieldName}>
@@ -559,17 +523,33 @@ const SingleField = ({
             )}
           </div>
         }
-        <FieldComponent {...fieldComponentProps} />
+        <NestedComponent
+          field={field}
+          fieldName={fieldName}
+          renderFields={renderFields}
+          isOpen={isOpen}
+          onToggleOpen={isCollapsible ? toggleOpen : undefined}
+          index={isCollapsible ? index : undefined}
+        />
         {field.description && <FormDescription>{field.description}</FormDescription>}
       </FormItem>
     );
   } else {
+    let FieldComponent;
+
+    if (typeof field.type === 'string' && editComponents[field.type]) {
+      FieldComponent = editComponents[field.type];
+    } else {
+      console.warn(`No component found for field type: ${field.type}. Defaulting to 'text'.`);
+      FieldComponent = editComponents['text'];
+    }
+
     return (
       <FormField
         name={fieldName}
         key={fieldName}
         control={control}
-        render={({ field: rhfManagedFieldProps, fieldState }) => (
+        render={({ field: rhfManagedFieldProps }) => (
           <FormItem>
             {shouldShowFieldMeta && (
               <div className="flex items-center h-5 gap-x-2">
@@ -586,7 +566,7 @@ const SingleField = ({
             <FormControl>
               <FieldComponent 
                 {...rhfManagedFieldProps}
-                {...fieldComponentProps}
+                field={field}
               />
             </FormControl>
             {field.description && <FormDescription>{field.description}</FormDescription>}
