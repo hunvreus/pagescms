@@ -349,11 +349,9 @@ const BlocksField = forwardRef((props: any, ref) => {
   return (
     <div className="space-y-3" ref={ref as React.Ref<HTMLDivElement>}>
       {!selectedBlockDefinition ? (
-        <div className="rounded-lg border">
-          <header className="flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-10 text-sm font-medium">
-            <span>Choose content block:</span>
-          </header>
-          <div className="flex flex-wrap gap-2 p-4">
+        <div className="rounded-lg border p-4 space-y-4">
+          <div className="text-sm">Choose content block:</div>
+          <div className="flex flex-wrap gap-2">
             {blocks.map((blockDef: Field) => (
               <Button
                 key={blockDef.name}
