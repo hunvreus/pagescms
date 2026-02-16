@@ -72,6 +72,14 @@ type ApiResponse<T> = ApiSuccess<T> | {
   message: string;
 };
 
+type LintView = {
+  state: {
+    doc: {
+      toString(): string;
+    };
+  };
+};
+
 export function Entry({
   name = "",
   path: initialPath,
@@ -122,7 +130,7 @@ export function Entry({
           options: {
             format: schema?.extension || (entry?.name && getFileExtension(entry.name)) || "markdown",
             lintFn: path === ".pages.yml"
-              ? (view: any) => {
+              ? (view: LintView) => {
                   const {parseErrors, validationErrors} = parseAndValidateConfig(view.state.doc.toString());
                   return [...parseErrors, ...validationErrors];
                 }
@@ -234,7 +242,14 @@ export function Entry({
 
     const savePromise = new Promise<ApiSuccess<EntryData>>(async (resolve, reject) => {
       try {
-        const savePath = path ?? `${parent ?? schema.path}/${generateFilename(schema.filename, schema, contentObject)}`;
+        let savePath = path;
+        if (!savePath) {
+          if (!schema) throw new Error("Cannot create entry without schema.");
+          const basePath = parent ?? schema.path;
+          if (basePath == null) throw new Error("Cannot create entry without a target path.");
+          const generatedFilename = generateFilename(schema.filename, schema, contentObject);
+          savePath = joinPathSegments([basePath, generatedFilename]);
+        }
 
         const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/files/${encodeURIComponent(savePath)}`, {
           method: "POST",
@@ -384,33 +399,35 @@ export function Entry({
         </Breadcrumb>
       </div>
       <div className="flex items-center gap-x-2">
-        {isBusy
-          ? <Button variant="ghost" size="icon" className="shrink-0" disabled><History /></Button>
-          : path && history && <EntryHistoryDropdown history={history} path={path} />
-        }
+        {path && (
+          history && history.length > 0 && !isLoading
+            ? <EntryHistoryDropdown history={history} path={path} />
+            : <Button variant="ghost" size="icon" className="shrink-0" disabled><History /></Button>
+        )}
         <Button type="submit" form="entry-form" disabled={isBusy}>
           Save
         </Button>
-        {isBusy
-          ? <Button variant="ghost" size="icon" className="shrink-0" disabled><EllipsisVertical className="h-4 w-4" /></Button>
-          : path && sha && (
-            <FileOptions
-              path={path}
-              sha={sha}
-              type={path === ".pages.yml" ? "settings" : (schemaType ?? "content")}
-              name={name}
-              onDelete={handleDelete}
-              onRename={handleRename}
-            >
-              <Button variant="ghost" size="icon" className="shrink-0" disabled={isBusy}>
-                <EllipsisVertical className="h-4 w-4" />
-              </Button>
-            </FileOptions>
-          )
-        }
+        {path && (
+          sha
+            ? (
+              <FileOptions
+                path={path}
+                sha={sha}
+                type={path === ".pages.yml" ? "settings" : (schemaType ?? "content")}
+                name={name}
+                onDelete={handleDelete}
+                onRename={handleRename}
+              >
+                <Button variant="ghost" size="icon" className="shrink-0" disabled={isBusy}>
+                  <EllipsisVertical className="h-4 w-4" />
+                </Button>
+              </FileOptions>
+            )
+            : <Button variant="ghost" size="icon" className="shrink-0" disabled><EllipsisVertical className="h-4 w-4" /></Button>
+        )}
       </div>
     </div>
-  ), [breadcrumbNode, handleDelete, handleRename, history, isBusy, name, path, schemaType, sha]);
+  ), [breadcrumbNode, handleDelete, handleRename, history, isBusy, isLoading, name, path, schemaType, sha]);
 
   useRepoHeader({ header: headerNode });
 

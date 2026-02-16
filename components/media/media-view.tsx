@@ -275,26 +275,26 @@ const MediaView = ({
 
   return (
     <div className="flex-1 flex flex-col space-y-4">
-      <header className="flex items-center gap-x-2">
+      <header className="flex items-center gap-x-2 justify-between">
         <div className="sm:flex-1">
           <PathBreadcrumb path={path} rootPath={mediaConfig.input} handleNavigate={handleNavigate} className="hidden sm:block"/>
           <Button onClick={handleNavigateParent} size="icon-sm" variant="outline" className="shrink-0 sm:hidden" disabled={!path || path === mediaConfig.input}>
             <CornerLeftUp className="w-4 h-4"/>
           </Button>
         </div>
-        <FolderCreate path={path} name={mediaConfig.name} type="media" onCreate={handleFolderCreate}>
-          <Button type="button" variant="outline" className="ml-auto" size="icon-sm">
-            <FolderPlus className="h-3.5 w-3.5"/>
-          </Button>
-        </FolderCreate>
         <MediaUpload media={mediaConfig.name} path={path} onUpload={handleUpload} extensions={filteredExtensions}>
           <MediaUpload.Trigger>
             <Button type="button" size="sm" className="gap-2">
-              <Upload className="h-3.5 w-3.5"/>
+              <Upload />
               Upload
             </Button>
           </MediaUpload.Trigger>
         </MediaUpload>
+        <FolderCreate path={path} name={mediaConfig.name} type="media" onCreate={handleFolderCreate}>
+          <Button type="button" variant="outline" className="ml-auto" size="icon-sm">
+            <FolderPlus />
+          </Button>
+        </FolderCreate>
       </header>
       <MediaUpload media={mediaConfig.name} path={path} onUpload={handleUpload} extensions={filteredExtensions}>
         <MediaUpload.DropZone className="flex-1 overflow-auto scrollbar">

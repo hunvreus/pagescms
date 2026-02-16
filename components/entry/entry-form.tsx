@@ -4,7 +4,8 @@ import { useState, useMemo, useEffect, useRef, forwardRef, useCallback } from "r
 import {
   useForm,
   useFieldArray,
-  useFormContext
+  useFormContext,
+  useWatch,
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { editComponents } from "@/fields/registry";
@@ -36,6 +37,7 @@ import {
 import {
   DndContext,
   closestCenter,
+  type DragEndEvent,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -66,6 +68,15 @@ import { toast } from "sonner";
 import { interpolate } from "@/lib/schema";
 
 type RenderFields = (fields: Field[], parentName?: string) => React.ReactNode[];
+
+type NestedFieldProps = {
+  field: Field;
+  fieldName: string;
+  renderFields: RenderFields;
+  isOpen?: boolean;
+  onToggleOpen?: () => void;
+  index?: number;
+};
 
 const SortableItem = ({
   id,
@@ -110,12 +121,16 @@ const ListField = ({
   renderFields: RenderFields;
 }) => {
   const isCollapsible = !!(field.list && !(typeof field.list === 'object' && field.list?.collapsible === false));
+  const shouldShowListHeader =
+    field.label !== false ||
+    field.required ||
+    (isCollapsible && arrayFields.length > 0);
   
-  const { setValue, watch } = useFormContext();
+  const { control, setValue } = useFormContext();
   const { fields: arrayFields, append, remove, move } = useFieldArray({
     name: fieldName,
   });
-  const fieldValues = watch(fieldName);
+  const fieldValues = useWatch({ control, name: fieldName });
   
   // Use an index-to-state map with a ref to survive re-renders
   const openStatesRef = useRef<boolean[]>([]);
@@ -142,7 +157,7 @@ const ListField = ({
     }
   };
 
-  const handleDragEnd = (event: any) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
@@ -204,43 +219,45 @@ const ListField = ({
   return (
     <FormField
       name={fieldName}
-      render={({ field: formField, fieldState: { error } }) => (
+      render={() => (
         <FormItem>
-          <div className="flex items-center h-5 gap-x-2">
-            {field.label !== false &&
-              <FormLabel className="text-sm font-medium">
-                {field.label || field.name}   
-              </FormLabel>
-            }
-            {field.required && (
-              <Badge variant="secondary" className="text-muted-foreground">Required</Badge>
-            )}
-            
-            {isCollapsible && arrayFields.length > 0 && (() => {
-              const isAllExpanded = openStatesRef.current.length > 0 && openStatesRef.current.every(Boolean);
-              return (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      type="button"
-                      size="icon-sm"
-                      className="ml-auto text-muted-foreground hover:text-foreground"
-                      onClick={() => toggleAll(isAllExpanded)}
-                    >
-                      {isAllExpanded
-                        ? <ChevronsDownUp className="h-4 w-4" />
-                        : <ChevronsUpDown className="h-4 w-4" />
-                      }
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {isAllExpanded ? "Collapse all" : "Expand all"}
-                  </TooltipContent>
-                </Tooltip>
-              );
-            })()}
-          </div>
+          {shouldShowListHeader && (
+            <div className="flex items-center h-5 gap-x-2">
+              {field.label !== false &&
+                <FormLabel className="text-sm font-medium">
+                  {field.label || field.name}   
+                </FormLabel>
+              }
+              {field.required && (
+                <Badge variant="secondary" className="text-muted-foreground">Required</Badge>
+              )}
+              
+              {isCollapsible && arrayFields.length > 0 && (() => {
+                const isAllExpanded = openStatesRef.current.length > 0 && openStatesRef.current.every(Boolean);
+                return (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        type="button"
+                        size="icon-sm"
+                        className="ml-auto text-muted-foreground hover:text-foreground"
+                        onClick={() => toggleAll(isAllExpanded)}
+                      >
+                        {isAllExpanded
+                          ? <ChevronsDownUp className="h-4 w-4" />
+                          : <ChevronsUpDown className="h-4 w-4" />
+                        }
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {isAllExpanded ? "Collapse all" : "Expand all"}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })()}
+            </div>
+          )}
           <div className="space-y-2">
             <DndContext sensors={sensors} modifiers={modifiers} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={arrayFields.map(item => item.id)} strategy={verticalListSortingStrategy}>
@@ -292,21 +309,23 @@ const ListField = ({
   );
 };
 
-const BlocksField = forwardRef((props: any, ref) => {
+const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>((props, ref) => {
   const { field, fieldName, renderFields, isOpen, onToggleOpen, index } = props;
 
   const isCollapsible = !!(field.list && !(typeof field.list === 'object' && field.list?.collapsible === false));
   
-  const { setValue, watch, formState: { errors } } = useFormContext();
+  const { control, setValue, formState: { errors } } = useFormContext();
   
-  const value = watch(fieldName);
-  const onChange = (val: any) => {
+  const value = useWatch({ control, name: fieldName });
+  const onChange = (val: Record<string, unknown> | null) => {
     setValue(fieldName, val, { shouldDirty: true });
   }
 
   const hasErrors = () => {
-    let curr: any = errors;
-    return fieldName.split('.').every((part: string) => (curr = curr?.[part]) !== undefined) && !!curr;
+    let curr: unknown = errors;
+    return fieldName
+      .split(".")
+      .every((part) => (curr = (curr as Record<string, unknown> | undefined)?.[part]) !== undefined) && !!curr;
   };
 
   const { blocks = [] } = field;
@@ -316,7 +335,7 @@ const BlocksField = forwardRef((props: any, ref) => {
   const handleBlockSelect = (blockName: string) => {
     const selectedBlockDef = blocks.find((b: Field) => b.name === blockName);
     if (!selectedBlockDef) return;
-    let initialState: Record<string, any> = { [blockKey]: blockName };
+    let initialState: Record<string, unknown> = { [blockKey]: blockName };
     if (selectedBlockDef.fields) {
       const choiceDefaults = initializeState(selectedBlockDef.fields, {});
       initialState = { ...initialState, ...choiceDefaults };
@@ -335,7 +354,7 @@ const BlocksField = forwardRef((props: any, ref) => {
     return definition;
   }, [blocks, selectedBlockName]);
 
-  const fieldValues = watch(fieldName);
+  const fieldValues = useWatch({ control, name: fieldName });
   const interpolateData = {
     index: index !== undefined ? `${index + 1}` : '',
     fields: fieldValues,
@@ -433,19 +452,21 @@ const BlocksField = forwardRef((props: any, ref) => {
 
 BlocksField.displayName = 'BlocksField';
 
-const ObjectField = forwardRef((props: any, ref) => {
+const ObjectField = forwardRef<HTMLDivElement, NestedFieldProps>((props, ref) => {
   const { field, fieldName, renderFields, isOpen = true, onToggleOpen = () => {}, index } = props;
   
   const isCollapsible = !!(field.list && !(typeof field.list === 'object' && field.list?.collapsible === false));
 
-  const { watch, formState: { errors } } = useFormContext();
+  const { control, formState: { errors } } = useFormContext();
 
   const hasErrors = () => {
-    let curr: any = errors;
-    return fieldName.split('.').every((part: string) => (curr = curr?.[part]) !== undefined) && !!curr;
+    let curr: unknown = errors;
+    return fieldName
+      .split(".")
+      .every((part) => (curr = (curr as Record<string, unknown> | undefined)?.[part]) !== undefined) && !!curr;
   };
 
-  const fieldValues = watch(fieldName);
+  const fieldValues = useWatch({ control, name: fieldName });
   const interpolateData = {
     index: index !== undefined ? `${index + 1}` : '',
     fields: fieldValues,
@@ -586,8 +607,8 @@ const EntryForm = ({
   filePath,
 }: {
   fields: Field[];
-  contentObject?: any;
-  onSubmit: (values: any) => void;
+  contentObject?: Record<string, unknown>;
+  onSubmit: (values: Record<string, unknown>) => void;
   filePath?: React.ReactNode;
 }) => {
   const zodSchema = useMemo(() => {
@@ -619,11 +640,11 @@ const EntryForm = ({
     });
   }, []);
 
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (values: Record<string, unknown>) => {
     await onSubmit(values);
   };
 
-  const handleError = (errors: any) => {
+  const handleError = () => {
     toast.error("Please fix the errors before saving.", { duration: 5000 });
   };
 
