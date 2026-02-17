@@ -2,74 +2,67 @@
 
 import { forwardRef, useCallback, useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { ButtonGroup } from "@/components/ui/button-group";
 import { MediaUpload } from "@/components/media/media-upload";
 import { MediaDialog } from "@/components/media/media-dialog";
-import { Trash2, Upload, FolderOpen, ArrowUpRight } from "lucide-react";
+import { Upload, FolderOpen, ArrowUpRight, Ellipsis } from "lucide-react";
 import { useConfig } from "@/contexts/config-context";
 import { normalizePath } from "@/lib/utils/file";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { getSchemaByName } from "@/lib/schema";
-import { buttonVariants } from "@/components/ui/button";
 import { Thumbnail } from "@/components/thumbnail";
 import { getAllowedExtensions } from "./index";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const generateId = () => crypto.randomUUID().replace(/-/g, "").slice(0, 8);
 
-const ImageTeaser = ({ file, config, media, onRemove }: { 
+const ImageTeaser = ({ file, config, onRemove }: { 
   file: string;
   config: any;
-  media: string;
-  onRemove: (file: string) => void;
+  onRemove: () => void;
 }) => {
   return (
     <>
-      <div className="absolute bottom-1.5 right-1.5">
-        <ButtonGroup className="bg-background rounded-md">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <a
-                  href={`https://github.com/${config.owner}/${config.repo}/blob/${config.branch}/${file}`}
-                  target="_blank"
-                  className={buttonVariants({ variant: "ghost", size: "icon-xs" })}
-                >
-                  <ArrowUpRight className="size-3"/>
-                </a>
-              </TooltipTrigger>
-              <TooltipContent>
+      <div className="absolute bottom-0.5 right-0.5 bg-background rounded-md">
+        <DropdownMenu modal={false}>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" variant="ghost" size="icon-xs" className="text-muted-foreground hover:text-foreground">
+              <Ellipsis />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <a
+                href={`https://github.com/${config.owner}/${config.repo}/blob/${config.branch}/${file}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full"
+              >
                 View on GitHub
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={() => onRemove(file)}
-                >
-                  <Trash2 />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                Remove
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </ButtonGroup>
+                <ArrowUpRight className="size-3 ml-auto" />
+              </a>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              variant="destructive"
+              onSelect={() => {
+                if (window.confirm("Remove this image from the field?")) {
+                  onRemove();
+                }
+              }}
+            >
+              Remove
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </>
   )
@@ -80,7 +73,7 @@ const SortableItem = ({ id, file, config, media, onRemove }: {
   file: string;
   config: any;
   media: string;
-  onRemove: (file: string) => void;
+  onRemove: () => void;
 }) => {
   const {
     attributes,
@@ -104,7 +97,7 @@ const SortableItem = ({ id, file, config, media, onRemove }: {
       <div {...attributes} {...listeners}>
         <Thumbnail name={media} path={file} className="rounded-md w-28 h-28"/>
       </div>
-      <ImageTeaser file={file} config={config} onRemove={onRemove} media={media} />
+      <ImageTeaser file={file} config={config} onRemove={onRemove} />
     </div>
   );
 };
@@ -270,7 +263,7 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
             ) : (
               <div className="aspect-square w-28 relative">
                 <Thumbnail name={mediaConfig.name} path={files[0].path} className="rounded-md w-28 h-28"/>
-                <ImageTeaser file={files[0].path} config={config} media={mediaConfig.name} onRemove={() => handleRemove(files[0].id)} />
+                <ImageTeaser file={files[0].path} config={config} onRemove={() => handleRemove(files[0].id)} />
               </div>
             )
           )}

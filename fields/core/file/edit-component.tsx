@@ -4,75 +4,68 @@ import { forwardRef, useCallback, useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { MediaUpload } from "@/components/media/media-upload";
 import { MediaDialog } from "@/components/media/media-dialog";
-import { Trash2, Upload, File, FileText, FileVideo, FileImage, FileAudio, FileArchive, FileCode, FileType, FileSpreadsheet, GripVertical, FolderOpen, ArrowUpRight } from "lucide-react";
+import { Upload, File, FileText, FileVideo, FileImage, FileAudio, FileArchive, FileCode, FileType, FileSpreadsheet, GripVertical, FolderOpen, ArrowUpRight, Ellipsis } from "lucide-react";
 import { useConfig } from "@/contexts/config-context";
 import { getFileExtension, getFileName, extensionCategories, normalizePath } from "@/lib/utils/file";
-import { ButtonGroup } from "@/components/ui/button-group";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { getSchemaByName } from "@/lib/schema";
-import { cn } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const generateId = () => crypto.randomUUID().replace(/-/g, "").slice(0, 8);
 
 const FileTeaser = ({ file, config, onRemove, getFileIcon }: { 
   file: string;
   config: any;
-  onRemove: (file: string) => void;
+  onRemove: () => void;
   getFileIcon: (file: string) => React.ReactNode;
 }) => {
   return (
     <>
-      <div className="flex items-center gap-x-1 overflow-hidden text-sm">
+      <div className="flex items-center gap-x-1 px-2 h-8 rounded-md bg-accent dark:bg-accent/50 truncate text-sm">
         {getFileIcon(file)}
-        <div className="truncate">{getFileName(file)}</div>
+        {getFileName(file)}
       </div>
 
-      <ButtonGroup>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <a
-                href={`https://github.com/${config.owner}/${config.repo}/blob/${config.branch}/${file}`}
-                target="_blank"
-                className={buttonVariants({ variant: "ghost", size: "icon-xs" })}
-              >
-                <ArrowUpRight className="size-3" />
-              </a>
-            </TooltipTrigger>
-            <TooltipContent>
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <Button type="button" variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
+            <Ellipsis />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem asChild>
+            <a
+              href={`https://github.com/${config.owner}/${config.repo}/blob/${config.branch}/${file}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full"
+            >
               View on GitHub
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-xs"
-                onClick={() => onRemove(file)}
-              >
-                <Trash2 />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              Remove
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </ButtonGroup>
+              <ArrowUpRight className="size-3 ml-auto" />
+            </a>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            variant="destructive"
+            onSelect={() => {
+              if (window.confirm("Remove this file from the field?")) {
+                onRemove();
+              }
+            }}
+          >
+            Remove
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </>
   )
 };
@@ -81,7 +74,7 @@ const SortableItem = ({ id, file, config, onRemove, getFileIcon }: {
   id: string;
   file: string;
   config: any;
-  onRemove: (file: string) => void;
+  onRemove: () => void;
   getFileIcon: (file: string) => React.ReactNode;
 }) => {
   const {
@@ -103,13 +96,11 @@ const SortableItem = ({ id, file, config, onRemove, getFileIcon }: {
 
   return (
     <div ref={setNodeRef} style={style}>
-      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 pl-2 pr-1 bg-muted rounded-md h-10">
-        <div
-          {...attributes} {...listeners}
-          className="text-muted-foreground hover:text-foreground cursor-grab transition-colors"
-        >
-          <GripVertical className="size-4" />
-        </div>
+      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+        <Button type="button" variant="ghost" size="icon-sm" className="h-auto w-6 self-stretch cursor-move text-muted-foreground hover:text-foreground" {...attributes} {...listeners}>
+          <GripVertical />
+        </Button>
+        
         <FileTeaser file={file} config={config} onRemove={onRemove} getFileIcon={getFileIcon} />
       </div>
     </div>

@@ -40,6 +40,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   CornerLeftUp,
+  House,
   Ban,
   Check,
   EllipsisVertical,  
@@ -256,11 +257,15 @@ const MediaView = ({
   ), []);
 
   const breadcrumbNode = useMemo(() => {
+    const breadcrumbTextClass = usePageHeader ? "font-semibold text-lg" : "text-sm";
+    const isDialog = !usePageHeader;
     const mediaTitle = mediaConfig.label || mediaConfig.name || "Media";
     const rootPath = normalizePath(mediaConfig.input);
     const currentPath = normalizePath(path || mediaConfig.input);
     const relativePath = getRelativePath(currentPath, rootPath);
     const segments = relativePath ? relativePath.split("/").filter(Boolean) : [];
+
+    if (isDialog && segments.length === 0) return null;
 
     const entries = segments.map((segment, index) => ({
       name: segment,
@@ -274,14 +279,21 @@ const MediaView = ({
 
     return (
       <Breadcrumb>
-        <BreadcrumbList className="font-semibold text-lg">
+        <BreadcrumbList className={breadcrumbTextClass}>
           <BreadcrumbItem>
             {entries.length > 0 ? (
               <BreadcrumbLink className="cursor-pointer" onClick={() => handleNavigate(rootPath)}>
-                {mediaTitle}
+                {isDialog ? (
+                  <>
+                    <House className="size-3.5" />
+                    <span className="sr-only">{mediaTitle}</span>
+                  </>
+                ) : (
+                  mediaTitle
+                )}
               </BreadcrumbLink>
             ) : (
-              <BreadcrumbPage className="font-semibold">{mediaTitle}</BreadcrumbPage>
+              <BreadcrumbPage>{mediaTitle}</BreadcrumbPage>
             )}
           </BreadcrumbItem>
           {entries.length > 0 && <BreadcrumbSeparator />}
@@ -317,7 +329,7 @@ const MediaView = ({
               <Fragment key={entry.path}>
                 <BreadcrumbItem>
                   {isLast ? (
-                    <BreadcrumbPage className="font-semibold">{entry.name}</BreadcrumbPage>
+                    <BreadcrumbPage>{entry.name}</BreadcrumbPage>
                   ) : (
                     <BreadcrumbLink className="cursor-pointer" onClick={() => handleNavigate(entry.path)}>
                       {entry.name}
@@ -331,7 +343,7 @@ const MediaView = ({
         </BreadcrumbList>
       </Breadcrumb>
     );
-  }, [handleNavigate, mediaConfig.input, mediaConfig.label, mediaConfig.name, path]);
+  }, [handleNavigate, mediaConfig.input, mediaConfig.label, mediaConfig.name, path, usePageHeader]);
 
   const headerNode = useMemo(() => (
     <div className="flex items-center justify-between gap-x-2">
