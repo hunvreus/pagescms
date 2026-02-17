@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useConfig } from "@/contexts/config-context";
 import {
   extensionCategories,
@@ -16,6 +16,7 @@ import {
 import { EmptyCreate } from "@/components/empty-create";
 import { FolderCreate} from "@/components/folder-create";
 import { FileOptions } from "@/components/file/file-options";
+import { useOptionalRepoHeader } from "@/components/repo/repo-header-context";
 import { MediaUpload} from "./media-upload";
 import { Message } from "@/components/message";
 import { Thumbnail } from "@/components/thumbnail";
@@ -54,7 +55,8 @@ const MediaView = ({
   maxSelected,
   onSelect,
   onUpload,
-  extensions
+  extensions,
+  usePageHeader = true,
 }: {
   media: string,
   initialPath?: string,
@@ -62,7 +64,8 @@ const MediaView = ({
   maxSelected?: number,
   onSelect?: (newSelected: string[]) => void,
   onUpload?: (entry: any) => void,
-  extensions?: string[]
+  extensions?: string[],
+  usePageHeader?: boolean,
 }) => {
   const { config } = useConfig();
   if (!config) throw new Error(`Configuration not found.`);
@@ -72,7 +75,6 @@ const MediaView = ({
     return config.object.media.find((item: any) => item.name === media);
   }, [media, config.object.media]);
 
-  const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -187,14 +189,14 @@ const MediaView = ({
     });
   }, []);
 
-  const handleNavigate = (newPath: string) => {
+  const handleNavigate = useCallback((newPath: string) => {
     setPath(newPath);
     if (!onSelect) {
-      const params = new URLSearchParams(Array.from(searchParams.entries()));
+      const params = new URLSearchParams(window.location.search);
       params.set("path", newPath || mediaConfig.input);
       router.push(`${pathname}?${params.toString()}`);
     }
-  }
+  }, [mediaConfig.input, onSelect, pathname, router]);
 
   const handleNavigateParent = () => {
     if (!path || path === mediaConfig.input) return;
@@ -330,6 +332,32 @@ const MediaView = ({
     );
   }, [handleNavigate, mediaConfig.input, mediaConfig.label, mediaConfig.name, path]);
 
+  const headerNode = useMemo(() => (
+    <div className="flex items-center justify-between gap-x-2">
+      <div className="min-w-0 overflow-hidden">{breadcrumbNode}</div>
+      <div className="flex items-center gap-x-2 shrink-0">
+        <MediaUpload media={mediaConfig.name} path={path} onUpload={handleUpload} extensions={filteredExtensions}>
+          <MediaUpload.Trigger>
+            <Button type="button" size="sm" className="gap-2">
+              <Upload />
+              Upload
+            </Button>
+          </MediaUpload.Trigger>
+        </MediaUpload>
+        <FolderCreate path={path} name={mediaConfig.name} type="media" onCreate={handleFolderCreate}>
+          <Button type="button" variant="outline" size="icon-sm">
+            <FolderPlus />
+          </Button>
+        </FolderCreate>
+      </div>
+    </div>
+  ), [breadcrumbNode, filteredExtensions, handleFolderCreate, handleUpload, mediaConfig.name, path]);
+
+  useOptionalRepoHeader(
+    { header: headerNode },
+    { enabled: usePageHeader },
+  );
+
   if (!mediaConfig.input) {
     return (
       <Message
@@ -369,27 +397,29 @@ const MediaView = ({
 
   return (
     <div className="flex-1 flex flex-col space-y-4">
-      <header className="flex items-center gap-x-2 justify-between">
-        <div className="sm:flex-1">
-          <div className="hidden sm:block min-w-0 overflow-hidden">{breadcrumbNode}</div>
-          <Button onClick={handleNavigateParent} size="icon-sm" variant="outline" className="shrink-0 sm:hidden" disabled={!path || path === mediaConfig.input}>
-            <CornerLeftUp className="w-4 h-4"/>
-          </Button>
-        </div>
-        <MediaUpload media={mediaConfig.name} path={path} onUpload={handleUpload} extensions={filteredExtensions}>
-          <MediaUpload.Trigger>
-            <Button type="button" size="sm" className="gap-2">
-              <Upload />
-              Upload
+      {!usePageHeader && (
+        <header className="flex items-center gap-x-2 justify-between">
+          <div className="sm:flex-1">
+            <div className="hidden sm:block min-w-0 overflow-hidden">{breadcrumbNode}</div>
+            <Button onClick={handleNavigateParent} size="icon-sm" variant="outline" className="shrink-0 sm:hidden" disabled={!path || path === mediaConfig.input}>
+              <CornerLeftUp className="w-4 h-4"/>
             </Button>
-          </MediaUpload.Trigger>
-        </MediaUpload>
-        <FolderCreate path={path} name={mediaConfig.name} type="media" onCreate={handleFolderCreate}>
-          <Button type="button" variant="outline" className="ml-auto" size="icon-sm">
-            <FolderPlus />
-          </Button>
-        </FolderCreate>
-      </header>
+          </div>
+          <MediaUpload media={mediaConfig.name} path={path} onUpload={handleUpload} extensions={filteredExtensions}>
+            <MediaUpload.Trigger>
+              <Button type="button" size="sm" className="gap-2">
+                <Upload />
+                Upload
+              </Button>
+            </MediaUpload.Trigger>
+          </MediaUpload>
+          <FolderCreate path={path} name={mediaConfig.name} type="media" onCreate={handleFolderCreate}>
+            <Button type="button" variant="outline" className="ml-auto" size="icon-sm">
+              <FolderPlus />
+            </Button>
+          </FolderCreate>
+        </header>
+      )}
       <MediaUpload media={mediaConfig.name} path={path} onUpload={handleUpload} extensions={filteredExtensions}>
         <MediaUpload.DropZone className="flex-1 overflow-auto scrollbar">
           <div className="h-full relative flex flex-col" ref={filesGridRef}>

@@ -90,6 +90,7 @@ const MediaDialog = forwardRef(({
           onUpload={handleUpload}
           maxSelected={maxSelected} 
           initialPath={initialPath || ""}
+          usePageHeader={false}
         />
         {configMedia.input &&
           <DialogFooter>
