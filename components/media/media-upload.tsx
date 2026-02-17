@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, isValidElement, cloneElement, useMemo, useCallback, createContext, useContext, useState } from "react";
+import { useRef, cloneElement, useMemo, useCallback, createContext, useContext, useState } from "react";
 import { useConfig } from "@/contexts/config-context";
 import { joinPathSegments } from "@/lib/utils/file";
 import { toast } from "sonner";
 import { getSchemaByName } from "@/lib/schema";
 import { cn } from "@/lib/utils";
+import type { ApiResponse, FileSaveData } from "@/types/api";
 
 interface MediaUploadContextValue {
   handleFiles: (files: File[]) => Promise<void>;
@@ -18,7 +19,7 @@ const MediaUploadContext = createContext<MediaUploadContextValue | null>(null);
 interface MediaUploadProps {
   children: React.ReactNode;
   path?: string;
-  onUpload?: (path: string) => void;
+  onUpload?: (entry: FileSaveData) => void;
   media?: string;
   extensions?: string[];
   multiple?: boolean;
@@ -63,7 +64,7 @@ function MediaUploadRoot({ children, path, onUpload, media, extensions, multiple
       for (const file of files) {
         const reader = new FileReader();
 
-        const uploadPromise = new Promise((resolve, reject) => {
+        const uploadPromise = new Promise<FileSaveData>((resolve, reject) => {
           reader.onload = async () => {
             try {
               const content = (reader.result as string).replace(/^(.+,)/, "");
@@ -81,10 +82,10 @@ function MediaUploadRoot({ children, path, onUpload, media, extensions, multiple
 
               if (!response.ok) throw new Error(`Failed to upload file: ${response.status} ${response.statusText}`);
 
-              const data = await response.json();
+              const data: ApiResponse<FileSaveData> = await response.json();
               if (data.status !== "success") throw new Error(data.message);
               
-              resolve(data);
+              resolve(data.data);
             } catch (error) {
               reject(error);
             }
@@ -96,11 +97,11 @@ function MediaUploadRoot({ children, path, onUpload, media, extensions, multiple
 
         toast.promise(uploadPromise, {
           loading: `Uploading ${file.name}`,
-          success: (data: any) => {
-            onUpload?.(data.data);
-            return data.message;
+          success: (savedEntry) => {
+            onUpload?.(savedEntry);
+            return `Uploaded ${file.name}`;
           },
-          error: (error: any) => error.message,
+          error: (error: unknown) => error instanceof Error ? error.message : "Upload failed",
         });
       }
     } catch (error) {

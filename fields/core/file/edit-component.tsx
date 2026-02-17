@@ -56,11 +56,7 @@ const FileTeaser = ({ file, config, onRemove, getFileIcon }: {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"
-            onSelect={() => {
-              if (window.confirm("Remove this file from the field?")) {
-                onRemove();
-              }
-            }}
+            onSelect={onRemove}
           >
             Remove
           </DropdownMenuItem>

@@ -4,6 +4,7 @@ import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from "
 import { useConfig } from "@/contexts/config-context";
 import { MediaView } from "@/components/media/media-view";
 import { Button } from "@/components/ui/button";
+import type { FileSaveData } from "@/types/api";
 import {
   Dialog,
   DialogClose,
@@ -58,7 +59,8 @@ const MediaDialog = forwardRef(({
     onSubmit(selectedImagesRef.current);
   }, [onSubmit]);
 
-  const handleUpload = useCallback((entry: any) => {
+  const handleUpload = useCallback((entry: FileSaveData) => {
+    if (!entry.path) return;
     const newSelected = [...selectedImagesRef.current, entry.path];
     selectedImagesRef.current = newSelected;
     setSelectedImages(newSelected);

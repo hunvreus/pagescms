@@ -53,11 +53,7 @@ const ImageTeaser = ({ file, config, onRemove }: {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"
-              onSelect={() => {
-                if (window.confirm("Remove this image from the field?")) {
-                  onRemove();
-                }
-              }}
+              onSelect={onRemove}
             >
               Remove
             </DropdownMenuItem>

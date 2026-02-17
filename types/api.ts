@@ -44,3 +44,13 @@ export type FileSaveData = {
   url?: string;
   config?: unknown;
 };
+
+export type MediaItem = {
+  type: "dir" | "file";
+  sha?: string;
+  name: string;
+  path: string;
+  extension?: string;
+  size?: number;
+  url?: string | null;
+};
