@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useConfig } from "@/contexts/config-context";
 import {
@@ -9,17 +9,33 @@ import {
   getFileSize,
   getParentPath,
   getFileName,
+  getRelativePath,
+  joinPathSegments,
   normalizePath
 } from "@/lib/utils/file";
 import { EmptyCreate } from "@/components/empty-create";
 import { FolderCreate} from "@/components/folder-create";
 import { FileOptions } from "@/components/file/file-options";
-import { PathBreadcrumb } from "@/components/path-breadcrumb";
 import { MediaUpload} from "./media-upload";
 import { Message } from "@/components/message";
 import { Thumbnail } from "@/components/thumbnail";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Breadcrumb,
+  BreadcrumbEllipsis,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   CornerLeftUp,
   Ban,
@@ -236,6 +252,84 @@ const MediaView = ({
     </ul>
   ), []);
 
+  const breadcrumbNode = useMemo(() => {
+    const mediaTitle = mediaConfig.label || mediaConfig.name || "Media";
+    const rootPath = normalizePath(mediaConfig.input);
+    const currentPath = normalizePath(path || mediaConfig.input);
+    const relativePath = getRelativePath(currentPath, rootPath);
+    const segments = relativePath ? relativePath.split("/").filter(Boolean) : [];
+
+    const entries = segments.map((segment, index) => ({
+      name: segment,
+      path: joinPathSegments([rootPath, segments.slice(0, index + 1).join("/")]),
+    }));
+
+    const middleEntries = entries.length > 3 ? entries.slice(1, -1) : [];
+    const visibleEntries = entries.length > 3
+      ? [entries[0], entries[entries.length - 1]]
+      : entries;
+
+    return (
+      <Breadcrumb>
+        <BreadcrumbList className="font-semibold text-lg">
+          <BreadcrumbItem>
+            {entries.length > 0 ? (
+              <BreadcrumbLink className="cursor-pointer" onClick={() => handleNavigate(rootPath)}>
+                {mediaTitle}
+              </BreadcrumbLink>
+            ) : (
+              <BreadcrumbPage className="font-semibold">{mediaTitle}</BreadcrumbPage>
+            )}
+          </BreadcrumbItem>
+          {entries.length > 0 && <BreadcrumbSeparator />}
+
+          {entries.length > 3 && (
+            <>
+              <BreadcrumbItem>
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="flex items-center">
+                    <BreadcrumbEllipsis className="h-4 w-4" />
+                    <span className="sr-only">Show hidden segments</span>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {middleEntries.map((entry) => (
+                      <DropdownMenuItem
+                        key={entry.path}
+                        className="cursor-pointer"
+                        onClick={() => handleNavigate(entry.path)}
+                      >
+                        {entry.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+            </>
+          )}
+
+          {visibleEntries.map((entry, index) => {
+            const isLast = index === visibleEntries.length - 1;
+            return (
+              <Fragment key={entry.path}>
+                <BreadcrumbItem>
+                  {isLast ? (
+                    <BreadcrumbPage className="font-semibold">{entry.name}</BreadcrumbPage>
+                  ) : (
+                    <BreadcrumbLink className="cursor-pointer" onClick={() => handleNavigate(entry.path)}>
+                      {entry.name}
+                    </BreadcrumbLink>
+                  )}
+                </BreadcrumbItem>
+                {!isLast && <BreadcrumbSeparator />}
+              </Fragment>
+            );
+          })}
+        </BreadcrumbList>
+      </Breadcrumb>
+    );
+  }, [handleNavigate, mediaConfig.input, mediaConfig.label, mediaConfig.name, path]);
+
   if (!mediaConfig.input) {
     return (
       <Message
@@ -277,7 +371,7 @@ const MediaView = ({
     <div className="flex-1 flex flex-col space-y-4">
       <header className="flex items-center gap-x-2 justify-between">
         <div className="sm:flex-1">
-          <PathBreadcrumb path={path} rootPath={mediaConfig.input} handleNavigate={handleNavigate} className="hidden sm:block"/>
+          <div className="hidden sm:block min-w-0 overflow-hidden">{breadcrumbNode}</div>
           <Button onClick={handleNavigateParent} size="icon-sm" variant="outline" className="shrink-0 sm:hidden" disabled={!path || path === mediaConfig.input}>
             <CornerLeftUp className="w-4 h-4"/>
           </Button>
