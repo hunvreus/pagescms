@@ -86,14 +86,26 @@ const CollectionHeaderActions = memo(function CollectionHeaderActions({
     <div className="flex items-center gap-x-2">
       <div className="relative hidden sm:block w-52 md:w-64">
         <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" />
-        <Input className="h-9 pl-9" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
+        <Input
+          className="h-9 pl-9"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Search entries..."
+        />
       </div>
       {showFolderCreate && (
-        <FolderCreate path={collectionPath} type="content" name={name} onCreate={onFolderCreate}>
-          <Button type="button" variant="outline" size="icon" className="shrink-0">
-            <FolderPlus />
-          </Button>
-        </FolderCreate>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              <FolderCreate path={collectionPath} type="content" name={name} onCreate={onFolderCreate}>
+                <Button type="button" variant="outline" size="icon" className="shrink-0">
+                  <FolderPlus />
+                </Button>
+              </FolderCreate>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>Create folder</TooltipContent>
+        </Tooltip>
       )}
       <Link className={cn(buttonVariants(), "hidden sm:flex")} href={addEntryHref}>
         Add an entry

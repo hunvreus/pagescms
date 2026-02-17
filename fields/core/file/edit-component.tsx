@@ -321,33 +321,26 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
             )
           )}
           {remainingSlots > 0 && (
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               <MediaUpload.Trigger>
                 <Button type="button" size="sm" variant="outline" className="gap-2">
                   <Upload className="h-3.5 w-3.5"/>
                   Upload
                 </Button>
               </MediaUpload.Trigger>
-              <TooltipProvider>
-                <Tooltip>
-                  <MediaDialog
-                    media={mediaConfig.name}
-                    initialPath={rootPath}
-                    maxSelected={remainingSlots}
-                    extensions={allowedExtensions}
-                    onSubmit={handleSelected}
-                  >
-                    <TooltipTrigger asChild>
-                      <Button type="button" size="icon-sm" variant="outline">
-                        <FolderOpen className="h-3.5 w-3.5"/>
-                      </Button>
-                    </TooltipTrigger>
-                  </MediaDialog>
-                  <TooltipContent>
-                    Select from media
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              
+              <MediaDialog
+                media={mediaConfig.name}
+                initialPath={rootPath}
+                maxSelected={remainingSlots}
+                extensions={allowedExtensions}
+                onSubmit={handleSelected}
+              >
+                <Button type="button" size="sm" variant="outline">
+                  <FolderOpen />
+                  Select
+                </Button>
+              </MediaDialog>
             </div>
           )}
         </div>

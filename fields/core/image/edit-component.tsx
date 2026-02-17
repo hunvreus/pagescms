@@ -282,26 +282,18 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
                   Upload
                 </Button>
               </MediaUpload.Trigger>
-              <TooltipProvider>
-                <Tooltip>
-                  <MediaDialog
-                    media={mediaConfig.name}
-                    initialPath={rootPath}
-                    maxSelected={remainingSlots}
-                    extensions={allowedExtensions}
-                    onSubmit={handleSelected}
-                  >
-                    <TooltipTrigger asChild>
-                      <Button type="button" size="icon-sm" variant="outline">
-                        <FolderOpen className="h-3.5 w-3.5"/>
-                      </Button>
-                    </TooltipTrigger>
-                  </MediaDialog>
-                  <TooltipContent>
-                    Select from media
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <MediaDialog
+                media={mediaConfig.name}
+                initialPath={rootPath}
+                maxSelected={remainingSlots}
+                extensions={allowedExtensions}
+                onSubmit={handleSelected}
+              >
+                  <Button type="button" size="sm" variant="outline">
+                    <FolderOpen />
+                    Select
+                  </Button>
+              </MediaDialog>
             </div>
           )}
         </div>

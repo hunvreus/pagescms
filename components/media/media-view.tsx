@@ -37,6 +37,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   CornerLeftUp,
   Ban,
@@ -344,11 +345,18 @@ const MediaView = ({
             </Button>
           </MediaUpload.Trigger>
         </MediaUpload>
-        <FolderCreate path={path} name={mediaConfig.name} type="media" onCreate={handleFolderCreate}>
-          <Button type="button" variant="outline" size="icon-sm">
-            <FolderPlus />
-          </Button>
-        </FolderCreate>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              <FolderCreate path={path} name={mediaConfig.name} type="media" onCreate={handleFolderCreate}>
+                <Button type="button" variant="outline" size="icon-sm">
+                  <FolderPlus />
+                </Button>
+              </FolderCreate>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>Create folder</TooltipContent>
+        </Tooltip>
       </div>
     </div>
   ), [breadcrumbNode, filteredExtensions, handleFolderCreate, handleUpload, mediaConfig.name, path]);
@@ -413,11 +421,18 @@ const MediaView = ({
               </Button>
             </MediaUpload.Trigger>
           </MediaUpload>
-          <FolderCreate path={path} name={mediaConfig.name} type="media" onCreate={handleFolderCreate}>
-            <Button type="button" variant="outline" className="ml-auto" size="icon-sm">
-              <FolderPlus />
-            </Button>
-          </FolderCreate>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>
+                <FolderCreate path={path} name={mediaConfig.name} type="media" onCreate={handleFolderCreate}>
+                  <Button type="button" variant="outline" className="ml-auto" size="icon-sm">
+                    <FolderPlus />
+                  </Button>
+                </FolderCreate>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>Create folder</TooltipContent>
+          </Tooltip>
         </header>
       )}
       <MediaUpload media={mediaConfig.name} path={path} onUpload={handleUpload} extensions={filteredExtensions}>
