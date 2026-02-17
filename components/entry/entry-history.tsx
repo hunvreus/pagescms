@@ -3,6 +3,7 @@
 import { formatDistanceToNow } from "date-fns";
 import { getInitialsFromName } from "@/lib/utils/avatar";
 import { useConfig } from "@/contexts/config-context";
+import type { EntryHistoryItem } from "@/types/api";
 import {
   Avatar,
   AvatarFallback,
@@ -18,20 +19,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ArrowUpRight, History } from "lucide-react";
 
-type EntryHistoryItem = {
-  sha: string;
-  html_url: string;
-  author?: {
-    login?: string;
-  } | null;
-  commit: {
-    author: {
-      name: string;
-      date: string;
-    };
-  };
-};
-
 function HistoryItemContent({
   item,
   compact = false,
@@ -39,15 +26,20 @@ function HistoryItemContent({
   item: EntryHistoryItem;
   compact?: boolean;
 }) {
+  const authorName = item.commit.author?.name || item.author?.login || "Unknown author";
+  const authorDate = item.commit.author?.date ? new Date(item.commit.author.date) : null;
+
   return (
     <>
       <Avatar className={compact ? "size-7" : "h-8 w-8"}>
-        <AvatarImage src={item.author?.login ? `https://github.com/${item.author.login}.png` : undefined} alt={`${item.commit.author.name}'s avatar`} />
-        <AvatarFallback>{getInitialsFromName(item.commit.author.name)}</AvatarFallback>
+        <AvatarImage src={item.author?.login ? `https://github.com/${item.author.login}.png` : undefined} alt={`${authorName}'s avatar`} />
+        <AvatarFallback>{getInitialsFromName(authorName)}</AvatarFallback>
       </Avatar>
       <div className={compact ? "text-left overflow-hidden" : "text-left overflow-hidden ml-3"}>
-        <div className={compact ? "truncate" : "text-sm font-medium truncate"}>{item.commit.author.name || item.author?.login}</div>
-        <div className="text-xs text-muted-foreground truncate">{formatDistanceToNow(new Date(item.commit.author.date))} ago</div>
+        <div className={compact ? "truncate" : "text-sm font-medium truncate"}>{authorName}</div>
+        <div className="text-xs text-muted-foreground truncate">
+          {authorDate ? `${formatDistanceToNow(authorDate)} ago` : "Unknown date"}
+        </div>
       </div>
     </>
   );

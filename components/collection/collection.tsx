@@ -621,14 +621,14 @@ export function Collection({
 
     return (
       <Breadcrumb>
-        <BreadcrumbList className="font-semibold text-lg">
-          <BreadcrumbItem>
+        <BreadcrumbList className="font-semibold text-lg flex-nowrap">
+          <BreadcrumbItem className={entries.length === 0 ? "min-w-0 max-w-full truncate" : undefined}>
             {entries.length > 0 ? (
               <BreadcrumbLink className="cursor-pointer" onClick={() => handleNavigate(schema.path)}>
                 {schema.label || schema.name}
               </BreadcrumbLink>
             ) : (
-              <BreadcrumbPage className="font-semibold">{schema.label || schema.name}</BreadcrumbPage>
+              <BreadcrumbPage className="block max-w-full font-semibold truncate">{schema.label || schema.name}</BreadcrumbPage>
             )}
           </BreadcrumbItem>
           {entries.length > 0 && <BreadcrumbSeparator/>}
@@ -658,9 +658,9 @@ export function Collection({
             const isLast = index === visibleEntries.length - 1;
             return (
               <Fragment key={entry.path}>
-                <BreadcrumbItem>
+                <BreadcrumbItem className={isLast ? "min-w-0 max-w-full truncate" : undefined}>
                   {isLast ? (
-                    <BreadcrumbPage className="font-semibold">{entry.name}</BreadcrumbPage>
+                    <BreadcrumbPage className="block max-w-full font-semibold truncate">{entry.name}</BreadcrumbPage>
                   ) : (
                     <BreadcrumbLink className="cursor-pointer" onClick={() => handleNavigate(entry.path)}>
                       {entry.name}
@@ -678,7 +678,7 @@ export function Collection({
 
   const headerNode = useMemo(() => (
     <div className="flex items-center justify-between gap-2">
-      <div className="min-w-0">{breadcrumbNode}</div>
+      <div className="min-w-0 truncate">{breadcrumbNode}</div>
       <CollectionHeaderActions
         addEntryHref={addEntryHref}
         collectionPath={collectionPath}

@@ -14,6 +14,7 @@ import {
   joinPathSegments,
   normalizePath
 } from "@/lib/utils/file";
+import type { ApiResponse, ApiSuccess, EntryData, EntryHistoryItem } from "@/types/api";
 import { EntryForm } from "./entry-form";
 import { EntryHistoryDropdown } from "./entry-history";
 import { EmptyCreate } from "@/components/empty-create";
@@ -39,38 +40,6 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner";
 import { EllipsisVertical, History } from "lucide-react";
-
-type EntryHistoryItem = {
-  sha: string;
-  html_url: string;
-  author?: {
-    login?: string;
-  } | null;
-  commit: {
-    author: {
-      name: string;
-      date: string;
-    };
-  };
-};
-
-type EntryData = {
-  sha: string;
-  path: string;
-  name?: string;
-  contentObject?: Record<string, unknown>;
-};
-
-type ApiSuccess<T> = {
-  status: "success";
-  message: string;
-  data: T;
-};
-
-type ApiResponse<T> = ApiSuccess<T> | {
-  status: string;
-  message: string;
-};
 
 type LintView = {
   state: {

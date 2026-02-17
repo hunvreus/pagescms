@@ -8,7 +8,7 @@ import { getSchemaByName } from "@/lib/schema";
 import { cn } from "@/lib/utils";
 
 interface MediaUploadContextValue {
-  handleFiles: (files: FileList) => Promise<void>;
+  handleFiles: (files: File[]) => Promise<void>;
   accept?: string;
   multiple?: boolean;
 }
@@ -58,11 +58,10 @@ function MediaUploadRoot({ children, path, onUpload, media, extensions, multiple
       : undefined;
   }, [extensions, configMedia?.extensions]);
 
-  const handleFiles = useCallback(async (files: FileList) => {
+  const handleFiles = useCallback(async (files: File[]) => {
     try {
-      for (let i = 0; i < files.length; i++) {
+      for (const file of files) {
         const reader = new FileReader();
-        const file = files[i];
 
         const uploadPromise = new Promise((resolve, reject) => {
           reader.onload = async () => {
@@ -128,6 +127,27 @@ function MediaUploadTrigger({ children }: MediaUploadTriggerProps) {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const filterAcceptedFiles = useCallback((files: File[]) => {
+    const acceptedExtensions = context.accept?.split(",").map((ext) => ext.trim().toLowerCase());
+    if (!acceptedExtensions?.length) return files;
+
+    const validFiles = files.filter((file) => {
+      const ext = `.${file.name.split(".").pop()?.toLowerCase()}`;
+      return acceptedExtensions.includes(ext);
+    });
+
+    if (validFiles.length === 0) {
+      toast.error(`Invalid file type. Allowed: ${context.accept}`);
+      return [];
+    }
+
+    if (validFiles.length !== files.length) {
+      toast.error(`Some files were skipped. Allowed: ${context.accept}`);
+    }
+
+    return validFiles;
+  }, [context.accept]);
+
   const handleClick = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
@@ -136,27 +156,11 @@ function MediaUploadTrigger({ children }: MediaUploadTriggerProps) {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
-    const acceptedExtensions = context.accept?.split(',').map(ext => ext.trim().toLowerCase());
-    if (acceptedExtensions?.length) {
-      const validFiles = Array.from(files).filter(file => {
-        const ext = `.${file.name.split('.').pop()?.toLowerCase()}`;
-        return acceptedExtensions.includes(ext);
-      });
+    const validFiles = filterAcceptedFiles(Array.from(files));
+    if (validFiles.length === 0) return;
 
-      if (validFiles.length === 0) {
-        toast.error(`Invalid file type. Allowed: ${context.accept}`);
-        return;
-      }
-
-      if (validFiles.length !== files.length) {
-        toast.error(`Some files were skipped. Allowed: ${context.accept}`);
-      }
-
-      context.handleFiles(validFiles as unknown as FileList);
-    } else {
-      context.handleFiles(files);
-    }
-  }, [context]);
+    context.handleFiles(validFiles);
+  }, [context, filterAcceptedFiles]);
 
   return (
     <>
@@ -179,6 +183,27 @@ function MediaUploadDropZone({ children, className }: MediaUploadDropZoneProps) 
   
   const [isDragging, setIsDragging] = useState(false);
 
+  const filterAcceptedFiles = useCallback((files: File[]) => {
+    const acceptedExtensions = context.accept?.split(",").map((ext) => ext.trim().toLowerCase());
+    if (!acceptedExtensions?.length) return files;
+
+    const validFiles = files.filter((file) => {
+      const ext = `.${file.name.split(".").pop()?.toLowerCase()}`;
+      return acceptedExtensions.includes(ext);
+    });
+
+    if (validFiles.length === 0) {
+      toast.error(`Invalid file type. Allowed: ${context.accept}`);
+      return [];
+    }
+
+    if (validFiles.length !== files.length) {
+      toast.error(`Some files were skipped. Allowed: ${context.accept}`);
+    }
+
+    return validFiles;
+  }, [context.accept]);
+
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -196,27 +221,11 @@ function MediaUploadDropZone({ children, className }: MediaUploadDropZoneProps) 
     const files = e.dataTransfer.files;
     if (!files || files.length === 0) return;
 
-    const acceptedExtensions = context.accept?.split(',').map(ext => ext.trim().toLowerCase());
-    if (acceptedExtensions?.length) {
-      const validFiles = Array.from(files).filter(file => {
-        const ext = `.${file.name.split('.').pop()?.toLowerCase()}`;
-        return acceptedExtensions.includes(ext);
-      });
+    const validFiles = filterAcceptedFiles(Array.from(files));
+    if (validFiles.length === 0) return;
 
-      if (validFiles.length === 0) {
-        toast.error(`Invalid file type. Allowed: ${context.accept}`);
-        return;
-      }
-
-      if (validFiles.length !== files.length) {
-        toast.error(`Some files were skipped. Allowed: ${context.accept}`);
-      }
-
-      context.handleFiles(validFiles as unknown as FileList);
-    } else {
-      context.handleFiles(files);
-    }
-  }, [context]);
+    context.handleFiles(validFiles);
+  }, [context, filterAcceptedFiles]);
 
   return (
     <div

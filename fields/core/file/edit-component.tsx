@@ -282,7 +282,7 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
         <div className="space-y-2">
           {files.length > 0 && (
             isMultiple ? (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <DndContext 
                   sensors={sensors}
                   collisionDetection={closestCenter}
