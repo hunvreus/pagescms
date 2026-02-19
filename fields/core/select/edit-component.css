@@ -1,7 +1,7 @@
 @reference "../../../app/globals.css";
 
 .react-select__control {
-  @apply min-h-10! rounded-md! border-input! bg-background! transition-[color,box-shadow]! cursor-pointer! box-border! px-3! py-2! shadow-xs! text-sm!;
+  @apply min-h-9! rounded-md! border-input! bg-background! transition-[color,box-shadow]! cursor-pointer! box-border! px-3! py-1! shadow-xs! text-sm!;
 }
 
 .react-select__control--is-focused {
@@ -54,7 +54,7 @@
 }
 
 .react-select__menu {
-  @apply relative z-50 rounded-md! border! border-input! shadow-md! bg-popover! text-popover-foreground! max-h-96! min-w-[8rem]! overflow-hidden! animate-in fade-in-0 zoom-in-95 duration-150;
+  @apply relative z-50 rounded-md! border! border-input! shadow-md! bg-popover! text-popover-foreground! max-h-96! min-w-[8rem]! overflow-hidden! animate-in fade-in-0 zoom-in-95 duration-150 my-1!;
 }
 
 .react-select__menu--placement-bottom {

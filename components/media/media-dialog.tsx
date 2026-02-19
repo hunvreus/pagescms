@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from "react";
 import { useConfig } from "@/contexts/config-context";
 import { MediaView } from "@/components/media/media-view";
 import { Button } from "@/components/ui/button";
@@ -46,24 +46,27 @@ const MediaDialog = forwardRef(({
     ? getSchemaByName(config.object, media, "media")
     : config.object.media[0];
 
-  const selectedImagesRef = useRef(selected || []);
   const [selectedImages, setSelectedImages] = useState(selected || []);
   const [open, setOpen] = useState(false);
 
+  useEffect(() => {
+    if (open) {
+      setSelectedImages(selected || []);
+    }
+  }, [open, selected]);
+
   const handleSelect = useCallback((newSelected: string[]) => {
-    selectedImagesRef.current = newSelected;
     setSelectedImages(newSelected);
   }, []);
 
   const handleSubmit = useCallback(() => {
-    onSubmit(selectedImagesRef.current);
-  }, [onSubmit]);
+    onSubmit(selectedImages);
+  }, [onSubmit, selectedImages]);
 
   const handleUpload = useCallback((entry: FileSaveData) => {
-    if (!entry.path) return;
-    const newSelected = [...selectedImagesRef.current, entry.path];
-    selectedImagesRef.current = newSelected;
-    setSelectedImages(newSelected);
+    const path = entry.path;
+    if (!path) return;
+    setSelectedImages((prev) => [...prev, path]);
   }, []);
 
   useImperativeHandle(ref, () => ({

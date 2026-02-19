@@ -7,13 +7,16 @@ import { MediaDialog } from "@/components/media/media-dialog";
 import { Upload, FolderOpen, ArrowUpRight, Ellipsis } from "lucide-react";
 import { useConfig } from "@/contexts/config-context";
 import { normalizePath } from "@/lib/utils/file";
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { getSchemaByName } from "@/lib/schema";
 import { Thumbnail } from "@/components/thumbnail";
 import { getAllowedExtensions } from "./index";
+import type { Config } from "@/types/config";
+import type { Field } from "@/types/field";
+import type { FileSaveData } from "@/types/api";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,14 +27,37 @@ import {
 
 const generateId = () => crypto.randomUUID().replace(/-/g, "").slice(0, 8);
 
+type FileEntry = {
+  id: string;
+  path: string;
+};
+
+type MediaSchema = {
+  name: string;
+  input: string;
+  extensions?: string[];
+};
+
+type EditorProps = {
+  value?: string | string[] | null;
+  field: Field;
+  onChange: (value: string | string[]) => void;
+};
+
+type FieldOptions = {
+  media?: false | string;
+  path?: string;
+  multiple?: boolean | { max?: number };
+};
+
 const ImageTeaser = ({ file, config, onRemove }: { 
   file: string;
-  config: any;
+  config: Pick<Config, "owner" | "repo" | "branch">;
   onRemove: () => void;
 }) => {
   return (
     <>
-      <div className="absolute bottom-0.5 right-0.5 bg-background rounded-md">
+      <div className="absolute bottom-1 right-1 bg-background rounded-md">
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button type="button" variant="ghost" size="icon-xs" className="text-muted-foreground hover:text-foreground">
@@ -67,7 +93,7 @@ const ImageTeaser = ({ file, config, onRemove }: {
 const SortableItem = ({ id, file, config, media, onRemove }: { 
   id: string;
   file: string;
-  config: any;
+  config: Pick<Config, "owner" | "repo" | "branch">;
   media: string;
   onRemove: () => void;
 }) => {
@@ -98,41 +124,49 @@ const SortableItem = ({ id, file, config, media, onRemove }: {
   );
 };
 
-const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) => {
+const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputElement>) => {
   const { value, field, onChange } = props;
+  void ref;
   const { config } = useConfig();
+  if (!config) throw new Error("Configuration not found.");
+  const options = (field.options ?? {}) as FieldOptions;
   
-  const [files, setFiles] = useState<Array<{ id: string, path: string }>>(() => 
-    value
-      ? Array.isArray(value)
-        ? value.map(path => ({ id: generateId(), path }))
-        : [{ id: generateId(), path: value }]
-      : []
+  const [files, setFiles] = useState<FileEntry[]>(() => 
+    typeof value === "string"
+      ? [{ id: generateId(), path: value }]
+      : Array.isArray(value)
+        ? value.filter((path): path is string => typeof path === "string").map((path) => ({ id: generateId(), path }))
+        : []
   );
 
-  const mediaConfig = useMemo(() => {
-    return (config?.object?.media?.length && field.options?.media !== false)
-      ? field.options?.media && typeof field.options.media === 'string'
-        ? getSchemaByName(config.object, field.options.media, "media")
-        : config.object.media[0]
+  const mediaConfig = useMemo<MediaSchema | undefined>(() => {
+    return (config.object?.media?.length && options.media !== false)
+      ? options.media && typeof options.media === 'string'
+        ? getSchemaByName(config.object, options.media, "media") as MediaSchema | undefined
+        : config.object.media[0] as MediaSchema
       : undefined;
-  }, [field.options?.media, config?.object]);
+  }, [config.object, options.media]);
 
   const rootPath = useMemo(() => {
-    if (!field.options?.path) {
+    if (!options.path) {
       return mediaConfig?.input;
     }
 
-    const normalizedPath = normalizePath(field.options.path);
-    const normalizedMediaPath = normalizePath(mediaConfig?.input);
+    const mediaRoot = mediaConfig?.input;
+    if (!mediaRoot) {
+      return normalizePath(options.path);
+    }
+
+    const normalizedPath = normalizePath(options.path);
+    const normalizedMediaPath = normalizePath(mediaRoot);
 
     if (!normalizedPath.startsWith(normalizedMediaPath)) {
-      console.warn(`"${field.options.path}" is not within media root "${mediaConfig?.input}". Defaulting to media root.`);
-      return mediaConfig?.input;
+      console.warn(`"${options.path}" is not within media root "${mediaRoot}". Defaulting to media root.`);
+      return mediaRoot;
     }
 
     return normalizedPath;
-  }, [field.options?.path, mediaConfig?.input]);
+  }, [options.path, mediaConfig?.input]);
 
   const allowedExtensions = useMemo(() => {
     if (!mediaConfig) return [];
@@ -140,17 +174,17 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
   }, [field, mediaConfig]);
 
   const isMultiple = useMemo(() => 
-    !!field.options?.multiple,
-    [field.options?.multiple]
+    !!options.multiple,
+    [options.multiple]
   );
 
   const remainingSlots = useMemo(() => 
-    field.options?.multiple
-      ? (typeof field.options.multiple === 'object' && field.options.multiple.max)
-        ? field.options.multiple.max - files.length
+    options.multiple
+      ? (typeof options.multiple === "object" && options.multiple !== null && typeof options.multiple.max === "number")
+        ? options.multiple.max - files.length
         : Infinity
       : 1 - files.length,
-    [field.options?.multiple, files.length]
+    [options.multiple, files.length]
   );
 
   useEffect(() => {
@@ -161,8 +195,8 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
     }
   }, [files, isMultiple, onChange]);
 
-  const handleUpload = useCallback((fileData: any) => {
-    if (!config) return;
+  const handleUpload = useCallback((fileData: FileSaveData) => {
+    if (!fileData.path) return;
     
     const newFile = { id: generateId(), path: fileData.path };
     
@@ -171,7 +205,7 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
     } else {
       setFiles([newFile]);
     }
-  }, [isMultiple, config]);
+  }, [isMultiple]);
 
   const handleRemove = useCallback((fileId: string) => {
     setFiles(prev => prev.filter(file => file.id !== fileId));
@@ -184,8 +218,9 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
     })
   );
 
-  const handleDragEnd = (event: any) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    if (!over) return;
 
     if (active.id !== over.id) {
       setFiles((items) => {
@@ -218,7 +253,7 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
       <p className="text-muted-foreground bg-muted rounded-md px-3 py-2">
       No media configuration found. {' '}
       <a 
-        href={`/${config?.owner}/${config?.repo}/${encodeURIComponent(config?.branch || "")}/settings`}
+        href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch || "")}/settings`}
         className="underline hover:text-foreground"
       >
         Check your settings
@@ -276,6 +311,7 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
                 initialPath={rootPath}
                 maxSelected={remainingSlots}
                 extensions={allowedExtensions}
+                selected={files.map((file) => file.path)}
                 onSubmit={handleSelected}
               >
                   <Button type="button" size="sm" variant="outline">

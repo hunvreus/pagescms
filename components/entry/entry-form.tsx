@@ -469,12 +469,12 @@ const ObjectField = forwardRef<HTMLDivElement, NestedFieldProps>((props, ref) =>
   return (
     <div className="border rounded-lg">
       {isCollapsible && (
-        <header className={cn("flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-10 text-sm font-medium hover:bg-muted transition-colors cursor-pointer", isOpen ? 'border-b' : 'rounded-b-lg')} onClick={onToggleOpen}>
+        <header className={cn("flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-9 text-sm font-medium hover:bg-muted transition-colors cursor-pointer", isOpen ? '' : 'rounded-b-lg')} onClick={onToggleOpen}>
           <ChevronRight className={cn("h-4 w-4 transition-transform", isOpen ? 'rotate-90' : '')} />
           <span className={hasErrors() ? 'text-red-500' : ''}>{itemLabel}</span>
         </header>
       )}
-      <div className={cn("p-4 grid gap-6", isOpen ? '' : 'hidden')}>
+      <div className={cn("p-4 grid gap-6 border-t", isOpen ? '' : 'hidden')}>
         {renderFields(field.fields || [], fieldName)}
       </div>
     </div>

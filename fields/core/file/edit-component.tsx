@@ -7,11 +7,14 @@ import { MediaDialog } from "@/components/media/media-dialog";
 import { Upload, File, FileText, FileVideo, FileImage, FileAudio, FileArchive, FileCode, FileType, FileSpreadsheet, GripVertical, FolderOpen, ArrowUpRight, Ellipsis } from "lucide-react";
 import { useConfig } from "@/contexts/config-context";
 import { getFileExtension, getFileName, extensionCategories, normalizePath } from "@/lib/utils/file";
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { getSchemaByName } from "@/lib/schema";
+import type { Config } from "@/types/config";
+import type { Field } from "@/types/field";
+import type { FileSaveData } from "@/types/api";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,15 +25,40 @@ import {
 
 const generateId = () => crypto.randomUUID().replace(/-/g, "").slice(0, 8);
 
+type FileEntry = {
+  id: string;
+  path: string;
+};
+
+type MediaSchema = {
+  name: string;
+  input: string;
+  extensions?: string[];
+};
+
+type EditorProps = {
+  value?: string | string[] | null;
+  field: Field;
+  onChange: (value: string | string[] | undefined) => void;
+};
+
+type FieldOptions = {
+  media?: false | string;
+  path?: string;
+  multiple?: boolean | { max?: number };
+  extensions?: string[];
+  categories?: string[];
+};
+
 const FileTeaser = ({ file, config, onRemove, getFileIcon }: { 
   file: string;
-  config: any;
+  config: Pick<Config, "owner" | "repo" | "branch">;
   onRemove: () => void;
   getFileIcon: (file: string) => React.ReactNode;
 }) => {
   return (
     <>
-      <div className="flex items-center gap-x-1 px-2 h-8 rounded-md bg-accent dark:bg-accent/50 truncate text-sm">
+      <div className="flex items-center gap-x-1 px-2 h-9 rounded-md bg-muted truncate text-sm">
         {getFileIcon(file)}
         {getFileName(file)}
       </div>
@@ -69,7 +97,7 @@ const FileTeaser = ({ file, config, onRemove, getFileIcon }: {
 const SortableItem = ({ id, file, config, onRemove, getFileIcon }: { 
   id: string;
   file: string;
-  config: any;
+  config: Pick<Config, "owner" | "repo" | "branch">;
   onRemove: () => void;
   getFileIcon: (file: string) => React.ReactNode;
 }) => {
@@ -103,70 +131,79 @@ const SortableItem = ({ id, file, config, onRemove, getFileIcon }: {
   );
 };
 
-const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) => {
+const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputElement>) => {
   const { value, field, onChange } = props;
+  void ref;
   const { config } = useConfig();
+  if (!config) throw new Error("Configuration not found.");
+  const options = (field.options ?? {}) as FieldOptions;
   
-  const [files, setFiles] = useState<Array<{ id: string, path: string }>>(() => 
-    value
-      ? Array.isArray(value)
-        ? value.map(path => ({ id: generateId(), path }))
-        : [{ id: generateId(), path: value }]
-      : []
+  const [files, setFiles] = useState<FileEntry[]>(() => 
+    typeof value === "string"
+      ? [{ id: generateId(), path: value }]
+      : Array.isArray(value)
+        ? value.filter((path): path is string => typeof path === "string").map((path) => ({ id: generateId(), path }))
+        : []
   );
 
-  const mediaConfig = useMemo(() => {
-    return (config?.object?.media?.length && field.options?.media !== false)
-      ? field.options?.media && typeof field.options.media === 'string'
-        ? getSchemaByName(config.object, field.options.media, "media")
-        : config.object.media[0]
+  const mediaConfig = useMemo<MediaSchema | undefined>(() => {
+    return (config.object?.media?.length && options.media !== false)
+      ? options.media && typeof options.media === 'string'
+        ? getSchemaByName(config.object, options.media, "media") as MediaSchema | undefined
+        : config.object.media[0] as MediaSchema
       : undefined;
-  }, [field.options?.media, config?.object]);
+  }, [config.object, options.media]);
 
   const rootPath = useMemo(() => {
-    if (!field.options?.path) {
+    if (!options.path) {
       return mediaConfig?.input;
     }
 
-    const normalizedPath = normalizePath(field.options.path);
-    const normalizedMediaPath = normalizePath(mediaConfig?.input);
+    const mediaRoot = mediaConfig?.input;
+    if (!mediaRoot) {
+      return normalizePath(options.path);
+    }
+
+    const normalizedPath = normalizePath(options.path);
+    const normalizedMediaPath = normalizePath(mediaRoot);
 
     if (!normalizedPath.startsWith(normalizedMediaPath)) {
-      console.warn(`"${field.options.path}" is not within media root "${mediaConfig?.input}". Defaulting to media root.`);
-      return mediaConfig?.input;
+      console.warn(`"${options.path}" is not within media root "${mediaRoot}". Defaulting to media root.`);
+      return mediaRoot;
     }
 
     return normalizedPath;
-  }, [field.options?.path, mediaConfig?.input]);
+  }, [options.path, mediaConfig?.input]);
 
   const allowedExtensions = useMemo(() => {
     if (!mediaConfig) return [];
 
-    const fieldExtensions = field.options?.extensions 
-      ? field.options.extensions
-      : field.options?.categories
-        ? field.options.categories.flatMap((category: string) => extensionCategories[category])
+    const fieldExtensions = options.extensions && Array.isArray(options.extensions)
+      ? options.extensions
+      : options.categories && Array.isArray(options.categories)
+        ? options.categories.flatMap((category: string) => extensionCategories[category] || [])
         : [];
 
     if (!fieldExtensions.length) return mediaConfig.extensions || [];
 
+    const mediaExtensions = mediaConfig.extensions || [];
     return mediaConfig.extensions
-      ? fieldExtensions.filter((ext: string) => mediaConfig.extensions.includes(ext))
+      ? fieldExtensions.filter((ext: string) => mediaExtensions.includes(ext))
       : fieldExtensions;
-  }, [field.options?.extensions, field.options?.categories, mediaConfig]);
+  }, [options.extensions, options.categories, mediaConfig]);
 
   const isMultiple = useMemo(() => 
-    !!field.options?.multiple,
-    [field.options?.multiple]
+    !!options.multiple,
+    [options.multiple]
   );
 
   const remainingSlots = useMemo(() => 
-    field.options?.multiple
-      ? (typeof field.options.multiple === 'object' && field.options.multiple.max)
-        ? field.options.multiple.max - files.length
+    options.multiple
+      ? (typeof options.multiple === "object" && options.multiple !== null && typeof options.multiple.max === "number")
+        ? options.multiple.max - files.length
         : Infinity
       : 1 - files.length,
-    [field.options?.multiple, files.length]
+    [options.multiple, files.length]
   );
 
   useEffect(() => {
@@ -177,8 +214,8 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
     }
   }, [files, isMultiple, onChange]);
 
-  const handleUpload = useCallback((fileData: any) => {
-    if (!config) return;
+  const handleUpload = useCallback((fileData: FileSaveData) => {
+    if (!fileData.path) return;
     
     const newFile = { id: generateId(), path: fileData.path };
     
@@ -187,7 +224,7 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
     } else {
       setFiles([newFile]);
     }
-  }, [isMultiple, config]);
+  }, [isMultiple]);
 
   const handleRemove = useCallback((fileId: string) => {
     setFiles(prev => prev.filter(file => file.id !== fileId));
@@ -199,27 +236,27 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
       if (extensions.includes(ext)) {
         switch (category) {
           case 'image':
-            return <FileImage className="h-4 w-4 shrink-0" />;
+            return <FileImage className="size-4 shrink-0" />;
           case 'document':
-            return <FileText className="h-4 w-4 shrink-0" />;
+            return <FileText className="size-4 shrink-0" />;
           case 'video':
-            return <FileVideo className="h-4 w-4 shrink-0" />;
+            return <FileVideo className="size-4 shrink-0" />;
           case 'audio':
-            return <FileAudio className="h-4 w-4 shrink-0" />;
+            return <FileAudio className="size-4 shrink-0" />;
           case 'compressed':
-            return <FileArchive className="h-4 w-4 shrink-0" />;
+            return <FileArchive className="size-4 shrink-0" />;
           case 'code':
-            return <FileCode className="h-4 w-4 shrink-0" />;
+            return <FileCode className="size-4 shrink-0" />;
           case 'font':
-            return <FileType className="h-4 w-4 shrink-0" />;
+            return <FileType className="size-4 shrink-0" />;
           case 'spreadsheet':
-            return <FileSpreadsheet className="h-4 w-4 shrink-0" />;
+            return <FileSpreadsheet className="size-4 shrink-0" />;
           default:
-            return <FileText className="h-4 w-4 shrink-0" />;
+            return <FileText className="size-4 shrink-0" />;
         }
       }
     }
-    return <File className="h-4 w-4" />;
+    return <File className="size-4" />;
   };
 
   const sensors = useSensors(
@@ -229,8 +266,9 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
     })
   );
 
-  const handleDragEnd = (event: any) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    if (!over) return;
 
     if (active.id !== over.id) {
       setFiles((items) => {
@@ -263,7 +301,7 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
       <p className="text-muted-foreground bg-muted rounded-md px-3 py-2">
       No media configuration found. {' '}
       <a 
-        href={`/${config?.owner}/${config?.repo}/${encodeURIComponent(config?.branch || "")}/settings`}
+        href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch || "")}/settings`}
         className="underline hover:text-foreground"
       >
         Check your settings
@@ -278,7 +316,7 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
         <div className="space-y-2">
           {files.length > 0 && (
             isMultiple ? (
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <DndContext 
                   sensors={sensors}
                   collisionDetection={closestCenter}
@@ -321,6 +359,7 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
                 initialPath={rootPath}
                 maxSelected={remainingSlots}
                 extensions={allowedExtensions}
+                selected={files.map((file) => file.path)}
                 onSubmit={handleSelected}
               >
                 <Button type="button" size="sm" variant="outline">
