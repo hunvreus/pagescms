@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { signIn, signOut } from "@/lib/auth-client";
 import { Button, buttonVariants } from "@/components/ui/button";
 import Link from "next/link";
-import { Loader } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 export function SignInFromInvite({
   githubUsername,
@@ -71,7 +71,7 @@ export function SignInFromInvite({
                   }
                 }} disabled={isLoading}>
                   Sign in as collaborator
-                  {isLoading && <Loader className="ml-2 h-4 w-4 animate-spin" />}
+                  {isLoading && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
                 </Button>
                 {redirectTo && (
                   <Link href={redirectTo} className={buttonVariants({ variant: "outline" })}><span className="truncate">Go to &quot;{redirectTo}&quot;</span></Link>
@@ -87,7 +87,7 @@ export function SignInFromInvite({
               <footer className="flex flex-col gap-y-2">
                 <Button variant="default" onClick={handleSignIn} disabled={isLoading}>
                   Sign in
-                  {isLoading && <Loader className="ml-2 h-4 w-4 animate-spin" />}
+                  {isLoading && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
                 </Button>
               </footer>
             </>

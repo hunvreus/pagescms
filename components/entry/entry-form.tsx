@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, forwardRef, useCallback } from "react";
+import { useState, useMemo, useEffect, forwardRef, useCallback, useRef } from "react";
 import {
   useForm,
   useFieldArray,
@@ -67,12 +67,20 @@ import {
 import { toast } from "sonner";
 import { interpolate } from "@/lib/schema";
 
-type RenderFields = (fields: Field[], parentName?: string) => React.ReactNode[];
+type BeforeSubmitHook = () => void | Promise<void>;
+type RegisterBeforeSubmitHook = (key: string, hook: BeforeSubmitHook) => () => void;
+
+type RenderFields = (
+  fields: Field[],
+  parentName?: string,
+  registerBeforeSubmitHook?: RegisterBeforeSubmitHook,
+) => React.ReactNode[];
 
 type NestedFieldProps = {
   field: Field;
   fieldName: string;
   renderFields: RenderFields;
+  registerBeforeSubmitHook?: RegisterBeforeSubmitHook;
   isOpen?: boolean;
   onToggleOpen?: () => void;
   index?: number;
@@ -140,10 +148,12 @@ const ListField = ({
   field,
   fieldName,
   renderFields,
+  registerBeforeSubmitHook,
 }: {
   field: Field;
   fieldName: string;
   renderFields: RenderFields;
+  registerBeforeSubmitHook?: RegisterBeforeSubmitHook;
 }) => {
   const isCollapsible = !!(field.list && !(typeof field.list === 'object' && field.list?.collapsible === false));
   const defaultOpen = useMemo(() => {
@@ -244,31 +254,6 @@ const ListField = ({
               {field.required && (
                 <Badge variant="secondary" className="text-muted-foreground">Required</Badge>
               )}
-              
-              {isCollapsible && arrayFields.length > 0 && (() => {
-                const isAllExpanded = openStates.length > 0 && openStates.every(Boolean);
-                return (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        type="button"
-                        size="icon-sm"
-                        className="ml-auto text-muted-foreground hover:text-foreground"
-                        onClick={() => toggleAll(isAllExpanded)}
-                      >
-                        {isAllExpanded
-                          ? <ChevronsDownUp className="h-4 w-4" />
-                          : <ChevronsUpDown className="h-4 w-4" />
-                        }
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {isAllExpanded ? "Collapse all" : "Expand all"}
-                    </TooltipContent>
-                  </Tooltip>
-                );
-              })()}
             </div>
           )}
           <div className="space-y-2">
@@ -281,6 +266,7 @@ const ListField = ({
                         field={field}
                         fieldName={`${fieldName}.${index}`}
                         renderFields={renderFields}
+                        registerBeforeSubmitHook={registerBeforeSubmitHook}
                         showLabel={false}
                         isOpen={openStates[index] ?? defaultOpen}
                         toggleOpen={() => toggleOpen(index)}
@@ -289,7 +275,7 @@ const ListField = ({
                     </div>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button type="button" variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground self-start mt-1.25" onClick={() => removeItem(index)}>
+                        <Button type="button" variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground self-start" onClick={() => removeItem(index)}>
                           <Trash2 />
                         </Button>
                       </TooltipTrigger>
@@ -301,19 +287,39 @@ const ListField = ({
                 ))}
               </SortableContext>
             </DndContext>
-            {typeof field.list === 'object' && field.list?.max && arrayFields.length >= field.list.max
-              ? null
-              : <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addItem}
-                  className="gap-x-2"
-                >
-                  <Plus />
-                  Add an item
-                </Button>
-            }
+            <div className="flex items-center gap-2 flex-wrap pl-6.5">
+              {typeof field.list === 'object' && field.list?.max && arrayFields.length >= field.list.max
+                ? null
+                : <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addItem}
+                    className="gap-x-2"
+                  >
+                    <Plus />
+                    Add an item
+                  </Button>
+              }
+              {isCollapsible && arrayFields.length > 0 && (() => {
+                const isAllExpanded = openStates.length > 0 && openStates.every(Boolean);
+                return (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-x-2"
+                    onClick={() => toggleAll(isAllExpanded)}
+                  >
+                    {isAllExpanded
+                      ? <ChevronsDownUp className="h-4 w-4" />
+                      : <ChevronsUpDown className="h-4 w-4" />
+                    }
+                    {isAllExpanded ? "Collapse all" : "Expand all"}
+                  </Button>
+                );
+              })()}
+            </div>
             <FormMessage />
           </div>
         </FormItem>
@@ -323,7 +329,7 @@ const ListField = ({
 };
 
 const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>((props, ref) => {
-  const { field, fieldName, renderFields, isOpen, onToggleOpen, index } = props;
+  const { field, fieldName, renderFields, registerBeforeSubmitHook, isOpen, onToggleOpen, index } = props;
 
   const isCollapsible = !!(field.list && !(typeof field.list === 'object' && field.list?.collapsible === false));
   
@@ -388,11 +394,11 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>((props, ref) =>
           </div>
         </div>
       ) : (
-        <div className="border rounded-lg">
+        <div>
           <header
             className={cn(
-              "flex items-center gap-x-2 px-4 h-10 text-sm font-medium transition-colors rounded-t-lg", 
-              isOpen ? 'border-b' : 'rounded-b-lg', 
+              "flex items-center gap-x-2 px-4 h-9 text-sm font-medium transition-colors rounded-t-lg border", 
+              isOpen ? '' : 'rounded-b-lg', 
               isCollapsible ? 'cursor-pointer hover:bg-muted' : ''
             )}
             onClick={isCollapsible ? onToggleOpen : undefined}
@@ -426,7 +432,7 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>((props, ref) =>
               </Tooltip>
             </Badge>
           </header>
-          <div className={cn("p-4 grid gap-6", isOpen ? '' : 'hidden')}>
+          <div className={cn("p-4 grid gap-6 border border-t-0 rounded-b-lg", isOpen ? '' : 'hidden')}>
             {selectedBlockDefinition.type === 'object' ? (
               (() => {
                 const renderedElements = renderFields(
@@ -440,6 +446,7 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>((props, ref) =>
                 field={selectedBlockDefinition}
                 fieldName={fieldName}
                 renderFields={renderFields}
+                registerBeforeSubmitHook={registerBeforeSubmitHook}
                 showLabel={false}
               />
             )}
@@ -453,7 +460,15 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>((props, ref) =>
 BlocksField.displayName = 'BlocksField';
 
 const ObjectField = forwardRef<HTMLDivElement, NestedFieldProps>((props, ref) => {
-  const { field, fieldName, renderFields, isOpen = true, onToggleOpen = () => {}, index } = props;
+  const {
+    field,
+    fieldName,
+    renderFields,
+    registerBeforeSubmitHook,
+    isOpen = true,
+    onToggleOpen = () => {},
+    index,
+  } = props;
   
   const isCollapsible = !!(field.list && !(typeof field.list === 'object' && field.list?.collapsible === false));
 
@@ -475,7 +490,7 @@ const ObjectField = forwardRef<HTMLDivElement, NestedFieldProps>((props, ref) =>
         </header>
       )}
       <div className={cn("p-4 grid gap-6 border-t", isOpen ? '' : 'hidden')}>
-        {renderFields(field.fields || [], fieldName)}
+        {renderFields(field.fields || [], fieldName, registerBeforeSubmitHook)}
       </div>
     </div>
   );
@@ -487,6 +502,7 @@ const SingleField = ({
   field,
   fieldName,
   renderFields,
+  registerBeforeSubmitHook,
   showLabel = true,
   isOpen = true,
   toggleOpen = () => {},
@@ -495,6 +511,7 @@ const SingleField = ({
   field: Field;
   fieldName: string;
   renderFields: RenderFields;
+  registerBeforeSubmitHook?: RegisterBeforeSubmitHook;
   showLabel?: boolean;
   isOpen?: boolean;
   toggleOpen?: () => void;
@@ -527,6 +544,7 @@ const SingleField = ({
           field={field}
           fieldName={fieldName}
           renderFields={renderFields}
+          registerBeforeSubmitHook={registerBeforeSubmitHook}
           isOpen={isOpen}
           onToggleOpen={isCollapsible ? toggleOpen : undefined}
           index={isCollapsible ? index : undefined}
@@ -564,10 +582,21 @@ const SingleField = ({
               </div>
             )}
             <FormControl>
-              <FieldComponent 
-                {...rhfManagedFieldProps}
-                field={field}
-              />
+              {(() => {
+                const sharedProps = {
+                  ...rhfManagedFieldProps,
+                  field,
+                };
+                if (field.type === "rich-text") {
+                  return (
+                    <FieldComponent
+                      {...sharedProps}
+                      registerBeforeSubmitHook={registerBeforeSubmitHook}
+                    />
+                  );
+                }
+                return <FieldComponent {...sharedProps} />;
+              })()}
             </FormControl>
             {field.description && <FormDescription>{field.description}</FormDescription>}
             <FormMessage />
@@ -605,23 +634,53 @@ const EntryForm = ({
     reValidateMode: "onSubmit"
   });
 
+  const beforeSubmitHooksRef = useRef<Map<string, BeforeSubmitHook>>(new Map());
+
+  const registerBeforeSubmitHook = useCallback((key: string, hook: BeforeSubmitHook) => {
+    beforeSubmitHooksRef.current.set(key, hook);
+    return () => {
+      beforeSubmitHooksRef.current.delete(key);
+    };
+  }, []);
+
   const renderFields: RenderFields = useCallback((
     fields: Field[],
-    parentName?: string
+    parentName?: string,
+    registerBeforeSubmitHook?: RegisterBeforeSubmitHook,
   ): React.ReactNode[] => {
     return fields.map((field) => {
       if (!field || field.hidden) return null;
       const currentFieldName = parentName ? `${parentName}.${field.name}` : field.name;
 
       if (field.list === true || (typeof field.list === 'object' && field.list !== null)) {
-        return <ListField key={currentFieldName} field={field} fieldName={currentFieldName} renderFields={renderFields} />;
+        return (
+          <ListField
+            key={currentFieldName}
+            field={field}
+            fieldName={currentFieldName}
+            renderFields={renderFields}
+            registerBeforeSubmitHook={registerBeforeSubmitHook}
+          />
+        );
       }
-      return <SingleField key={currentFieldName} field={field} fieldName={currentFieldName} renderFields={renderFields} />;
+      return (
+        <SingleField
+          key={currentFieldName}
+          field={field}
+          fieldName={currentFieldName}
+          renderFields={renderFields}
+          registerBeforeSubmitHook={registerBeforeSubmitHook}
+        />
+      );
     });
   }, []);
 
   const handleSubmit = async (values: Record<string, unknown>) => {
-    await onSubmit(values);
+    for (const hook of beforeSubmitHooksRef.current.values()) {
+      await hook();
+    }
+    const latestValues = form.getValues() as Record<string, unknown>;
+    await onSubmit(latestValues);
   };
 
   const handleError = () => {
@@ -639,7 +698,7 @@ const EntryForm = ({
             {filePath}
           </div>
         }
-        {renderFields(fields)}
+        {renderFields(fields, undefined, registerBeforeSubmitHook)}
       </form>
     </Form>
   );

@@ -104,6 +104,12 @@ Variable | Comments
 
 We assume you've already created the GitHub App and have a running tunnel for the GitHub App Webhook (using [ngrok](https://ngrok.com/) for example):
 
+If you need a quick local PostgreSQL instance, you can run:
+
+```bash
+docker run --name pagescms-db -e POSTGRES_USER=pagescms -e POSTGRES_PASSWORD=pagescms -e POSTGRES_DB=pagescms -p 5432:5432 -d postgres:16
+```
+
 1. **Install the dependencies**: `npm install`
 2. **Update your environment variables**: copy `.env.example` to `.env` and fill in the values according to your setting (see section above).
 3. **Create the database**: `npm run db:migrate`

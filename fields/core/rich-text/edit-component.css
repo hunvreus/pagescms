@@ -1,126 +1,94 @@
-<<<<<<< ours
-=======
 @reference "../../../app/globals.css";
 
->>>>>>> theirs
-.ProseMirror {
-  @apply rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background min-h-[8.5rem];
-}
+@layer components {
+  .cn-editor .tiptap {
+   @apply border-input placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 min-h-16 w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] md:text-sm;
+ }
 
-.ProseMirror-focused {
-  @apply outline-none ring-2 ring-ring ring-offset-2;
-}
+ .cn-editor .tiptap > :first-child {
+   @apply mt-0;
+ }
 
-.ProseMirror > * {
-<<<<<<< ours
-  @apply first:!mt-0 last:!mb-0;
-=======
-  @apply first:mt-0! last:mb-0!;
->>>>>>> theirs
-}
+ .cn-editor .tiptap > :last-child {
+   @apply mb-0;
+ }
 
-.ProseMirror h1 {
-  @apply my-6 scroll-m-20 text-xl md:text-2xl font-semibold tracking-tight;
-}
+ .cn-editor .tiptap h1 {
+   @apply mt-8 mb-3 scroll-m-20 text-4xl font-bold tracking-tight text-balance;
+ }
 
-.ProseMirror h2 {
-  @apply my-6 scroll-m-20 text-lg md:text-xl font-semibold tracking-tight;
-}
+ .cn-editor .tiptap h2 {
+   @apply mt-8 mb-3 scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0;
+ }
 
-.ProseMirror h3 {
-  @apply my-6 scroll-m-20 text-base font-semibold tracking-tight;
-}
+ .cn-editor .tiptap h3 {
+   @apply mt-6 mb-2 scroll-m-20 text-2xl font-semibold tracking-tight;
+ }
 
-.ProseMirror p {
-  @apply [&:not(:first-child)]:mt-6;
-}
+ .cn-editor .tiptap p {
+   @apply leading-7 [&:not(:first-child)]:mt-4;
+ }
 
-.ProseMirror code {
-  @apply bg-muted py-1 px-1.5 rounded-md text-[90%];
-}
+ .cn-editor .tiptap ul {
+   @apply my-4 ml-6 list-disc;
+ }
 
-.ProseMirror pre {
-  @apply [&:not(:first-child)]:mt-6;
-}
+ .cn-editor .tiptap ol {
+   @apply my-4 ml-6 list-decimal;
+ }
 
-.ProseMirror pre code {
-  @apply block bg-muted p-2;
-}
+ .cn-editor .tiptap blockquote {
+   @apply my-6 border-l-2 pl-6 italic;
+ }
 
-.ProseMirror a {
-  @apply font-medium text-primary underline decoration-dotted underline-offset-4;
-}
+ .cn-editor .tiptap img {
+   @apply my-4 transition-shadow;
+   
+   &.ProseMirror-selectednode {
+     @apply ring-1;
+   }
+ }
 
-.ProseMirror blockquote {
-  @apply mt-6 border-l-2 pl-6 italic;
-}
+ .cn-editor .tiptap a {
+   @apply font-medium text-primary underline decoration-dotted underline-offset-4;
+ }
 
-.ProseMirror ul {
-  @apply my-6 ml-6 list-disc [&>li]:mt-2;
-}
+ .cn-editor .tiptap code {
+   @apply relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm;
+ }
 
-.ProseMirror ol {
-  @apply my-6 ml-6 list-decimal [&>li]:mt-2;
-}
+ .cn-editor .tiptap pre {
+   @apply my-4 overflow-x-auto rounded-xl bg-accent p-4;
+ }
 
-.ProseMirror table {
-  @apply w-full my-6;
-}
+ .cn-editor .tiptap pre code {
+   @apply bg-transparent p-0;
+ }
 
-.ProseMirror table tr {
-  @apply m-0 border-t p-0;
-}
+ .cn-editor .tiptap table {
+   @apply my-4 w-full border-collapse;
+ }
 
-.ProseMirror table th {
-  @apply bg-muted border px-4 py-2 text-left font-bold [&[align=center]]:text-center [&[align=right]]:text-right;
-}
+ .cn-editor .tiptap th,
+ .cn-editor .tiptap td {
+   @apply border px-3 py-2 text-left;
+ }
 
-.ProseMirror table td {
-  @apply border px-4 py-2 text-left [&[align=center]]:text-center [&[align=right]]:text-right;
-}
+ .cn-editor .tiptap th {
+   @apply bg-muted font-medium;
+ }
 
-.ProseMirror table .selectedCell {
-  @apply bg-muted-foreground/15;
-}
+ .cn-editor .tiptap .selectedCell {
+   @apply text-foreground;
+   outline: 1px solid var(--ring);
+ }
 
-.tiptap p.is-empty::before {
-  @apply text-muted-foreground float-left	h-0 pointer-events-none	content-[attr(data-placeholder)];
-}
+ .cn-editor .tiptap .selectedCell::after {
+   content: none;
+ }
 
-.tiptap p > img + .ProseMirror-separator,
-.tiptap img.ProseMirror-separator,
-.tiptap p > img + .ProseMirror-separator + .ProseMirror-trailingBreak,
-.tiptap code > .ProseMirror-trailingBreak {
-<<<<<<< ours
-  @apply !hidden;
-=======
-  @apply hidden!;
->>>>>>> theirs
+ .cn-editor .tiptap .selectedCell::selection,
+ .cn-editor .tiptap .selectedCell *::selection {
+   @apply bg-accent text-foreground!;
+ }
 }
-
-.tiptap img,
-.tiptap svg,
-.tiptap video,
-.tiptap canvas,
-.tiptap audio,
-.tiptap iframe,
-.tiptap embed,
-.tiptap object {
-  @apply inline-block;
-}
-
-.tiptap img.ProseMirror-selectednode {
-  @apply ring-2 ring-ring ring-offset-2 ring-offset-background ;
-}
-
-.tippy-box {
-  @apply transition-all;
-}
-
-div[data-tippy-root] {
-  @apply transition-all;
-<<<<<<< ours
-}
-=======
-}
->>>>>>> theirs

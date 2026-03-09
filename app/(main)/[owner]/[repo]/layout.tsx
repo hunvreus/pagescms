@@ -1,5 +1,6 @@
 import { createOctokitInstance } from "@/lib/utils/octokit";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
 import { RepoProvider } from "@/contexts/repo-context";
@@ -18,7 +19,7 @@ export default async function Layout({
     headers: await headers(),
   });
   const user = session?.user;
-  if (!user) throw new Error("User not found");
+  if (!user) return redirect("/sign-in");
 
   const token = await getToken(user, owner, repo);
   if (!token) throw new Error("Token not found");

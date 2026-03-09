@@ -79,7 +79,16 @@ export function User({
           <Link href="/settings">Settings</Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onClick={async () => { if (onClick) onClick(); await signOut(); }}>Sign out</DropdownMenuItem>
+        <DropdownMenuItem
+          variant="destructive"
+          onClick={async () => {
+            if (onClick) onClick();
+            await signOut();
+            window.location.assign("/sign-in");
+          }}
+        >
+          Sign out
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

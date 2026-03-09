@@ -29,7 +29,8 @@ const MediaDialog = forwardRef(({
   maxSelected,
   initialPath,
   children,
-  extensions
+  extensions,
+  onOpenChange
 }: {
   media?: string,
   onSubmit: (images: string[]) => void,
@@ -37,7 +38,8 @@ const MediaDialog = forwardRef(({
   maxSelected?: number,
   initialPath?: string,
   children?: React.ReactNode,
-  extensions?: string[]
+  extensions?: string[],
+  onOpenChange?: (open: boolean) => void
 }, ref) => {
   const { config } = useConfig();
   if (!config) throw new Error(`Configuration not found.`);
@@ -74,8 +76,13 @@ const MediaDialog = forwardRef(({
     close: () => setOpen(false),
   }));
 
+  const handleOpenChange = useCallback((nextOpen: boolean) => {
+    setOpen(nextOpen);
+    onOpenChange?.(nextOpen);
+  }, [onOpenChange]);
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       {children && 
         <DialogTrigger asChild>
           {children}
