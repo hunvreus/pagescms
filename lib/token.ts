@@ -5,6 +5,7 @@
 import { cache } from "react";
 import { App } from "@octokit/app";
 import { decrypt, encrypt } from "@/lib/crypto";
+import { createOctokitInstance } from "@/lib/utils/octokit";
 import { db } from "@/db";
 import {
   collaboratorTable,
@@ -17,7 +18,10 @@ import { getGithubAccount } from "@/lib/githubAccount";
 // Get a token for a user (including collagborators who need to provide an owner/repo scope).
 const getToken = cache(async (user: User, owner: string, repo: string) => {
   const githubAccount = await getGithubAccount(user.id);
-  if (githubAccount?.accessToken) return githubAccount.accessToken;
+  if (githubAccount?.accessToken) {
+    const hasGithubAccess = await canAccessRepoWithToken(githubAccount.accessToken, owner, repo);
+    if (hasGithubAccess) return githubAccount.accessToken;
+  }
 
   const permission = await db.query.collaboratorTable.findFirst({
     where: and(
@@ -40,7 +44,10 @@ const getInstallationToken = cache(async (owner: string, repo: string) => {
 		privateKey: process.env.GITHUB_APP_PRIVATE_KEY!,
 	});
 
-  const repoInstallation = await app.octokit.rest.apps.getRepoInstallation({ owner, repo });
+  const repoInstallation = await app.octokit.request(
+    "GET /repos/{owner}/{repo}/installation",
+    { owner, repo },
+  );
   if (!repoInstallation) throw new Error(`Installation token not found for "${owner}/${repo}".`);
 
   let tokenData = await db.query.githubInstallationTokenTable.findFirst({
@@ -54,9 +61,12 @@ const getInstallationToken = cache(async (owner: string, repo: string) => {
     return token;
   }
 
-  const installationToken = await app.octokit.rest.apps.createInstallationAccessToken({
-    installation_id: repoInstallation.data.id
-  });
+  const installationToken = await app.octokit.request(
+    "POST /app/installations/{installation_id}/access_tokens",
+    {
+      installation_id: repoInstallation.data.id,
+    },
+  );
 
   const { ciphertext, iv } = await encrypt(installationToken.data.token);
     
@@ -89,5 +99,19 @@ const getUserToken = cache(async (userId: string) => {
 
   return githubAccount.accessToken;
 });
+
+const canAccessRepoWithToken = async (
+  token: string,
+  owner: string,
+  repo: string,
+) => {
+  try {
+    const octokit = createOctokitInstance(token);
+    await octokit.rest.repos.get({ owner, repo });
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 export { getInstallationToken, getUserToken, getToken };

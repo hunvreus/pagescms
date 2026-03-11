@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useConfig } from "@/contexts/config-context";
+import { useUser } from "@/contexts/user-context";
 import { Message } from "@/components/message";
 
 export default function Page() {
   const { config } = useConfig();
+  const { user } = useUser();
   const router = useRouter();
   const [error, setError] = useState(false);
 
@@ -15,12 +17,12 @@ export default function Page() {
       router.replace(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/${config.object.content[0].type}/${config.object.content[0].name}`);
     } else if (config?.object.media) {
       router.replace(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/media/${config.object.media[0].name}`);
-    } else if (!config?.object?.settings?.hide) {
+    } else if (user?.githubUsername && !config?.object?.settings?.hide) {
       router.replace(`/${config?.owner}/${config?.repo}/${encodeURIComponent(config!.branch)}/settings`);
     } else {
       setError(true);
     }
-  }, [config, router]);
+  }, [config, router, user?.githubUsername]);
   
   return error
     ? <Message

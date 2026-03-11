@@ -89,7 +89,7 @@ function RepoSwitcher() {
           <DropdownMenuItem asChild>
             <a href={`https://github.com/${owner}/${repo}`} target="_blank" rel="noreferrer">
               View on GitHub
-              <ArrowUpRight className="size-3 ml-auto"/>
+              <ArrowUpRight className="size-3 text-muted-foreground ml-auto" />
             </a>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -163,7 +163,7 @@ export function RepoSidebar() {
       });
     }
 
-    if (!(config.object as any)?.settings?.hide) {
+    if (user?.githubUsername && !(config.object as any)?.settings?.hide) {
       items.push({
         key: "admin-settings",
         label: "Settings",

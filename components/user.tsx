@@ -57,13 +57,12 @@ export function User({
       </DropdownMenuTrigger>
       <DropdownMenuContent forceMount align="start" className="max-w-[12.5rem]">
         <DropdownMenuLabel>
-          {user?.githubUsername
-            ? <>
-                <div className="text-sm font-medium truncate">{user.name || user.githubUsername}</div>
-                <div className="text-xs font-normal text-muted-foreground truncate">{user.email}</div>
-              </>
-            : <div className="text-sm font-medium truncate">{user.email}</div>
-          }
+          <div className="text-sm font-medium truncate">
+            {user.name || user.githubUsername || user.email}
+          </div>
+          <div className="text-xs font-normal text-muted-foreground truncate">
+            {user.email}
+          </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuLabel className="w-40 text-xs text-muted-foreground font-medium">

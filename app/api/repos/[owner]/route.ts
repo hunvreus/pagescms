@@ -31,7 +31,8 @@ export async function GET(
     if (!session?.user) return new Response(null, { status: 401 });
     const user = session.user;
 
-    let repos: any[] = [];
+    let githubRepos: any[] = [];
+    let collaboratorRepos: any[] = [];
 
     const searchParams = request.nextUrl.searchParams;
     const type = searchParams.get("type");
@@ -47,9 +48,9 @@ export async function GET(
         // Only some repos are selected
         // TODO: investigate why it's slow
         const installations = await getInstallations(token, [params.owner]);
-        if (installations.length !== 1) throw new Error(`"${params.owner}" is not part of your GitHub App installations`);
-
-        repos =  await getInstallationRepos(token, installations[0].id);
+        if (installations.length === 1) {
+          githubRepos = await getInstallationRepos(token, installations[0].id);
+        }
       } else {
         // All repos are selected, we search for the repos based on parameters
         const keyword = searchParams.get("keyword");
@@ -62,24 +63,37 @@ export async function GET(
           order: "desc",
           per_page: 5
         });
-        repos = response.data.items;
+        githubRepos = response.data.items;
       }
 
-      repos = repos.filter(repo => repo.permissions.push).map(repo => ({
+      githubRepos = githubRepos.filter(repo => repo.permissions.push).map(repo => ({
         owner: repo.owner.login,
         repo: repo.name,
         private: repo.private,
         defaultBranch: repo.default_branch,
         updatedAt: repo.updated_at,
       }));
-    } else {
-      repos = await db.query.collaboratorTable.findMany({
-        where: and(
-          sql`lower(${collaboratorTable.email}) = lower(${user.email})`,
-          sql`lower(${collaboratorTable.owner}) = lower(${params.owner})`
-        )
-      });
     }
+
+    collaboratorRepos = await db.query.collaboratorTable.findMany({
+      where: and(
+        sql`lower(${collaboratorTable.email}) = lower(${user.email})`,
+        sql`lower(${collaboratorTable.owner}) = lower(${params.owner})`
+      )
+    });
+
+    const reposByKey = new Map<string, any>();
+    for (const repo of githubRepos) {
+      reposByKey.set(`${repo.owner.toLowerCase()}::${repo.repo.toLowerCase()}`, repo);
+    }
+    for (const repo of collaboratorRepos) {
+      const key = `${repo.owner.toLowerCase()}::${repo.repo.toLowerCase()}`;
+      if (!reposByKey.has(key)) {
+        reposByKey.set(key, repo);
+      }
+    }
+
+    const repos = Array.from(reposByKey.values());
 
     return Response.json({
       status: "success",

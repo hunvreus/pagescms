@@ -21,6 +21,13 @@ import { EmptyCreate } from "@/components/empty-create";
 import { FileOptions } from "@/components/file/file-options";
 import { Message } from "@/components/message";
 import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { useRepoHeader } from "@/components/repo/repo-header-context";
 import {
   Breadcrumb,
@@ -357,6 +364,7 @@ export function Entry({
       </>
     );
   }, [config.branch, config.owner, config.repo, displayTitle, name, path, schema, schemaType]);
+  const showHeaderActions = error !== "Not found";
 
   const headerNode = useMemo(() => (
     <div className="flex items-center justify-between gap-2">
@@ -367,36 +375,38 @@ export function Entry({
           </BreadcrumbList>
         </Breadcrumb>
       </div>
-      <div className="flex items-center gap-x-2">
-        {path && (
-          history && history.length > 0 && !isLoading
-            ? <EntryHistoryDropdown history={history} path={path} />
-            : <Button variant="ghost" size="icon" className="shrink-0" disabled><History /></Button>
-        )}
-        <Button type="submit" form="entry-form" disabled={isBusy}>
-          Save
-        </Button>
-        {path && (
-          sha
-            ? (
-              <FileOptions
-                path={path}
-                sha={sha}
-                type={path === ".pages.yml" ? "settings" : (schemaType ?? "content")}
-                name={name}
-                onDelete={handleDelete}
-                onRename={handleRename}
-              >
-                <Button variant="ghost" size="icon" className="shrink-0" disabled={isBusy}>
-                  <EllipsisVertical className="h-4 w-4" />
-                </Button>
-              </FileOptions>
-            )
-            : <Button variant="ghost" size="icon" className="shrink-0" disabled><EllipsisVertical className="h-4 w-4" /></Button>
-        )}
-      </div>
+      {showHeaderActions && (
+        <div className="flex items-center gap-x-2">
+          {path && (
+            history && history.length > 0 && !isLoading
+              ? <EntryHistoryDropdown history={history} path={path} />
+              : <Button variant="ghost" size="icon" className="shrink-0" disabled><History /></Button>
+          )}
+          <Button type="submit" form="entry-form" disabled={isBusy}>
+            Save
+          </Button>
+          {path && (
+            sha
+              ? (
+                <FileOptions
+                  path={path}
+                  sha={sha}
+                  type={path === ".pages.yml" ? "settings" : (schemaType ?? "content")}
+                  name={name}
+                  onDelete={handleDelete}
+                  onRename={handleRename}
+                >
+                  <Button variant="ghost" size="icon" className="shrink-0" disabled={isBusy}>
+                    <EllipsisVertical className="h-4 w-4" />
+                  </Button>
+                </FileOptions>
+              )
+              : <Button variant="ghost" size="icon" className="shrink-0" disabled><EllipsisVertical className="h-4 w-4" /></Button>
+          )}
+        </div>
+      )}
     </div>
-  ), [breadcrumbNode, handleDelete, handleRename, history, isBusy, isLoading, name, path, schemaType, sha]);
+  ), [breadcrumbNode, handleDelete, handleRename, history, isBusy, isLoading, name, path, schemaType, sha, showHeaderActions]);
 
   useRepoHeader({ header: headerNode });
 
@@ -436,24 +446,46 @@ export function Entry({
     // TODO: should we use a custom error class with code?
     // TODO: errors show no header (unlike collection and media). Consider standardizing templates.
     if (error === "Not found") {
+      const isSettingsPage = path === ".pages.yml";
       return (
-        <Message
-            title="File missing"
-            description={`The file "${path ?? schema?.path ?? "unknown"}" has not been created yet.`}
-            className="absolute inset-0"
-          >
-          <EmptyCreate type="content" name={schema?.name ?? name}>Create file</EmptyCreate>
-        </Message>
+        <div className="absolute inset-0 p-4 md:p-6 flex items-center justify-center">
+          <Empty className="max-w-[420px] flex-none">
+            <EmptyHeader>
+              <EmptyTitle>{isSettingsPage ? "Configuration missing" : "File missing"}</EmptyTitle>
+              <EmptyDescription>
+                {isSettingsPage
+                  ? "The settings file \".pages.yml\" has not been created yet."
+                  : `The file "${path ?? schema?.path ?? "unknown"}" has not been created yet.`}
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              {isSettingsPage ? (
+                <EmptyCreate type="settings">Create configuration file</EmptyCreate>
+              ) : (
+                <EmptyCreate type="content" name={schema?.name ?? name}>Create file</EmptyCreate>
+              )}
+            </EmptyContent>
+          </Empty>
+        </div>
       );
     } else {
       return (
-        <Message
-          title="Something's wrong"
-          description={error}
-          className="absolute inset-0"
-          cta="Go to settings"
-          href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/settings`}
-        />
+        <div className="absolute inset-0 p-4 md:p-6 flex items-center justify-center">
+          <Empty className="max-w-[420px] flex-none">
+            <EmptyHeader>
+              <EmptyTitle>Something&apos;s wrong</EmptyTitle>
+              <EmptyDescription>{error}</EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Link
+                className="inline-flex items-center justify-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90"
+                href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/settings`}
+              >
+                Go to settings
+              </Link>
+            </EmptyContent>
+          </Empty>
+        </div>
       );
     }
   }

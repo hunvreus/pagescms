@@ -1,19 +1,23 @@
 "use client";
 
-import { useMemo } from "react";
 import { Collaborators } from "@/components/collaborators";
-import { useRepoHeader } from "@/components/repo/repo-header-context";
 import { useConfig } from "@/contexts/config-context";
+import { useUser } from "@/contexts/user-context";
+import { Message } from "@/components/message";
 
 export default function Page() {
   const { config } = useConfig();
+  const { user } = useUser();
   if (!config) throw new Error(`Configuration not found.`);
-
-  const headerNode = useMemo(() => (
-    <h1 className="font-semibold text-lg">Collaborators</h1>
-  ), []);
-
-  useRepoHeader({ header: headerNode });
+  if (!user?.githubUsername) {
+    return (
+      <Message
+        title="Access restricted"
+        description="Only GitHub users can manage collaborators."
+        className="absolute inset-0"
+      />
+    );
+  }
 
   return (
     <div className="max-w-screen-sm mx-auto flex-1 flex flex-col h-full">

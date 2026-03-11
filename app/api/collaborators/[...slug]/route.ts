@@ -5,7 +5,7 @@ import { getUserToken } from "@/lib/token";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { collaboratorTable } from "@/db/schema";
-import { getInstallations, getInstallationRepos } from "@/lib/githubApp";
+import { getWritableRepoAccess } from "@/lib/utils/repoAccess";
 
 /**
  * Fetches collaborators for a repository.
@@ -35,16 +35,12 @@ export async function GET(
     const owner = params.slug[0];
 		const repo = params.slug[1];
 
-    const installations = await getInstallations(token, [owner]);
-		if (installations.length !== 1) throw new Error(`"${owner}" is not part of your GitHub App installations`);
-
-		const installationRepos =  await getInstallationRepos(token, installations[0].id, [repo]);
-		if (installationRepos.length !== 1) throw new Error(`"${owner}/${repo}" is not part of your GitHub App installations`);
+    const repoAccess = await getWritableRepoAccess(token, owner, repo);
     
     const collaborators = await db.query.collaboratorTable.findMany({
       where: and(
-        eq(collaboratorTable.ownerId, installationRepos[0].owner.id),
-        eq(collaboratorTable.repoId, installationRepos[0].id)
+        eq(collaboratorTable.ownerId, repoAccess.ownerId),
+        eq(collaboratorTable.repoId, repoAccess.repoId)
       )
     });
     

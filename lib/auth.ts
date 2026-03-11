@@ -18,6 +18,15 @@ export const auth = betterAuth({
       },
     },
   },
+  account: {
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ["github"],
+      disableImplicitLinking: false,
+      updateUserInfoOnLink: true,
+      allowUnlinkingAll: false,
+    },
+  },
   socialProviders: {
     github: {
       clientId: process.env.GITHUB_APP_CLIENT_ID as string,

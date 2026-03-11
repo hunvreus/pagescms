@@ -2,14 +2,117 @@
 
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { getInstallations, getInstallationRepos } from "@/lib/githubApp";
+import { getInstallationRepos, getInstallations } from "@/lib/githubApp";
 import { getUserToken } from "@/lib/token";
+import { getWritableRepoAccess } from "@/lib/utils/repoAccess";
 import { InviteEmailTemplate } from "@/components/email/invite";
 import { Resend } from "resend";
 import { db } from "@/db";
 import { and, eq, sql } from "drizzle-orm";
-import { collaboratorTable } from "@/db/schema";
+import { collaboratorTable, verificationTable } from "@/db/schema";
 import { z } from "zod";
+import { randomBytes, randomUUID } from "crypto";
+
+const parseInviteEmails = (raw: FormDataEntryValue | null) => {
+  const value = typeof raw === "string" ? raw : "";
+  const parts = value
+    .split(/[\n,]+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  const unique = Array.from(new Set(parts.map((email) => email.toLowerCase())));
+  return z.array(z.string().email()).safeParse(unique);
+};
+
+const assertRepoInInstallation = async (
+  token: string,
+  owner: string,
+  repo: string
+) => {
+  const repoAccess = await getWritableRepoAccess(token, owner, repo);
+  const installations = await getInstallations(token, [owner]);
+  if (installations.length !== 1) throw new Error(`"${owner}" is not part of your GitHub App installations`);
+  const installationRepos = await getInstallationRepos(token, installations[0].id);
+  const isInstalledForRepo = installationRepos.some((installationRepo) =>
+    installationRepo.id === repoAccess.repoId ||
+    (
+      installationRepo.owner?.login?.toLowerCase() === owner.toLowerCase() &&
+      installationRepo.name?.toLowerCase() === repo.toLowerCase()
+    )
+  );
+  if (!isInstalledForRepo) throw new Error(`"${owner}/${repo}" is not part of your Pages CMS installation.`);
+
+  return {
+    repoAccess,
+    installation: installations[0],
+  };
+};
+
+const getBaseUrlFromHeaders = async () => {
+  const requestHeaders = await headers();
+  return process.env.BASE_URL
+    ? process.env.BASE_URL
+    : process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : requestHeaders.get("origin") || "http://localhost:3000";
+};
+
+const getDisplayNameFromEmail = (email: string) => {
+  const localPart = email.split("@")[0]?.trim();
+  return localPart || email;
+};
+
+const generateMagicLinkToken = () => {
+  const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const bytes = randomBytes(32);
+  let token = "";
+
+  for (let i = 0; i < 32; i += 1) {
+    token += alphabet[bytes[i] % alphabet.length];
+  }
+
+  return token;
+};
+
+const createCollaboratorInviteMagicLink = async ({
+  email,
+  owner,
+  repo,
+  baseUrl,
+}: {
+  email: string;
+  owner: string;
+  repo: string;
+  baseUrl: string;
+}) => {
+  const token = generateMagicLinkToken();
+  const redirectPath = `/${owner}/${repo}`;
+  const expiresAt = new Date(
+    Date.now() + ((Number(process.env.COLLABORATOR_INVITE_LINK_EXPIRES_IN) || 86400) * 1000),
+  );
+
+  await db.insert(verificationTable).values({
+    id: randomUUID(),
+    identifier: token,
+    value: JSON.stringify({
+      email,
+      name: getDisplayNameFromEmail(email),
+      owner,
+      repo,
+      source: "collaborator-invite",
+    }),
+    expiresAt,
+  });
+
+  const inviteUrl = new URL("/sign-in/collaborator", baseUrl);
+  inviteUrl.searchParams.set("token", token);
+  inviteUrl.searchParams.set("email", email);
+  inviteUrl.searchParams.set("owner", owner);
+  inviteUrl.searchParams.set("repo", repo);
+  inviteUrl.searchParams.set("redirect", redirectPath);
+
+  return inviteUrl.toString();
+};
 
 // Invite a collaborator to a repository.
 const handleAddCollaborator = async (prevState: any, formData: FormData) => {
@@ -34,70 +137,82 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
 		const owner = ownerAndRepoValidation.data.owner;
 		const repo = ownerAndRepoValidation.data.repo;
 
-		const emailValidation = z.string().trim().email().safeParse(formData.get("email"));
-		if (!emailValidation.success) throw new Error ("Invalid email");
-
-		const email = emailValidation.data.toLowerCase();
+    const emailsValidation = parseInviteEmails(formData.get("emails") ?? formData.get("email"));
+		if (!emailsValidation.success || emailsValidation.data.length === 0) throw new Error("Invalid email list");
+    const emails = emailsValidation.data;
 
 		const token = await getUserToken(user.id);
   	if (!token) throw new Error("Token not found");
-		
-		const installations = await getInstallations(token, [owner]);
-		if (installations.length !== 1) throw new Error(`"${owner}" is not part of your GitHub App installations`);
+    const { repoAccess, installation } = await assertRepoInInstallation(token, owner, repo);
 
-		const installationRepos =  await getInstallationRepos(token, installations[0].id, [repo]);
-		if (installationRepos.length !== 1) throw new Error(`"${owner}/${repo}" is not part of your GitHub App installations`);
+    const resend = new Resend(process.env.RESEND_API_KEY);
+		const baseUrl = await getBaseUrlFromHeaders();
+    const createdCollaborators: (typeof collaboratorTable.$inferSelect)[] = [];
+    const errors: string[] = [];
 
-			const collaborator = await db.query.collaboratorTable.findFirst({
+    for (const email of emails) {
+      const collaborator = await db.query.collaboratorTable.findFirst({
 				where: and(
-        eq(collaboratorTable.ownerId, installationRepos[0].owner.id),
-        eq(collaboratorTable.repoId, installationRepos[0].id),
+        eq(collaboratorTable.ownerId, repoAccess.ownerId),
+        eq(collaboratorTable.repoId, repoAccess.repoId),
 					sql`lower(${collaboratorTable.email}) = lower(${email})`
       ),
 			});
-		if (collaborator) throw new Error(`${email} is already invited to "${owner}/${repo}".`);
+      if (collaborator) {
+        errors.push(`${email} is already invited to "${owner}/${repo}".`);
+        continue;
+      }
 
-		const baseUrl = process.env.BASE_URL
-			? process.env.BASE_URL
-			: process.env.VERCEL_PROJECT_PRODUCTION_URL
-				? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-				: "";
-    const inviteUrl = `${baseUrl}/sign-in/collaborator?email=${encodeURIComponent(email)}&owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&redirect=${encodeURIComponent(`/${owner}/${repo}`)}`;
+      const inviteUrl = await createCollaboratorInviteMagicLink({
+        email,
+        owner,
+        repo,
+        baseUrl,
+      });
+      const { error } = await resend.emails.send({
+        from: process.env.RESEND_FROM_EMAIL!,
+        to: [email],
+        subject: `Join "${owner}/${repo}" on Pages CMS`,
+        react: InviteEmailTemplate({
+          inviteUrl,
+          repoName: `${formData.get("owner")}/${formData.get("repo")}`,
+          email,
+          invitedByName: user.name || user.githubUsername || user.email,
+          invitedByUrl: `https://github.com/${user.githubUsername}`,
+        }),
+      });
 
-		const resend = new Resend(process.env.RESEND_API_KEY);
+      if (error) {
+        console.error(`Failed to send invitation email to ${email}:`, error.message);
+        errors.push(`${email}: ${error.message}`);
+        continue;
+      }
 
-    const { data, error } = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL!,
-      to: [email],
-      subject: `Join "${owner}/${repo}" on Pages CMS`,
-      react: InviteEmailTemplate({
-        inviteUrl,
-        repoName: `${formData.get("owner")}/${formData.get("repo")}`,
-        email: email,
-        invitedByName: user.name || user.githubUsername || user.email,
-        invitedByUrl: `https://github.com/${user.githubUsername}`,
-      }),
-    });
+      const inserted = await db.insert(collaboratorTable).values({
+        type: repoAccess.ownerType,
+        installationId: installation.id,
+        ownerId: repoAccess.ownerId,
+        repoId: repoAccess.repoId,
+        owner: repoAccess.ownerLogin,
+        repo: repoAccess.repoName,
+        email,
+        invitedBy: user.id
+      }).returning();
 
-    if (error) {
-      console.error(`Failed to send invitation email to ${email}:`, error.message);
-      throw new Error(error.message);
+      if (inserted.length > 0) createdCollaborators.push(...inserted);
     }
-    
-		const newCollaborator = await db.insert(collaboratorTable).values({
-			type: installationRepos[0].owner.type === "User" ? "user" : "org",
-			installationId: installations[0].id,
-			ownerId: installationRepos[0].owner.id,
-			repoId: installationRepos[0].id,
-			owner: installationRepos[0].owner.login,
-			repo: installationRepos[0].name,
-			email,
-			invitedBy: user.id
-		}).returning();
+
+    if (createdCollaborators.length === 0) {
+      throw new Error(errors.join(" "));
+    }
 
 		return {
-			message: `${email} invited to "${owner}/${repo}".`,
-			data: newCollaborator
+      message:
+        createdCollaborators.length === 1
+          ? `${createdCollaborators[0].email} invited to "${owner}/${repo}".`
+          : `${createdCollaborators.length} collaborators invited to "${owner}/${repo}".`,
+			data: createdCollaborators,
+      errors
 		};
 	} catch (error: any) {
 		console.error(error);
@@ -120,16 +235,12 @@ const handleRemoveCollaborator = async (collaboratorId: number, owner: string, r
 		const collaborator = await db.query.collaboratorTable.findFirst({ where: eq(collaboratorTable.id, collaboratorId) });
 		if (!collaborator) throw new Error("Collaborator not found");
 
-		const installations = await getInstallations(token, [owner]);
-		if (installations.length !== 1) throw new Error(`"${owner}" is not part of your GitHub App installations`);
-
-		const installationRepos =  await getInstallationRepos(token, installations[0].id, [repo]);
-		if (installationRepos.length !== 1) throw new Error(`"${owner}/${repo}" is not part of your GitHub App installations`);
+    const { repoAccess } = await assertRepoInInstallation(token, owner, repo);
 
 		const deletedCollaborator = await db.delete(collaboratorTable).where(
 			and(
 				eq(collaboratorTable.id, collaboratorId),
-				eq(collaboratorTable.repoId, installationRepos[0].id)
+				eq(collaboratorTable.repoId, repoAccess.repoId)
 			)
 		).returning();
 
@@ -142,4 +253,55 @@ const handleRemoveCollaborator = async (collaboratorId: number, owner: string, r
 	}
 };
 
-export { handleAddCollaborator, handleRemoveCollaborator };
+const handleResendCollaboratorInvite = async (collaboratorId: number, owner: string, repo: string) => {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    const user = session?.user;
+    if (!user) throw new Error("You must be signed in with GitHub to resend collaborator invites.");
+
+    const token = await getUserToken(user.id);
+    if (!token) throw new Error("Token not found");
+
+    await assertRepoInInstallation(token, owner, repo);
+
+    const collaborator = await db.query.collaboratorTable.findFirst({ where: eq(collaboratorTable.id, collaboratorId) });
+    if (!collaborator) throw new Error("Collaborator not found");
+
+    if (collaborator.owner.toLowerCase() !== owner.toLowerCase() || collaborator.repo.toLowerCase() !== repo.toLowerCase()) {
+      throw new Error("Collaborator does not belong to this repository.");
+    }
+
+    const baseUrl = await getBaseUrlFromHeaders();
+    const inviteUrl = await createCollaboratorInviteMagicLink({
+      email: collaborator.email,
+      owner,
+      repo,
+      baseUrl,
+    });
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const { error } = await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL!,
+      to: [collaborator.email],
+      subject: `Join "${owner}/${repo}" on Pages CMS`,
+      react: InviteEmailTemplate({
+        inviteUrl,
+        repoName: `${owner}/${repo}`,
+        email: collaborator.email,
+        invitedByName: user.name || user.githubUsername || user.email,
+        invitedByUrl: `https://github.com/${user.githubUsername}`,
+      }),
+    });
+
+    if (error) throw new Error(error.message);
+
+    return { message: `Invitation email resent to ${collaborator.email}.` };
+  } catch (error: any) {
+    console.error(error);
+    return { error: error.message };
+  }
+};
+
+export { handleAddCollaborator, handleRemoveCollaborator, handleResendCollaboratorInvite };

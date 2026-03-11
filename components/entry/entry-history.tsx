@@ -119,7 +119,7 @@ export function EntryHistoryDropdown({
             className="flex items-center w-full"
           >
             View on GitHub
-            <ArrowUpRight className="size-3 ml-auto"/>
+            <ArrowUpRight className="size-3 text-muted-foreground ml-auto" />
           </a>
         </DropdownMenuItem>
       </DropdownMenuContent>

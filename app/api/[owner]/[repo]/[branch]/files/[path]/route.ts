@@ -170,6 +170,7 @@ export async function POST(
         }
         break;
       case "settings":
+        if (!user.githubUsername) throw new Error("Only GitHub users can manage settings.");
         if (normalizedPath !== ".pages.yml") throw new Error(`Invalid path "${params.path}" for settings.`);
 
         contentBase64 = Buffer.from(data.content.body ?? "").toString("base64");

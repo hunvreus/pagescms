@@ -115,7 +115,7 @@ export function FileOptions({
             <DropdownMenuItem asChild>
               <a href={`https://github.com/${config.owner}/${config.repo}/blob/${encodeURIComponent(config.branch)}/${path}`} target="_blank">
                 View on GitHub
-                <ArrowUpRight className="size-3 ml-auto"/>
+                <ArrowUpRight className="size-3 text-muted-foreground ml-auto" />
               </a>
             </DropdownMenuItem>
             {type !== "settings"

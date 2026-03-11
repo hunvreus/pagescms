@@ -1,26 +1,21 @@
 import Link from "next/link";
 import { headers } from "next/headers";
+import { and, eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { db } from "@/db";
+import { accountTable } from "@/db/schema";
 import { MainRootLayout } from "../main-root-layout";
-import { getInitialsFromName } from "@/lib/utils/avatar";
-import { Installations } from "@/components/installations";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { Installations } from "@/components/settings/installations";
+import { Identities } from "@/components/settings/identities";
+import { Profile } from "@/components/settings/profile";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardHeader,
   CardDescription,
   CardContent,
-  CardFooter,
   CardTitle
 } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -30,8 +25,16 @@ export default async function Page() {
   });
   const user = session?.user;
 	if (!user) throw new Error("User not found");
-
-  const displayName = user.githubUsername ? user.name || user.githubUsername : user.email;
+  const githubAccount = await db.query.accountTable.findFirst({
+    where: and(
+      eq(accountTable.userId, user.id),
+      eq(accountTable.providerId, "github")
+    ),
+  });
+  const githubConnected = Boolean(githubAccount);
+  const githubManageUrl = process.env.GITHUB_APP_CLIENT_ID
+    ? `https://github.com/settings/connections/applications/${process.env.GITHUB_APP_CLIENT_ID}`
+    : null;
 
   return (
     <MainRootLayout>
@@ -44,51 +47,28 @@ export default async function Page() {
           <h1 className="font-semibold tracking-tight text-lg md:text-2xl">Settings</h1>
         </header>
         <div className="flex flex-col relative flex-1 space-y-6">
+          <Profile
+            name={user.name}
+            email={user.email}
+            githubUsername={user.githubUsername}
+          />
+
           <Card>
             <CardHeader>
-              <CardTitle>Profile</CardTitle>
-              <CardDescription>Manage the information displayed to other users.</CardDescription>
+              <CardTitle>Authentication</CardTitle>
+              <CardDescription>Your sign-in methods and linked identity providers.</CardDescription>
             </CardHeader>
             <CardContent>
-              <form className="w-full">
-                <div className="grid w-full items-center gap-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">
-                      Name
-                    </Label>
-                    <div className="col-span-3">
-                      <Input name="name" disabled defaultValue={displayName}/>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="picture" className="text-right">
-                      Picture
-                    </Label>
-                    <div className="col-span-3">
-                      <Avatar className="h-24 w-24 rounded-md">
-                        <AvatarImage
-                          src={
-                            user?.githubUsername
-                              ? `https://github.com/${user.githubUsername}.png`
-                              : `https://unavatar.io/${user?.email}?fallback=false`
-                          }
-                          alt={
-                            user?.name || user.email
-                          }
-                        />
-                        <AvatarFallback className="rounded-md">{getInitialsFromName(displayName)}</AvatarFallback>
-                      </Avatar>
-                    </div>
-                  </div>
-                </div>
-              </form>
+              <Identities
+                email={user.email}
+                githubConnected={githubConnected}
+                githubUsername={user.githubUsername}
+                githubManageUrl={githubManageUrl}
+              />
             </CardContent>
-            <CardFooter>
-              <Button size="sm" className="ml-auto" disabled>Save profile</Button>
-            </CardFooter>
           </Card>
           
-          {user.githubUsername &&
+          {githubConnected &&
             <Card>
               <CardHeader>
                 <CardTitle className="text-base md:text-lg">Installations</CardTitle>

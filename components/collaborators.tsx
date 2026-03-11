@@ -2,11 +2,21 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useActionState } from "react";
-import { handleRemoveCollaborator, handleAddCollaborator } from "@/lib/actions/collaborator";
+import {
+  handleAddCollaborator,
+  handleRemoveCollaborator,
+  handleResendCollaboratorInvite,
+} from "@/lib/actions/collaborator";
+import { useRepoHeader } from "@/components/repo/repo-header-context";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { SubmitButton } from "@/components/submit-button";
-import { Message } from "@/components/message";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,202 +26,472 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage
-} from "@/components/ui/avatar";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Ban, Loader, Trash2 } from "lucide-react";
+import { EllipsisVertical, Loader, Mail, Trash2 } from "lucide-react";
+
+type Collaborator = {
+  id: number;
+  email: string;
+};
+
+type AddCollaboratorState = {
+  message?: string;
+  error?: string;
+  errors?: string[];
+  data?: Collaborator[];
+};
+
+function InviteCollaboratorsDialog({
+  owner,
+  repo,
+  state,
+  action,
+  open,
+  onOpenChange,
+  value,
+  onValueChange,
+  disabled,
+  triggerLabel,
+  triggerVariant = "outline",
+}: {
+  owner: string;
+  repo: string;
+  state: AddCollaboratorState;
+  action: (payload: FormData) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  value: string;
+  onValueChange: (value: string) => void;
+  disabled: boolean;
+  triggerLabel?: string;
+  triggerVariant?: "default" | "outline";
+}) {
+  const parsedInviteEmails = useMemo(() => {
+    return Array.from(
+      new Set(
+        value
+          .split(/[\n,]+/)
+          .map((email) => email.trim())
+          .filter(Boolean),
+      ),
+    );
+  }, [value]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogTrigger asChild>
+        <Button variant={triggerVariant} disabled={disabled}>
+          {triggerLabel || "Invite"}
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Invite collaborators</DialogTitle>
+          <DialogDescription>
+            Enter one or multiple email addresses, separated by commas or new
+            lines.
+          </DialogDescription>
+        </DialogHeader>
+        <form action={action} className="space-y-4">
+          <input type="hidden" name="owner" value={owner} />
+          <input type="hidden" name="repo" value={repo} />
+          <Textarea
+            name="emails"
+            placeholder="alice@example.com, bob@example.com"
+            value={value}
+            onChange={(event) => onValueChange(event.target.value)}
+            required
+            rows={6}
+          />
+          {state?.error ? (
+            <p className="text-sm font-medium text-red-500">{state.error}</p>
+          ) : null}
+          <DialogFooter>
+            <SubmitButton
+              type="submit"
+              disabled={parsedInviteEmails.length === 0}
+            >
+              Send invite{parsedInviteEmails.length > 1 ? "s" : ""}
+            </SubmitButton>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export function Collaborators({
   owner,
   repo,
-  branch
+  branch,
 }: {
-  owner: string,
-  repo: string,
-  branch?: string
+  owner: string;
+  repo: string;
+  branch?: string;
 }) {
-  // TODO: add support for branches and accounts collaborators
-  const [collaborators, setCollaborators] = useState<any[]>([]);
-  const [addCollaboratorState, addCollaboratorAction] = useActionState(handleAddCollaborator, { message: "", data: [] });
-  const [email, setEmail] = useState<string>("");
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
+  const [addCollaboratorState, addCollaboratorAction] = useActionState<
+    AddCollaboratorState,
+    FormData
+  >(handleAddCollaborator, {});
+  const [emails, setEmails] = useState("");
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [removing, setRemoving] = useState<number[]>([]);
+  const [resending, setResending] = useState<number[]>([]);
+  const [pendingRemoveId, setPendingRemoveId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  // TODO: remove this, we can probably let error.tsx catch that
   const [error, setError] = useState<string | undefined | null>(null);
 
-  const isEmailInList = useMemo(() => collaborators.some(collaborator => collaborator.email === email), [email, collaborators]);
-
-  const addNewCollaborator = useCallback((newCollaborator: any) => {
-    setCollaborators(prevCollaborators => [...prevCollaborators, ...newCollaborator]);
+  const addNewCollaborator = useCallback((newCollaborators: Collaborator[]) => {
+    setCollaborators((prevCollaborators) => {
+      const seenIds = new Set(
+        prevCollaborators.map((collaborator) => collaborator.id),
+      );
+      const uniqueCollaborators = newCollaborators.filter(
+        (collaborator) => !seenIds.has(collaborator.id),
+      );
+      return [...prevCollaborators, ...uniqueCollaborators];
+    });
   }, []);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     async function fetchCollaborators() {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/collaborators/${owner}/${repo}`);
+        const response = await fetch(`/api/collaborators/${owner}/${repo}`, {
+          signal: controller.signal,
+        });
 
-        if (!response.ok) throw new Error(`Failed to fetch collection: ${response.status} ${response.statusText}`);
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch collection: ${response.status} ${response.statusText}`,
+          );
+        }
 
-        const data: any = await response.json();
+        const data: { status: string; data: Collaborator[]; message?: string } =
+          await response.json();
 
         if (data.status !== "success") throw new Error(data.message);
 
         setCollaborators(data.data);
-
-        if (data.data.errors && data.data.errors.length > 0) {
-          data.data.errors.forEach((error: any) => toast.error(error));
-        }
-      } catch (error: any) {
-        console.error(error);
-        setError(error.message);
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        console.error(err);
+        setError(
+          err instanceof Error ? err.message : "Failed to fetch collaborators",
+        );
       } finally {
-        setIsLoading(false);
+        // In React Strict Mode, an aborted first pass can race with the active request.
+        // Keep the loading state until the non-aborted request finishes.
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     }
 
     fetchCollaborators();
-  }, [owner, repo, branch]);
 
-  const handleConfirmRemove = async (collaboratorId: number) => {
-    setRemoving([...removing, collaboratorId]);
-    
-    try {
-      const removed = await handleRemoveCollaborator(collaboratorId, owner, repo);
-      
-      if (removed.error) {
-        toast.error(removed.error);
-      } else {
-        setCollaborators(collaborators.filter((collaborator) => collaborator.id !== collaboratorId));
-        toast.success(removed.message);
-      }
-    } catch(error: any) {
-      toast.error(error.message);
-    } finally {
-      setRemoving(removing.filter((id) => id !== collaboratorId));
-    }
-  }
+    return () => controller.abort();
+  }, [owner, repo, branch]);
 
   useEffect(() => {
     if (addCollaboratorState?.message) {
-      if (addCollaboratorState.data && addCollaboratorState.data.length > 0) {
+      if (
+        Array.isArray(addCollaboratorState.data) &&
+        addCollaboratorState.data.length > 0
+      ) {
         addNewCollaborator(addCollaboratorState.data);
       }
-      
-      toast.success(addCollaboratorState.message, { duration: 10000});
-      setEmail("");
+
+      toast.success(addCollaboratorState.message, { duration: 10000 });
+      if (
+        Array.isArray(addCollaboratorState.errors) &&
+        addCollaboratorState.errors.length > 0
+      ) {
+        toast.error(addCollaboratorState.errors.join("\n"), {
+          duration: 10000,
+        });
+      }
+      setEmails("");
+      setInviteDialogOpen(false);
     }
   }, [addCollaboratorState, addNewCollaborator]);
 
-  const loadingSkeleton = useMemo(() => (
-    <ul>
-      <li className="flex gap-x-2 items-center border border-b-0 last:border-b first:rounded-t-md last:rounded-b-md px-3 py-2 text-sm">
-        <Skeleton className="h-6 w-6 rounded-full" />
-        <Skeleton className="h-5 w-24 text-left rounded" />
-        <Button variant="outline" size="xs" className="ml-auto" disabled>
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </li>
-    </ul>
-  ), []);
+  const handleConfirmRemove = async (collaboratorId: number) => {
+    setRemoving((prev) => [...prev, collaboratorId]);
+
+    try {
+      const removed = await handleRemoveCollaborator(
+        collaboratorId,
+        owner,
+        repo,
+      );
+
+      if (removed.error) {
+        toast.error(removed.error);
+      } else {
+        setCollaborators((prev) =>
+          prev.filter((collaborator) => collaborator.id !== collaboratorId),
+        );
+        toast.success(removed.message);
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setPendingRemoveId(null);
+      setRemoving((prev) => prev.filter((id) => id !== collaboratorId));
+    }
+  };
+
+  const handleResendInvite = async (collaboratorId: number) => {
+    setResending((prev) => [...prev, collaboratorId]);
+
+    try {
+      const resent = await handleResendCollaboratorInvite(
+        collaboratorId,
+        owner,
+        repo,
+      );
+      if (resent.error) {
+        toast.error(resent.error);
+      } else {
+        toast.success(resent.message);
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setResending((prev) => prev.filter((id) => id !== collaboratorId));
+    }
+  };
+
+  const headerNode = useMemo(() => {
+    const showInviteAction = !isLoading && !error && collaborators.length > 0;
+
+    return (
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="font-semibold text-lg">Collaborators</h1>
+        {showInviteAction ? (
+          <InviteCollaboratorsDialog
+            owner={owner}
+            repo={repo}
+            state={addCollaboratorState}
+            action={addCollaboratorAction}
+            open={inviteDialogOpen}
+            onOpenChange={setInviteDialogOpen}
+            value={emails}
+            onValueChange={setEmails}
+            disabled={isLoading}
+            triggerVariant="default"
+          />
+        ) : null}
+      </div>
+    );
+  }, [
+    addCollaboratorAction,
+    addCollaboratorState,
+    collaborators.length,
+    emails,
+    error,
+    inviteDialogOpen,
+    isLoading,
+    owner,
+    repo,
+  ]);
+
+  useRepoHeader({ header: headerNode });
+
+  const loadingSkeleton = useMemo(
+    () => (
+      <ul>
+        {[0, 1, 2].map((index) => (
+          <li
+            key={index}
+            className="flex gap-x-2 items-center border border-b-0 last:border-b first:rounded-t-md last:rounded-b-md px-3 py-2 text-sm"
+          >
+            <Skeleton className="h-6 w-6 rounded-full" />
+            <Skeleton className="h-5 w-24 text-left rounded" />
+            <Button variant="outline" size="icon-xs" className="ml-auto" disabled>
+              <EllipsisVertical className="h-4 w-4" />
+            </Button>
+          </li>
+        ))}
+      </ul>
+    ),
+    [],
+  );
 
   if (error) {
     return (
-      <Message
-        title="Something's wrong"
-        description={`We could not fetch the list of collaborators.`}
-        className="absolute inset-0"
-      />
+      <div className="absolute inset-0 p-4 md:p-6 flex items-center justify-center">
+        <Empty className="max-w-[420px] flex-none">
+          <EmptyHeader>
+            <EmptyTitle>Something&apos;s wrong</EmptyTitle>
+            <EmptyDescription>
+              We could not fetch the list of collaborators.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      </div>
     );
   }
-  
+
+  const collaboratorToRemove =
+    pendingRemoveId === null
+      ? null
+      : collaborators.find(
+          (collaborator) => collaborator.id === pendingRemoveId,
+        ) || null;
+
   return (
-    <div className="space-y-4">
-      {/* <pre>{JSON.stringify(collaborators, null, 2)}</pre> */}
-      {isLoading
-        ? loadingSkeleton
-        : collaborators.length > 0
-          ? <ul>
-              {collaborators.map((collaborator: any) => (
-                <li key={collaborator.id} className="flex gap-x-2 items-center border border-b-0 last:border-b first:rounded-t-md last:rounded-b-md px-3 py-2 text-sm">
-                  <Avatar className="h-6 w-6">
-                    <AvatarImage src={`https://unavatar.io/${collaborator.email}?fallback=false`} alt={`${collaborator.email}'s avatar`} />
-                    <AvatarFallback className="font-medium text-muted-foreground uppercase text-xs">
-                      {collaborator.email.split('@')[0].substring(0, 2)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="font-medium text-left truncate">
-                    {collaborator.email}
-                  </div>
-                  <AlertDialog>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <AlertDialogTrigger asChild>                          
-                          <Button variant="ghost" size="xs" className="ml-auto" disabled={removing.includes(collaborator.id)}>
-                            {removing.includes(collaborator.id)
-                              ? <Loader className="ml-2 h-4 w-4 animate-spin" />
-                              : <Trash2 className="h-4 w-4" />
-                            }
-                          </Button>
-                        </AlertDialogTrigger>      
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        Remove collaborator
-                      </TooltipContent>
-                    </Tooltip>  
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will remove access to &quot;{owner}/{repo}&quot; for &quot;{collaborator.email}&quot;.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleConfirmRemove(collaborator.id)}>Remove collaborator</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </li>
-              ))}
-            </ul>
-          : <div className="bg-accent text-muted-foreground text-sm px-3 py-2 rounded-md flex items-center justify-center h-[50px]">
-              <Ban className="h-4 w-4 mr-2"/>
-              No collaborators
-            </div>
-      }
-      <form action={addCollaboratorAction} className="flex gap-x-2">
-        <div className="w-full">
-          <input type="hidden" name="owner" value={owner} />
-          <input type="hidden" name="repo" value={repo} />
-          <Input
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          {addCollaboratorState?.error &&
-            <div className="text-sm font-medium text-red-500 mt-2 ">{addCollaboratorState.error}</div>
-          }
+    <div className="h-full flex flex-col gap-4">
+      {isLoading ? (
+        loadingSkeleton
+      ) : collaborators.length > 0 ? (
+        <>
+          <ul>
+            {collaborators.map((collaborator) => (
+              <li
+                key={collaborator.id}
+                className="flex gap-x-2 items-center border border-b-0 last:border-b first:rounded-t-md last:rounded-b-md px-3 py-2 text-sm"
+              >
+                <Avatar className="h-6 w-6">
+                  <AvatarImage
+                    src={`https://unavatar.io/${collaborator.email}?fallback=false`}
+                    alt={`${collaborator.email}'s avatar`}
+                  />
+                  <AvatarFallback className="font-medium text-muted-foreground uppercase text-xs">
+                    {collaborator.email.split("@")[0].substring(0, 2)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="font-medium text-left truncate">
+                  {collaborator.email}
+                </div>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="icon-xs"
+                      variant="outline"
+                      className="ml-auto"
+                      disabled={
+                        removing.includes(collaborator.id) ||
+                        resending.includes(collaborator.id)
+                      }
+                    >
+                      {removing.includes(collaborator.id) ||
+                      resending.includes(collaborator.id) ? (
+                        <Loader className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <EllipsisVertical className="h-4 w-4" />
+                      )}
+                      <span className="sr-only">Collaborator actions</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={() => void handleResendInvite(collaborator.id)}
+                      disabled={
+                        removing.includes(collaborator.id) ||
+                        resending.includes(collaborator.id)
+                      }
+                    >
+                      Resend invite
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onClick={() => setPendingRemoveId(collaborator.id)}
+                      disabled={
+                        removing.includes(collaborator.id) ||
+                        resending.includes(collaborator.id)
+                      }
+                    >
+                      Remove
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </li>
+            ))}
+          </ul>
+
+          <AlertDialog
+            open={Boolean(collaboratorToRemove)}
+            onOpenChange={(open) => {
+              if (!open) setPendingRemoveId(null);
+            }}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will remove access to &quot;{owner}/{repo}&quot; for
+                  &quot;{collaboratorToRemove?.email}&quot;.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    if (!collaboratorToRemove) return;
+                    void handleConfirmRemove(collaboratorToRemove.id);
+                  }}
+                >
+                  Remove collaborator
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
+      ) : (
+        <div className="flex-1 flex items-center">
+          <Empty>
+            <EmptyHeader>
+              <EmptyTitle>No collaborators yet</EmptyTitle>
+              <EmptyDescription>
+                Invite collaborators to grant repository access.
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <InviteCollaboratorsDialog
+                owner={owner}
+                repo={repo}
+                state={addCollaboratorState}
+                action={addCollaboratorAction}
+                open={inviteDialogOpen}
+                onOpenChange={setInviteDialogOpen}
+                value={emails}
+                onValueChange={setEmails}
+                disabled={isLoading}
+                triggerLabel="Invite a collaborator"
+                triggerVariant="default"
+              />
+            </EmptyContent>
+          </Empty>
         </div>
-        <SubmitButton type="submit" disabled={isEmailInList}>
-          Invite by email
-        </SubmitButton>
-      </form>
+      )}
     </div>
-  )
+  );
 }

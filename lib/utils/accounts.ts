@@ -11,7 +11,12 @@ import { User } from "@/types/user";
 import { getGithubAccount } from "@/lib/githubAccount";
 
 const getAccounts = async (user: User) => {
-	let accounts;
+	let accounts: Array<{
+    login: string;
+    type: string;
+    repositorySelection: string;
+    installationId: number;
+  }> = [];
   const githubAccount = await getGithubAccount(user.id);
 
 	if (githubAccount?.accessToken) {
@@ -28,23 +33,39 @@ const getAccounts = async (user: User) => {
         installationId: installation.id
 			}))
 		];
-	} else {
-		const groupedRepos = await db
-			.selectDistinct({
-				owner: collaboratorTable.owner,
-				type: collaboratorTable.type,
-        installationId: collaboratorTable.installationId
-				})
-				.from(collaboratorTable)
-				.where(sql`lower(${collaboratorTable.email}) = lower(${user.email})`);
-
-		accounts = groupedRepos.map(collaborator => ({
-			login: collaborator.owner,
-			type: collaborator.type,
-			repositorySelection: "selected",
-      installationId: collaborator.installationId
-		}));
 	}
+
+  const groupedRepos = await db
+    .selectDistinct({
+      owner: collaboratorTable.owner,
+      type: collaboratorTable.type,
+      installationId: collaboratorTable.installationId
+    })
+    .from(collaboratorTable)
+    .where(sql`lower(${collaboratorTable.email}) = lower(${user.email})`);
+
+  const collaboratorAccounts = groupedRepos.map(collaborator => ({
+    login: collaborator.owner,
+    type: collaborator.type,
+    repositorySelection: "selected",
+    installationId: collaborator.installationId
+  }));
+
+  const dedupedAccounts = new Map<string, (typeof accounts)[number]>();
+
+  for (const account of accounts) {
+    const key = `${account.login.toLowerCase()}::${account.installationId}`;
+    dedupedAccounts.set(key, account);
+  }
+
+  for (const account of collaboratorAccounts) {
+    const key = `${account.login.toLowerCase()}::${account.installationId}`;
+    if (!dedupedAccounts.has(key)) {
+      dedupedAccounts.set(key, account);
+    }
+  }
+
+  accounts = Array.from(dedupedAccounts.values());
 
 	if (accounts.length === 0) return [];
 

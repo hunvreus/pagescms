@@ -15,6 +15,15 @@ import {
 } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   Table,
   TableBody,
   TableCell,
@@ -24,7 +33,7 @@ import {
 } from "@/components/ui/table";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { ArrowUp, ArrowDown, Ban, ChevronLeft, ChevronRight, Loader2, CircleMinus, CirclePlus, Folder, FolderOpen } from "lucide-react";
+import { ArrowUp, ArrowDown, Ban, Loader, CircleMinus, CirclePlus, Folder, FolderOpen } from "lucide-react";
 
 declare module '@tanstack/react-table' {
   interface ColumnMeta<TData extends RowData, TValue> {
@@ -134,6 +143,31 @@ export function CollectionTable<TData extends TableData>({
     onExpandedChange: setExpanded,
   });
 
+  const currentPage = table.getState().pagination.pageIndex;
+  const pageCount = table.getPageCount();
+
+  const paginationItems = (() => {
+    if (pageCount <= 7) {
+      return Array.from({ length: pageCount }, (_, i) => i);
+    }
+
+    const pages = new Set<number>([0, pageCount - 1, currentPage]);
+    if (currentPage - 1 >= 0) pages.add(currentPage - 1);
+    if (currentPage + 1 < pageCount) pages.add(currentPage + 1);
+
+    const ordered = Array.from(pages).sort((a, b) => a - b);
+    const items: Array<number | "ellipsis"> = [];
+
+    for (let i = 0; i < ordered.length; i += 1) {
+      if (i > 0 && ordered[i] - ordered[i - 1] > 1) {
+        items.push("ellipsis");
+      }
+      items.push(ordered[i]);
+    }
+
+    return items;
+  })();
+
   useEffect(() => {
     if (!isTree) return;
     
@@ -151,7 +185,7 @@ export function CollectionTable<TData extends TableData>({
   }, [isTree, path, handleRowExpansion, table, data]);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
       <Table className="border-separate border-spacing-0 text-sm">
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -215,7 +249,7 @@ export function CollectionTable<TData extends TableData>({
                               onClick={() => handleRowExpansion(row as Row<TData>)}
                             >
                               {loadingRows[row.id]
-                                ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                ? <Loader className="h-4 w-4 animate-spin text-muted-foreground" />
                                 : row.getIsExpanded()
                                   ? <FolderOpen className="h-4 w-4" />
                                   : <Folder className="h-4 w-4" />
@@ -259,7 +293,7 @@ export function CollectionTable<TData extends TableData>({
                           {isTree && row.getCanExpand() && cell.column.id === primaryField && (
                             loadingRows[row.id]
                               ? <Button variant="ghost" size="icon-sm" className="h-6 w-6 rounded-full" disabled>
-                                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                  <Loader className="h-4 w-4 animate-spin text-muted-foreground" />
                                 </Button>
                               : <Button
                                   variant="ghost"
@@ -291,21 +325,52 @@ export function CollectionTable<TData extends TableData>({
           )}
         </TableBody>
       </Table>
-      { (table.getCanPreviousPage() || table.getCanNextPage()) && 
-        <footer className="flex gap-x-2 items-center">
-          <div className="text-muted-foreground text-sm mr-auto">
-            {`Page ${table.getState().pagination.pageIndex + 1} of ${table.getPageCount()}`}
-          </div>
-          <div className="flex gap-x-2 items-center">
-            <Button size="icon-sm" variant="outline" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-              <ChevronLeft className="h-4 w-4 mr-1"/>
-            </Button>
-            <Button size="icon-sm" variant="outline" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-              <ChevronRight className="h-4 w-4 ml-1"/>
-            </Button>
-          </div>
+      {pageCount > 1 && (
+        <footer className="flex items-center justify-center">
+          <Pagination className="mx-0 w-auto justify-center">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    if (table.getCanPreviousPage()) table.previousPage();
+                  }}
+                  className={!table.getCanPreviousPage() ? "pointer-events-none opacity-50" : undefined}
+                />
+              </PaginationItem>
+              {paginationItems.map((item, index) => (
+                <PaginationItem key={`${item}-${index}`}>
+                  {item === "ellipsis" ? (
+                    <PaginationEllipsis />
+                  ) : (
+                    <PaginationLink
+                      href="#"
+                      isActive={item === currentPage}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        table.setPageIndex(item);
+                      }}
+                    >
+                      {item + 1}
+                    </PaginationLink>
+                  )}
+                </PaginationItem>
+              ))}
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    if (table.getCanNextPage()) table.nextPage();
+                  }}
+                  className={!table.getCanNextPage() ? "pointer-events-none opacity-50" : undefined}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </footer>
-      }
+      )}
     </div>
   )
 }

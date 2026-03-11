@@ -38,6 +38,9 @@ export async function GET(
     const name = searchParams.get("name");
     
     const normalizedPath = normalizePath(params.path);
+    if (normalizedPath === ".pages.yml" && !user.githubUsername) {
+      throw new Error("Only GitHub users can access settings.");
+    }
 
     if (!name && normalizedPath !== ".pages.yml") throw new Error("If no content entry name is provided, the path must be \".pages.yml\".");
 

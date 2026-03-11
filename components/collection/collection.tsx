@@ -23,6 +23,13 @@ import { useRepoHeader } from "@/components/repo/repo-header-context";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import {
   Breadcrumb,
   BreadcrumbEllipsis,
   BreadcrumbItem,
@@ -53,7 +60,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Ellipsis,
+  EllipsisVertical,
   FolderPlus,
   Plus,
   Search
@@ -397,15 +404,15 @@ export function Collection({
           {row.original.type === 'file' &&
             <ButtonGroup>
               <Link
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                className={cn(buttonVariants({ variant: "outline", size: "xs" }))}
                 href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${name}/edit/${encodeURIComponent(row.original.path)}`}
                 prefetch={true}
               >
                 Edit
               </Link>
               <FileOptions path={row.original.path} sha={row.original.sha} type="collection" name={name} onDelete={handleDelete} onRename={handleRename}>
-                <Button variant="outline" size="icon-sm">
-                  <Ellipsis />
+                <Button variant="outline" size="icon-xs">
+                  <EllipsisVertical />
                 </Button>
               </FileOptions>
             </ButtonGroup>
@@ -548,16 +555,16 @@ export function Collection({
     <table className="w-full">
       <thead>
         <tr className="border-b font-medium">
-          <th className="p-2 align-middle">
+          <th className="p-2 h-10 align-middle">
             <Skeleton className="w-8 h-4 rounded" />
           </th>
-          <th className="p-2 align-middle">
+          <th className="p-2 h-10 align-middle">
             <Skeleton className="w-16 h-4 rounded" />
           </th>
-          <th className="p-2 align-middle">
+          <th className="p-2 h-10 align-middle">
             <Skeleton className="w-12 h-4 rounded" />
           </th>
-          <th className="p-2 align-middle">
+          <th className="p-2 h-10 align-middle">
             <Skeleton className="w-12 h-4 rounded" />
           </th>
         </tr>
@@ -565,21 +572,23 @@ export function Collection({
       <tbody>
         {[...Array(5)].map((_, index) => (
           <tr className="border-b" key={index}>
-            <td className="p-2 align-middle">
+            <td className="p-2 py-0 h-12 align-middle">
               <Skeleton className="h-8 w-8 rounded-md" />
             </td>
-            <td className="p-2 align-middle w-full min-w-[12rem] max-w-px">
+            <td className="p-2 py-0 h-12 align-middle w-full min-w-[12rem] max-w-px">
               <Skeleton className="w-full h-5 rounded" />
             </td>
-            <td className="p-2 align-middle">
+            <td className="p-2 py-0 h-12 align-middle">
               <Skeleton className="w-24 h-5 rounded" />
             </td>
-            <td className="p-2 align-middle">
-              <div className="flex gap-1">
-                <Button variant="outline" size="sm" disabled>Edit</Button>
-                <Button variant="outline" size="icon-sm" disabled>
-                  <Ellipsis className="h-4 w-4" />
-                </Button>
+            <td className="p-2 py-0 h-12 align-middle">
+              <div className="flex gap-1 justify-end">
+                <ButtonGroup>
+                  <Button variant="outline" size="xs" disabled>Edit</Button>
+                  <Button variant="outline" size="icon-xs" disabled>
+                    <EllipsisVertical className="h-4 w-4" />
+                  </Button>
+                </ButtonGroup>
                 {schema.view?.layout === 'tree' && (
                   <Button variant="outline" size="icon-sm" className="w-8 h-8" disabled>
                     <Plus className="h-4 w-4" />
@@ -596,6 +605,7 @@ export function Collection({
   const collectionPath = schema.view?.layout === "tree"
     ? schema.path
     : path || schema.path;
+  const isCollectionEmpty = !isLoading && !error && data.length === 0;
 
   const addEntryHref = `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new${
     schema.view?.layout !== "tree" && path && path !== schema.path
@@ -679,16 +689,18 @@ export function Collection({
   const headerNode = useMemo(() => (
     <div className="flex items-center justify-between gap-2">
       <div className="min-w-0 truncate">{breadcrumbNode}</div>
-      <CollectionHeaderActions
-        addEntryHref={addEntryHref}
-        collectionPath={collectionPath}
-        name={name}
-        showFolderCreate={schema.subfolders !== false}
-        onFolderCreate={handleFolderCreate}
-        onSearchChange={handleTableSearchChange}
-      />
+      {!isCollectionEmpty && (
+        <CollectionHeaderActions
+          addEntryHref={addEntryHref}
+          collectionPath={collectionPath}
+          name={name}
+          showFolderCreate={schema.subfolders !== false}
+          onFolderCreate={handleFolderCreate}
+          onSearchChange={handleTableSearchChange}
+        />
+      )}
     </div>
-  ), [addEntryHref, breadcrumbNode, collectionPath, handleFolderCreate, handleTableSearchChange, name, schema.subfolders]);
+  ), [addEntryHref, breadcrumbNode, collectionPath, handleFolderCreate, handleTableSearchChange, isCollectionEmpty, name, schema.subfolders]);
 
   useRepoHeader({
     header: headerNode,
@@ -697,23 +709,38 @@ export function Collection({
   if (error) {
     if (error === "Not found") {
       return (
-        <Message
-            title="Folder missing"
-            description={`The collection folder "${schema.path}" has not been created yet.`}
-            className="absolute inset-0"
-          >
-          <EmptyCreate type="content" name={schema.name}>Create folder</EmptyCreate>
-        </Message>
+        <div className="absolute inset-0 p-4 md:p-6 flex items-center justify-center">
+          <Empty className="max-w-[420px] flex-none">
+            <EmptyHeader>
+              <EmptyTitle>Folder missing</EmptyTitle>
+              <EmptyDescription>
+                {`The collection folder "${schema.path}" has not been created yet.`}
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <EmptyCreate type="content" name={schema.name}>Create folder</EmptyCreate>
+            </EmptyContent>
+          </Empty>
+        </div>
       );
     } else {
       return (
-        <Message
-          title="Something's wrong"
-          description={error}
-          className="absolute inset-0"
-          cta="Go to settings"
-          href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/settings`}
-        />
+        <div className="absolute inset-0 p-4 md:p-6 flex items-center justify-center">
+          <Empty className="max-w-[420px] flex-none">
+            <EmptyHeader>
+              <EmptyTitle>Something&apos;s wrong</EmptyTitle>
+              <EmptyDescription>{error}</EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Link
+                className={buttonVariants({ variant: "default", size: "sm" })}
+                href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/settings`}
+              >
+                Go to settings
+              </Link>
+            </EmptyContent>
+          </Empty>
+        </div>
       );
     }
   }
@@ -723,18 +750,41 @@ export function Collection({
       <div className="flex-1 flex flex-col space-y-6">
         {isLoading
           ? loadingSkeleton
-          : <CollectionTable
-              columns={columns}
-              data={data}
-              search={tableSearch}
-              setSearch={setTableSearch}
-              initialState={initialState}
-              onExpand={handleExpand}
-              pathname={pathname}
-              path={path || schema.path}
-              isTree={schema.view?.layout === 'tree'}
-              primaryField={primaryField}
-            />
+          : isCollectionEmpty
+            ? (
+              <div className="absolute inset-0 p-4 md:p-6 flex items-center justify-center">
+                <Empty className="max-w-[420px] flex-none">
+                  <EmptyHeader>
+                    <EmptyTitle>No entries yet</EmptyTitle>
+                    <EmptyDescription>
+                      {`There are no entries in "${schema.label || schema.name}" yet.`}
+                    </EmptyDescription>
+                  </EmptyHeader>
+                  <EmptyContent>
+                    <div className="flex items-center gap-x-2">
+                      <Link className={buttonVariants()} href={addEntryHref}>Add an entry</Link>
+                      {schema.subfolders !== false && (
+                        <FolderCreate path={collectionPath} type="content" name={name} onCreate={handleFolderCreate}>
+                          <Button variant="outline">Create folder</Button>
+                        </FolderCreate>
+                      )}
+                    </div>
+                  </EmptyContent>
+                </Empty>
+              </div>
+            )
+            : <CollectionTable
+                columns={columns}
+                data={data}
+                search={tableSearch}
+                setSearch={setTableSearch}
+                initialState={initialState}
+                onExpand={handleExpand}
+                pathname={pathname}
+                path={path || schema.path}
+                isTree={schema.view?.layout === 'tree'}
+                primaryField={primaryField}
+              />
         }
       </div>
     </>
