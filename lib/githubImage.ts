@@ -4,12 +4,21 @@
  * Runs client-side with some temporary caching.
  */
 
-import { getFileName, getParentPath } from "@/lib/utils/file";
+import {
+  decodePathSafely,
+  getFileName,
+  getParentPath,
+  normalizePath,
+} from "@/lib/utils/file";
 import { requireApiSuccess } from "@/lib/api-client";
 
 const ttl = 30000; // TTL for the cache (30 seconds)
 const cache: { [key: string]: any } = {};
 const requests: { [key: string]: Promise<any> | undefined } = {};
+
+const canonicalizeFileName = (input: string) => {
+  return decodePathSafely(getFileName(input || ""));
+};
 
 // Get the relative path for an image.
 const getRelativeUrl = (
@@ -40,12 +49,12 @@ const getRawUrl = async (
   isPrivate = false,
   decode = false
 ) => {
-  const decodedPath = decode ? decodeURIComponent(path) : path;
+  const decodedPath = decode ? decodePathSafely(path) : path;
   const normalizedInputPath = normalizeImagePathInput(decodedPath);
   if (!normalizedInputPath) return null;
   
   if (isPrivate) {
-    const filename = getFileName(normalizedInputPath);
+    const filename = canonicalizeFileName(normalizedInputPath);
     if (!filename) return null;
     const parentPath = getParentPath(normalizedInputPath);
     
@@ -64,7 +73,7 @@ const getRawUrl = async (
     const cacheExpired = !cache[parentFullPath]?.time || (Date.now() - cache[parentFullPath].time > ttl);
     
     if (cacheExists && !cacheExpired) {
-      return cache[parentFullPath].files[filename];
+      return cacheExists;
     }
     
     if (cacheExpired || !cacheExists) {
@@ -92,7 +101,10 @@ const getRawUrl = async (
           files: {}
         };
         response.data.forEach((file: any) => {
-          cache[parentFullPath].files[file.name] = file.url;
+          const canonicalName = canonicalizeFileName(
+            typeof file?.path === "string" && file.path ? file.path : file?.name || "",
+          );
+          if (canonicalName) cache[parentFullPath].files[canonicalName] = file.url;
         });
       } else if (response.status === "error") {
         throw new Error(response.message);
@@ -107,7 +119,7 @@ const getRawUrl = async (
 
 const normalizeImagePathInput = (input: string) => {
   if (!input) return null;
-  const value = input.trim();
+  const value = decodePathSafely(input.trim());
 
   const markdownMatch = value.match(/^\[.*?\]\((.+)\)$/);
   const markdownLooseMatch = value.match(/^\[.*?\]\((.+)$/);
@@ -124,7 +136,7 @@ const normalizeImagePathInput = (input: string) => {
     return null;
   }
 
-  return path;
+  return normalizePath(decodePathSafely(path));
 };
 
 // Convert all raw.githubusercontent.com URLs in a HTML string to relative paths.

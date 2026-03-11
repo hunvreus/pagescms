@@ -8,6 +8,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "setup:github-app": "node scripts/setup-github-app.mjs",
     "dev": "next dev",
     "build": "next build",
     "postbuild": "npm run db:migrate",

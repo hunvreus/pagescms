@@ -40,60 +40,64 @@ This online version is identical to what's in this repo, but you can also instal
 
 ## Install and Deploy
 
-### Create a GitHub App
+### Create a GitHub App (Manifest Helper)
 
-Whether you're installing Pages CMS locally or deploying it online, you will need a GitHub App.
+Whether you run Pages CMS locally or deploy it, you need a GitHub App.
 
-You can either create it under your personal account (https://github.com/settings/apps) or under one of your organizations (`https://github.com/organizations/<org-name>/settings/apps`).
+This repo includes a setup helper that creates the app from a manifest and writes your local env values:
 
-You will need to fill in the following information:
+```bash
+npm run setup:github-app -- --base-url http://localhost:3000
+```
 
-- **GitHub App name**: use "Pages CMS" or whatever you think is appropriate (e.g. "Pages CMS (dev)").
-- **Homepage URL**: whatever you want, https://pagescms.org will do.
-- **Identifying and authorizing users**:
-    - Callback URL: the URL for `/api/auth/callback/github`:
-        - `http://localhost:3000/api/auth/callback/github` for development,
-        - something like `https://my-vercel-url.vercel.app/api/auth/callback/github` (or whatever custom domain you're using) if you're deploying on Vercel.
-    - Expire user authorization tokens: no.
-    - Request user authorization (OAuth) during installation: yes.
-    - Enable Device Flow: no.
-- **Post installation**:
-    - Setup URL (optional): leave empty.
-    - Redirect on update: no.
-- **Webhook**:
-    - Active: yes.
-    - Webhook URL: the (public) URL for `/api/webhook/github`:
-        - for development, you'll need to use something like [ngrok](https://ngrok.com/). You'll end up with something like `https://your-unique-subdomain.ngrok-free.app/api/webhook/github`.
-        - something like `https://my-vercel-url.vercel.app/api/webhook/github` (or whatever custom domain you're using) if you're deploying on Vercel.
-    - Secret: generate a random string (for example with `openssl rand -base64 32` on MacOS/Linux)
-- **Permissions**:
-    - Repository permissions:
-        - Administration: Read & Write
-        - Contents: Read & Write
-        - Metadata: Read only
-    - Organization permissions: nothing.
-    - Account permissions: nothing.
-- **Subscribe to events**:
-    - Installation target
-    - Repository
-    - Push
-    - Delete
-- **Where can this GitHub App be installed?**: you'll want to select "Any account" unless you intend to only use Pages CMS on the account this GitHub App is created under.
+Useful options:
+
+- `--owner-type personal|org` (default: `personal`)
+- `--org <slug>` (required when owner type is `org`)
+- `--app-name "Pages CMS (dev)"`
+- `--env .env.local`
+- `--no-open`
+
+What it writes:
+
+- `BASE_URL`
+- `BETTER_AUTH_SECRET`
+- `GITHUB_APP_ID`
+- `GITHUB_APP_NAME`
+- `GITHUB_APP_CLIENT_ID`
+- `GITHUB_APP_CLIENT_SECRET`
+- `GITHUB_APP_PRIVATE_KEY`
+- `GITHUB_APP_WEBHOOK_SECRET`
+
+Manual setup is still possible via [GitHub App settings](https://github.com/settings/apps) (or org settings at `https://github.com/organizations/<org-name>/settings/apps`) with:
+
+- Callback URL: `<BASE_URL>/api/auth/callback/github`
+- Webhook URL: `<BASE_URL>/api/webhook/github`
+- Setup URL: `<BASE_URL>/settings`
+- Repository permissions:
+  - Administration: Read & Write
+  - Contents: Read & Write
+  - Metadata: Read only
+- Events:
+  - Installation target
+  - Repository
+  - Push
+  - Delete
 
 ### Environment variables
 
 Variable | Comments
 --- | ---
 `BASE_URL` | **OPTIONAL**. If you're deploying to Vercel or working locally, you won't need that. If you're deploying elsewhere, you'll need to specify the base URL for the app (e.g. `https://mycustomdomain.com`).
-`BETTER_AUTH_SECRET` | Secret used by Better Auth to sign/encrypt auth artifacts. Generate a long random value (e.g. `openssl rand -base64 32`).
+`BETTER_AUTH_SECRET` | Secret used by Better Auth to sign/encrypt auth artifacts. Generate a long random value (e.g. `openssl rand -base64 32`). `AUTH_SECRET` is accepted as a fallback alias, but `BETTER_AUTH_SECRET` is the canonical variable.
 `DATABASE_URL` | The database URL, including your credentials (e.g. `postgresql://user:password@example.com:6543`). If you're using [Supabase](https://supabase.com), use the "Transaction pooler" url.
 `CRYPTO_KEY` | Used to encrypt/decrypt GitHub tokens in the database. On MacOS/Linux*, you can use `openssl rand -base64 32`.
 `GITHUB_APP_ID` | GitHub App ID from your GitHub App details page.
 `GITHUB_APP_NAME` | Machine name for your GitHub App (e.g. `pages-cms`), should be the slug the URL of your GitHub App details page.
-`GITHUB_APP_PRIVATE_KEY` | PEM file you can download upong creation of the GitHub App.
+`GITHUB_APP_PRIVATE_KEY` | PEM private key from the GitHub App (single-line escaped string in `.env.local`).
 `GITHUB_APP_WEBHOOK_SECRET` | The secret you picked for your webhook. This is used to ensure the request is coming from GitHub.
 `GITHUB_APP_CLIENT_ID` | GitHub App Client ID from your GitHub App details page.
-`GITHUB_APP_CLIENT_SECRET` | GitHub App Client Secret you generate on theGitHub App details page.
+`GITHUB_APP_CLIENT_SECRET` | GitHub App Client Secret from the GitHub App details page.
 `RESEND_FROM_EMAIL` | The sender for authentication emails. Must be a verified domain in your Resend account and follow the format `email@example.com` or `Name <email@example.com>`.
 `RESEND_API_KEY` | You'll get that when you create a (free) [Resend](https://resend.com) account to handle emails.
 `FILE_CACHE_TTL` | **OPTIONAL**. Time to live (in minutes) for file cache (collections and media folders). Defaults to 1440 (1 day). Set to "-1" to prevent the cache from ever expiring, or "0" if you want no cache.
@@ -102,8 +106,6 @@ Variable | Comments
 
 ### Local development
 
-We assume you've already created the GitHub App and have a running tunnel for the GitHub App Webhook (using [ngrok](https://ngrok.com/) for example):
-
 If you need a quick local PostgreSQL instance, you can run:
 
 ```bash
@@ -111,9 +113,12 @@ docker run --name pagescms-db -e POSTGRES_USER=pagescms -e POSTGRES_PASSWORD=pag
 ```
 
 1. **Install the dependencies**: `npm install`
-2. **Update your environment variables**: copy `.env.example` to `.env` and fill in the values according to your setting (see section above).
-3. **Create the database**: `npm run db:migrate`
-4. **Run it**: `npm run dev`
+2. **Create env file**: copy `.env.local.example` to `.env.local` and fill values from the table above.
+3. **Create your GitHub App env values**: run `npm run setup:github-app -- --base-url http://localhost:3000` (or configure manually).
+4. **Create the database**: `npm run db:migrate`
+5. **Run it**: `npm run dev`
+
+Note: for local webhook delivery from GitHub, use a public tunnel URL as `--base-url` (for example with [ngrok](https://ngrok.com/)) and keep your local app running.
 
 ### Deploy on Vercel
 
