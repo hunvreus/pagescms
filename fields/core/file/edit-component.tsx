@@ -4,7 +4,7 @@ import { forwardRef, useCallback, useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { MediaUpload } from "@/components/media/media-upload";
 import { MediaDialog } from "@/components/media/media-dialog";
-import { Upload, File, FileText, FileVideo, FileImage, FileAudio, FileArchive, FileCode, FileType, FileSpreadsheet, GripVertical, FolderOpen, ArrowUpRight, Ellipsis } from "lucide-react";
+import { Upload, File, FileText, FileVideo, FileImage, FileAudio, FileArchive, FileCode, FileType, FileSpreadsheet, GripVertical, FolderOpen, ArrowUpRight, EllipsisVertical } from "lucide-react";
 import { useConfig } from "@/contexts/config-context";
 import { getFileExtension, getFileName, extensionCategories, normalizePath } from "@/lib/utils/file";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
@@ -65,8 +65,8 @@ const FileTeaser = ({ file, config, onRemove, getFileIcon }: {
 
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
-          <Button type="button" variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
-            <Ellipsis />
+          <Button type="button" variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+            <EllipsisVertical />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">

@@ -396,12 +396,12 @@ export function Entry({
                   onDelete={handleDelete}
                   onRename={handleRename}
                 >
-                  <Button variant="ghost" size="icon" className="shrink-0" disabled={isBusy}>
-                    <EllipsisVertical className="h-4 w-4" />
+                  <Button variant="ghost" size="icon" disabled={isBusy}>
+                    <EllipsisVertical />
                   </Button>
                 </FileOptions>
               )
-              : <Button variant="ghost" size="icon" className="shrink-0" disabled><EllipsisVertical className="h-4 w-4" /></Button>
+              : <Button variant="ghost" size="icon" disabled><EllipsisVertical /></Button>
           )}
         </div>
       )}

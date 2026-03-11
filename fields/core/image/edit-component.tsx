@@ -4,7 +4,7 @@ import { forwardRef, useCallback, useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { MediaUpload } from "@/components/media/media-upload";
 import { MediaDialog } from "@/components/media/media-dialog";
-import { Upload, FolderOpen, ArrowUpRight, Ellipsis } from "lucide-react";
+import { Upload, FolderOpen, ArrowUpRight, EllipsisVertical } from "lucide-react";
 import { useConfig } from "@/contexts/config-context";
 import { normalizePath } from "@/lib/utils/file";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
@@ -61,7 +61,7 @@ const ImageTeaser = ({ file, config, onRemove }: {
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button type="button" variant="ghost" size="icon-xs" className="text-muted-foreground hover:text-foreground">
-              <Ellipsis />
+              <EllipsisVertical />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
