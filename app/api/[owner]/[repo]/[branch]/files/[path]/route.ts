@@ -11,6 +11,7 @@ import { auth } from "@/lib/auth";
 import { assertGithubIdentity } from "@/lib/authz";
 import { getToken } from "@/lib/token";
 import { updateFileCache } from "@/lib/githubCache";
+import { toErrorResponse } from "@/lib/api-error";
 import mergeWith from "lodash.mergewith";
 
 /**
@@ -240,10 +241,7 @@ export async function POST(
     });
   } catch (error: any) {
     console.error(error);
-    return Response.json({
-      status: "error",
-      message: error.message,
-    });
+    return toErrorResponse(error);
   }
 };
 
@@ -425,9 +423,6 @@ export async function DELETE(
     });
   } catch (error: any) {
     console.error(error);
-    return Response.json({
-      status: "error",
-      message: error.message,
-    });
+    return toErrorResponse(error);
   }
 };

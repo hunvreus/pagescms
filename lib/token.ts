@@ -15,6 +15,12 @@ import { and, eq, sql } from "drizzle-orm";
 import { User } from "@/types/user";
 import { getGithubAccount } from "@/lib/githubAccount";
 
+const createHttpError = (message: string, status: number) => {
+  const error = new Error(message) as Error & { status: number };
+  error.status = status;
+  return error;
+};
+
 // Get a token for a user (including collagborators who need to provide an owner/repo scope).
 const getToken = cache(async (user: User, owner: string, repo: string) => {
   const githubAccount = await getGithubAccount(user.id);
@@ -30,7 +36,12 @@ const getToken = cache(async (user: User, owner: string, repo: string) => {
       sql`lower(${collaboratorTable.repo}) = lower(${repo})`
     )
   });
-  if (!permission) throw new Error(`You do not have permission to access "${owner}/${repo}".`);
+  if (!permission) {
+    throw createHttpError(
+      `You do not have permission to access "${owner}/${repo}".`,
+      403,
+    );
+  }
 
   const installationToken = await getInstallationToken(owner, repo);
 

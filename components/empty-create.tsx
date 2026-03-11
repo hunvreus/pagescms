@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useConfig } from "@/contexts/config-context";
 import { normalizePath } from "@/lib/utils/file";
 import { getSchemaByName, initializeState } from "@/lib/schema";
+import { requireApiSuccess } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -72,13 +73,10 @@ const EmptyCreate = ({
               content,
             }),
           });
-          if (!response.ok) {
-            throw new Error(`Failed to create ${toCreate}: ${response.status} ${response.statusText}`);
-          }
-
-          const data: any = await response.json();
-          
-          if (data.status !== "success") throw new Error(data.message);
+          const data = await requireApiSuccess<any>(
+            response,
+            `Failed to create ${toCreate}`,
+          );
           
           resolve(data)
         } catch (error) {

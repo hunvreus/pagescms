@@ -6,7 +6,7 @@ import { MediaUpload } from "@/components/media/media-upload";
 import { MediaDialog } from "@/components/media/media-dialog";
 import { Upload, FolderOpen, ArrowUpRight, EllipsisVertical } from "lucide-react";
 import { useConfig } from "@/contexts/config-context";
-import { normalizePath } from "@/lib/utils/file";
+import { normalizeMediaPath, normalizePath } from "@/lib/utils/file";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
@@ -36,6 +36,7 @@ type MediaSchema = {
   name: string;
   input: string;
   extensions?: string[];
+  rename?: boolean;
 };
 
 type EditorProps = {
@@ -48,6 +49,7 @@ type FieldOptions = {
   media?: false | string;
   path?: string;
   multiple?: boolean | { max?: number };
+  rename?: boolean;
 };
 
 const ImageTeaser = ({ file, config, onRemove }: { 
@@ -133,9 +135,9 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
   
   const [files, setFiles] = useState<FileEntry[]>(() => 
     typeof value === "string"
-      ? [{ id: generateId(), path: value }]
+      ? [{ id: generateId(), path: normalizeMediaPath(value) }]
       : Array.isArray(value)
-        ? value.filter((path): path is string => typeof path === "string").map((path) => ({ id: generateId(), path }))
+        ? value.filter((path): path is string => typeof path === "string").map((path) => ({ id: generateId(), path: normalizeMediaPath(path) }))
         : []
   );
 
@@ -198,7 +200,7 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
   const handleUpload = useCallback((fileData: FileSaveData) => {
     if (!fileData.path) return;
     
-    const newFile = { id: generateId(), path: fileData.path };
+    const newFile = { id: generateId(), path: normalizeMediaPath(fileData.path) };
     
     if (isMultiple) {
       setFiles(prev => [...prev, newFile]);
@@ -237,7 +239,7 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
     } else {
       const newFiles = newPaths.map(path => ({
         id: generateId(),
-        path
+        path: normalizeMediaPath(path)
       }));
       
       if (isMultiple) {
@@ -263,7 +265,14 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
   }
 
   return (
-    <MediaUpload path={rootPath} media={mediaConfig.name} extensions={allowedExtensions || undefined} onUpload={handleUpload} multiple={isMultiple}>
+    <MediaUpload
+      path={rootPath}
+      media={mediaConfig.name}
+      extensions={allowedExtensions || undefined}
+      onUpload={handleUpload}
+      multiple={isMultiple}
+      rename={options.rename ?? mediaConfig.rename}
+    >
       <MediaUpload.DropZone>
         <div className="space-y-2">
           {files.length > 0 && (

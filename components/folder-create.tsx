@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useConfig } from "@/contexts/config-context";
 import { joinPathSegments, normalizePath } from "@/lib/utils/file";
+import { requireApiSuccess } from "@/lib/api-client";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -53,11 +54,7 @@ const FolderCreate = ({
               content: "",
             }),
           });
-          if (!response.ok) throw new Error(`Failed to create folder: ${response.status} ${response.statusText}`);
-
-          const data: any = await response.json();
-          
-          if (data.status !== "success") throw new Error(data.message);
+          const data = await requireApiSuccess<any>(response, "Failed to create folder");
           
           resolve(data)
         } catch (error) {

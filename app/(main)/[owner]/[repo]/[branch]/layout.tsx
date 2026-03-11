@@ -24,9 +24,6 @@ export default async function Layout({
   const user = session?.user;
   if (!user) return redirect("/sign-in");
 
-  const token = await getToken(user, owner, repo);
-  if (!token) throw new Error("Token not found");
-
   const decodedBranch = decodeURIComponent(branch);
 
   let config = {
@@ -42,6 +39,9 @@ export default async function Layout({
   
   // We try to retrieve the config file (.pages.yml)
   try {
+    const token = await getToken(user, owner, repo);
+    if (!token) throw new Error("Token not found");
+
     const octokit = createOctokitInstance(token);
     const response = await octokit.rest.repos.getContent({
       owner: owner,
@@ -105,7 +105,18 @@ export default async function Layout({
           />
         );
       }
-      // TODO: catch all error (it's not always just one of these two)
+    } else if (error.status === 403) {
+      errorMessage = (
+        <Message
+          title="You can't access this repository."
+          description={<>You do not have sufficient permissions to access this repository.</>}
+          className="absolute inset-0"
+          href="/"
+          cta="Select another repository"
+        />
+      );
+    } else {
+      throw error;
     }
   }
 

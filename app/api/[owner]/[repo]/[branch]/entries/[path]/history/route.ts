@@ -6,6 +6,7 @@ import { getFileExtension, normalizePath } from "@/lib/utils/file";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
+import { toErrorResponse } from "@/lib/api-error";
 
 /**
  * Fetches the history of a file from GitHub repositories.
@@ -63,9 +64,6 @@ export async function GET(
     });
   } catch (error: any) {
     console.error(error);
-    return Response.json({
-      status: "error",
-      message: error.message,
-    });
+    return toErrorResponse(error);
   }
 }

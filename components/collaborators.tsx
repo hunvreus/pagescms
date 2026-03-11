@@ -46,6 +46,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { requireApiSuccess } from "@/lib/api-client";
 import { toast } from "sonner";
 import { EllipsisVertical, Loader, Mail, Trash2 } from "lucide-react";
 
@@ -184,17 +185,11 @@ export function Collaborators({
         const response = await fetch(`/api/collaborators/${owner}/${repo}`, {
           signal: controller.signal,
         });
-
-        if (!response.ok) {
-          throw new Error(
-            `Failed to fetch collection: ${response.status} ${response.statusText}`,
-          );
-        }
-
-        const data: { status: string; data: Collaborator[]; message?: string } =
-          await response.json();
-
-        if (data.status !== "success") throw new Error(data.message);
+        const data = await requireApiSuccess<{
+          status: string;
+          data: Collaborator[];
+          message?: string;
+        }>(response, "Failed to fetch collaborators");
 
         setCollaborators(data.data);
       } catch (err: unknown) {

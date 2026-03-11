@@ -6,7 +6,7 @@ import { MediaUpload } from "@/components/media/media-upload";
 import { MediaDialog } from "@/components/media/media-dialog";
 import { Upload, File, FileText, FileVideo, FileImage, FileAudio, FileArchive, FileCode, FileType, FileSpreadsheet, GripVertical, FolderOpen, ArrowUpRight, EllipsisVertical } from "lucide-react";
 import { useConfig } from "@/contexts/config-context";
-import { getFileExtension, getFileName, extensionCategories, normalizePath } from "@/lib/utils/file";
+import { getFileExtension, getFileName, extensionCategories, normalizeMediaPath, normalizePath } from "@/lib/utils/file";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
@@ -34,6 +34,7 @@ type MediaSchema = {
   name: string;
   input: string;
   extensions?: string[];
+  rename?: boolean;
 };
 
 type EditorProps = {
@@ -48,6 +49,7 @@ type FieldOptions = {
   multiple?: boolean | { max?: number };
   extensions?: string[];
   categories?: string[];
+  rename?: boolean;
 };
 
 const FileTeaser = ({ file, config, onRemove, getFileIcon }: { 
@@ -140,9 +142,9 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
   
   const [files, setFiles] = useState<FileEntry[]>(() => 
     typeof value === "string"
-      ? [{ id: generateId(), path: value }]
+      ? [{ id: generateId(), path: normalizeMediaPath(value) }]
       : Array.isArray(value)
-        ? value.filter((path): path is string => typeof path === "string").map((path) => ({ id: generateId(), path }))
+        ? value.filter((path): path is string => typeof path === "string").map((path) => ({ id: generateId(), path: normalizeMediaPath(path) }))
         : []
   );
 
@@ -217,7 +219,7 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
   const handleUpload = useCallback((fileData: FileSaveData) => {
     if (!fileData.path) return;
     
-    const newFile = { id: generateId(), path: fileData.path };
+    const newFile = { id: generateId(), path: normalizeMediaPath(fileData.path) };
     
     if (isMultiple) {
       setFiles(prev => [...prev, newFile]);
@@ -285,7 +287,7 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
     } else {
       const newFiles = newPaths.map(path => ({
         id: generateId(),
-        path
+        path: normalizeMediaPath(path)
       }));
       
       if (isMultiple) {
@@ -311,7 +313,14 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
   }
 
   return (
-    <MediaUpload path={rootPath} media={mediaConfig.name} extensions={allowedExtensions} onUpload={handleUpload} multiple={isMultiple}>
+    <MediaUpload
+      path={rootPath}
+      media={mediaConfig.name}
+      extensions={allowedExtensions}
+      onUpload={handleUpload}
+      multiple={isMultiple}
+      rename={options.rename ?? mediaConfig.rename}
+    >
       <MediaUpload.DropZone>
         <div className="space-y-2">
           {files.length > 0 && (

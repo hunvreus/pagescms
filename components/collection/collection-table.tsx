@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/table";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { ArrowUp, ArrowDown, Ban, Loader, CircleMinus, CirclePlus, Folder, FolderOpen } from "lucide-react";
+import { ArrowUp, ArrowDown, Loader, CircleMinus, CirclePlus, Folder, FolderOpen } from "lucide-react";
 
 declare module '@tanstack/react-table' {
   interface ColumnMeta<TData extends RowData, TValue> {
@@ -316,10 +316,7 @@ export function CollectionTable<TData extends TableData>({
           ) : (
             <TableRow className="hover:bg-transparent">
               <TableCell colSpan={columns.length} className="text-center text-muted-foreground text-sm p-6">
-                <div className="inline-flex items-center justify-center">
-                  <Ban className="h-4 w-4 mr-2"/>
-                  No entries
-                </div>
+                <span>No entries</span>
               </TableCell>
             </TableRow>
           )}

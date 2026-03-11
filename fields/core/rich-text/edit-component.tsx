@@ -8,9 +8,11 @@ import {
   useRef,
   useState,
 } from "react";
+import { useFormContext } from "react-hook-form";
 import { createPortal } from "react-dom";
 import { Editor } from "@/components/ui/editor";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
   MediaDialog,
@@ -28,9 +30,12 @@ import {
   swapPrefix,
 } from "@/lib/githubImage";
 import {
+  decodePathSafely,
   extensionCategories,
+  generateRandomUploadName,
   getFileExtension,
   joinPathSegments,
+  normalizeMediaPath,
   normalizePath,
 } from "@/lib/utils/file";
 import type { ApiResponse, FileSaveData } from "@/types/api";
@@ -41,6 +46,7 @@ type MediaSchema = {
   input: string;
   output: string;
   extensions?: string[];
+  rename?: boolean;
 };
 
 type FieldOptions = {
@@ -50,6 +56,7 @@ type FieldOptions = {
   path?: string;
   extensions?: string[];
   categories?: string[];
+  rename?: boolean;
 };
 
 type EditProps = {
@@ -63,6 +70,7 @@ type EditProps = {
     key: string,
     hook: () => void | Promise<void>,
   ) => () => void;
+  onChangeRegistered?: () => void;
   onChange: (value: string) => void;
 };
 
@@ -162,8 +170,16 @@ const EditComponent = forwardRef(
     const { config } = useConfig();
     const { isPrivate } = useRepo();
 
-    const { value, field, onChange, name, registerBeforeSubmitHook } = props;
+    const {
+      value,
+      field,
+      onChange,
+      name,
+      registerBeforeSubmitHook,
+      onChangeRegistered,
+    } = props;
     void ref;
+    const form = useFormContext();
 
     const options = field?.options ?? {};
     const format = options.format === "html" ? "html" : "markdown";
@@ -175,8 +191,14 @@ const EditComponent = forwardRef(
     const [sourceValue, setSourceValue] = useState(canonicalValue);
     const [editorValue, setEditorValue] = useState(canonicalValue);
     const [isTransforming, setIsTransforming] = useState(false);
+    const [hasHydratedEditor, setHasHydratedEditor] = useState(false);
+    const [pendingUploads, setPendingUploads] = useState(0);
     const editorDirtyRef = useRef(false);
     const editorValueRef = useRef(canonicalValue);
+    const syncedEditorValueRef = useRef(canonicalValue);
+    const onChangeRef = useRef(onChange);
+    const modeRef = useRef(mode);
+    const skipNextSourceToEditorForCanonicalRef = useRef<string | null>(null);
     const transformSeqRef = useRef(0);
     const mediaDialogRef = useRef<MediaDialogHandle>(null);
     const imageSubmitInFlightRef = useRef(false);
@@ -212,9 +234,6 @@ const EditComponent = forwardRef(
       const normalizedMediaRoot = normalizePath(mediaConfig.input);
 
       if (!normalizedPath.startsWith(normalizedMediaRoot)) {
-        console.warn(
-          `"${options.path}" is not within media root "${mediaConfig.input}". Defaulting to media root.`,
-        );
         return mediaConfig.input;
       }
 
@@ -237,12 +256,10 @@ const EditComponent = forwardRef(
         );
       }
 
-      if (
-        Array.isArray(mediaConfig.extensions) &&
-        mediaConfig.extensions.length > 0
-      ) {
+      const mediaExtensions = mediaConfig.extensions;
+      if (Array.isArray(mediaExtensions) && mediaExtensions.length > 0) {
         extensions = extensions.filter((extension) =>
-          mediaConfig.extensions?.includes(extension),
+          mediaExtensions.includes(extension),
         );
       }
 
@@ -253,9 +270,10 @@ const EditComponent = forwardRef(
       async (url: string) => {
         if (!config || !mediaConfig) return url;
         if (!url || isExternalUrl(url) || isDataUrl(url)) return url;
+        const decodedUrl = normalizeMediaPath(decodePathSafely(url));
 
         const inputPath = swapPrefix(
-          url,
+          decodedUrl,
           mediaConfig.output,
           mediaConfig.input,
           true,
@@ -263,7 +281,7 @@ const EditComponent = forwardRef(
         const normalizedInputPath = normalizePath(inputPath);
         const mediaInputRoot = normalizePath(mediaConfig.input);
         if (
-          isAbsolutePath(url) &&
+          isAbsolutePath(decodedUrl) &&
           !normalizedInputPath.startsWith(mediaInputRoot)
         ) {
           return url;
@@ -295,10 +313,17 @@ const EditComponent = forwardRef(
         const relativePath = url.startsWith(
           "https://raw.githubusercontent.com/",
         )
-          ? getRelativeUrl(config.owner, config.repo, config.branch, url, true)
+          ? getRelativeUrl(config.owner, config.repo, config.branch, url, false)
           : url;
+        const normalizedRelativePath = normalizeMediaPath(
+          decodePathSafely(relativePath),
+        );
 
-        return swapPrefix(relativePath, mediaConfig.input, mediaConfig.output);
+        return swapPrefix(
+          normalizedRelativePath,
+          mediaConfig.input,
+          mediaConfig.output,
+        );
       },
       [config, mediaConfig],
     );
@@ -392,11 +417,23 @@ const EditComponent = forwardRef(
     }, [editorValue]);
 
     useEffect(() => {
+      onChangeRef.current = onChange;
+    }, [onChange]);
+
+    useEffect(() => {
+      modeRef.current = mode;
+    }, [mode]);
+
+    useEffect(() => {
       setSourceValue(canonicalValue);
     }, [canonicalValue]);
 
     useEffect(() => {
       if (mode !== "editor") return;
+      if (skipNextSourceToEditorForCanonicalRef.current === canonicalValue) {
+        skipNextSourceToEditorForCanonicalRef.current = null;
+        return;
+      }
       const currentSeq = ++transformSeqRef.current;
       setIsTransforming(true);
 
@@ -404,7 +441,9 @@ const EditComponent = forwardRef(
         .then((displayValue) => {
           if (currentSeq !== transformSeqRef.current) return;
           setEditorValue(displayValue);
+          syncedEditorValueRef.current = displayValue;
           editorDirtyRef.current = false;
+          setHasHydratedEditor(true);
         })
         .finally(() => {
           if (currentSeq === transformSeqRef.current) {
@@ -417,19 +456,32 @@ const EditComponent = forwardRef(
       if (!editorDirtyRef.current) return;
       const canonical = await editorToSource(editorValueRef.current);
       setSourceValue(canonical);
-      onChange(canonical);
+      skipNextSourceToEditorForCanonicalRef.current = canonical;
+      if (name) {
+        form.setValue(name, canonical, {
+          shouldDirty: true,
+          shouldTouch: true,
+          shouldValidate: false,
+        });
+      } else {
+        onChangeRef.current(canonical);
+      }
       editorDirtyRef.current = false;
-    }, [editorToSource, onChange]);
+    }, [editorToSource, form, name]);
 
     useEffect(() => {
-      if (!registerBeforeSubmitHook || !name) return;
-      return registerBeforeSubmitHook(`rich-text:${name}`, async () => {
-        if (mode !== "editor") return;
+      if (!registerBeforeSubmitHook || !name) {
+        return;
+      }
+      const key = `rich-text:${name}`;
+      return registerBeforeSubmitHook(key, async () => {
+        if (modeRef.current !== "editor") return;
         await syncEditorToSource();
       });
-    }, [mode, name, registerBeforeSubmitHook, syncEditorToSource]);
+    }, [name, registerBeforeSubmitHook, syncEditorToSource]);
 
     const handleSwitchToEditor = useCallback(async () => {
+      if (pendingUploads > 0) return;
       if (mode === "editor") return;
       setMode("editor");
       const currentSeq = ++transformSeqRef.current;
@@ -438,6 +490,7 @@ const EditComponent = forwardRef(
         const displayValue = await sourceToEditor(sourceValue);
         if (currentSeq === transformSeqRef.current) {
           setEditorValue(displayValue);
+          syncedEditorValueRef.current = displayValue;
           editorDirtyRef.current = false;
         }
       } finally {
@@ -445,9 +498,10 @@ const EditComponent = forwardRef(
           setIsTransforming(false);
         }
       }
-    }, [mode, sourceToEditor, sourceValue]);
+    }, [mode, pendingUploads, sourceToEditor, sourceValue]);
 
     const handleSwitchToSource = useCallback(async () => {
+      if (pendingUploads > 0) return;
       if (mode === "source") return;
       const currentSeq = ++transformSeqRef.current;
       setIsTransforming(true);
@@ -461,7 +515,7 @@ const EditComponent = forwardRef(
           setIsTransforming(false);
         }
       }
-    }, [mode, syncEditorToSource]);
+    }, [mode, pendingUploads, syncEditorToSource]);
 
     const resolvePendingImageSelection = useCallback(
       (result: { kind: "url"; src: string } | null) => {
@@ -514,8 +568,9 @@ const EditComponent = forwardRef(
       (nextValue: string) => {
         setSourceValue(nextValue);
         onChange(nextValue);
+        onChangeRegistered?.();
       },
-      [onChange],
+      [onChange, onChangeRegistered],
     );
 
     const handleUploadImage = useCallback(
@@ -542,9 +597,12 @@ const EditComponent = forwardRef(
           reader.readAsDataURL(file);
         });
         const content = dataUrl.replace(/^(.+,)/, "");
+        const uploadFilename = (options.rename ?? mediaConfig.rename)
+          ? generateRandomUploadName(extension)
+          : file.name;
         const targetPath = joinPathSegments([
           rootPath ?? mediaConfig.input,
-          file.name,
+          uploadFilename,
         ]);
 
         const response = await fetch(
@@ -577,7 +635,14 @@ const EditComponent = forwardRef(
           alt: file.name,
         };
       },
-      [allowedExtensions, config, mediaConfig, rootPath, toDisplayImageUrl],
+      [
+        allowedExtensions,
+        config,
+        mediaConfig,
+        options.rename,
+        rootPath,
+        toDisplayImageUrl,
+      ],
     );
 
     const triggerClass = cn(
@@ -598,7 +663,7 @@ const EditComponent = forwardRef(
               "bg-background text-foreground dark:border-input dark:bg-input/30 dark:text-foreground",
           )}
           onClick={() => void handleSwitchToEditor()}
-          disabled={isTransforming}
+          disabled={isTransforming || pendingUploads > 0}
           data-active={mode === "editor" ? "true" : undefined}
         >
           Editor
@@ -612,7 +677,7 @@ const EditComponent = forwardRef(
               "bg-background text-foreground dark:border-input dark:bg-input/30 dark:text-foreground",
           )}
           onClick={() => void handleSwitchToSource()}
-          disabled={isTransforming}
+          disabled={isTransforming || pendingUploads > 0}
           data-active={mode === "source" ? "true" : undefined}
         >
           Source
@@ -635,18 +700,35 @@ const EditComponent = forwardRef(
           )}
 
         {mode === "editor" ? (
+          !hasHydratedEditor && isTransforming ? (
+            <Skeleton className="h-40 w-full rounded-md" />
+          ) : (
           <Editor
             value={editorValue}
             onChange={(nextValue) => {
+              if (nextValue === syncedEditorValueRef.current) return;
+              if (!editorDirtyRef.current && name) {
+                // Mark field dirty immediately without running full source/editor transforms on every keystroke.
+                const currentValue = form.getValues(name);
+                form.setValue(name, currentValue, {
+                  shouldDirty: true,
+                  shouldTouch: true,
+                  shouldValidate: false,
+                });
+              }
               editorDirtyRef.current = true;
+              syncedEditorValueRef.current = nextValue;
               setEditorValue(nextValue);
+              onChangeRegistered?.();
             }}
             format={format}
             className="cn-editor"
             enableImagePasteDrop={Boolean(mediaConfig)}
             onUploadImage={mediaConfig ? handleUploadImage : undefined}
             onRequestImage={mediaConfig ? handleRequestImage : undefined}
+            onPendingUploadsChange={setPendingUploads}
           />
+          )
         ) : (
           <Textarea
             value={sourceValue}

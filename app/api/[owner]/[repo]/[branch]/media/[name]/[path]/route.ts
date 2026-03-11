@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
 import { getMediaCache, checkRepoAccess } from "@/lib/githubCache";
 import { getGithubId } from "@/lib/githubAccount";
+import { toErrorResponse } from "@/lib/api-error";
 
 // Add docs
 
@@ -48,7 +49,12 @@ export async function GET(
       throw new Error(`No media configuration found for ${params.owner}/${params.repo}/${params.branch}.`);
     }
 
-    const normalizedPath = normalizePath(params.path);
+    const normalizedPath = normalizeMediaPath(
+      params.path,
+      params.owner,
+      params.repo,
+      params.branch,
+    );
     if (!normalizedPath.startsWith(mediaConfig.input)) throw new Error(`Invalid path "${params.path}" for media "${params.name}".`);
 
     const { searchParams } = new URL(request.url);
@@ -88,10 +94,43 @@ export async function GET(
     });
   } catch (error: any) {
     console.error(error);
-    // TODO: better handling of GitHub errors
-    return Response.json({
-      status: "error",
-      message: error.status === 404 ? "Not found" : error.message,
-    });
+    return toErrorResponse(error);
   }
 }
+
+const normalizeMediaPath = (
+  rawPath: string,
+  owner: string,
+  repo: string,
+  branch: string,
+) => {
+  const decodedPath = decodeURIComponent(rawPath || "");
+
+  // Handle markdown-link wrappers: [label](target)
+  const markdownMatch = decodedPath.match(/^\[.*?\]\((.+)\)$/);
+  const markdownLooseMatch = decodedPath.match(/^\[.*?\]\((.+)$/);
+  const candidate = (
+    markdownMatch?.[1]
+    || markdownLooseMatch?.[1]?.replace(/\)$/, "")
+    || decodedPath
+  ).trim();
+
+  // If caller accidentally passes a raw.githubusercontent URL, map it back to repo-relative path.
+  let repoRelativePath = candidate;
+  if (candidate.startsWith("https://raw.githubusercontent.com/")) {
+    try {
+      const url = new URL(candidate);
+      const pathname = decodeURIComponent(url.pathname || "");
+      const branchPrefix = `/${owner}/${repo}/${branch}/`;
+      if (pathname.startsWith(branchPrefix)) {
+        repoRelativePath = pathname.slice(branchPrefix.length);
+      }
+    } catch {
+      repoRelativePath = candidate;
+    }
+  }
+
+  repoRelativePath = repoRelativePath.split("#")[0]?.split("?")[0] || repoRelativePath;
+
+  return normalizePath(repoRelativePath);
+};

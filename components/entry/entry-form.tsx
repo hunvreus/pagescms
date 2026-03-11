@@ -536,6 +536,7 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>(
                   const renderedElements = renderFields(
                     selectedBlockDefinition.fields || [],
                     fieldName,
+                    registerBeforeSubmitHook,
                   );
                   return renderedElements;
                 })()
@@ -633,6 +634,7 @@ const SingleField = ({
   fieldName,
   renderFields,
   registerBeforeSubmitHook,
+  onChangeRegistered,
   showLabel = true,
   isOpen = true,
   toggleOpen = () => {},
@@ -642,6 +644,7 @@ const SingleField = ({
   fieldName: string;
   renderFields: RenderFields;
   registerBeforeSubmitHook?: RegisterBeforeSubmitHook;
+  onChangeRegistered?: () => void;
   showLabel?: boolean;
   isOpen?: boolean;
   toggleOpen?: () => void;
@@ -749,6 +752,7 @@ const SingleField = ({
                       {...sharedProps}
                       labelSlotId={showLabelSlot ? labelSlotId : undefined}
                       registerBeforeSubmitHook={registerBeforeSubmitHook}
+                      onChangeRegistered={onChangeRegistered}
                     />
                   );
                 }
@@ -771,13 +775,17 @@ SingleField.displayName = "SingleField";
 const EntryForm = ({
   fields,
   contentObject,
-  onSubmit = (values) => console.log("Default onSubmit:", values),
+  onSubmit = () => {},
   filePath,
+  onDirtyChange,
+  onChangeRegistered,
 }: {
   fields: Field[];
   contentObject?: Record<string, unknown>;
   onSubmit: (values: Record<string, unknown>) => void;
   filePath?: React.ReactNode;
+  onDirtyChange?: (isDirty: boolean) => void;
+  onChangeRegistered?: () => void;
 }) => {
   const zodSchema = useMemo(() => {
     return generateZodSchema(fields);
@@ -792,6 +800,14 @@ const EntryForm = ({
     defaultValues,
     reValidateMode: "onSubmit",
   });
+
+  useEffect(() => {
+    form.reset(defaultValues);
+  }, [defaultValues, form]);
+
+  useEffect(() => {
+    onDirtyChange?.(form.formState.isDirty);
+  }, [form.formState.isDirty, onDirtyChange]);
 
   const beforeSubmitHooksRef = useRef<Map<string, BeforeSubmitHook>>(new Map());
 
@@ -838,15 +854,17 @@ const EntryForm = ({
             fieldName={currentFieldName}
             renderFields={renderFields}
             registerBeforeSubmitHook={registerBeforeSubmitHook}
+            onChangeRegistered={onChangeRegistered}
           />
         );
       });
     },
-    [],
+    [onChangeRegistered],
   );
 
   const handleSubmit = async (values: Record<string, unknown>) => {
-    for (const hook of beforeSubmitHooksRef.current.values()) {
+    const hooks = Array.from(beforeSubmitHooksRef.current.values());
+    for (const hook of hooks) {
       await hook();
     }
     const latestValues = form.getValues() as Record<string, unknown>;

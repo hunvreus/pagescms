@@ -9,6 +9,7 @@ import { collaboratorTable } from "@/db/schema";
 import { getGithubAccount } from "@/lib/githubAccount";
 import { hasGithubIdentity } from "@/lib/authz";
 import { requireGithubUserToken } from "@/lib/authz-server";
+import { toErrorResponse } from "@/lib/api-error";
 
 export const dynamic = "force-dynamic";
 
@@ -101,9 +102,6 @@ export async function GET(
     });
   } catch (error: any) {
     console.error(error);
-    return Response.json({
-      status: "error",
-      message: error.message,
-    });
+    return toErrorResponse(error);
   }
 }

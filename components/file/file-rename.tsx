@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useConfig } from "@/contexts/config-context";
 import { getRelativePath, joinPathSegments, normalizePath } from "@/lib/utils/file";
 import { getSchemaByName } from "@/lib/schema";
+import { requireApiSuccess } from "@/lib/api-client";
 import {
   Dialog,
   DialogClose,
@@ -63,11 +64,7 @@ export function FileRename({
               newPath,
             }),
           });
-          if (!response.ok) throw new Error(`Failed to rename file: ${response.status} ${response.statusText}`);
-
-          const data: any = await response.json();
-
-          if (data.status !== "success") throw new Error(data.message);
+          const data = await requireApiSuccess<any>(response, "Failed to rename file");
 
           resolve(data);
         } catch (error) {

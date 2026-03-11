@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { requireApiSuccess } from "@/lib/api-client";
 import type { ApiResponse, FileSaveData, MediaItem } from "@/types/api";
 import {
   CornerLeftUp,
@@ -290,10 +291,10 @@ const MediaView = ({
           `/api/${cfg.owner}/${cfg.repo}/${encodeURIComponent(cfg.branch)}/media/${encodeURIComponent(mediaConfig.name)}/${encodeURIComponent(path)}`,
           { signal: controller.signal },
         );
-        if (!response.ok) throw new Error(`Failed to fetch media: ${response.status} ${response.statusText}`);
-
-        const payload: ApiResponse<MediaItem[]> = await response.json();
-        if (payload.status !== "success") throw new Error(payload.message);
+        const payload = await requireApiSuccess<any>(
+          response,
+          "Failed to fetch media",
+        );
         if (controller.signal.aborted) return;
 
         setData(payload.data);

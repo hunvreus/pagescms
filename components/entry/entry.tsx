@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useConfig } from "@/contexts/config-context";
 import { parseAndValidateConfig } from "@/lib/config";
+import { requireApiSuccess } from "@/lib/api-client";
 import { generateFilename, getPrimaryField, getSchemaByName } from "@/lib/schema";
 import {
   getFileExtension,
@@ -82,9 +83,12 @@ export function Entry({
   const [history, setHistory] = useState<EntryHistoryItem[]>();
   const [isLoading, setIsLoading] = useState(path ? true : false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isFormDirty, setIsFormDirty] = useState(false);
+  const [hasRegisteredChanges, setHasRegisteredChanges] = useState(false);
   const [error, setError] = useState<string | undefined | null>(null);
   // TODO: this feels like a bit of a hack
   const [refetchTrigger, setRefetchTrigger] = useState<number>(0);
+  const changeVersionRef = useRef(0);
 
   const router = useRouter();
   
@@ -146,15 +150,15 @@ export function Entry({
           const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/entries/${encodeURIComponent(path)}?name=${encodeURIComponent(name)}`, {
             signal: controller.signal,
           });
-          if (!response.ok) throw new Error(`Failed to fetch entry: ${response.status} ${response.statusText}`);
-
-          const data: ApiResponse<EntryData> = await response.json();
-          
-          if (data.status !== "success") throw new Error(data.message);
+          const data = await requireApiSuccess<any>(
+            response,
+            "Failed to fetch entry",
+          );
           if (controller.signal.aborted) return;
           
           setEntry(data.data);
           setSha(data.data.sha);
+          setHasRegisteredChanges(false);
 
           if (initialPath && schema && schema.type === "collection") {
             const primaryField = getPrimaryField(schema);
@@ -191,11 +195,10 @@ export function Entry({
           const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/entries/${encodeURIComponent(path)}/history?name=${encodeURIComponent(name)}`, {
             signal: controller.signal,
           });
-          if (!response.ok) throw new Error(`Failed to fetch entry's history: ${response.status} ${response.statusText}`);
-          
-          const data: ApiResponse<EntryHistoryItem[]> = await response.json();
-          
-          if (data.status !== "success") throw new Error(data.message);
+          const data = await requireApiSuccess<any>(
+            response,
+            "Failed to fetch entry's history",
+          );
           if (controller.signal.aborted) return;
           
           setHistory(data.data);
@@ -215,6 +218,7 @@ export function Entry({
 
   const onSubmit = async (contentObject: Record<string, unknown>) => {
     setIsSaving(true);
+    const submitStartChangeVersion = changeVersionRef.current;
 
     const savePromise = new Promise<ApiSuccess<EntryData>>(async (resolve, reject) => {
       try {
@@ -239,12 +243,15 @@ export function Entry({
             sha: sha
           }),
         });
-        if (!response.ok) throw new Error(`Failed to save file: ${response.status} ${response.statusText}`);
-        const data: ApiResponse<EntryData> = await response.json();
-      
-        if (data.status !== "success") throw new Error(data.message);
+        const data = await requireApiSuccess<any>(
+          response,
+          "Failed to save file",
+        );
         
         if (data.data.sha !== sha) setSha(data.data.sha);
+        if (submitStartChangeVersion === changeVersionRef.current) {
+          setHasRegisteredChanges(false);
+        }
 
         if (!path && schemaType === "collection") router.push(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/edit/${encodeURIComponent(data.data.path)}`);
 
@@ -265,6 +272,9 @@ export function Entry({
 
     try {
       await savePromise;
+      if (submitStartChangeVersion === changeVersionRef.current) {
+        setHasRegisteredChanges(false);
+      }
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error(error.message);
@@ -382,7 +392,14 @@ export function Entry({
               ? <EntryHistoryDropdown history={history} path={path} />
               : <Button variant="ghost" size="icon" className="shrink-0" disabled><History /></Button>
           )}
-          <Button type="submit" form="entry-form" disabled={isBusy}>
+          <Button
+            type="submit"
+            form="entry-form"
+            disabled={
+              isBusy ||
+              (Boolean(path) && !(isFormDirty || hasRegisteredChanges))
+            }
+          >
             Save
           </Button>
           {path && (
@@ -406,7 +423,7 @@ export function Entry({
         </div>
       )}
     </div>
-  ), [breadcrumbNode, handleDelete, handleRename, history, isBusy, isLoading, name, path, schemaType, sha, showHeaderActions]);
+  ), [breadcrumbNode, handleDelete, handleRename, hasRegisteredChanges, history, isBusy, isFormDirty, isLoading, name, path, schemaType, sha, showHeaderActions]);
 
   useRepoHeader({ header: headerNode });
 
@@ -497,6 +514,11 @@ export function Entry({
         fields={entryFields}
         contentObject={entryContentObject}
         onSubmit={onSubmit}
+        onDirtyChange={setIsFormDirty}
+        onChangeRegistered={() => {
+          changeVersionRef.current += 1;
+          setHasRegisteredChanges(true);
+        }}
       />
   );
 };

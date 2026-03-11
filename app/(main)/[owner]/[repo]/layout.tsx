@@ -21,10 +21,10 @@ export default async function Layout({
   const user = session?.user;
   if (!user) return redirect("/sign-in");
 
-  const token = await getToken(user, owner, repo);
-  if (!token) throw new Error("Token not found");
-
   try {
+    const token = await getToken(user, owner, repo);
+    if (!token) throw new Error("Token not found");
+
     const octokit = createOctokitInstance(token);
     const repoResponse = await octokit.rest.repos.get({ owner: owner, repo: repo });
     

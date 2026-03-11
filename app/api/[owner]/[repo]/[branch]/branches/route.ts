@@ -2,6 +2,7 @@ import { createOctokitInstance } from "@/lib/utils/octokit";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
+import { toErrorResponse } from "@/lib/api-error";
 
 /**
  * Creates a new branch in a GitHub repository.
@@ -54,9 +55,6 @@ export async function POST(
     });
   } catch (error: any) {
     console.error(error);
-    return Response.json({
-      status: "error",
-      message: error.message,
-    });
+    return toErrorResponse(error);
   }
 }

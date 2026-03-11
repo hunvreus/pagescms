@@ -2,10 +2,11 @@
 
 import { useRef, cloneElement, useMemo, useCallback, createContext, useContext, useState } from "react";
 import { useConfig } from "@/contexts/config-context";
-import { joinPathSegments } from "@/lib/utils/file";
+import { getFileExtension, generateRandomUploadName, joinPathSegments } from "@/lib/utils/file";
 import { toast } from "sonner";
 import { getSchemaByName } from "@/lib/schema";
 import { cn } from "@/lib/utils";
+import { requireApiSuccess } from "@/lib/api-client";
 import type { ApiResponse, FileSaveData } from "@/types/api";
 
 interface MediaUploadContextValue {
@@ -23,6 +24,7 @@ interface MediaUploadProps {
   media?: string;
   extensions?: string[];
   multiple?: boolean;
+  rename?: boolean;
 }
 
 interface MediaUploadTriggerProps {
@@ -34,7 +36,7 @@ interface MediaUploadDropZoneProps {
   className?: string;
 }
 
-function MediaUploadRoot({ children, path, onUpload, media, extensions, multiple }: MediaUploadProps) {
+function MediaUploadRoot({ children, path, onUpload, media, extensions, multiple, rename }: MediaUploadProps) {
   const { config } = useConfig();
   if (!config) throw new Error(`Configuration not found.`);
 
@@ -63,12 +65,17 @@ function MediaUploadRoot({ children, path, onUpload, media, extensions, multiple
     try {
       for (const file of files) {
         const reader = new FileReader();
+        const effectiveRename = rename ?? Boolean(configMedia?.rename);
+        const extension = getFileExtension(file.name);
+        const uploadFilename = effectiveRename
+          ? generateRandomUploadName(extension)
+          : file.name;
 
         const uploadPromise = new Promise<FileSaveData>((resolve, reject) => {
           reader.onload = async () => {
             try {
               const content = (reader.result as string).replace(/^(.+,)/, "");
-              const fullPath = joinPathSegments([path ?? "", file.name]);
+              const fullPath = joinPathSegments([path ?? "", uploadFilename]);
 
               const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/files/${encodeURIComponent(fullPath)}`, {
                 method: "POST",
@@ -80,10 +87,10 @@ function MediaUploadRoot({ children, path, onUpload, media, extensions, multiple
                 }),
               });
 
-              if (!response.ok) throw new Error(`Failed to upload file: ${response.status} ${response.statusText}`);
-
-              const data: ApiResponse<FileSaveData> = await response.json();
-              if (data.status !== "success") throw new Error(data.message);
+              const data = await requireApiSuccess<any>(
+                response,
+                "Failed to upload file",
+              );
               
               resolve(data.data);
             } catch (error) {
@@ -107,7 +114,7 @@ function MediaUploadRoot({ children, path, onUpload, media, extensions, multiple
     } catch (error) {
       console.error(error);
     }
-  }, [config, path, configMedia?.name, onUpload]);
+  }, [config, path, configMedia?.name, configMedia?.rename, onUpload, rename]);
 
   const contextValue = useMemo(() => ({
     handleFiles,

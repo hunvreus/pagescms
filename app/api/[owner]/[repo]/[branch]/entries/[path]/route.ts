@@ -9,6 +9,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { assertGithubIdentity } from "@/lib/authz";
 import { getToken } from "@/lib/token";
+import { toErrorResponse } from "@/lib/api-error";
 
 /**
  * Fetches and parses individual file contents from GitHub repositories
@@ -92,10 +93,7 @@ export async function GET(
     });
   } catch (error: any) {
     console.error(error);
-    return Response.json({
-      status: "error",
-      message: error.status === 404 ? "Not found" : error.message,
-    });
+    return toErrorResponse(error);
   }
 }
 

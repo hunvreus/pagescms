@@ -11,6 +11,7 @@ import { auth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
 import { getCollectionCache, checkRepoAccess } from "@/lib/githubCache";
 import { getGithubId } from "@/lib/githubAccount";
+import { toErrorResponse } from "@/lib/api-error";
 
 /**
  * Fetches and parses collection contents from GitHub repositories
@@ -137,10 +138,7 @@ export async function GET(
     });
   } catch (error: any) {
     console.error(error);
-    return Response.json({
-      status: "error",
-      message: error.message,
-    });
+    return toErrorResponse(error);
   }
 }
 

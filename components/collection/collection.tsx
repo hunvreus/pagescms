@@ -14,6 +14,7 @@ import {
 } from "@/lib/utils/file";
 import { viewComponents } from "@/fields/registry";
 import { getSchemaByName, getPrimaryField, getFieldByPath, safeAccess } from "@/lib/schema";
+import { requireApiSuccess } from "@/lib/api-client";
 import { EmptyCreate } from "@/components/empty-create";
 import { FileOptions } from "@/components/file/file-options";
 import { CollectionTable } from "./collection-table";
@@ -208,17 +209,10 @@ export function Collection({
       const apiUrl = `/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collections/${encodeURIComponent(name)}?path=${encodeURIComponent(fetchPath)}`;
       
       const response = await fetch(apiUrl);
-      if (!response.ok) {
-        if(response.status === 404 && fetchPath === (path || schema.path)) {
-          throw new Error("Not found");
-        }
-        throw new Error(`API Error ${response.status}`);
+      if (response.status === 404 && fetchPath === (path || schema.path)) {
+        throw new Error("Not found");
       }
-
-      const result = await response.json();
-      if (result.status !== 'success') {
-        throw new Error(result.message || 'Fetch failed');
-      }
+      const result = await requireApiSuccess<any>(response, "Fetch failed");
 
       if (result.data.errors?.length) {
         result.data.errors.forEach((e: any) => toast.error(e));
@@ -331,10 +325,7 @@ export function Collection({
               newPath: normalizedNewPath,
             }),
           });
-          if (!response.ok) throw new Error(`Failed to rename file: ${response.status} ${response.statusText}`);
-
-          const data: any = await response.json();
-          if (data.status !== "success") throw new Error(data.message);
+          const data = await requireApiSuccess<any>(response, "Failed to rename file");
 
           resolve(data);
         } catch (error) {
@@ -605,7 +596,6 @@ export function Collection({
   const collectionPath = schema.view?.layout === "tree"
     ? schema.path
     : path || schema.path;
-  const isCollectionEmpty = !isLoading && !error && data.length === 0;
 
   const addEntryHref = `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new${
     schema.view?.layout !== "tree" && path && path !== schema.path
@@ -689,104 +679,69 @@ export function Collection({
   const headerNode = useMemo(() => (
     <div className="flex items-center justify-between gap-2">
       <div className="min-w-0 truncate">{breadcrumbNode}</div>
-      {!isCollectionEmpty && (
-        <CollectionHeaderActions
-          addEntryHref={addEntryHref}
-          collectionPath={collectionPath}
-          name={name}
-          showFolderCreate={schema.subfolders !== false}
-          onFolderCreate={handleFolderCreate}
-          onSearchChange={handleTableSearchChange}
-        />
-      )}
+      <CollectionHeaderActions
+        addEntryHref={addEntryHref}
+        collectionPath={collectionPath}
+        name={name}
+        showFolderCreate={schema.subfolders !== false}
+        onFolderCreate={handleFolderCreate}
+        onSearchChange={handleTableSearchChange}
+      />
     </div>
-  ), [addEntryHref, breadcrumbNode, collectionPath, handleFolderCreate, handleTableSearchChange, isCollectionEmpty, name, schema.subfolders]);
+  ), [addEntryHref, breadcrumbNode, collectionPath, handleFolderCreate, handleTableSearchChange, name, schema.subfolders]);
 
   useRepoHeader({
     header: headerNode,
   });
   
-  if (error) {
-    if (error === "Not found") {
-      return (
-        <div className="absolute inset-0 p-4 md:p-6 flex items-center justify-center">
+  const contentNode = isLoading
+    ? loadingSkeleton
+    : error
+      ? (
+        <div className="flex flex-1 items-center justify-center">
           <Empty className="max-w-[420px] flex-none">
             <EmptyHeader>
-              <EmptyTitle>Folder missing</EmptyTitle>
+              <EmptyTitle>{error === "Not found" ? "Folder missing" : "Something&apos;s wrong"}</EmptyTitle>
               <EmptyDescription>
-                {`The collection folder "${schema.path}" has not been created yet.`}
+                {error === "Not found"
+                  ? `The collection folder "${schema.path}" has not been created yet.`
+                  : error}
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
-              <EmptyCreate type="content" name={schema.name}>Create folder</EmptyCreate>
+              {error === "Not found"
+                ? <EmptyCreate type="content" name={schema.name}>Create folder</EmptyCreate>
+                : (
+                  <Link
+                    className={buttonVariants({ variant: "default", size: "sm" })}
+                    href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/settings`}
+                  >
+                    Go to settings
+                  </Link>
+                )
+              }
             </EmptyContent>
           </Empty>
         </div>
-      );
-    } else {
-      return (
-        <div className="absolute inset-0 p-4 md:p-6 flex items-center justify-center">
-          <Empty className="max-w-[420px] flex-none">
-            <EmptyHeader>
-              <EmptyTitle>Something&apos;s wrong</EmptyTitle>
-              <EmptyDescription>{error}</EmptyDescription>
-            </EmptyHeader>
-            <EmptyContent>
-              <Link
-                className={buttonVariants({ variant: "default", size: "sm" })}
-                href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/settings`}
-              >
-                Go to settings
-              </Link>
-            </EmptyContent>
-          </Empty>
-        </div>
-      );
-    }
-  }
+      )
+      : <CollectionTable
+          columns={columns}
+          data={data}
+          search={tableSearch}
+          setSearch={setTableSearch}
+          initialState={initialState}
+          onExpand={handleExpand}
+          pathname={pathname}
+          path={path || schema.path}
+          isTree={schema.view?.layout === 'tree'}
+          primaryField={primaryField}
+        />;
 
   return (
-    <>
+    <div className="min-h-screen flex flex-col">
       <div className="flex-1 flex flex-col space-y-6">
-        {isLoading
-          ? loadingSkeleton
-          : isCollectionEmpty
-            ? (
-              <div className="absolute inset-0 p-4 md:p-6 flex items-center justify-center">
-                <Empty className="max-w-[420px] flex-none">
-                  <EmptyHeader>
-                    <EmptyTitle>No entries yet</EmptyTitle>
-                    <EmptyDescription>
-                      {`There are no entries in "${schema.label || schema.name}" yet.`}
-                    </EmptyDescription>
-                  </EmptyHeader>
-                  <EmptyContent>
-                    <div className="flex items-center gap-x-2">
-                      <Link className={buttonVariants()} href={addEntryHref}>Add an entry</Link>
-                      {schema.subfolders !== false && (
-                        <FolderCreate path={collectionPath} type="content" name={name} onCreate={handleFolderCreate}>
-                          <Button variant="outline">Create folder</Button>
-                        </FolderCreate>
-                      )}
-                    </div>
-                  </EmptyContent>
-                </Empty>
-              </div>
-            )
-            : <CollectionTable
-                columns={columns}
-                data={data}
-                search={tableSearch}
-                setSearch={setTableSearch}
-                initialState={initialState}
-                onExpand={handleExpand}
-                pathname={pathname}
-                path={path || schema.path}
-                isTree={schema.view?.layout === 'tree'}
-                primaryField={primaryField}
-              />
-        }
+        {contentNode}
       </div>
-    </>
+    </div>
   );
 }

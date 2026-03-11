@@ -81,6 +81,48 @@ const joinPathSegments = (segments: string[]): string => {
     .join("/");
 };
 
+const decodePathSafely = (path: string): string => {
+  let current = path;
+  for (let i = 0; i < 2; i += 1) {
+    try {
+      const next = decodeURIComponent(current);
+      if (next === current) break;
+      current = next;
+    } catch {
+      break;
+    }
+  }
+  return current;
+};
+
+const normalizeMediaPath = (path: string): string => {
+  if (!path) return path;
+  if (
+    path.startsWith("http://") ||
+    path.startsWith("https://") ||
+    path.startsWith("//") ||
+    path.startsWith("data:")
+  ) {
+    return path;
+  }
+
+  const [pathWithoutHash, hash = ""] = path.split("#");
+  const [pathname = "", query = ""] = (pathWithoutHash ?? "").split("?");
+  const decodedPath = decodePathSafely(pathname);
+  const hasLeadingSlash = decodedPath.startsWith("/");
+  const normalizedPath = normalizePath(decodedPath);
+  const withSlash = hasLeadingSlash ? `/${normalizedPath}` : normalizedPath;
+  const withQuery = query ? `${withSlash}?${query}` : withSlash;
+  return hash ? `${withQuery}#${hash}` : withQuery;
+};
+
+const generateRandomUploadName = (extension?: string): string => {
+  const rand = Math.random().toString(36).slice(2, 10);
+  const stamp = Date.now().toString(36);
+  const ext = extension ? `.${extension.toLowerCase()}` : "";
+  return `${stamp}-${rand}${ext}`;
+};
+
 const sortFiles = (data: Record<string, any>[]): Record<string, any>[] => {
   return data.sort((a, b) => {
     if (a.type === b.type) {
@@ -97,7 +139,10 @@ export {
   getParentPath,
   getRelativePath,
   normalizePath,
+  normalizeMediaPath,
   joinPathSegments,
+  decodePathSafely,
+  generateRandomUploadName,
   sortFiles,
   extensionCategories,
   serializedTypes

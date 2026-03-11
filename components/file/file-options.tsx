@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useConfig } from "@/contexts/config-context";
 import { getParentPath, getRelativePath, joinPathSegments, normalizePath } from "@/lib/utils/file";
 import { getSchemaByName } from "@/lib/schema";
+import { requireApiSuccess } from "@/lib/api-client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -79,11 +80,7 @@ export function FileOptions({
             method: "DELETE",
           });
 
-          const data: any = await response.json();
-
-          if (!response.ok) throw new Error(data.message || `Failed to delete file: ${response.status} ${response.statusText}`);
-
-          if (data.status !== "success") throw new Error(data.message);
+          const data = await requireApiSuccess<any>(response, "Failed to delete file");
 
           resolve(data);
         } catch (error) {

@@ -5,6 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { collaboratorTable } from "@/db/schema";
 import { requireGithubRepoWriteAccess } from "@/lib/authz-server";
+import { toErrorResponse } from "@/lib/api-error";
 
 /**
  * Fetches collaborators for a repository.
@@ -51,9 +52,6 @@ export async function GET(
     });
   } catch (error: any) {
     console.error(error);
-    return Response.json({
-      status: "error",
-      message: error.message,
-    });
+    return toErrorResponse(error);
   }
 };

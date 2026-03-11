@@ -6,6 +6,7 @@ import { useRepo } from "@/contexts/repo-context";
 import { useConfig } from "@/contexts/config-context";
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { requireApiSuccess } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { Check, Loader } from "lucide-react";
 
@@ -46,11 +47,7 @@ export function RepoBranches() {
               name: newBranch
             }),
           });
-          if (!response.ok) throw new Error(`Failed to create branch: ${response.status} ${response.statusText}`);
-          
-          const data: any = await response.json();
-      
-          if (data.status !== "success") throw new Error(data.message);
+          await requireApiSuccess<any>(response, "Failed to create branch");
 
           if (branches) {
             setBranches([...branches, newBranch]);

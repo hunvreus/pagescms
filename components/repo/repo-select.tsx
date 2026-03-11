@@ -19,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Ban, ChevronsUpDown, LockKeyhole, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { hasGithubIdentity } from "@/lib/authz";
+import { requireApiSuccess } from "@/lib/api-client";
 
 export function RepoSelect({
   onAccountSelect
@@ -71,11 +72,10 @@ export function RepoSelect({
           `/api/repos/${selectedAccount.login}?${params.toString()}`,
           { signal: abortControllerRef.current.signal }
         );
-        if (!response.ok) throw new Error(`Failed to fetch repos: ${response.status} ${response.statusText}`);
-  
-        const data = await response.json();
-  
-        if (data.status !== "success") throw new Error(data.message);
+        const data = await requireApiSuccess<{ status: string; data: any[]; message?: string }>(
+          response,
+          "Failed to fetch repos",
+        );
   
         setResults(data.data);
       } catch (error: any) {

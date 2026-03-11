@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
 import { updateFileCache } from "@/lib/githubCache";
+import { toErrorResponse } from "@/lib/api-error";
 
 /**
  * Renames a file in a GitHub repository.
@@ -112,10 +113,7 @@ export async function POST(
     });
   } catch (error: any) {
     console.error(error);
-    return Response.json({
-      status: "error",
-      message: error.message,
-    });
+    return toErrorResponse(error);
   }
 };
 

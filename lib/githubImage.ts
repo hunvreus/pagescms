@@ -5,6 +5,7 @@
  */
 
 import { getFileName, getParentPath } from "@/lib/utils/file";
+import { requireApiSuccess } from "@/lib/api-client";
 
 const ttl = 30000; // TTL for the cache (30 seconds)
 const cache: { [key: string]: any } = {};
@@ -40,11 +41,13 @@ const getRawUrl = async (
   decode = false
 ) => {
   const decodedPath = decode ? decodeURIComponent(path) : path;
+  const normalizedInputPath = normalizeImagePathInput(decodedPath);
+  if (!normalizedInputPath) return null;
   
   if (isPrivate) {
-    const filename = getFileName(decodedPath);
+    const filename = getFileName(normalizedInputPath);
     if (!filename) return null;
-    const parentPath = getParentPath(decodedPath);
+    const parentPath = getParentPath(normalizedInputPath);
     
     const parentFullPath = `${owner}/${repo}/${encodeURIComponent(branch)}/${parentPath}`;
     
@@ -69,11 +72,7 @@ const getRawUrl = async (
       
       if (!requests[parentFullPath]) {
         requests[parentFullPath] = fetch(`/api/${owner}/${repo}/${encodeURIComponent(branch)}/media/${encodeURIComponent(name)}/${encodeURIComponent(parentPath)}?nocache=true`)
-          .then(response => {
-            if (!response.ok) throw new Error(`Failed to fetch media: ${response.status} ${response.statusText}`);
-            
-            return response.json();
-          })
+          .then((response) => requireApiSuccess<any>(response, "Failed to fetch media"))
           .catch(err => {
             delete requests[parentFullPath];
             throw err;
@@ -102,8 +101,30 @@ const getRawUrl = async (
 
     return cache[parentFullPath]?.files?.[filename];
   } else {
-    return `https://raw.githubusercontent.com/${owner}/${repo}/${encodeURIComponent(branch)}/${encodeURI(decodedPath)}`;
+    return `https://raw.githubusercontent.com/${owner}/${repo}/${encodeURIComponent(branch)}/${encodeURI(normalizedInputPath)}`;
   }
+};
+
+const normalizeImagePathInput = (input: string) => {
+  if (!input) return null;
+  const value = input.trim();
+
+  const markdownMatch = value.match(/^\[.*?\]\((.+)\)$/);
+  const markdownLooseMatch = value.match(/^\[.*?\]\((.+)$/);
+  let path = (
+    markdownMatch?.[1]
+    || markdownLooseMatch?.[1]?.replace(/\)$/, "")
+    || value
+  ).trim();
+
+  path = path.split("#")[0]?.split("?")[0] || path;
+
+  // Ignore absolute URLs other than raw.githubusercontent (we only translate repo-relative media paths).
+  if (/^https?:\/\//i.test(path) && !path.startsWith("https://raw.githubusercontent.com/")) {
+    return null;
+  }
+
+  return path;
 };
 
 // Convert all raw.githubusercontent.com URLs in a HTML string to relative paths.
