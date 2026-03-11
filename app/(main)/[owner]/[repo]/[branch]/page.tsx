@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useConfig } from "@/contexts/config-context";
 import { useUser } from "@/contexts/user-context";
 import { Message } from "@/components/message";
+import { hasGithubIdentity } from "@/lib/authz";
 
 export default function Page() {
   const { config } = useConfig();
@@ -17,12 +18,12 @@ export default function Page() {
       router.replace(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/${config.object.content[0].type}/${config.object.content[0].name}`);
     } else if (config?.object.media) {
       router.replace(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/media/${config.object.media[0].name}`);
-    } else if (user?.githubUsername && !config?.object?.settings?.hide) {
+    } else if (hasGithubIdentity(user) && !config?.object?.settings?.hide) {
       router.replace(`/${config?.owner}/${config?.repo}/${encodeURIComponent(config!.branch)}/settings`);
     } else {
       setError(true);
     }
-  }, [config, router, user?.githubUsername]);
+  }, [config, router, user]);
   
   return error
     ? <Message

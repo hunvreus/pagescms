@@ -3,8 +3,7 @@
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { getInstallationRepos, getInstallations } from "@/lib/githubApp";
-import { getUserToken } from "@/lib/token";
-import { getWritableRepoAccess } from "@/lib/utils/repoAccess";
+import { requireGithubRepoWriteAccess } from "@/lib/authz-server";
 import { InviteEmailTemplate } from "@/components/email/invite";
 import { Resend } from "resend";
 import { db } from "@/db";
@@ -25,11 +24,16 @@ const parseInviteEmails = (raw: FormDataEntryValue | null) => {
 };
 
 const assertRepoInInstallation = async (
-  token: string,
+  user: { id: string; githubUsername?: string | null },
   owner: string,
   repo: string
 ) => {
-  const repoAccess = await getWritableRepoAccess(token, owner, repo);
+  const { token, repoAccess } = await requireGithubRepoWriteAccess(
+    user,
+    owner,
+    repo,
+    "You must be signed in with GitHub to manage collaborators.",
+  );
   const installations = await getInstallations(token, [owner]);
   if (installations.length !== 1) throw new Error(`"${owner}" is not part of your GitHub App installations`);
   const installationRepos = await getInstallationRepos(token, installations[0].id);
@@ -141,9 +145,7 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
 		if (!emailsValidation.success || emailsValidation.data.length === 0) throw new Error("Invalid email list");
     const emails = emailsValidation.data;
 
-		const token = await getUserToken(user.id);
-  	if (!token) throw new Error("Token not found");
-    const { repoAccess, installation } = await assertRepoInInstallation(token, owner, repo);
+    const { repoAccess, installation } = await assertRepoInInstallation(user, owner, repo);
 
     const resend = new Resend(process.env.RESEND_API_KEY);
 		const baseUrl = await getBaseUrlFromHeaders();
@@ -229,13 +231,10 @@ const handleRemoveCollaborator = async (collaboratorId: number, owner: string, r
     const user = session?.user;
 		if (!user) throw new Error("You must be signed in with GitHub to invite collaborators.");
 
-		const token = await getUserToken(user.id);
-  	if (!token) throw new Error("Token not found");
-
 		const collaborator = await db.query.collaboratorTable.findFirst({ where: eq(collaboratorTable.id, collaboratorId) });
 		if (!collaborator) throw new Error("Collaborator not found");
 
-    const { repoAccess } = await assertRepoInInstallation(token, owner, repo);
+    const { repoAccess } = await assertRepoInInstallation(user, owner, repo);
 
 		const deletedCollaborator = await db.delete(collaboratorTable).where(
 			and(
@@ -260,11 +259,7 @@ const handleResendCollaboratorInvite = async (collaboratorId: number, owner: str
     });
     const user = session?.user;
     if (!user) throw new Error("You must be signed in with GitHub to resend collaborator invites.");
-
-    const token = await getUserToken(user.id);
-    if (!token) throw new Error("Token not found");
-
-    await assertRepoInInstallation(token, owner, repo);
+    await assertRepoInInstallation(user, owner, repo);
 
     const collaborator = await db.query.collaboratorTable.findFirst({ where: eq(collaboratorTable.id, collaboratorId) });
     if (!collaborator) throw new Error("Collaborator not found");

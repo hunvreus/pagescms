@@ -4,12 +4,13 @@ import { Collaborators } from "@/components/collaborators";
 import { useConfig } from "@/contexts/config-context";
 import { useUser } from "@/contexts/user-context";
 import { Message } from "@/components/message";
+import { hasGithubIdentity } from "@/lib/authz";
 
 export default function Page() {
   const { config } = useConfig();
   const { user } = useUser();
   if (!config) throw new Error(`Configuration not found.`);
-  if (!user?.githubUsername) {
+  if (!hasGithubIdentity(user)) {
     return (
       <Message
         title="Access restricted"

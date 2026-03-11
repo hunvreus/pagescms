@@ -5,10 +5,11 @@
 import { db } from "@/db";
 import { collaboratorTable } from "@/db/schema";
 import { sql } from "drizzle-orm";
-import { getUserToken } from "@/lib/token";
 import { getInstallations } from "@/lib/githubApp";
 import { User } from "@/types/user";
 import { getGithubAccount } from "@/lib/githubAccount";
+import { requireGithubUserToken } from "@/lib/authz-server";
+import { hasGithubIdentity } from "@/lib/authz";
 
 const getAccounts = async (user: User) => {
 	let accounts: Array<{
@@ -19,9 +20,8 @@ const getAccounts = async (user: User) => {
   }> = [];
   const githubAccount = await getGithubAccount(user.id);
 
-	if (githubAccount?.accessToken) {
-		const token = await getUserToken(user.id);
-		if (!token) throw new Error("Token not found");
+	if (githubAccount?.accessToken && hasGithubIdentity(user)) {
+		const token = await requireGithubUserToken(user);
 		
 		const installations = await getInstallations(token);
 

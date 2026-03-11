@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useConfig } from "@/contexts/config-context";
 import { useUser } from "@/contexts/user-context";
+import { hasGithubIdentity } from "@/lib/authz";
 import { cn } from "@/lib/utils";
 import { FileStack, FileText, FolderOpen, Settings, Users } from "lucide-react";
 
@@ -64,7 +65,9 @@ const RepoNav = ({
       label: item.label || item.name || "Media"
     })) || [];
 
-    const settingsItem = user?.githubUsername && !configObject.settings?.hide
+    const canManageRepo = hasGithubIdentity(user);
+
+    const settingsItem = canManageRepo && !configObject.settings?.hide
       ? {
         key: "settings",
         icon: <Settings className="h-5 w-5 mr-2" />,
@@ -73,7 +76,7 @@ const RepoNav = ({
       }
       : null;
 
-    const collaboratorsItem = configObject && Object.keys(configObject).length !== 0 && user?.githubUsername
+    const collaboratorsItem = configObject && Object.keys(configObject).length !== 0 && canManageRepo
       ? {
         key: "collaborators",
         icon: <Users className="h-5 w-5 mr-2" />,
@@ -88,7 +91,7 @@ const RepoNav = ({
       settingsItem,
       collaboratorsItem
     ].filter(Boolean);
-  }, [config, user?.githubUsername]);
+  }, [config, user]);
 
   if (!items.length) return null;
 

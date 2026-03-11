@@ -8,12 +8,14 @@ import { RepoTemplates } from "@/components/repo/repo-templates";
 import { RepoLatest } from "@/components/repo/repo-latest";
 import { Message } from "@/components/message";
 import { SubmitButton } from "@/components/submit-button";
+import { hasGithubIdentity } from "@/lib/authz";
 import { MainRootLayout } from "./main-root-layout";
 import { Github } from "lucide-react";
 
 export default function Page() {
 	const [defaultAccount, setDefaultAccount] = useState<any>(null);
     const { user } = useUser();
+	const isGithubUser = hasGithubIdentity(user);
 	
 	if (!user) throw new Error("User not found");
 	if (!user.accounts) throw new Error("Accounts not found");
@@ -31,14 +33,14 @@ export default function Page() {
 								<h2 className="text-lg leading-none font-semibold">Open a project</h2>
 								<RepoSelect onAccountSelect={(account) => setDefaultAccount(account)}/>
 							</div>
-							{user?.githubUsername &&
+							{isGithubUser &&
 								<div className="space-y-4">
 									<h2 className="text-lg leading-none font-semibold">Create from a template</h2>
 									<RepoTemplates defaultAccount={defaultAccount}/>
 								</div>
 							}
 						</div>
-					:	user.githubUsername
+					:	isGithubUser
 							? <Message
 									title="Install the GitHub app"
 									description="You must install the GitHub application for the accounts you want to use Pages CMS with."

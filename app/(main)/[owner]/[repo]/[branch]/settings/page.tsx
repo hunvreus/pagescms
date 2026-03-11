@@ -4,6 +4,7 @@ import { Entry } from "@/components/entry/entry";
 import { useConfig } from "@/contexts/config-context";
 import { useUser } from "@/contexts/user-context";
 import { Message } from "@/components/message";
+import { hasGithubIdentity } from "@/lib/authz";
 
 export default function Page() {
   const { setConfig } = useConfig();
@@ -13,7 +14,7 @@ export default function Page() {
     setConfig(data.config);
   };
 
-  if (!user?.githubUsername) {
+  if (!hasGithubIdentity(user)) {
     return (
       <Message
         title="Access restricted"

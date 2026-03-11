@@ -1,11 +1,10 @@
 import { type NextRequest } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { getUserToken } from "@/lib/token";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { collaboratorTable } from "@/db/schema";
-import { getWritableRepoAccess } from "@/lib/utils/repoAccess";
+import { requireGithubRepoWriteAccess } from "@/lib/authz-server";
 
 /**
  * Fetches collaborators for a repository.
@@ -26,16 +25,18 @@ export async function GET(
     });
     if (!session?.user) return new Response(null, { status: 401 });
 
-    const token = await getUserToken(session.user.id);
-    if (!token) throw new Error("Token not found");
-
     // TODO: support for branches and account collaborators
     if (!params.slug || params.slug.length !== 2) throw new Error("Invalid slug: owner and repo are mandatory");
 
     const owner = params.slug[0];
 		const repo = params.slug[1];
 
-    const repoAccess = await getWritableRepoAccess(token, owner, repo);
+    const { repoAccess } = await requireGithubRepoWriteAccess(
+      session.user,
+      owner,
+      repo,
+      "Only GitHub users can manage collaborators.",
+    );
     
     const collaborators = await db.query.collaboratorTable.findMany({
       where: and(

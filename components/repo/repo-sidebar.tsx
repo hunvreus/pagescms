@@ -7,6 +7,7 @@ import { useTheme } from "next-themes";
 import { useConfig } from "@/contexts/config-context";
 import { useRepo } from "@/contexts/repo-context";
 import { useUser } from "@/contexts/user-context";
+import { hasGithubIdentity } from "@/lib/authz";
 import { signOut } from "@/lib/auth-client";
 import { getInitialsFromName } from "@/lib/utils/avatar";
 import { RepoBranches } from "@/components/repo/repo-branches";
@@ -152,9 +153,10 @@ export function RepoSidebar() {
 
   const adminItems = useMemo<NavItem[]>(() => {
     if (!config) return [];
+    const canManageRepo = hasGithubIdentity(user);
 
     const items: NavItem[] = [];
-    if (user?.githubUsername) {
+    if (canManageRepo) {
       items.push({
         key: "admin-collaborators",
         label: "Collaborators",
@@ -163,7 +165,7 @@ export function RepoSidebar() {
       });
     }
 
-    if (user?.githubUsername && !(config.object as any)?.settings?.hide) {
+    if (canManageRepo && !(config.object as any)?.settings?.hide) {
       items.push({
         key: "admin-settings",
         label: "Settings",
@@ -173,7 +175,7 @@ export function RepoSidebar() {
     }
 
     return items;
-  }, [config, user?.githubUsername]);
+  }, [config, user]);
 
   const renderGroup = (label: string, items: NavItem[]) => {
     if (items.length === 0) return null;

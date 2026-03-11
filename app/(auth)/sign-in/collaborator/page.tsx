@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { collaboratorTable, verificationTable } from "@/db/schema";
 import { SignInFromInvite } from "@/components/sign-in-from-invite";
+import { hasGithubIdentity } from "@/lib/authz";
 
 export default async function Page({
   searchParams,
@@ -16,6 +17,7 @@ export default async function Page({
     headers: await headers(),
   });
   const user = session?.user;
+  const isGithubUser = hasGithubIdentity(user);
 
   const inviteToken = resolvedSearchParams.token?.trim();
 
@@ -79,7 +81,7 @@ export default async function Page({
 
     return (
       <SignInFromInvite
-        githubUsername={user?.githubUsername ?? undefined}
+        githubUsername={isGithubUser ? user?.githubUsername ?? undefined : undefined}
         signedInEmail={user?.email ?? undefined}
         redirectTo={redirectTo}
         email={inviteEmail}
@@ -97,7 +99,7 @@ export default async function Page({
     throw new Error("Invalid invite link.");
   }
 
-  if (user && !user.githubUsername) {
+  if (user && !isGithubUser) {
     redirect(resolvedSearchParams.redirect || "/");
   }
 
@@ -115,7 +117,7 @@ export default async function Page({
 
   return (
     <SignInFromInvite
-      githubUsername={user?.githubUsername ?? undefined}
+      githubUsername={isGithubUser ? user?.githubUsername ?? undefined : undefined}
       signedInEmail={user?.email ?? undefined}
       redirectTo={resolvedSearchParams.redirect}
       email={inviteEmail}

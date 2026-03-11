@@ -4,7 +4,7 @@ import { createOctokitInstance } from "@/lib/utils/octokit";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { getInstallations } from "@/lib/githubApp";
-import { getUserToken } from "@/lib/token";
+import { requireGithubUserToken } from "@/lib/authz-server";
 import templates from "@/lib/utils/templates";
 import { z } from "zod";
 
@@ -17,8 +17,7 @@ const handleCopyTemplate = async (prevState: any, formData: FormData) => {
     const user = session?.user;
 		if (!user) throw new Error("You must be signed in with GitHub to copy a template.");
 
-		const token = await getUserToken(user.id);
-  	if (!token) throw new Error("Token not found");
+		const token = await requireGithubUserToken(user, "You must be signed in with GitHub to copy a template.");
 
     const templateRepos = templates.map(template => template.repository) as string[];
     const templateRepoValidation = z.enum(templateRepos as [string, ...string[]]).safeParse(formData.get("template"));

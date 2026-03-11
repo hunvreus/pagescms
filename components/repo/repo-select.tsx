@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Ban, ChevronsUpDown, LockKeyhole, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { hasGithubIdentity } from "@/lib/authz";
 
 export function RepoSelect({
   onAccountSelect
@@ -25,6 +26,7 @@ export function RepoSelect({
   onAccountSelect?: (account: any) => void
 }) {
   const { user } = useUser();
+  const isGithubUser = hasGithubIdentity(user);
 
   const accounts = useMemo(() => {
     if (!user) return [];
@@ -131,7 +133,7 @@ export function RepoSelect({
                 {account.login}
               </DropdownMenuItem>
             ))}
-            {user?.githubUsername &&
+            {isGithubUser &&
               <>
                 <DropdownMenuSeparator/>
                 <DropdownMenuItem onClick={() => handleAppInstall()}>Add a GitHub account</DropdownMenuItem>

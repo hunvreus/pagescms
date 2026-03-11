@@ -8,6 +8,7 @@ import { getConfig, updateConfig } from "@/lib/utils/config";
 import { getFileExtension, getFileName, normalizePath, serializedTypes, getParentPath } from "@/lib/utils/file";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
+import { assertGithubIdentity } from "@/lib/authz";
 import { getToken } from "@/lib/token";
 import { updateFileCache } from "@/lib/githubCache";
 import mergeWith from "lodash.mergewith";
@@ -170,7 +171,7 @@ export async function POST(
         }
         break;
       case "settings":
-        if (!user.githubUsername) throw new Error("Only GitHub users can manage settings.");
+        assertGithubIdentity(user, "Only GitHub users can manage settings.");
         if (normalizedPath !== ".pages.yml") throw new Error(`Invalid path "${params.path}" for settings.`);
 
         contentBase64 = Buffer.from(data.content.body ?? "").toString("base64");

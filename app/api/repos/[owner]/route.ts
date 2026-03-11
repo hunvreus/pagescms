@@ -3,11 +3,12 @@ import { headers } from "next/headers";
 import { createOctokitInstance } from "@/lib/utils/octokit";
 import { auth } from "@/lib/auth";
 import { getInstallations, getInstallationRepos } from "@/lib/githubApp";
-import { getUserToken } from "@/lib/token";
 import { db } from "@/db";
 import { and, sql } from "drizzle-orm";
 import { collaboratorTable } from "@/db/schema";
 import { getGithubAccount } from "@/lib/githubAccount";
+import { hasGithubIdentity } from "@/lib/authz";
+import { requireGithubUserToken } from "@/lib/authz-server";
 
 export const dynamic = "force-dynamic";
 
@@ -38,9 +39,8 @@ export async function GET(
     const type = searchParams.get("type");
 
     const githubAccount = await getGithubAccount(user.id);
-    if (githubAccount?.accessToken) {
-      const token = await getUserToken(user.id);
-      if (!token) throw new Error("Token not found");
+    if (githubAccount?.accessToken && hasGithubIdentity(user)) {
+      const token = await requireGithubUserToken(user);
 
       const repositorySelection = searchParams.get("repository_selection");
 

@@ -7,6 +7,7 @@ import { getConfig } from "@/lib/utils/config";
 import { getFileExtension, normalizePath } from "@/lib/utils/file";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
+import { assertGithubIdentity } from "@/lib/authz";
 import { getToken } from "@/lib/token";
 
 /**
@@ -38,8 +39,8 @@ export async function GET(
     const name = searchParams.get("name");
     
     const normalizedPath = normalizePath(params.path);
-    if (normalizedPath === ".pages.yml" && !user.githubUsername) {
-      throw new Error("Only GitHub users can access settings.");
+    if (normalizedPath === ".pages.yml") {
+      assertGithubIdentity(user, "Only GitHub users can access settings.");
     }
 
     if (!name && normalizedPath !== ".pages.yml") throw new Error("If no content entry name is provided, the path must be \".pages.yml\".");
