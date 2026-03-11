@@ -100,15 +100,30 @@ const parseMarkdownTarget = (
   const firstWhitespace = trimmed.search(/\s/);
   if (firstWhitespace < 0) return { url: trimmed, rest: "", wrapped: false };
 
+  // Markdown allows optional image/link titles after the destination, but
+  // only when the tail starts with a title delimiter. Otherwise whitespace
+  // belongs to the URL (e.g. filenames with spaces).
+  const restCandidate = trimmed.slice(firstWhitespace);
+  const restTrimmed = restCandidate.trimStart();
+  const isTitleTail =
+    restTrimmed.startsWith("\"") ||
+    restTrimmed.startsWith("'") ||
+    restTrimmed.startsWith("(");
+  if (!isTitleTail) {
+    return { url: trimmed, rest: "", wrapped: false };
+  }
+
   return {
     url: trimmed.slice(0, firstWhitespace),
-    rest: trimmed.slice(firstWhitespace),
+    rest: restCandidate,
     wrapped: false,
   };
 };
 
-const formatMarkdownTarget = (url: string, rest: string, wrapped: boolean) =>
-  wrapped ? `<${url}>${rest}` : `${url}${rest}`;
+const formatMarkdownTarget = (url: string, rest: string, wrapped: boolean) => {
+  const mustWrap = wrapped || (/\s/.test(url) && rest.trim().length === 0);
+  return mustWrap ? `<${url}>${rest}` : `${url}${rest}`;
+};
 
 const rewriteMarkdownImagesSync = (
   markdown: string,
@@ -271,6 +286,11 @@ const EditComponent = forwardRef(
         if (!config || !mediaConfig) return url;
         if (!url || isExternalUrl(url) || isDataUrl(url)) return url;
         const decodedUrl = normalizeMediaPath(decodePathSafely(url));
+        const canonicalOutputPath = swapPrefix(
+          decodedUrl,
+          mediaConfig.input,
+          mediaConfig.output,
+        );
 
         const inputPath = swapPrefix(
           decodedUrl,
@@ -293,13 +313,14 @@ const EditComponent = forwardRef(
             config.repo,
             config.branch,
             mediaConfig.name,
-            inputPath,
+            normalizedInputPath,
             isPrivate,
             true,
           );
-          return rawUrl || inputPath;
+          // Keep output-space path canonical when raw URL resolution misses.
+          return rawUrl || canonicalOutputPath;
         } catch {
-          return url;
+          return canonicalOutputPath;
         }
       },
       [config, isPrivate, mediaConfig],
