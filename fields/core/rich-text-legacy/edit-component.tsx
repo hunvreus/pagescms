@@ -14,7 +14,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import Underline from "@tiptap/extension-underline";
 import { useConfig } from "@/contexts/config-context";
 import { useRepo } from "@/contexts/repo-context";
-import { getRawUrl, relativeToRawUrls } from "@/lib/githubImage";
+import { getRawUrl, relativeToRawUrls } from "@/lib/github-image";
 import { MediaDialog, MediaDialogHandle } from "@/components/media/media-dialog";
 import "./edit-component.css";
 import Commands from './slash-command/commands';

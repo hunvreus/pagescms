@@ -2,11 +2,11 @@ import { type NextRequest } from "next/server";
 import { headers } from "next/headers";
 import { createOctokitInstance } from "@/lib/utils/octokit";
 import { auth } from "@/lib/auth";
-import { getInstallations, getInstallationRepos } from "@/lib/githubApp";
+import { getInstallations, getInstallationRepos } from "@/lib/github-app";
 import { db } from "@/db";
 import { and, sql } from "drizzle-orm";
 import { collaboratorTable } from "@/db/schema";
-import { getGithubAccount } from "@/lib/githubAccount";
+import { getGithubAccount } from "@/lib/github-account";
 import { hasGithubIdentity } from "@/lib/authz";
 import { toErrorResponse } from "@/lib/api-error";
 

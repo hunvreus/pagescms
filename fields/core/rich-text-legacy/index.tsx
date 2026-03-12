@@ -1,5 +1,5 @@
 import { Field } from "@/types/field";
-import { htmlSwapPrefix, rawToRelativeUrls } from "@/lib/githubImage";
+import { htmlSwapPrefix, rawToRelativeUrls } from "@/lib/github-image";
 import { EditComponent } from "./edit-component";
 import { ViewComponent } from "./view-component";
 import { marked } from "marked";

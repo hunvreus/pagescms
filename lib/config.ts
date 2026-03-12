@@ -7,7 +7,7 @@
 
 import YAML from "yaml";
 import { getFileExtension, extensionCategories } from "@/lib/utils/file";
-import { ConfigSchema } from "@/lib/configSchema";
+import { ConfigSchema } from "@/lib/config-schema";
 import { z } from "zod";
 import mergeWith from "lodash.mergewith";
 

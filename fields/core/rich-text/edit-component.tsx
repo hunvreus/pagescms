@@ -28,7 +28,7 @@ import {
   rawToRelativeUrls,
   relativeToRawUrls,
   swapPrefix,
-} from "@/lib/githubImage";
+} from "@/lib/github-image";
 import {
   decodePathSafely,
   extensionCategories,

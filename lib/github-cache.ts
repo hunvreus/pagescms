@@ -7,13 +7,146 @@ import { eq, and, inArray, gt, count, min } from "drizzle-orm";
 import { cacheFileTable, cachePermissionTable } from "@/db/schema";
 import { createOctokitInstance } from "@/lib/utils/octokit";
 import { getParentPath } from "@/lib/utils/file";
-import { getCacheFileMeta, upsertCacheFileMeta } from "@/lib/cacheFileMeta";
-import { getBranchHeadSha } from "@/lib/github-branch";
+import { getCacheFileMeta, upsertCacheFileMeta } from "@/lib/cache-file-meta";
+import { Repo } from "@/types/repo";
 import path from "path";
 
 type FileChange = {
   path: string;
   sha: string;
+};
+
+type BranchHeadCacheEntry = {
+  sha: string;
+  expiresAt: number;
+};
+
+type RepoSnapshotCacheEntry = {
+  value: Repo;
+  expiresAt: number;
+};
+
+const BRANCH_HEAD_CACHE_TTL_MS = parseInt(process.env.BRANCH_HEAD_CACHE_TTL_MS || "15000", 10);
+const REPO_SNAPSHOT_CACHE_TTL_MS = parseInt(process.env.REPO_SNAPSHOT_CACHE_TTL_MS || "15000", 10);
+
+const branchHeadCache = new Map<string, BranchHeadCacheEntry>();
+const branchHeadInFlight = new Map<string, Promise<string>>();
+const repoSnapshotCache = new Map<string, RepoSnapshotCacheEntry>();
+const repoSnapshotInFlight = new Map<string, Promise<Repo>>();
+
+const getBranchHeadCacheKey = (owner: string, repo: string, branch: string) =>
+  `${owner.toLowerCase()}::${repo.toLowerCase()}::${branch}`;
+
+const getRepoSnapshotCacheKey = (owner: string, repo: string) =>
+  `${owner.toLowerCase()}::${repo.toLowerCase()}`;
+
+const setBranchHeadSha = (owner: string, repo: string, branch: string, sha: string) => {
+  const key = getBranchHeadCacheKey(owner, repo, branch);
+  branchHeadCache.set(key, {
+    sha,
+    expiresAt: Date.now() + BRANCH_HEAD_CACHE_TTL_MS,
+  });
+};
+
+const getBranchHeadSha = async (
+  owner: string,
+  repo: string,
+  branch: string,
+  token: string,
+  options?: { force?: boolean },
+): Promise<string> => {
+  const key = getBranchHeadCacheKey(owner, repo, branch);
+
+  if (!options?.force) {
+    const cached = branchHeadCache.get(key);
+    if (cached && cached.expiresAt > Date.now()) return cached.sha;
+  }
+
+  const inFlight = branchHeadInFlight.get(key);
+  if (inFlight) return inFlight;
+
+  const job = (async () => {
+    const octokit = createOctokitInstance(token);
+    const response = await octokit.rest.repos.getBranch({
+      owner,
+      repo,
+      branch,
+    });
+    const sha = response.data.commit.sha;
+    setBranchHeadSha(owner, repo, branch, sha);
+    return sha;
+  })();
+
+  branchHeadInFlight.set(key, job);
+  try {
+    return await job;
+  } finally {
+    branchHeadInFlight.delete(key);
+  }
+};
+
+const getRepoSnapshot = async (
+  owner: string,
+  repo: string,
+  token: string,
+  options?: { force?: boolean },
+): Promise<Repo> => {
+  const key = getRepoSnapshotCacheKey(owner, repo);
+
+  if (!options?.force) {
+    const cached = repoSnapshotCache.get(key);
+    if (cached && cached.expiresAt > Date.now()) return cached.value;
+  }
+
+  const inFlight = repoSnapshotInFlight.get(key);
+  if (inFlight) return inFlight;
+
+  const job = (async () => {
+    const octokit = createOctokitInstance(token);
+    const [repoResponse, firstBranchesResponse] = await Promise.all([
+      octokit.rest.repos.get({ owner, repo }),
+      octokit.rest.repos.listBranches({ owner, repo, page: 1, per_page: 100 }),
+    ]);
+
+    const branches = [...firstBranchesResponse.data];
+    let page = 2;
+    let lastPageCount = firstBranchesResponse.data.length;
+    while (lastPageCount === 100) {
+      const branchesResponse = await octokit.rest.repos.listBranches({
+        owner,
+        repo,
+        page,
+        per_page: 100,
+      });
+      lastPageCount = branchesResponse.data.length;
+      if (lastPageCount === 0) break;
+      branches.push(...branchesResponse.data);
+      page++;
+    }
+
+    const value: Repo = {
+      id: repoResponse.data.id,
+      owner: repoResponse.data.owner.login,
+      ownerId: repoResponse.data.owner.id,
+      repo: repoResponse.data.name,
+      defaultBranch: repoResponse.data.default_branch,
+      branches: branches.map((branchItem) => branchItem.name),
+      isPrivate: repoResponse.data.private,
+    };
+
+    repoSnapshotCache.set(key, {
+      value,
+      expiresAt: Date.now() + REPO_SNAPSHOT_CACHE_TTL_MS,
+    });
+    return value;
+  })();
+
+  repoSnapshotInFlight.set(key, job);
+  try {
+    return await job;
+  } finally {
+    repoSnapshotInFlight.delete(key);
+  }
 };
 
 type FileOperation = {
@@ -1030,6 +1163,9 @@ const clearPermissionCache = async (
 };
 
 export {
+  getBranchHeadSha,
+  setBranchHeadSha,
+  getRepoSnapshot,
   updateMultipleFilesCache,
   updateFileCache,
   updateFileCacheRepository,

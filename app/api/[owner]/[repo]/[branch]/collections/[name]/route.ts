@@ -9,8 +9,8 @@ import { getConfig } from "@/lib/utils/config";
 import { normalizePath } from "@/lib/utils/file";
 import { auth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
-import { getCollectionCache, checkRepoAccess } from "@/lib/githubCache";
-import { getGithubId } from "@/lib/githubAccount";
+import { getCollectionCache, checkRepoAccess } from "@/lib/github-cache";
+import { getGithubId } from "@/lib/github-account";
 import { toErrorResponse } from "@/lib/api-error";
 
 /**

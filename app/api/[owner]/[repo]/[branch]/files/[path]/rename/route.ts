@@ -5,9 +5,9 @@ import { getFileExtension, normalizePath } from "@/lib/utils/file";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
-import { updateFileCache } from "@/lib/githubCache";
+import { updateFileCache } from "@/lib/github-cache";
 import { toErrorResponse } from "@/lib/api-error";
-import { getBranchHeadSha, setBranchHeadSha } from "@/lib/github-branch";
+import { getBranchHeadSha, setBranchHeadSha } from "@/lib/github-cache";
 
 /**
  * Renames a file in a GitHub repository.

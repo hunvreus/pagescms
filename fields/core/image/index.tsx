@@ -2,7 +2,7 @@ import { z, ZodIssueCode } from "zod";
 import { ViewComponent } from "./view-component";
 import { EditComponent } from "./edit-component";
 import { Field } from "@/types/field";
-import { swapPrefix } from "@/lib/githubImage";
+import { swapPrefix } from "@/lib/github-image";
 import { getSchemaByName } from "@/lib/schema";
 import { getFileExtension, extensionCategories, normalizeMediaPath } from "@/lib/utils/file";
 

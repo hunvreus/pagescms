@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { getInstallationRepos, getInstallations } from "@/lib/githubApp";
+import { getInstallationRepos, getInstallations } from "@/lib/github-app";
 import { requireGithubRepoWriteAccess } from "@/lib/authz-server";
 import { InviteEmailTemplate } from "@/components/email/invite";
 import { Resend } from "resend";

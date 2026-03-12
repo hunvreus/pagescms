@@ -10,7 +10,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { assertGithubIdentity } from "@/lib/authz";
 import { getToken } from "@/lib/token";
-import { updateFileCache } from "@/lib/githubCache";
+import { updateFileCache } from "@/lib/github-cache";
 import { toErrorResponse } from "@/lib/api-error";
 import mergeWith from "lodash.mergewith";
 

@@ -8,12 +8,12 @@ import {
   clearFileCache,
   clearPermissionCache,
   ensureFileCacheFreshness,
-} from "@/lib/githubCache";
-import { getCacheFileMeta, upsertCacheFileMeta } from "@/lib/cacheFileMeta";
+} from "@/lib/github-cache";
+import { getCacheFileMeta, upsertCacheFileMeta } from "@/lib/cache-file-meta";
 import { getConfigWithSync } from "@/lib/utils/config";
 import { toErrorResponse } from "@/lib/api-error";
 import { isCacheEnabled } from "@/lib/config-settings";
-import { getBranchHeadSha } from "@/lib/github-branch";
+import { getBranchHeadSha } from "@/lib/github-cache";
 
 export async function GET(
   _request: Request,

@@ -3,7 +3,7 @@ import "server-only";
 import type { User } from "@/types/user";
 import { assertGithubIdentity } from "@/lib/authz";
 import { getUserToken } from "@/lib/token";
-import { getWritableRepoAccess } from "@/lib/utils/repoAccess";
+import { getWritableRepoAccess } from "@/lib/utils/repo-access";
 
 const requireGithubUserToken = async (
   user: Pick<User, "id" | "githubUsername">,

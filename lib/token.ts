@@ -13,7 +13,7 @@ import {
 } from "@/db/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { User } from "@/types/user";
-import { getGithubAccount } from "@/lib/githubAccount";
+import { getGithubAccount } from "@/lib/github-account";
 
 const createHttpError = (message: string, status: number) => {
   const error = new Error(message) as Error & { status: number };

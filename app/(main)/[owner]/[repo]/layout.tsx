@@ -1,10 +1,9 @@
-import { createOctokitInstance } from "@/lib/utils/octokit";
 import { redirect } from "next/navigation";
 import { getToken } from "@/lib/token";
 import { RepoProvider } from "@/contexts/repo-context";
 import { Message } from "@/components/message";
-import { Repo } from "@/types/repo";
 import { getServerSession } from "@/lib/session-server";
+import { getRepoSnapshot } from "@/lib/github-cache";
 
 export default async function Layout({
   children,
@@ -22,29 +21,8 @@ export default async function Layout({
     const token = await getToken(user, owner, repo);
     if (!token) throw new Error("Token not found");
 
-    const octokit = createOctokitInstance(token);
-    const [repoResponse, firstBranchesResponse] = await Promise.all([
-      octokit.rest.repos.get({ owner, repo }),
-      octokit.rest.repos.listBranches({ owner, repo, page: 1, per_page: 100 }),
-    ]);
-
-    const branches = [...firstBranchesResponse.data];
-    let page = 2;
-    let lastPageCount = firstBranchesResponse.data.length;
-    while (lastPageCount === 100) {
-      const branchesResponse = await octokit.rest.repos.listBranches({
-        owner,
-        repo,
-        page,
-        per_page: 100,
-      });
-      lastPageCount = branchesResponse.data.length;
-      if (lastPageCount === 0) break;
-      branches.push(...branchesResponse.data);
-      page++;
-    }
-
-    const branchNames = branches.map(branch => branch.name);
+    const repoInfo = await getRepoSnapshot(owner, repo, token);
+    const branchNames = repoInfo.branches ?? [];
     
     if (branchNames.length === 0) {
       return(
@@ -57,16 +35,6 @@ export default async function Layout({
         />
       );
     }
-
-    const repoInfo: Repo = {
-      id: repoResponse.data.id,
-      owner: repoResponse.data.owner.login,
-      ownerId: repoResponse.data.owner.id,
-      repo: repoResponse.data.name,
-      defaultBranch: repoResponse.data.default_branch,
-      branches: branchNames,
-      isPrivate: repoResponse.data.private
-    };
 
     return (
       <RepoProvider repo={repoInfo}>

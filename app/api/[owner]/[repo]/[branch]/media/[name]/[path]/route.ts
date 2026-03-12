@@ -4,8 +4,8 @@ import { getFileExtension, normalizePath } from "@/lib/utils/file";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
-import { getMediaCache, checkRepoAccess } from "@/lib/githubCache";
-import { getGithubId } from "@/lib/githubAccount";
+import { getMediaCache, checkRepoAccess } from "@/lib/github-cache";
+import { getGithubId } from "@/lib/github-account";
 import { toErrorResponse } from "@/lib/api-error";
 
 // Add docs

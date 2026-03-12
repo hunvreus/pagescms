@@ -5,9 +5,9 @@
 import { db } from "@/db";
 import { collaboratorTable } from "@/db/schema";
 import { sql } from "drizzle-orm";
-import { getInstallations } from "@/lib/githubApp";
+import { getInstallations } from "@/lib/github-app";
 import { User } from "@/types/user";
-import { getGithubAccount } from "@/lib/githubAccount";
+import { getGithubAccount } from "@/lib/github-account";
 import { requireGithubUserToken } from "@/lib/authz-server";
 import { hasGithubIdentity } from "@/lib/authz";
 

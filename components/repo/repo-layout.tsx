@@ -2,11 +2,18 @@
 
 import { useEffect } from "react";
 import { RepoSidebar } from "@/components/repo/repo-sidebar";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { useConfig } from "@/contexts/config-context";
 import { useRepo } from "@/contexts/repo-context";
 import { trackVisit } from "@/lib/tracker";
-import { RepoHeaderProvider, useRepoHeaderState } from "@/components/repo/repo-header-context";
+import {
+  RepoHeaderProvider,
+  useRepoHeaderState,
+} from "@/components/repo/repo-header-context";
 
 function RepoHeader() {
   const { header } = useRepoHeaderState();
@@ -19,18 +26,14 @@ function RepoHeader() {
   if (!hasHeaderContent) return null;
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center border-b bg-background px-4 md:px-6">
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center border-b bg-background px-4 md:px-6">
       <SidebarTrigger className="mr-2 md:hidden" />
       <div className="min-w-0 flex-1">{header}</div>
     </header>
   );
 }
 
-export function RepoLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export function RepoLayout({ children }: { children: React.ReactNode }) {
   const { config } = useConfig();
   const { owner, repo } = useRepo();
 

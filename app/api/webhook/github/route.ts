@@ -10,11 +10,11 @@ import {
   clearFileCache,
   updateFileCacheRepository,
   updateFileCacheOwner
-} from "@/lib/githubCache";
+} from "@/lib/github-cache";
 import { getInstallationToken } from "@/lib/token";
 import { configVersion, normalizeConfig, parseConfig } from "@/lib/config";
 import { saveConfig, updateConfig } from "@/lib/utils/config";
-import { deleteCacheFileMeta, upsertCacheFileMeta } from "@/lib/cacheFileMeta";
+import { deleteCacheFileMeta, upsertCacheFileMeta } from "@/lib/cache-file-meta";
 
 /**
  * Handles GitHub webhooks:

@@ -3,7 +3,7 @@
 import { createOctokitInstance } from "@/lib/utils/octokit";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { getInstallations } from "@/lib/githubApp";
+import { getInstallations } from "@/lib/github-app";
 import { requireGithubUserToken } from "@/lib/authz-server";
 import templates from "@/lib/utils/templates";
 import { z } from "zod";

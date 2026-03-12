@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getRawUrl } from "@/lib/githubImage";
+import { getRawUrl } from "@/lib/github-image";
 import { useRepo } from "@/contexts/repo-context";
 import { useConfig } from "@/contexts/config-context";
 import { cn } from "@/lib/utils";
