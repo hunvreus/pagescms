@@ -5,4 +5,5 @@ export type Config = {
   sha: string;
   version: string;
   object: Record<string, any>;
+  lastCheckedAt?: Date;
 };

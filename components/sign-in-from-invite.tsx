@@ -93,10 +93,16 @@ export function SignInFromInvite({
                 Continue with invite?
               </h1>
               <p className="text-sm text-muted-foreground">
-                You are currently signed in as <strong>{signedInEmail}</strong>.
-                {isEmailMismatch
-                  ? ` This invite is for ${email}.`
-                  : ` This invite matches your current account (${email}).`}
+                You are currently signed in as {signedInEmail}.
+                {isEmailMismatch ? (
+                  <>
+                    {" "}This invite is for {email}.
+                  </>
+                ) : (
+                  <>
+                    {" "}This invite matches your current account ({email}).
+                  </>
+                )}
               </p>
               <footer className="flex flex-col gap-y-2">
                 {isEmailMismatch ? (
@@ -113,7 +119,7 @@ export function SignInFromInvite({
                     }}
                     disabled={isLoading}
                   >
-                    Sign out and continue
+                    {email ? `Continue as ${email}` : "Continue"}
                     {isLoading && <Loader className="ml-2 h-4 w-4 animate-spin" />}
                   </Button>
                 ) : (

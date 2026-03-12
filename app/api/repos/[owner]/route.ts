@@ -8,7 +8,6 @@ import { and, sql } from "drizzle-orm";
 import { collaboratorTable } from "@/db/schema";
 import { getGithubAccount } from "@/lib/githubAccount";
 import { hasGithubIdentity } from "@/lib/authz";
-import { requireGithubUserToken } from "@/lib/authz-server";
 import { toErrorResponse } from "@/lib/api-error";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +40,7 @@ export async function GET(
 
     const githubAccount = await getGithubAccount(user.id);
     if (githubAccount?.accessToken && hasGithubIdentity(user)) {
-      const token = await requireGithubUserToken(user);
+      const token = githubAccount.accessToken;
 
       const repositorySelection = searchParams.get("repository_selection");
 

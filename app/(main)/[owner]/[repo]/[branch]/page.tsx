@@ -26,12 +26,20 @@ export default function Page() {
   }, [config, router, user]);
   
   return error
-    ? <Message
-        title="Nothing to see here."
-        description={<>This branch and/or repository has no configuration and settings are disabled. Edit on GitHub if you think this is a mistake.</>}
-        className="absolute inset-0"
-        cta="Edit configuration on GitHub"
-        href={`https://github.com/${config?.owner}/${config?.repo}/edit/${encodeURIComponent(config!.branch)}/.pages.yml`}
-      />
+    ? (
+      hasGithubIdentity(user)
+        ? <Message
+            title="Nothing to see here."
+            description={<>This branch and/or repository has no configuration and settings are disabled. Edit on GitHub if you think this is a mistake.</>}
+            className="absolute inset-0"
+            cta="Edit configuration on GitHub"
+            href={`https://github.com/${config?.owner}/${config?.repo}/edit/${encodeURIComponent(config!.branch)}/.pages.yml`}
+          />
+        : <Message
+            title="Repository not configured yet"
+            description="This repository does not have a .pages.yml file yet. Ask a GitHub admin to initialize repository settings first."
+            className="absolute inset-0"
+          />
+    )
     : null;
 }

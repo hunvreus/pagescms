@@ -10,6 +10,13 @@ import { RepoHeaderProvider, useRepoHeaderState } from "@/components/repo/repo-h
 
 function RepoHeader() {
   const { header } = useRepoHeaderState();
+  const hasHeaderContent =
+    header !== null &&
+    header !== undefined &&
+    header !== false &&
+    header !== "";
+
+  if (!hasHeaderContent) return null;
 
   return (
     <header className="flex h-14 shrink-0 items-center border-b px-4 md:px-6">

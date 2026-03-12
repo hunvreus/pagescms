@@ -97,7 +97,8 @@ const configTable = pgTable("config", {
   branch: text("branch").notNull(),
   sha: text("sha").notNull(),
   version: text("version").notNull(),
-  object: text("object").notNull()
+  object: text("object").notNull(),
+  lastCheckedAt: timestamp("last_checked_at").notNull().defaultNow()
 }, table => ({
   idx_config_owner_repo_branch: uniqueIndex("idx_config_owner_repo_branch").on(table.owner, table.repo, table.branch)
 }));

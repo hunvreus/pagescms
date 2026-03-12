@@ -1,9 +1,10 @@
 import { headers } from "next/headers";
 import crypto from "crypto";
 import { db } from "@/db";
-import { collaboratorTable, githubInstallationTokenTable } from "@/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { collaboratorTable, configTable, githubInstallationTokenTable } from "@/db/schema";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { normalizePath } from "@/lib/utils/file";
+import { createOctokitInstance } from "@/lib/utils/octokit";
 import { 
   updateMultipleFilesCache, 
   clearFileCache,
@@ -11,6 +12,8 @@ import {
   updateFileCacheOwner
 } from "@/lib/githubCache";
 import { getInstallationToken } from "@/lib/token";
+import { configVersion, normalizeConfig, parseConfig } from "@/lib/config";
+import { saveConfig, updateConfig } from "@/lib/utils/config";
 
 /**
  * Handles GitHub webhooks:
@@ -201,6 +204,15 @@ export async function POST(request: Request) {
             }))
           );
 
+          const changedPaths = [
+            ...removedFiles.map((file: any) => file.path),
+            ...modifiedFiles.map((file: any) => file.path),
+            ...addedFiles.map((file: any) => file.path),
+          ];
+          const configFilePath = ".pages.yml";
+          const configChanged = changedPaths.includes(configFilePath);
+          const configRemoved = removedFiles.some((file: any) => file.path === configFilePath);
+
           const installationToken = await getInstallationToken(pushOwner, pushRepo);
 
           const commit = {
@@ -218,6 +230,64 @@ export async function POST(request: Request) {
             installationToken,
             commit
           );
+
+          if (configChanged) {
+            if (configRemoved) {
+              await db.delete(configTable).where(
+                and(
+                  sql`lower(${configTable.owner}) = lower(${pushOwner})`,
+                  sql`lower(${configTable.repo}) = lower(${pushRepo})`,
+                  eq(configTable.branch, pushBranch),
+                ),
+              );
+            } else {
+              const octokit = createOctokitInstance(installationToken);
+              const configFileResponse = await octokit.rest.repos.getContent({
+                owner: pushOwner,
+                repo: pushRepo,
+                path: configFilePath,
+                ref: pushBranch,
+                headers: { Accept: "application/vnd.github.v3+json" },
+              });
+
+              if (Array.isArray(configFileResponse.data)) {
+                throw new Error("Expected .pages.yml to be a file but found a directory.");
+              }
+              if (configFileResponse.data.type !== "file") {
+                throw new Error(`Invalid .pages.yml response type: ${configFileResponse.data.type}`);
+              }
+
+              const configFile = Buffer.from(configFileResponse.data.content, "base64").toString();
+              const parsed = parseConfig(configFile);
+              if (parsed.errors.length > 0) {
+                throw new Error(`Failed to parse .pages.yml: ${parsed.errors[0]?.message || "Unknown parse error"}`);
+              }
+              const configObject = normalizeConfig(parsed.document.toJSON());
+
+              const existingConfig = await db.query.configTable.findFirst({
+                where: and(
+                  sql`lower(${configTable.owner}) = lower(${pushOwner})`,
+                  sql`lower(${configTable.repo}) = lower(${pushRepo})`,
+                  eq(configTable.branch, pushBranch),
+                ),
+              });
+
+              const nextConfig = {
+                owner: pushOwner.toLowerCase(),
+                repo: pushRepo.toLowerCase(),
+                branch: pushBranch,
+                sha: configFileResponse.data.sha,
+                version: configVersion ?? "0.0",
+                object: configObject,
+              };
+
+              if (existingConfig) {
+                await updateConfig(nextConfig);
+              } else {
+                await saveConfig(nextConfig);
+              }
+            }
+          }
           break;
       }
     } catch (error: any) {

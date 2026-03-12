@@ -11,6 +11,12 @@ import { assertGithubIdentity } from "@/lib/authz";
 import { getToken } from "@/lib/token";
 import { toErrorResponse } from "@/lib/api-error";
 
+const createHttpError = (message: string, status: number) => {
+  const error = new Error(message) as Error & { status: number };
+  error.status = status;
+  return error;
+};
+
 /**
  * Fetches and parses individual file contents from GitHub repositories
  * (usually for editing).
@@ -64,12 +70,20 @@ export async function GET(
     }
     
     const octokit = createOctokitInstance(token);
-    const response = await octokit.rest.repos.getContent({
-      owner: params.owner,
-      repo: params.repo,
-      path: normalizedPath,
-      ref: params.branch
-    });
+    let response;
+    try {
+      response = await octokit.rest.repos.getContent({
+        owner: params.owner,
+        repo: params.repo,
+        path: normalizedPath,
+        ref: params.branch
+      });
+    } catch (error: any) {
+      if (error?.status === 404) {
+        throw createHttpError("Not found", 404);
+      }
+      throw error;
+    }
     
     if (Array.isArray(response.data)) {
       throw new Error("Expected a file but found a directory");

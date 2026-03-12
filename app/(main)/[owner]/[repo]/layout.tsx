@@ -26,17 +26,23 @@ export default async function Layout({
     if (!token) throw new Error("Token not found");
 
     const octokit = createOctokitInstance(token);
-    const repoResponse = await octokit.rest.repos.get({ owner: owner, repo: repo });
-    
-    let branches = [];
-    let hasMore = true;
-    let page = 1;
+    const [repoResponse, firstBranchesResponse] = await Promise.all([
+      octokit.rest.repos.get({ owner, repo }),
+      octokit.rest.repos.listBranches({ owner, repo, page: 1, per_page: 100 }),
+    ]);
 
-    while (hasMore) {
-      const branchesResponse = await octokit.rest.repos.listBranches({ owner, repo, page: page, per_page: 100 });
+    const branches = [...firstBranchesResponse.data];
+    let page = 2;
+    while (firstBranchesResponse.data.length === 100) {
+      const branchesResponse = await octokit.rest.repos.listBranches({
+        owner,
+        repo,
+        page,
+        per_page: 100,
+      });
       if (branchesResponse.data.length === 0) break;
       branches.push(...branchesResponse.data);
-      hasMore = (branchesResponse.data.length === 100);
+      if (branchesResponse.data.length < 100) break;
       page++;
     }
 
