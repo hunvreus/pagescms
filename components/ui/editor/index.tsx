@@ -1,6 +1,6 @@
 import { type HTMLAttributes, useEffect, useRef, useState } from "react";
 import type { Editor as TiptapEditor } from "@tiptap/core";
-import { EditorContent, posToDOMRect, useEditor, useEditorState } from "@tiptap/react";
+import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -859,6 +859,7 @@ export function Editor({
       <Icon className="size-4" />
     </button>
   );
+
   return (
     <div {...props} className={cn("", className)}>
       <BubbleMenu
@@ -866,15 +867,6 @@ export function Editor({
         ref={bubbleMenuRef}
         editor={editor}
         className="z-50 w-fit max-w-[95vw] text-popover-foreground outline-hidden"
-        getReferencedVirtualElement={() => {
-          const { from, to } = editor.state.selection;
-          const domRect = posToDOMRect(editor.view, from, to);
-          return {
-            getBoundingClientRect: () => domRect,
-            getClientRects: () => [domRect] as unknown as DOMRectList,
-            contextElement: editor.view.dom,
-          };
-        }}
         options={{
           placement: "top",
           offset: 10,

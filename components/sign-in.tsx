@@ -78,7 +78,7 @@ export function SignIn() {
   };
 
   return (
-    <div className="h-screen p-4 md:p-6 flex justify-center items-center">
+    <div className="min-h-screen p-4 md:p-6 flex justify-center items-center">
       <div className="sm:max-w-[340px] w-full space-y-6">
         <h1 className="text-xl lg:text-2xl font-semibold tracking-tight text-center">Sign in to Pages CMS</h1>
         <Button type="button" className="w-full" onClick={handleGithubSignIn} disabled={isSubmitting}>

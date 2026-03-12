@@ -244,10 +244,70 @@ export function CachePage({
 
   if (loading || !data) {
     return (
-      <div className="max-w-screen-md mx-auto space-y-4">
-        <Skeleton className="h-24 w-full rounded-lg" />
-        <Skeleton className="h-24 w-full rounded-lg" />
-        <Skeleton className="h-24 w-full rounded-lg" />
+      <div className="max-w-screen-lg mx-auto space-y-4">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className="h-full">
+            <CardHeader>
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-4 w-64" />
+            </CardHeader>
+            <CardContent className="text-sm flex-1">
+              <div className="divide-y rounded-md border">
+                {[...Array(5)].map((_, index) => (
+                  <div key={index} className="flex items-center justify-between gap-3 px-3 py-2">
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-end gap-0">
+              <Skeleton className="h-8 w-8 rounded-r-none" />
+              <Skeleton className="h-8 w-8 rounded-l-none border-l-0" />
+            </CardFooter>
+          </Card>
+
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-5 w-20" />
+                <Skeleton className="h-4 w-56" />
+              </CardHeader>
+              <CardContent className="text-sm flex-1">
+                <div className="divide-y rounded-md border">
+                  {[...Array(3)].map((_, index) => (
+                    <div key={index} className="flex items-center justify-between gap-3 px-3 py-2">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-end gap-0">
+                <Skeleton className="h-8 w-8 rounded-r-none" />
+                <Skeleton className="h-8 w-8 rounded-l-none border-l-0" />
+              </CardFooter>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-5 w-28" />
+                <Skeleton className="h-4 w-52" />
+              </CardHeader>
+              <CardContent className="text-sm flex-1">
+                <div className="divide-y rounded-md border">
+                  <div className="flex items-center justify-between gap-3 px-3 py-2">
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-4 w-12" />
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="justify-end">
+                <Skeleton className="h-8 w-8" />
+              </CardFooter>
+            </Card>
+          </div>
+        </div>
       </div>
     );
   }

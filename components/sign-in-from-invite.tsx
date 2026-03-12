@@ -84,7 +84,7 @@ export function SignInFromInvite({
   };
 
   return (
-    <div className="h-screen p-4 md:p-6 flex justify-center items-center">
+    <div className="min-h-screen p-4 md:p-6 flex justify-center items-center">
       <div className="sm:max-w-[340px] w-full space-y-6">
         {verifyUrl ? (
           isSignedIn ? (

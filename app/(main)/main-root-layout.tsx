@@ -7,8 +7,8 @@ export function MainRootLayout({
   children: React.ReactNode;
 }) {
 	return(
-		<div className="flex flex-col h-screen">
-			<main className="flex-1 w-full overflow-auto">
+		<div className="flex min-h-screen flex-col">
+			<main className="flex-1 w-full">
 				{children}
 			</main>
 			<footer className="flex items-center gap-2 border-t px-2 py-2 lg:px-4 lg:py-3 mt-auto">
