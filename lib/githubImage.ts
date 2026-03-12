@@ -82,7 +82,9 @@ const getRawUrl = async (
       delete cache[parentFullPath];
       
       if (!requests[parentFullPath]) {
-        requests[parentFullPath] = fetch(`/api/${owner}/${repo}/${encodeURIComponent(branch)}/media/${encodeURIComponent(name)}/${encodeURIComponent(parentPath)}`)
+        requests[parentFullPath] = fetch(
+          `/api/${owner}/${repo}/${encodeURIComponent(branch)}/media/${encodeURIComponent(name)}/${encodeURIComponent(parentPath)}?nocache=true`
+        )
           .then((response) => requireApiSuccess<any>(response, "Failed to fetch media"))
           .catch(err => {
             delete requests[parentFullPath];
