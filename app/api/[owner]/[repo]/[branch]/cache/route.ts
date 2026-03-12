@@ -1,0 +1,192 @@
+import { headers } from "next/headers";
+import { and, eq, sql } from "drizzle-orm";
+import { auth } from "@/lib/auth";
+import { db } from "@/db";
+import { cacheFileTable, cachePermissionTable, configTable } from "@/db/schema";
+import { requireGithubRepoWriteAccess } from "@/lib/authz-server";
+import {
+  clearFileCache,
+  clearPermissionCache,
+  ensureFileCacheFreshness,
+} from "@/lib/githubCache";
+import { getCacheFileMeta, upsertCacheFileMeta } from "@/lib/cacheFileMeta";
+import { getConfigWithSync } from "@/lib/utils/config";
+import { createOctokitInstance } from "@/lib/utils/octokit";
+import { toErrorResponse } from "@/lib/api-error";
+
+export async function GET(
+  _request: Request,
+  context: { params: Promise<{ owner: string; repo: string; branch: string }> },
+) {
+  try {
+    const params = await context.params;
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session?.user) return new Response(null, { status: 401 });
+
+    const { token } = await requireGithubRepoWriteAccess(
+      session.user,
+      params.owner,
+      params.repo,
+      "Only GitHub users can view cache status.",
+    );
+
+    // Keep DB access mostly sequential to avoid spiking pool usage on the cache dashboard.
+    const meta = await getCacheFileMeta(params.owner, params.repo, params.branch);
+    const fileCountResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(cacheFileTable)
+      .where(
+        and(
+          eq(cacheFileTable.owner, params.owner.toLowerCase()),
+          eq(cacheFileTable.repo, params.repo.toLowerCase()),
+          eq(cacheFileTable.branch, params.branch),
+        ),
+      );
+    const permissionCountResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(cachePermissionTable)
+      .where(
+        and(
+          eq(cachePermissionTable.owner, params.owner.toLowerCase()),
+          eq(cachePermissionTable.repo, params.repo.toLowerCase()),
+        ),
+      );
+    const config = await db.query.configTable.findFirst({
+      where: and(
+        sql`lower(${configTable.owner}) = lower(${params.owner})`,
+        sql`lower(${configTable.repo}) = lower(${params.repo})`,
+        eq(configTable.branch, params.branch),
+      ),
+    });
+    const headResponse = await createOctokitInstance(token).rest.repos.getBranch({
+      owner: params.owner,
+      repo: params.repo,
+      branch: params.branch,
+    });
+
+    return Response.json({
+      status: "success",
+      data: {
+        fileMeta: meta ?? null,
+        fileCount: Number(fileCountResult[0]?.count || 0),
+        permissionCount: Number(permissionCountResult[0]?.count || 0),
+        config: config
+          ? {
+              sha: config.sha,
+              lastCheckedAt: config.lastCheckedAt,
+              version: config.version,
+            }
+          : null,
+        branchHeadSha: headResponse.data.commit.sha,
+      },
+    });
+  } catch (error: any) {
+    console.error(error);
+    return toErrorResponse(error);
+  }
+}
+
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ owner: string; repo: string; branch: string }> },
+) {
+  try {
+    const params = await context.params;
+    const body = (await request.json()) as { action?: string };
+    const action = body?.action || "";
+
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session?.user) return new Response(null, { status: 401 });
+
+    const { token } = await requireGithubRepoWriteAccess(
+      session.user,
+      params.owner,
+      params.repo,
+      "Only GitHub users can manage cache.",
+    );
+
+    switch (action) {
+      case "reconcile-file-cache":
+        await ensureFileCacheFreshness(params.owner, params.repo, params.branch, token, {
+          force: true,
+        });
+        return Response.json({
+          status: "success",
+          message: "File cache reconciled.",
+        });
+      case "clear-file-cache":
+        await clearFileCache(params.owner, params.repo, params.branch);
+        await upsertCacheFileMeta(params.owner, params.repo, params.branch, {
+          sha: null,
+          status: "ok",
+          error: null,
+        });
+        return Response.json({
+          status: "success",
+          message: "File cache cleared.",
+        });
+      case "clear-permission-cache":
+        await clearPermissionCache(params.owner, params.repo);
+        return Response.json({
+          status: "success",
+          message: "Permission cache cleared.",
+        });
+      case "refresh-config":
+        await getConfigWithSync(
+          params.owner,
+          params.repo,
+          params.branch,
+          async () => token,
+          { ttlMs: 0 },
+        );
+        return Response.json({
+          status: "success",
+          message: "Config cache refreshed.",
+        });
+      case "clear-config-cache":
+        await db
+          .delete(configTable)
+          .where(
+            and(
+              sql`lower(${configTable.owner}) = lower(${params.owner})`,
+              sql`lower(${configTable.repo}) = lower(${params.repo})`,
+              eq(configTable.branch, params.branch),
+            ),
+          );
+        return Response.json({
+          status: "success",
+          message: "Config cache cleared.",
+        });
+      case "clear-all-cache":
+        await clearFileCache(params.owner, params.repo, params.branch);
+        await upsertCacheFileMeta(params.owner, params.repo, params.branch, {
+          sha: null,
+          status: "ok",
+          error: null,
+        });
+        await clearPermissionCache(params.owner, params.repo);
+        await db
+          .delete(configTable)
+          .where(
+            and(
+              sql`lower(${configTable.owner}) = lower(${params.owner})`,
+              sql`lower(${configTable.repo}) = lower(${params.repo})`,
+              eq(configTable.branch, params.branch),
+            ),
+          );
+        return Response.json({
+          status: "success",
+          message: "All cache cleared.",
+        });
+      default:
+        throw new Error(`Invalid action "${action}".`);
+    }
+  } catch (error: any) {
+    console.error(error);
+    return toErrorResponse(error);
+  }
+}

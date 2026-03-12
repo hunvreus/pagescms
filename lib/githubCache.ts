@@ -7,6 +7,7 @@ import { eq, and, inArray, gt, count, min } from "drizzle-orm";
 import { cacheFileTable, cachePermissionTable } from "@/db/schema";
 import { createOctokitInstance } from "@/lib/utils/octokit";
 import { getParentPath } from "@/lib/utils/file";
+import { getCacheFileMeta, upsertCacheFileMeta } from "@/lib/cacheFileMeta";
 import path from "path";
 
 type FileChange = {
@@ -26,6 +27,82 @@ type FileOperation = {
     sha: string;
     timestamp: number;
   };
+};
+
+const cacheFileReconcileInFlight = new Map<string, Promise<void>>();
+const cacheFileCheckTTLms = parseInt(process.env.CACHE_FILE_CHECK_TTL || "5", 10) * 60 * 1000;
+
+const getCacheFileMetaKey = (owner: string, repo: string, branch: string) =>
+  `${owner.toLowerCase()}::${repo.toLowerCase()}::${branch}`;
+
+const reconcileFileCache = async (
+  owner: string,
+  repo: string,
+  branch: string,
+  token: string,
+  options?: { forceClear?: boolean }
+) => {
+  const key = getCacheFileMetaKey(owner, repo, branch);
+  if (cacheFileReconcileInFlight.has(key)) {
+    return cacheFileReconcileInFlight.get(key)!;
+  }
+
+  const job = (async () => {
+    try {
+      await upsertCacheFileMeta(owner, repo, branch, {
+        status: "syncing",
+        error: null,
+      });
+
+      const octokit = createOctokitInstance(token);
+      const branchResponse = await octokit.rest.repos.getBranch({
+        owner,
+        repo,
+        branch,
+      });
+      const headSha = branchResponse.data.commit.sha;
+
+      const currentMeta = await getCacheFileMeta(owner, repo, branch);
+      const shouldClear = options?.forceClear || !currentMeta?.sha || currentMeta.sha !== headSha;
+      if (shouldClear) {
+        await clearFileCache(owner, repo, branch);
+      }
+
+      await upsertCacheFileMeta(owner, repo, branch, {
+        sha: headSha,
+        status: "ok",
+        error: null,
+      });
+    } catch (error: any) {
+      await upsertCacheFileMeta(owner, repo, branch, {
+        status: "error",
+        error: error?.message ? String(error.message) : "Cache reconcile failed.",
+      });
+      throw error;
+    } finally {
+      cacheFileReconcileInFlight.delete(key);
+    }
+  })();
+
+  cacheFileReconcileInFlight.set(key, job);
+  return job;
+};
+
+const ensureFileCacheFreshness = async (
+  owner: string,
+  repo: string,
+  branch: string,
+  token: string,
+  options?: { force?: boolean }
+) => {
+  const meta = await getCacheFileMeta(owner, repo, branch);
+  const due =
+    options?.force ||
+    !meta?.lastCheckedAt ||
+    Date.now() - meta.lastCheckedAt.getTime() > cacheFileCheckTTLms;
+
+  if (!due) return;
+  await reconcileFileCache(owner, repo, branch, token);
 };
 
 // Helper to get all non-root ancestor paths (e.g., [a, a/b, a/b/c] for a/b/c/file.txt)
@@ -623,6 +700,8 @@ const getCollectionCache = async (
   token: string,
   nodeEntryFilename?: string
 ) => {
+  void ensureFileCacheFreshness(owner, repo, branch, token).catch(() => {});
+
   // Check the cache (no context as we may invalidate media cache)
   let entries = await db.query.cacheFileTable.findMany({
     where: and(
@@ -808,6 +887,8 @@ const getMediaCache = async (
   token: string,
   nocache?: boolean
 ) => {
+  void ensureFileCacheFreshness(owner, repo, branch, token).catch(() => {});
+
   let entries: any[] = [];
 
   if (!nocache) {
@@ -941,13 +1022,27 @@ const checkRepoAccess = async (
   }
 };
 
+const clearPermissionCache = async (
+  owner: string,
+  repo?: string,
+  githubId?: number,
+) => {
+  const conditions = [];
+  conditions.push(eq(cachePermissionTable.owner, owner.toLowerCase()));
+  if (repo) conditions.push(eq(cachePermissionTable.repo, repo.toLowerCase()));
+  if (githubId != null) conditions.push(eq(cachePermissionTable.githubId, githubId));
+  await db.delete(cachePermissionTable).where(and(...conditions));
+};
+
 export {
   updateMultipleFilesCache,
   updateFileCache,
   updateFileCacheRepository,
   updateFileCacheOwner,
   clearFileCache,
+  clearPermissionCache,
   getCollectionCache,
   getMediaCache,
-  checkRepoAccess
+  checkRepoAccess,
+  ensureFileCacheFreshness,
 };

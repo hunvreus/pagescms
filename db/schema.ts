@@ -125,6 +125,20 @@ const cacheFileTable = pgTable("cache_file", {
   idx_cache_file_owner_repo_branch_path: uniqueIndex("idx_cache_file_owner_repo_branch_path").on(table.owner, table.repo, table.branch, table.path)
 }));
 
+const cacheFileMetaTable = pgTable("cache_file_meta", {
+  id: serial("id").primaryKey(),
+  owner: text("owner").notNull(),
+  repo: text("repo").notNull(),
+  branch: text("branch").notNull(),
+  sha: text("sha"),
+  status: text("status").notNull().default("ok"),
+  error: text("error"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  lastCheckedAt: timestamp("last_checked_at").notNull().defaultNow(),
+}, table => ({
+  idx_cache_file_meta_owner_repo_branch: uniqueIndex("idx_cache_file_meta_owner_repo_branch").on(table.owner, table.repo, table.branch)
+}));
+
 const cachePermissionTable = pgTable("cache_permission", {
   id: serial("id").primaryKey(),
   githubId: integer("github_id").notNull(),
@@ -144,5 +158,6 @@ export {
   collaboratorTable,
   configTable,
   cacheFileTable,
+  cacheFileMetaTable,
   cachePermissionTable
 };

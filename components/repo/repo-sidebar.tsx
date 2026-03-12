@@ -42,6 +42,7 @@ import {
   ArrowLeft,
   ArrowUpRight,
   ChevronsUpDown,
+  Database,
   FileStack,
   FileText,
   FolderOpen,
@@ -156,7 +157,14 @@ export function RepoSidebar() {
     const canManageRepo = hasGithubIdentity(user);
 
     const items: NavItem[] = [];
+
     if (canManageRepo) {
+      items.push({
+        key: "admin-cache",
+        label: "Cache",
+        href: `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/cache`,
+        icon: <Database className="size-4" />,
+      });
       items.push({
         key: "admin-collaborators",
         label: "Collaborators",

@@ -47,7 +47,7 @@ const Installations = () => {
               alt={`${account.login}'s avatar`}
               className="h-6 w-6 rounded"
             />
-            <span className="font-medium truncate">{account.login}</span>
+            <span className="font-medium truncate hover:underline">{account.login}</span>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

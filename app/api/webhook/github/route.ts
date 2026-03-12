@@ -14,6 +14,7 @@ import {
 import { getInstallationToken } from "@/lib/token";
 import { configVersion, normalizeConfig, parseConfig } from "@/lib/config";
 import { saveConfig, updateConfig } from "@/lib/utils/config";
+import { deleteCacheFileMeta, upsertCacheFileMeta } from "@/lib/cacheFileMeta";
 
 /**
  * Handles GitHub webhooks:
@@ -170,6 +171,7 @@ export async function POST(request: Request) {
             }
             
             await clearFileCache(deleteOwner, deleteRepo, deleteBranch);
+            await deleteCacheFileMeta(deleteOwner, deleteRepo, deleteBranch);
           }
           break;
           
@@ -230,6 +232,12 @@ export async function POST(request: Request) {
             installationToken,
             commit
           );
+
+          await upsertCacheFileMeta(pushOwner, pushRepo, pushBranch, {
+            sha: commit.sha,
+            status: "ok",
+            error: null,
+          });
 
           if (configChanged) {
             if (configRemoved) {

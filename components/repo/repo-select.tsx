@@ -158,7 +158,7 @@ export function RepoSelect({
               {searchResults.map((result: any) => (
                 <li key={`${result.owner}/${result.repo}`} className="flex gap-x-2 items-center border border-b-0 last:border-b first:rounded-t-md last:rounded-b-md px-3 py-2 text-sm">
                   <Link
-                    className="truncate font-medium"
+                    className="truncate font-medium hover:underline"
                     href={`/${result.owner}/${result.repo}/${result.defaultBranch ? encodeURIComponent(result.defaultBranch) : ""}`}
                     prefetch={true}
                   >{result.repo}</Link>

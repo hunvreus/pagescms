@@ -35,7 +35,7 @@ export function RepoLatest() {
               >
                 <img src={`https://github.com/${visit.owner}.png`} alt={visit.owner} className="h-6 w-6 rounded" />
                 <Link
-                  className="truncate font-medium"
+                  className="truncate font-medium hover:underline"
                   href={`/${visit.owner}/${visit.repo}/${encodeURIComponent(visit.branch)}`}
                   prefetch={true}
                 >{visit.repo}</Link>
