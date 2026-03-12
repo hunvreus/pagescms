@@ -248,62 +248,100 @@ export function CachePage({
         <div className="grid gap-4 lg:grid-cols-2">
           <Card className="h-full">
             <CardHeader>
-              <Skeleton className="h-5 w-24" />
-              <Skeleton className="h-4 w-64" />
+              <CardTitle className="text-base">Content</CardTitle>
+              <CardDescription>Cached content (files and collections).</CardDescription>
             </CardHeader>
             <CardContent className="text-sm flex-1">
               <div className="divide-y rounded-md border">
-                {[...Array(5)].map((_, index) => (
-                  <div key={index} className="flex items-center justify-between gap-3 px-3 py-2">
-                    <Skeleton className="h-4 w-28" />
-                    <Skeleton className="h-4 w-20" />
-                  </div>
-                ))}
+                <div className="flex items-center justify-between gap-3 px-3 py-2">
+                  <span className="text-muted-foreground">Files cached</span>
+                  <Skeleton className="h-4 w-10" />
+                </div>
+                <div className="flex items-center justify-between gap-3 px-3 py-2">
+                  <span className="text-muted-foreground">Cache SHA</span>
+                  <Skeleton className="h-4 w-20" />
+                </div>
+                <div className="flex items-center justify-between gap-3 px-3 py-2">
+                  <span className="text-muted-foreground">Remote SHA</span>
+                  <Skeleton className="h-4 w-20" />
+                </div>
+                <div className="flex items-center justify-between gap-3 px-3 py-2">
+                  <span className="text-muted-foreground">Updated</span>
+                  <Skeleton className="h-4 w-20" />
+                </div>
+                <div className="flex items-center justify-between gap-3 px-3 py-2">
+                  <span className="text-muted-foreground">Status</span>
+                  <Skeleton className="h-4 w-16" />
+                </div>
+                <div className="flex items-center justify-between gap-3 px-3 py-2">
+                  <span className="text-muted-foreground">Last checked</span>
+                  <Skeleton className="h-4 w-20" />
+                </div>
               </div>
             </CardContent>
-            <CardFooter className="flex justify-end gap-0">
-              <Skeleton className="h-8 w-8 rounded-r-none" />
-              <Skeleton className="h-8 w-8 rounded-l-none border-l-0" />
+            <CardFooter className="flex justify-end">
+              <div className="inline-flex items-center">
+                <Button variant="outline" size="icon-sm" className="rounded-r-none" disabled>
+                  <RefreshCcw className="size-4" />
+                </Button>
+                <Button variant="outline" size="icon-sm" className="rounded-l-none border-l-0" disabled>
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
             </CardFooter>
           </Card>
 
           <div className="space-y-4">
             <Card>
               <CardHeader>
-                <Skeleton className="h-5 w-20" />
-                <Skeleton className="h-4 w-56" />
+                <CardTitle className="text-base">Config</CardTitle>
+                <CardDescription>Cache of the configuration file (<code>.pages.yml</code>).</CardDescription>
               </CardHeader>
               <CardContent className="text-sm flex-1">
                 <div className="divide-y rounded-md border">
-                  {[...Array(3)].map((_, index) => (
-                    <div key={index} className="flex items-center justify-between gap-3 px-3 py-2">
-                      <Skeleton className="h-4 w-24" />
-                      <Skeleton className="h-4 w-20" />
-                    </div>
-                  ))}
+                  <div className="flex items-center justify-between gap-3 px-3 py-2">
+                    <span className="text-muted-foreground">Cache SHA</span>
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                  <div className="flex items-center justify-between gap-3 px-3 py-2">
+                    <span className="text-muted-foreground">Version</span>
+                    <Skeleton className="h-4 w-12" />
+                  </div>
+                  <div className="flex items-center justify-between gap-3 px-3 py-2">
+                    <span className="text-muted-foreground">Last checked</span>
+                    <Skeleton className="h-4 w-20" />
+                  </div>
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-end gap-0">
-                <Skeleton className="h-8 w-8 rounded-r-none" />
-                <Skeleton className="h-8 w-8 rounded-l-none border-l-0" />
+              <CardFooter className="flex justify-end">
+                <div className="inline-flex items-center">
+                  <Button variant="outline" size="icon-sm" className="rounded-r-none" disabled>
+                    <RefreshCcw className="size-4" />
+                  </Button>
+                  <Button variant="outline" size="icon-sm" className="rounded-l-none border-l-0" disabled>
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
               </CardFooter>
             </Card>
 
             <Card>
               <CardHeader>
-                <Skeleton className="h-5 w-28" />
-                <Skeleton className="h-4 w-52" />
+                <CardTitle className="text-base">Permissions</CardTitle>
+                <CardDescription>Cached repository permission checks.</CardDescription>
               </CardHeader>
               <CardContent className="text-sm flex-1">
                 <div className="divide-y rounded-md border">
                   <div className="flex items-center justify-between gap-3 px-3 py-2">
-                    <Skeleton className="h-4 w-16" />
-                    <Skeleton className="h-4 w-12" />
+                    <span className="text-muted-foreground">Entries</span>
+                    <Skeleton className="h-4 w-10" />
                   </div>
                 </div>
               </CardContent>
               <CardFooter className="justify-end">
-                <Skeleton className="h-8 w-8" />
+                <Button variant="outline" size="icon-sm" disabled>
+                  <Trash2 className="size-4" />
+                </Button>
               </CardFooter>
             </Card>
           </div>
@@ -340,13 +378,30 @@ export function CachePage({
                   <TimeWithTooltip value={data.fileMeta?.updatedAt} />
                 </div>
                 <div className="flex items-center justify-between gap-3 px-3 py-2">
+                  <span className="text-muted-foreground">Status</span>
+                  <span className="font-medium capitalize">
+                    {data.fileMeta?.status || "unknown"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 px-3 py-2">
                   <span className="text-muted-foreground">Last checked</span>
                   <TimeWithTooltip value={data.fileMeta?.lastCheckedAt} />
                 </div>
               </div>
-              {data.fileMeta?.status !== "ok" && (
-                <div className="mt-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  {data.fileMeta?.error || "Cache status indicates an issue."}
+              {data.fileMeta && data.fileMeta.status !== "ok" && (
+                <div className="mt-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-3 text-sm">
+                  <p className="font-medium text-destructive">
+                    Cache status indicates an issue.
+                  </p>
+                  <p className="mt-1 break-words text-destructive/90">
+                    {data.fileMeta?.error || "Unknown cache error."}
+                  </p>
+                  <p className="mt-2 text-muted-foreground">
+                    Try <span className="font-medium text-foreground">Refresh cache</span>{" "}
+                    first. If the issue persists, use{" "}
+                    <span className="font-medium text-foreground">Clear cache</span>{" "}
+                    and refresh again.
+                  </p>
                 </div>
               )}
             </CardContent>
