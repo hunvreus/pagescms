@@ -33,16 +33,17 @@ export default async function Layout({
 
     const branches = [...firstBranchesResponse.data];
     let page = 2;
-    while (firstBranchesResponse.data.length === 100) {
+    let lastPageCount = firstBranchesResponse.data.length;
+    while (lastPageCount === 100) {
       const branchesResponse = await octokit.rest.repos.listBranches({
         owner,
         repo,
         page,
         per_page: 100,
       });
-      if (branchesResponse.data.length === 0) break;
+      lastPageCount = branchesResponse.data.length;
+      if (lastPageCount === 0) break;
       branches.push(...branchesResponse.data);
-      if (branchesResponse.data.length < 100) break;
       page++;
     }
 

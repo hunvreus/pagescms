@@ -106,6 +106,7 @@ const touchConfigCheck = async (
 
 type ConfigSyncOptions = {
   ttlMs?: number;
+  backgroundRefreshWhenStale?: boolean;
 };
 
 const DEFAULT_CONFIG_CHECK_TTL_MS = parseInt(
@@ -117,6 +118,10 @@ const isConfigCheckDue = (lastCheckedAt?: Date, ttlMs = DEFAULT_CONFIG_CHECK_TTL
   if (!lastCheckedAt) return true;
   return Date.now() - new Date(lastCheckedAt).getTime() > ttlMs;
 };
+
+const configSyncInFlight = new Map<string, Promise<Config | null>>();
+const getConfigSyncKey = (owner: string, repo: string, branch: string) =>
+  `${owner.toLowerCase()}::${repo.toLowerCase()}::${branch}`;
 
 const fetchConfigFromGithub = async (
   owner: string,
@@ -164,14 +169,64 @@ const getConfigWithSync = async (
   getToken: () => Promise<string>,
   options?: ConfigSyncOptions,
 ): Promise<Config | null> => {
-  const cachedConfig = await getConfigUncached(owner, repo, branch);
+  const normalizedOwner = owner.toLowerCase();
+  const normalizedRepo = repo.toLowerCase();
+  const key = getConfigSyncKey(normalizedOwner, normalizedRepo, branch);
+  const existing = configSyncInFlight.get(key);
+  if (existing) return existing;
+
+  const run = (async (): Promise<Config | null> => {
+  const cachedConfig = await getConfig(normalizedOwner, normalizedRepo, branch);
   const ttlMs = options?.ttlMs ?? DEFAULT_CONFIG_CHECK_TTL_MS;
+  const backgroundRefreshWhenStale = options?.backgroundRefreshWhenStale ?? false;
 
   if (
     cachedConfig &&
     cachedConfig.version === configVersion &&
     !isConfigCheckDue(cachedConfig.lastCheckedAt, ttlMs)
   ) {
+    return cachedConfig;
+  }
+
+  if (
+    cachedConfig &&
+    cachedConfig.version === configVersion &&
+    backgroundRefreshWhenStale
+  ) {
+    // Return stale cache immediately and refresh async to reduce branch-layout blocking.
+    void (async () => {
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const latest = await fetchConfigFromGithub(owner, repo, branch, token);
+        if (!latest) {
+          await db.delete(configTable).where(
+            and(
+              sql`lower(${configTable.owner}) = lower(${normalizedOwner})`,
+              sql`lower(${configTable.repo}) = lower(${normalizedRepo})`,
+              eq(configTable.branch, branch),
+            ),
+          );
+          return;
+        }
+        if (cachedConfig.sha === latest.sha) {
+          await touchConfigCheck(owner, repo, branch);
+          return;
+        }
+        const nextConfig: Config = {
+          owner: normalizedOwner,
+          repo: normalizedRepo,
+          branch,
+          sha: latest.sha,
+          version: configVersion ?? "0.0",
+          object: latest.object,
+        };
+        await updateConfig(nextConfig);
+      } catch {
+        // Ignore background refresh failures; stale cached config remains usable.
+      }
+    })();
+
     return cachedConfig;
   }
 
@@ -183,8 +238,8 @@ const getConfigWithSync = async (
     if (cachedConfig) {
       await db.delete(configTable).where(
         and(
-          sql`lower(${configTable.owner}) = lower(${owner})`,
-          sql`lower(${configTable.repo}) = lower(${repo})`,
+          sql`lower(${configTable.owner}) = lower(${normalizedOwner})`,
+          sql`lower(${configTable.repo}) = lower(${normalizedRepo})`,
           eq(configTable.branch, branch),
         ),
       );
@@ -193,7 +248,7 @@ const getConfigWithSync = async (
   }
 
   if (cachedConfig && cachedConfig.version === configVersion && cachedConfig.sha === latest.sha) {
-    await touchConfigCheck(owner, repo, branch);
+    await touchConfigCheck(normalizedOwner, normalizedRepo, branch);
     return {
       ...cachedConfig,
       lastCheckedAt: new Date(),
@@ -201,8 +256,8 @@ const getConfigWithSync = async (
   }
 
   const nextConfig: Config = {
-    owner: owner.toLowerCase(),
-    repo: repo.toLowerCase(),
+    owner: normalizedOwner,
+    repo: normalizedRepo,
     branch,
     sha: latest.sha,
     version: configVersion ?? "0.0",
@@ -216,6 +271,14 @@ const getConfigWithSync = async (
   }
 
   return nextConfig;
+  })();
+
+  configSyncInFlight.set(key, run);
+  try {
+    return await run;
+  } finally {
+    configSyncInFlight.delete(key);
+  }
 };
 
 export { getConfig, getConfigWithSync, saveConfig, updateConfig, touchConfigCheck };

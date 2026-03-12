@@ -20,6 +20,8 @@ const canonicalizeFileName = (input: string) => {
   return decodePathSafely(getFileName(input || ""));
 };
 
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 // Get the relative path for an image.
 const getRelativeUrl = (
   owner: string,
@@ -148,21 +150,32 @@ const rawToRelativeUrls = (
   encode = true
 ) => {
   const matches = getImgSrcs(html);
+  if (matches.length === 0) return html;
+
+  const replacements = new Map<string, string>();
+  const rawPrefix = new RegExp(
+    `https://raw\\.githubusercontent\\.com/${owner}/${repo}/${encodeURIComponent(branch)}/`,
+    "gi",
+  );
+
   for (const match of matches) {
     const src = match[1] || match[2];
-    const quote = match[1] ? "\"" : "'";
+    if (!src.startsWith("https://raw.githubusercontent.com/")) continue;
+    if (replacements.has(src)) continue;
 
-    if (src.startsWith("https://raw.githubusercontent.com/")) {
-      let relativePath = src.replace(new RegExp(`https://raw\\.githubusercontent\\.com/${owner}/${repo}/${encodeURIComponent(branch)}/`, "gi"), "");
-      relativePath = relativePath.split("?")[0];
-
-      if (!encode) relativePath = decodeURIComponent(relativePath);
-      
-      html = html.replace(`src=${quote}${src}${quote}`, `src=${quote}${relativePath}${quote}`);
-    }
+    let relativePath = src.replace(rawPrefix, "");
+    relativePath = relativePath.split("?")[0];
+    if (!encode) relativePath = decodeURIComponent(relativePath);
+    replacements.set(src, relativePath);
   }
 
-  return html;
+  let newHtml = html;
+  replacements.forEach((relativePath, src) => {
+    const srcRegex = new RegExp(`(<img[^>]*\\ssrc=(["']))${escapeRegex(src)}(\\2)`, "g");
+    newHtml = newHtml.replace(srcRegex, `$1${relativePath}$3`);
+  });
+
+  return newHtml;
 }
 
 // Convert all relative image paths in a HTML string to raw.githubusercontent.com URLs.
@@ -175,22 +188,31 @@ const relativeToRawUrls = async (
   isPrivate = false,
   decode = false
 ) => {
-  let newHtml = html;
+  const matches = getImgSrcs(html);
+  if (matches.length === 0) return html;
 
-  const matches = getImgSrcs(newHtml);
-  for (const match of matches) {
-    const src = match[1] || match[2];
-    const quote = match[1] ? "\"" : "'";
+  const uniqueSources = Array.from(new Set(
+    matches
+      .map((match) => match[1] || match[2])
+      .filter((src) => !src.startsWith("http://") && !src.startsWith("https://") && !src.startsWith("data:image/")),
+  ));
 
-    if (!src.startsWith("http://") && !src.startsWith("https://") && !src.startsWith("data:image/")) {  
-      // TODO: what does the function returns if it fails?
+  if (uniqueSources.length === 0) return html;
+
+  const replacementEntries = await Promise.all(
+    uniqueSources.map(async (src) => {
       const rawUrl = await getRawUrl(owner, repo, branch, name, src, isPrivate, true);
-      if (rawUrl) {
-        newHtml = newHtml.replace(`src=${quote}${src}${quote}`, `src=${quote}${rawUrl}${quote}`);
-      }
-    }
+      return [src, rawUrl] as const;
+    }),
+  );
+
+  let newHtml = html;
+  for (const [src, rawUrl] of replacementEntries) {
+    if (!rawUrl) continue;
+    const srcRegex = new RegExp(`(<img[^>]*\\ssrc=(["']))${escapeRegex(src)}(\\2)`, "g");
+    newHtml = newHtml.replace(srcRegex, `$1${rawUrl}$3`);
   }
-  
+
   return newHtml;
 }
 
@@ -250,7 +272,7 @@ const htmlSwapPrefix = (
     const newSrc = swapPrefix(src, from, to, relative);
     if (newSrc !== src) {
       // Use a regex with global flag to replace all occurrences
-      const escapedSrc = src.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // Escape special regex chars
+      const escapedSrc = escapeRegex(src); // Escape special regex chars
       const regex = new RegExp(`src=${quote}${escapedSrc}${quote}`, 'g');
       newHtml = newHtml.replace(regex, `src=${quote}${newSrc}${quote}`);
     }

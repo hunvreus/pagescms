@@ -701,7 +701,7 @@ export function Collection({
         <div className="flex flex-1 items-center justify-center">
           <Empty className="max-w-[420px] flex-none">
             <EmptyHeader>
-              <EmptyTitle>{error === "Not found" ? "Folder missing" : "Something&apos;s wrong"}</EmptyTitle>
+              <EmptyTitle>{error === "Not found" ? "Folder missing" : "Something's wrong"}</EmptyTitle>
               <EmptyDescription>
                 {error === "Not found"
                   ? `The collection folder "${schema.path}" has not been created yet.`

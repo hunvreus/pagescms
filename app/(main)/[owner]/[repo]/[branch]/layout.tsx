@@ -44,6 +44,9 @@ export default async function Layout({
         if (!token) throw new Error("Token not found");
         return token;
       },
+      {
+        backgroundRefreshWhenStale: true,
+      },
     );
 
     if (syncedConfig) {

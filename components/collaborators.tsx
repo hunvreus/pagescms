@@ -343,7 +343,7 @@ export function Collaborators({
       <div className="absolute inset-0 p-4 md:p-6 flex items-center justify-center">
         <Empty className="max-w-[420px] flex-none">
           <EmptyHeader>
-            <EmptyTitle>Something&apos;s wrong</EmptyTitle>
+            <EmptyTitle>Something's wrong</EmptyTitle>
             <EmptyDescription>
               We could not fetch the list of collaborators.
             </EmptyDescription>
