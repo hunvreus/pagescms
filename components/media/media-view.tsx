@@ -577,8 +577,8 @@ const MediaView = ({
         title="No media defined"
         description="You have no media defined in your settings."
         className="absolute inset-0"
-        cta="Go to settings"
-        href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/settings`}
+        cta="Go to configuration"
+        href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/configuration`}
       />
     );
   }

@@ -319,6 +319,12 @@ const ContentObjectSchema = z.object({
 
 // Main schema with media and content
 const ConfigSchema = z.object({
+  cache: z.boolean({
+    message: "'cache' must be a boolean."
+  }).optional(),
+  hide: z.boolean({
+    message: "'hide' must be a boolean."
+  }).optional(),
   media: MediaSchema.optional(),
   content: z.array(ContentObjectSchema, {
     message: "'content' must be an array of objects with at least one entry."
@@ -331,6 +337,12 @@ const ConfigSchema = z.object({
   ).optional(),
   settings: z.union([
     z.object({
+      config: z.boolean({
+        message: "'config' must be a boolean."
+      }).optional(),
+      cache: z.boolean({
+        message: "'cache' must be a boolean."
+      }).optional(),
       hide: z.boolean({
         message: "'hide' must be a boolean."
       }).optional(),

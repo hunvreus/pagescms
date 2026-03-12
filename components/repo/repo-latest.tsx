@@ -7,30 +7,56 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Ban } from "lucide-react";
 import { getVisits } from "@/lib/tracker";
+import { Skeleton } from "@/components/ui/skeleton";
   
 export function RepoLatest() {
   const [recentVisits, setRecentVisits] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const displayedVisits = recentVisits.slice(0, 3);
 
   useEffect(() => {
     // Only run in browser
     if (typeof window !== 'undefined') {
       const visits = getVisits();
       setRecentVisits(visits);
+      setIsLoading(false);
     }
   }, []);
 
+  if (isLoading) {
+    return (
+      <ul>
+        {[...Array(3)].map((_, index) => (
+          <li
+            key={index}
+            className={cn(
+              "flex gap-x-2 items-center border border-b-0 last:border-b px-3 py-2 text-sm",
+              index === 0 && "rounded-t-md",
+              index === 2 && "rounded-b-md",
+            )}
+          >
+            <Skeleton className="h-6 w-6 rounded" />
+            <Skeleton className="h-5 w-24 rounded" />
+            <Skeleton className="h-5 w-20 rounded ml-auto" />
+            <Skeleton className="h-6 w-12 rounded" />
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
   return (
     <>
-      {recentVisits.length > 0
+      {displayedVisits.length > 0
         ? (
           <ul>
-            {recentVisits.map((visit, index) => (
+            {displayedVisits.map((visit, index) => (
               <li 
                 key={index} 
                 className={cn(
                   "flex gap-x-2 items-center border border-b-0 last:border-b px-3 py-2 text-sm",
                   index === 0 && "rounded-t-md",
-                  index === recentVisits.length - 1 && "rounded-b-md"
+                  index === displayedVisits.length - 1 && "rounded-b-md"
                 )}
               >
                 <img src={`https://github.com/${visit.owner}.png`} alt={visit.owner} className="h-6 w-6 rounded" />

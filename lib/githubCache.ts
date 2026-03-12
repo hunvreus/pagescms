@@ -8,6 +8,7 @@ import { cacheFileTable, cachePermissionTable } from "@/db/schema";
 import { createOctokitInstance } from "@/lib/utils/octokit";
 import { getParentPath } from "@/lib/utils/file";
 import { getCacheFileMeta, upsertCacheFileMeta } from "@/lib/cacheFileMeta";
+import { getBranchHeadSha } from "@/lib/github-branch";
 import path from "path";
 
 type FileChange = {
@@ -54,13 +55,7 @@ const reconcileFileCache = async (
         error: null,
       });
 
-      const octokit = createOctokitInstance(token);
-      const branchResponse = await octokit.rest.repos.getBranch({
-        owner,
-        repo,
-        branch,
-      });
-      const headSha = branchResponse.data.commit.sha;
+      const headSha = await getBranchHeadSha(owner, repo, branch, token);
 
       const currentMeta = await getCacheFileMeta(owner, repo, branch);
       const shouldClear = options?.forceClear || !currentMeta?.sha || currentMeta.sha !== headSha;

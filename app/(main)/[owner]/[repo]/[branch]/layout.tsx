@@ -1,11 +1,10 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
 import { getConfigWithSync } from "@/lib/utils/config";
 import { ConfigProvider } from "@/contexts/config-context";
 import { RepoLayout } from "@/components/repo/repo-layout";
 import { Message } from "@/components/message";
+import { getServerSession } from "@/lib/session-server";
 
 export default async function Layout({
   children,
@@ -15,9 +14,7 @@ export default async function Layout({
   params: Promise<{ owner: string; repo: string; branch: string; }>;
 }) {
   const { owner, repo, branch } = await params;
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await getServerSession();
   const user = session?.user;
   if (!user) return redirect("/sign-in");
 
@@ -55,7 +52,7 @@ export default async function Layout({
   } catch (error: any) {
     if (error.status === 404) {
       if (error.response?.data?.message === "Not Found") {
-        // Let downstream pages (especially /settings via Entry) handle missing .pages.yml.
+        // Let downstream pages (especially /configuration via Entry) handle missing .pages.yml.
       } else {
         // We assume the branch is not valid
         errorMessage = (

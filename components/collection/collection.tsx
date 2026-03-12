@@ -778,9 +778,9 @@ export function Collection({
                 : (
                   <Link
                     className={buttonVariants({ variant: "default", size: "sm" })}
-                    href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/settings`}
+                    href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/configuration`}
                   >
-                    Go to settings
+                    Go to configuration
                   </Link>
                 )
               }

@@ -5,6 +5,7 @@ import { Message } from "@/components/message";
 import { useConfig } from "@/contexts/config-context";
 import { useUser } from "@/contexts/user-context";
 import { hasGithubIdentity } from "@/lib/authz";
+import { isCacheEnabled } from "@/lib/config-settings";
 
 export default function Page() {
   const { config } = useConfig();
@@ -17,6 +18,16 @@ export default function Page() {
       <Message
         title="Access restricted"
         description="Only GitHub users can manage cache."
+        className="absolute inset-0"
+      />
+    );
+  }
+
+  if (!isCacheEnabled(config.object)) {
+    return (
+      <Message
+        title="Cache is disabled"
+        description="Enable it in your .pages.yml with settings.cache: true."
         className="absolute inset-0"
       />
     );

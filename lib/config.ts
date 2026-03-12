@@ -37,6 +37,21 @@ const normalizeConfig = (configObject: any) => {
 
   const configObjectCopy = JSON.parse(JSON.stringify(configObject));
 
+  // Normalize legacy root toggles into settings.
+  if (configObjectCopy.settings === false) {
+    configObjectCopy.settings = { config: false };
+  } else if (typeof configObjectCopy.settings !== "object" || configObjectCopy.settings == null) {
+    configObjectCopy.settings = {};
+  }
+  if (typeof configObjectCopy.cache === "boolean" && configObjectCopy.settings.cache == null) {
+    configObjectCopy.settings.cache = configObjectCopy.cache;
+  }
+  if (typeof configObjectCopy.hide === "boolean" && configObjectCopy.settings.config == null) {
+    configObjectCopy.settings.config = !configObjectCopy.hide;
+  }
+  delete configObjectCopy.cache;
+  delete configObjectCopy.hide;
+
   // Resolve component references in `components`
   if (configObjectCopy.components && typeof configObjectCopy.components === 'object') {
     Object.keys(configObjectCopy.components).forEach((componentKey: string) => {
@@ -150,8 +165,14 @@ const normalizeConfig = (configObject: any) => {
   }
 
   // Normalize settings
-  if (configObjectCopy.settings === false) {
-    configObjectCopy.settings = { hide: true };
+  if (configObjectCopy.settings && typeof configObjectCopy.settings === "object") {
+    if (
+      typeof configObjectCopy.settings.hide === "boolean"
+      && configObjectCopy.settings.config == null
+    ) {
+      configObjectCopy.settings.config = !configObjectCopy.settings.hide;
+    }
+    delete configObjectCopy.settings.hide;
   }
   
   return configObjectCopy;

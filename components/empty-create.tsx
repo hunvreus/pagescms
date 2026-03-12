@@ -32,7 +32,7 @@ const EmptyCreate = ({
   if (type === "settings") {
     path = ".pages.yml";
     toCreate = "configuration file";
-    redirectTo = `${redirectTo}/settings`;
+    redirectTo = `${redirectTo}/configuration`;
   } else if (type === "content" || type === "media") {
     if (!name) throw new Error(`"name" is required.`);
     const schema = getSchemaByName(config.object, name, type);

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useConfig } from "@/contexts/config-context";
 import { useUser } from "@/contexts/user-context";
 import { hasGithubIdentity } from "@/lib/authz";
+import { isConfigEnabled } from "@/lib/config-settings";
 import { cn } from "@/lib/utils";
 import { FileStack, FileText, FolderOpen, Settings, Users } from "lucide-react";
 
@@ -67,12 +68,12 @@ const RepoNav = ({
 
     const canManageRepo = hasGithubIdentity(user);
 
-    const settingsItem = canManageRepo && !configObject.settings?.hide
+    const settingsItem = canManageRepo && isConfigEnabled(configObject)
       ? {
-        key: "settings",
+        key: "configuration",
         icon: <Settings className="h-5 w-5 mr-2" />,
-        href: `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/settings`,
-        label: "Settings"
+        href: `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/configuration`,
+        label: "Configuration"
       }
       : null;
 

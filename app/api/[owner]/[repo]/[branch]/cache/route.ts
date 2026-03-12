@@ -11,8 +11,9 @@ import {
 } from "@/lib/githubCache";
 import { getCacheFileMeta, upsertCacheFileMeta } from "@/lib/cacheFileMeta";
 import { getConfigWithSync } from "@/lib/utils/config";
-import { createOctokitInstance } from "@/lib/utils/octokit";
 import { toErrorResponse } from "@/lib/api-error";
+import { isCacheEnabled } from "@/lib/config-settings";
+import { getBranchHeadSha } from "@/lib/github-branch";
 
 export async function GET(
   _request: Request,
@@ -31,6 +32,17 @@ export async function GET(
       params.repo,
       "Only GitHub users can view cache status.",
     );
+
+    const config = await getConfigWithSync(
+      params.owner,
+      params.repo,
+      params.branch,
+      async () => token,
+      { backgroundRefreshWhenStale: true },
+    );
+    if (!config?.object || !isCacheEnabled(config.object)) {
+      return Response.json({ status: "error", message: "Cache is disabled for this repository." }, { status: 403 });
+    }
 
     // Keep DB access mostly sequential to avoid spiking pool usage on the cache dashboard.
     const meta = await getCacheFileMeta(params.owner, params.repo, params.branch);
@@ -53,18 +65,14 @@ export async function GET(
           eq(cachePermissionTable.repo, params.repo.toLowerCase()),
         ),
       );
-    const config = await db.query.configTable.findFirst({
+    const cachedConfig = await db.query.configTable.findFirst({
       where: and(
         sql`lower(${configTable.owner}) = lower(${params.owner})`,
         sql`lower(${configTable.repo}) = lower(${params.repo})`,
         eq(configTable.branch, params.branch),
       ),
     });
-    const headResponse = await createOctokitInstance(token).rest.repos.getBranch({
-      owner: params.owner,
-      repo: params.repo,
-      branch: params.branch,
-    });
+    const branchHeadSha = await getBranchHeadSha(params.owner, params.repo, params.branch, token);
 
     return Response.json({
       status: "success",
@@ -72,14 +80,14 @@ export async function GET(
         fileMeta: meta ?? null,
         fileCount: Number(fileCountResult[0]?.count || 0),
         permissionCount: Number(permissionCountResult[0]?.count || 0),
-        config: config
+        config: cachedConfig
           ? {
-              sha: config.sha,
-              lastCheckedAt: config.lastCheckedAt,
-              version: config.version,
+              sha: cachedConfig.sha,
+              lastCheckedAt: cachedConfig.lastCheckedAt,
+              version: cachedConfig.version,
             }
           : null,
-        branchHeadSha: headResponse.data.commit.sha,
+        branchHeadSha,
       },
     });
   } catch (error: any) {
@@ -108,6 +116,17 @@ export async function POST(
       params.repo,
       "Only GitHub users can manage cache.",
     );
+
+    const config = await getConfigWithSync(
+      params.owner,
+      params.repo,
+      params.branch,
+      async () => token,
+      { backgroundRefreshWhenStale: true },
+    );
+    if (!config?.object || !isCacheEnabled(config.object)) {
+      return Response.json({ status: "error", message: "Cache is disabled for this repository." }, { status: 403 });
+    }
 
     switch (action) {
       case "reconcile-file-cache":

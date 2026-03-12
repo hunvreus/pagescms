@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
 import { updateFileCache } from "@/lib/githubCache";
 import { toErrorResponse } from "@/lib/api-error";
+import { getBranchHeadSha, setBranchHeadSha } from "@/lib/github-branch";
 
 /**
  * Renames a file in a GitHub repository.
@@ -135,12 +136,7 @@ const githubRenameFile = async (
   const octokit = createOctokitInstance(token);
 
   // Step 1: Get the current branch commit SHA
-  const { data: branchData } = await octokit.rest.repos.getBranch({
-    owner,
-    repo,
-    branch,
-  });
-  const currentSha = branchData.commit.sha;
+  const currentSha = await getBranchHeadSha(owner, repo, branch, token);
 
   // Step 2: Get the current tree
   const { data: treeData } = await octokit.rest.git.getTree({
@@ -185,6 +181,7 @@ const githubRenameFile = async (
     ref: `heads/${branch}`,
     sha: commitSha,
   });
+  setBranchHeadSha(owner, repo, branch, commitSha);
 
   return {
     sha: commitSha,

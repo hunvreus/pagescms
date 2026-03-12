@@ -8,6 +8,7 @@ import { useConfig } from "@/contexts/config-context";
 import { useRepo } from "@/contexts/repo-context";
 import { useUser } from "@/contexts/user-context";
 import { hasGithubIdentity } from "@/lib/authz";
+import { isCacheEnabled, isConfigEnabled } from "@/lib/config-settings";
 import { signOut } from "@/lib/auth-client";
 import { getVisits } from "@/lib/tracker";
 import { getInitialsFromName } from "@/lib/utils/avatar";
@@ -162,7 +163,7 @@ function RepoSwitcher() {
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs text-muted-foreground">
-                  Recent repositories
+                  Recently visited
                 </DropdownMenuLabel>
                 {recentRepos.map((visit) => (
                   <DropdownMenuItem asChild key={`${visit.owner}/${visit.repo}/${visit.branch}`}>
@@ -173,7 +174,6 @@ function RepoSwitcher() {
                         className="size-5 rounded"
                       />
                       <span className="truncate">{visit.repo}</span>
-                      <span className="ml-auto truncate text-xs text-muted-foreground">{visit.branch}</span>
                     </Link>
                   </DropdownMenuItem>
                 ))}
@@ -231,13 +231,18 @@ export function RepoSidebar() {
 
     const items: NavItem[] = [];
 
-    if (canManageRepo) {
+    const configObject = (config.object as any) ?? {};
+
+    if (canManageRepo && isCacheEnabled(configObject)) {
       items.push({
         key: "admin-cache",
         label: "Cache",
         href: `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/cache`,
         icon: <Database className="size-4" />,
       });
+    }
+
+    if (canManageRepo) {
       items.push({
         key: "admin-collaborators",
         label: "Collaborators",
@@ -246,11 +251,11 @@ export function RepoSidebar() {
       });
     }
 
-    if (canManageRepo && !(config.object as any)?.settings?.hide) {
+    if (canManageRepo && isConfigEnabled(configObject)) {
       items.push({
-        key: "admin-settings",
-        label: "Settings",
-        href: `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/settings`,
+        key: "admin-configuration",
+        label: "Configuration",
+        href: `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/configuration`,
         icon: <Settings className="size-4" />,
       });
     }
