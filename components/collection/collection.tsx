@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, memo, useCallback, useEffect, useMemo, useState } from "react";
+import type { PaginationState, SortingState } from "@tanstack/react-table";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useConfig } from "@/contexts/config-context";
@@ -134,6 +135,7 @@ export function Collection({
 }) {
   const [tableSearch, setTableSearch] = useState("");
   const [data, setData] = useState<Record<string, any>[]>([]);
+  const [pageCount, setPageCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -197,16 +199,75 @@ export function Collection({
   }, [schema]);
 
   const primaryField = useMemo(() => getPrimaryField(schema) ?? "name", [schema]);
+  const isTree = schema.view?.layout === "tree";
+
+  const initialState = useMemo(() => {
+    const sortId = viewFields == null
+      ? "name"
+      : (
+          schema.view?.default?.sort
+          || (viewFields.find((item: any) => item.field.name === "date") && "date")
+          || primaryField
+        );
+
+    return {
+      sorting: [{
+        id: sortId,
+        desc: sortId === "date"
+          ? true
+          : schema.view?.default?.order === "desc"
+            ? true
+            : false,
+      }],
+      pagination: {
+        pageSize: 25,
+      },
+    };
+  }, [schema, primaryField, viewFields]);
+
+  const [sorting, setSorting] = useState<SortingState>(() => initialState.sorting);
+  const [pagination, setPagination] = useState<PaginationState>(() => ({
+    pageIndex: 0,
+    pageSize: initialState.pagination.pageSize,
+  }));
 
   const handleTableSearchChange = useCallback((value: string) => {
     setTableSearch(value);
   }, []);
 
-  const fetchCollectionData = useCallback(async (fetchPath: string): Promise<Record<string, any>[] | undefined> => {
+  const fetchCollectionData = useCallback(async (
+    fetchPath: string,
+    options?: {
+      page?: number;
+      pageSize?: number;
+      sortBy?: string;
+      sortDir?: "asc" | "desc";
+      query?: string;
+    },
+  ): Promise<{ contents: Record<string, any>[]; pageCount?: number } | undefined> => {
     if (!config) return undefined;
 
     try {
-      const apiUrl = `/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collections/${encodeURIComponent(name)}?path=${encodeURIComponent(fetchPath)}`;
+      const fieldPaths = Array.from(
+        new Set([
+          "name",
+          "path",
+          ...viewFields.map((item: any) => item.path),
+        ]),
+      );
+      const fieldsParam = fieldPaths.join(",");
+      const params = new URLSearchParams({
+        path: fetchPath,
+        fields: fieldsParam,
+      });
+      if (!isTree) {
+        params.set("page", String(options?.page ?? 1));
+        params.set("pageSize", String(options?.pageSize ?? pagination.pageSize));
+        if (options?.sortBy) params.set("sortBy", options.sortBy);
+        if (options?.sortDir) params.set("sortDir", options.sortDir);
+        if (options?.query) params.set("query", options.query);
+      }
+      const apiUrl = `/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collections/${encodeURIComponent(name)}?${params.toString()}`;
       
       const response = await fetch(apiUrl);
       if (response.status === 404 && fetchPath === (path || schema.path)) {
@@ -219,14 +280,22 @@ export function Collection({
       }
 
       const unsortedData = result.data.contents || [];
-      
-      if (unsortedData.length === 0) return [];
-      return unsortedData.sort((a: any, b: any) => {
-        if (a.type === "dir" && b.type === "file") return schema.view?.foldersFirst ? -1 : 1;
-        if (a.type === "file" && b.type === "dir") return schema.view?.foldersFirst ? 1 : -1;
-        return a.name.localeCompare(b.name);
-      });
 
+      if (isTree) {
+        if (unsortedData.length === 0) return { contents: [] };
+        return {
+          contents: unsortedData.sort((a: any, b: any) => {
+            if (a.type === "dir" && b.type === "file") return schema.view?.foldersFirst ? -1 : 1;
+            if (a.type === "file" && b.type === "dir") return schema.view?.foldersFirst ? 1 : -1;
+            return a.name.localeCompare(b.name);
+          }),
+        };
+      }
+
+      return {
+        contents: unsortedData,
+        pageCount: result.data.meta?.pageCount,
+      };
     } catch (err: any) {
       console.error(`Fetch failed for path ${fetchPath}:`, err);
       if (fetchPath === (path || schema.path)) {
@@ -236,7 +305,7 @@ export function Collection({
       }
       return undefined;
     }
-  }, [config, name, path, schema.path, schema.view?.foldersFirst]);
+  }, [config, isTree, name, pagination.pageSize, path, schema.path, schema.view?.foldersFirst, viewFields]);
 
   const handleDelete = useCallback((path: string) => {
     setData((prevData) => prevData?.filter((item: any) => item.path !== path));
@@ -465,43 +534,37 @@ export function Collection({
     return tableColumns;
   }, [config.owner, config.repo, config.branch, name, viewFields, primaryField, handleDelete, handleRename, schema.view?.foldersFirst, schema.view?.layout, schema.view?.node?.filename, schema.extension, handleConfirmRenameNode]);
 
-  const initialState = useMemo(() => {
-    const sortId = viewFields == null
-      ? "name"
-      : (
-          schema.view?.default?.sort
-          || (viewFields.find((item: any) => item.field.name === "date") && "date")
-          || primaryField
-        );
-
-    return {
-      sorting: [{
-        id: sortId,
-        desc: sortId === "date"
-          ? true
-          : schema.view?.default?.order === "desc"
-            ? true
-            : false,
-      }],
-      pagination: {
-        pageSize: 25,
-      },
-    };
-  }, [schema, primaryField, viewFields]);
+  useEffect(() => {
+    setSorting(initialState.sorting);
+    setPagination((prev) => ({
+      pageIndex: 0,
+      pageSize: prev.pageSize || initialState.pagination.pageSize,
+    }));
+  }, [initialState]);
 
   useEffect(() => {
-    const currentPath = schema.view?.layout === 'tree'
-      ? schema.path
-      : path || schema.path;
+    if (isTree) return;
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [isTree, tableSearch, path, schema.path]);
+
+  useEffect(() => {
+    const currentPath = isTree ? schema.path : path || schema.path;
     let isMounted = true;
 
     setIsLoading(true);
     setError(null);
 
-    fetchCollectionData(currentPath)
+    fetchCollectionData(currentPath, {
+      page: pagination.pageIndex + 1,
+      pageSize: pagination.pageSize,
+      sortBy: sorting[0]?.id,
+      sortDir: sorting[0]?.desc ? "desc" : "asc",
+      query: tableSearch.trim(),
+    })
       .then(fetchedData => {
         if (isMounted && fetchedData) {
-          setData(fetchedData);
+          setData(fetchedData.contents);
+          setPageCount(fetchedData.pageCount ?? 0);
         }
       })
       .finally(() => {
@@ -511,7 +574,7 @@ export function Collection({
       });
 
     return () => { isMounted = false };
-  }, [fetchCollectionData, path, schema.path, schema.view?.layout]);
+  }, [fetchCollectionData, isTree, pagination.pageIndex, pagination.pageSize, path, schema.path, sorting, tableSearch]);
 
   const handleNavigate = useCallback((newPath: string) => {
     const params = new URLSearchParams(Array.from(searchParams.entries()));
@@ -521,8 +584,9 @@ export function Collection({
 
   const handleExpand = useCallback(async (row: any) => {
     if (!row) return;
-    const subRows = await fetchCollectionData(row.isNode ? row.parentPath : row.path);
-    if (subRows !== undefined) {
+    const subRowsResult = await fetchCollectionData(row.isNode ? row.parentPath : row.path);
+    if (subRowsResult !== undefined) {
+      const subRows = subRowsResult.contents;
       setData((currentData: any[]) => {
         const updateNestedData = (items: any[]): any[] => {
           return items.map((item: any) => {
@@ -580,7 +644,7 @@ export function Collection({
                     <EllipsisVertical className="h-4 w-4" />
                   </Button>
                 </ButtonGroup>
-                {schema.view?.layout === 'tree' && (
+                {isTree && (
                   <Button variant="outline" size="icon-sm" className="w-8 h-8" disabled>
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -591,14 +655,14 @@ export function Collection({
         ))}
       </tbody>
     </table>
-  ), [schema.view?.layout]);
+  ), [isTree]);
 
-  const collectionPath = schema.view?.layout === "tree"
+  const collectionPath = isTree
     ? schema.path
     : path || schema.path;
 
   const addEntryHref = `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new${
-    schema.view?.layout !== "tree" && path && path !== schema.path
+    !isTree && path && path !== schema.path
       ? `?parent=${encodeURIComponent(path)}`
       : ""
   }`;
@@ -733,8 +797,14 @@ export function Collection({
           onExpand={handleExpand}
           pathname={pathname}
           path={path || schema.path}
-          isTree={schema.view?.layout === 'tree'}
+          isTree={isTree}
           primaryField={primaryField}
+          serverMode={!isTree}
+          pagination={pagination}
+          pageCount={pageCount}
+          onPaginationChange={setPagination}
+          sorting={sorting}
+          onSortingChange={setSorting}
         />;
 
   return (

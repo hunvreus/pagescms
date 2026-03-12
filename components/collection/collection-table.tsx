@@ -11,7 +11,9 @@ import {
   useReactTable,
   RowData,
   ExpandedState,
-  Row
+  Row,
+  PaginationState,
+  SortingState
 } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button";
 import {
@@ -68,24 +70,36 @@ export function CollectionTable<TData extends TableData>({
   columns,
   data,
   initialState,
-  search,
+  search = "",
   setSearch,
   onExpand,
   pathname,
   path,
   isTree = false,
-  primaryField
+  primaryField,
+  serverMode = false,
+  pagination,
+  pageCount: controlledPageCount,
+  onPaginationChange,
+  sorting,
+  onSortingChange,
 }: {
   columns: any[],
   data: Record<string, any>[],
   initialState?: Record<string, any>,
-  search: string,
-  setSearch: (value: string) => void,
+  search?: string,
+  setSearch?: (value: string) => void,
   onExpand: (row: any) => Promise<any>,
   pathname: string,
   path: string,
   isTree?: boolean,
-  primaryField?: string
+  primaryField?: string,
+  serverMode?: boolean,
+  pagination?: PaginationState,
+  pageCount?: number,
+  onPaginationChange?: (updater: PaginationState | ((old: PaginationState) => PaginationState)) => void,
+  sorting?: SortingState,
+  onSortingChange?: (updater: SortingState | ((old: SortingState) => SortingState)) => void,
 }) {
   const [expanded, setExpanded] = useState<ExpandedState>({});
   
@@ -128,18 +142,26 @@ export function CollectionTable<TData extends TableData>({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
+    getSortedRowModel: serverMode ? undefined : getSortedRowModel(),
     initialState,
-    getPaginationRowModel: getPaginationRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: serverMode ? undefined : getPaginationRowModel(),
+    getFilteredRowModel: serverMode ? undefined : getFilteredRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
     getRowCanExpand: (row) => row.original.isNode || row.original.type === "dir",
     getSubRows: (row) => row.subRows,
+    manualPagination: serverMode,
+    manualSorting: serverMode,
+    manualFiltering: serverMode,
+    pageCount: serverMode ? controlledPageCount : undefined,
     state: {
-      globalFilter: search,
+      globalFilter: serverMode ? undefined : search,
       expanded,
+      pagination: serverMode ? pagination : undefined,
+      sorting: serverMode ? sorting : undefined,
     },
-    onGlobalFilterChange: setSearch,
+    onGlobalFilterChange: serverMode ? undefined : setSearch,
+    onPaginationChange: serverMode ? onPaginationChange : undefined,
+    onSortingChange: serverMode ? onSortingChange : undefined,
     onExpandedChange: setExpanded,
   });
 
