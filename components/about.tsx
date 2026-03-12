@@ -1,6 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,11 +9,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
-
-const AboutDialogContent = dynamic(
-  () => import("./about-dialog-content").then((m) => m.AboutDialogContent),
-  { ssr: false },
-);
+import { AboutDialogContent } from "./about-dialog-content";
 
 export function About() {
   const [open, setOpen] = useState(false);
