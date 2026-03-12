@@ -388,19 +388,14 @@ export function CachePage({
                   <TimeWithTooltip value={data.fileMeta?.lastCheckedAt} />
                 </div>
               </div>
-              {data.fileMeta && data.fileMeta.status !== "ok" && (
+              {data.fileMeta?.status === "error" && (
                 <div className="mt-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-3 text-sm">
                   <p className="font-medium text-destructive">
-                    Cache status indicates an issue.
+                    Unknown cache error
                   </p>
-                  <p className="mt-1 break-words text-destructive/90">
-                    {data.fileMeta?.error || "Unknown cache error."}
-                  </p>
-                  <p className="mt-2 text-muted-foreground">
-                    Try <span className="font-medium text-foreground">Refresh cache</span>{" "}
-                    first. If the issue persists, use{" "}
-                    <span className="font-medium text-foreground">Clear cache</span>{" "}
-                    and refresh again.
+                  <p className="mt-1 text-muted-foreground">
+                    Try refreshing the cache first. If the issue persists, clear
+                    the cache and refresh it again.
                   </p>
                 </div>
               )}
