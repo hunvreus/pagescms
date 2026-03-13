@@ -167,7 +167,7 @@ function RepoSwitcher() {
                 </DropdownMenuLabel>
                 {recentRepos.map((visit) => (
                   <DropdownMenuItem asChild key={`${visit.owner}/${visit.repo}/${visit.branch}`}>
-                    <Link href={`/${visit.owner}/${visit.repo}/${encodeURIComponent(visit.branch)}`} prefetch={true}>
+                    <Link href={`/${visit.owner}/${visit.repo}/${encodeURIComponent(visit.branch)}`}>
                       <img
                         src={`https://github.com/${visit.owner}.png`}
                         alt={`${visit.owner}'s avatar`}
@@ -181,7 +181,7 @@ function RepoSwitcher() {
             )}
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/" prefetch={true}>Change project</Link>
+              <Link href="/">Change project</Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

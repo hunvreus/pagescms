@@ -60,33 +60,35 @@ function PaginationLink({
 
 function PaginationPrevious({
   className,
+  iconOnly = false,
   ...props
-}: React.ComponentProps<typeof PaginationLink>) {
+}: React.ComponentProps<typeof PaginationLink> & { iconOnly?: boolean }) {
   return (
     <PaginationLink
       aria-label="Go to previous page"
-      size="default"
-      className={cn("gap-1 px-2.5 sm:pl-2.5", className)}
+      size={iconOnly ? "icon-sm" : "default"}
+      className={cn(iconOnly ? "size-8" : "gap-1 px-2.5 sm:pl-2.5", className)}
       {...props}
     >
       <ChevronLeft className="h-4 w-4" />
-      <span className="hidden sm:block">Previous</span>
+      {iconOnly ? <span className="sr-only">Previous</span> : <span className="hidden sm:block">Previous</span>}
     </PaginationLink>
   );
 }
 
 function PaginationNext({
   className,
+  iconOnly = false,
   ...props
-}: React.ComponentProps<typeof PaginationLink>) {
+}: React.ComponentProps<typeof PaginationLink> & { iconOnly?: boolean }) {
   return (
     <PaginationLink
       aria-label="Go to next page"
-      size="default"
-      className={cn("gap-1 px-2.5 sm:pr-2.5", className)}
+      size={iconOnly ? "icon-sm" : "default"}
+      className={cn(iconOnly ? "size-8" : "gap-1 px-2.5 sm:pr-2.5", className)}
       {...props}
     >
-      <span className="hidden sm:block">Next</span>
+      {iconOnly ? <span className="sr-only">Next</span> : <span className="hidden sm:block">Next</span>}
       <ChevronRight className="h-4 w-4" />
     </PaginationLink>
   );

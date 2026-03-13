@@ -11,9 +11,7 @@ import {
   useReactTable,
   RowData,
   ExpandedState,
-  Row,
-  PaginationState,
-  SortingState
+  Row
 } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button";
 import {
@@ -70,36 +68,24 @@ export function CollectionTable<TData extends TableData>({
   columns,
   data,
   initialState,
-  search = "",
+  search,
   setSearch,
   onExpand,
   pathname,
   path,
   isTree = false,
-  primaryField,
-  serverMode = false,
-  pagination,
-  pageCount: controlledPageCount,
-  onPaginationChange,
-  sorting,
-  onSortingChange,
+  primaryField
 }: {
   columns: any[],
   data: Record<string, any>[],
   initialState?: Record<string, any>,
-  search?: string,
-  setSearch?: (value: string) => void,
+  search: string,
+  setSearch: (value: string) => void,
   onExpand: (row: any) => Promise<any>,
   pathname: string,
   path: string,
   isTree?: boolean,
-  primaryField?: string,
-  serverMode?: boolean,
-  pagination?: PaginationState,
-  pageCount?: number,
-  onPaginationChange?: (updater: PaginationState | ((old: PaginationState) => PaginationState)) => void,
-  sorting?: SortingState,
-  onSortingChange?: (updater: SortingState | ((old: SortingState) => SortingState)) => void,
+  primaryField?: string
 }) {
   const [expanded, setExpanded] = useState<ExpandedState>({});
   
@@ -142,26 +128,18 @@ export function CollectionTable<TData extends TableData>({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: serverMode ? undefined : getSortedRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     initialState,
-    getPaginationRowModel: serverMode ? undefined : getPaginationRowModel(),
-    getFilteredRowModel: serverMode ? undefined : getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
     getRowCanExpand: (row) => row.original.isNode || row.original.type === "dir",
     getSubRows: (row) => row.subRows,
-    manualPagination: serverMode,
-    manualSorting: serverMode,
-    manualFiltering: serverMode,
-    pageCount: serverMode ? controlledPageCount : undefined,
     state: {
-      globalFilter: serverMode ? undefined : search,
+      globalFilter: search,
       expanded,
-      pagination: serverMode ? pagination : undefined,
-      sorting: serverMode ? sorting : undefined,
     },
-    onGlobalFilterChange: serverMode ? undefined : setSearch,
-    onPaginationChange: serverMode ? onPaginationChange : undefined,
-    onSortingChange: serverMode ? onSortingChange : undefined,
+    onGlobalFilterChange: setSearch,
     onExpandedChange: setExpanded,
   });
 
@@ -207,7 +185,7 @@ export function CollectionTable<TData extends TableData>({
   }, [isTree, path, handleRowExpansion, table, data]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <Table className="border-separate border-spacing-0 text-sm">
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -345,12 +323,13 @@ export function CollectionTable<TData extends TableData>({
         </TableBody>
       </Table>
       {pageCount > 1 && (
-        <footer className="flex items-center justify-center">
-          <Pagination className="mx-0 w-auto justify-center">
+        <footer className="flex items-center justify-end">
+          <Pagination className="mx-0 w-auto justify-end">
             <PaginationContent>
               <PaginationItem>
                 <PaginationPrevious
                   href="#"
+                  iconOnly
                   onClick={(event) => {
                     event.preventDefault();
                     if (table.getCanPreviousPage()) table.previousPage();
@@ -379,6 +358,7 @@ export function CollectionTable<TData extends TableData>({
               <PaginationItem>
                 <PaginationNext
                   href="#"
+                  iconOnly
                   onClick={(event) => {
                     event.preventDefault();
                     if (table.getCanNextPage()) table.nextPage();

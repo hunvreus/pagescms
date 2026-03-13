@@ -1,7 +1,6 @@
 "use client";
 
 import { Fragment, memo, useCallback, useEffect, useMemo, useState } from "react";
-import type { PaginationState, SortingState } from "@tanstack/react-table";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useConfig } from "@/contexts/config-context";
@@ -135,7 +134,6 @@ export function Collection({
 }) {
   const [tableSearch, setTableSearch] = useState("");
   const [data, setData] = useState<Record<string, any>[]>([]);
-  const [pageCount, setPageCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -199,74 +197,24 @@ export function Collection({
   }, [schema]);
 
   const primaryField = useMemo(() => getPrimaryField(schema) ?? "name", [schema]);
-  const isTree = schema.view?.layout === "tree";
-
-  const initialState = useMemo(() => {
-    const sortId = viewFields == null
-      ? "name"
-      : (
-          schema.view?.default?.sort
-          || (viewFields.find((item: any) => item.field.name === "date") && "date")
-          || primaryField
-        );
-
-    return {
-      sorting: [{
-        id: sortId,
-        desc: sortId === "date"
-          ? true
-          : schema.view?.default?.order === "desc"
-            ? true
-            : false,
-      }],
-      pagination: {
-        pageSize: 25,
-      },
-    };
-  }, [schema, primaryField, viewFields]);
-
-  const [sorting, setSorting] = useState<SortingState>(() => initialState.sorting);
-  const [pagination, setPagination] = useState<PaginationState>(() => ({
-    pageIndex: 0,
-    pageSize: initialState.pagination.pageSize,
-  }));
+  const requestedFieldPaths = useMemo(() => {
+    const paths = new Set<string>(["name", "path", primaryField]);
+    viewFields.forEach((item: any) => paths.add(item.path));
+    return Array.from(paths);
+  }, [primaryField, viewFields]);
 
   const handleTableSearchChange = useCallback((value: string) => {
     setTableSearch(value);
   }, []);
 
-  const fetchCollectionData = useCallback(async (
-    fetchPath: string,
-    options?: {
-      page?: number;
-      pageSize?: number;
-      sortBy?: string;
-      sortDir?: "asc" | "desc";
-      query?: string;
-    },
-  ): Promise<{ contents: Record<string, any>[]; pageCount?: number } | undefined> => {
+  const fetchCollectionData = useCallback(async (fetchPath: string): Promise<Record<string, any>[] | undefined> => {
     if (!config) return undefined;
 
     try {
-      const fieldPaths = Array.from(
-        new Set([
-          "name",
-          "path",
-          ...viewFields.map((item: any) => item.path),
-        ]),
-      );
-      const fieldsParam = fieldPaths.join(",");
       const params = new URLSearchParams({
         path: fetchPath,
-        fields: fieldsParam,
+        fields: requestedFieldPaths.join(","),
       });
-      if (!isTree) {
-        params.set("page", String(options?.page ?? 1));
-        params.set("pageSize", String(options?.pageSize ?? pagination.pageSize));
-        if (options?.sortBy) params.set("sortBy", options.sortBy);
-        if (options?.sortDir) params.set("sortDir", options.sortDir);
-        if (options?.query) params.set("query", options.query);
-      }
       const apiUrl = `/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collections/${encodeURIComponent(name)}?${params.toString()}`;
       
       const response = await fetch(apiUrl);
@@ -280,22 +228,14 @@ export function Collection({
       }
 
       const unsortedData = result.data.contents || [];
+      
+      if (unsortedData.length === 0) return [];
+      return unsortedData.sort((a: any, b: any) => {
+        if (a.type === "dir" && b.type === "file") return schema.view?.foldersFirst ? -1 : 1;
+        if (a.type === "file" && b.type === "dir") return schema.view?.foldersFirst ? 1 : -1;
+        return a.name.localeCompare(b.name);
+      });
 
-      if (isTree) {
-        if (unsortedData.length === 0) return { contents: [] };
-        return {
-          contents: unsortedData.sort((a: any, b: any) => {
-            if (a.type === "dir" && b.type === "file") return schema.view?.foldersFirst ? -1 : 1;
-            if (a.type === "file" && b.type === "dir") return schema.view?.foldersFirst ? 1 : -1;
-            return a.name.localeCompare(b.name);
-          }),
-        };
-      }
-
-      return {
-        contents: unsortedData,
-        pageCount: result.data.meta?.pageCount,
-      };
     } catch (err: any) {
       console.error(`Fetch failed for path ${fetchPath}:`, err);
       if (fetchPath === (path || schema.path)) {
@@ -305,7 +245,7 @@ export function Collection({
       }
       return undefined;
     }
-  }, [config, isTree, name, pagination.pageSize, path, schema.path, schema.view?.foldersFirst, viewFields]);
+  }, [config, name, path, requestedFieldPaths, schema.path, schema.view?.foldersFirst]);
 
   const handleDelete = useCallback((path: string) => {
     setData((prevData) => prevData?.filter((item: any) => item.path !== path));
@@ -440,7 +380,6 @@ export function Collection({
               <Link
                 className="font-medium truncate"
                 href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/edit/${encodeURIComponent(row.original.path)}`}
-                prefetch={true}
               >
                 {CellView}
               </Link>
@@ -466,7 +405,6 @@ export function Collection({
               <Link
                 className={cn(buttonVariants({ variant: "outline", size: "xs" }))}
                 href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${name}/edit/${encodeURIComponent(row.original.path)}`}
-                prefetch={true}
               >
                 Edit
               </Link>
@@ -516,7 +454,6 @@ export function Collection({
                           ? `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new?parent=${encodeURIComponent(row.original.path)}`
                           : `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new?parent=${encodeURIComponent(row.original.path)}`
                       }
-                      prefetch={true}
                     >
                       <Plus className="h-4 w-4" />
                     </Link>
@@ -534,37 +471,43 @@ export function Collection({
     return tableColumns;
   }, [config.owner, config.repo, config.branch, name, viewFields, primaryField, handleDelete, handleRename, schema.view?.foldersFirst, schema.view?.layout, schema.view?.node?.filename, schema.extension, handleConfirmRenameNode]);
 
-  useEffect(() => {
-    setSorting(initialState.sorting);
-    setPagination((prev) => ({
-      pageIndex: 0,
-      pageSize: prev.pageSize || initialState.pagination.pageSize,
-    }));
-  }, [initialState]);
+  const initialState = useMemo(() => {
+    const sortId = viewFields == null
+      ? "name"
+      : (
+          schema.view?.default?.sort
+          || (viewFields.find((item: any) => item.field.name === "date") && "date")
+          || primaryField
+        );
+
+    return {
+      sorting: [{
+        id: sortId,
+        desc: sortId === "date"
+          ? true
+          : schema.view?.default?.order === "desc"
+            ? true
+            : false,
+      }],
+      pagination: {
+        pageSize: 25,
+      },
+    };
+  }, [schema, primaryField, viewFields]);
 
   useEffect(() => {
-    if (isTree) return;
-    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-  }, [isTree, tableSearch, path, schema.path]);
-
-  useEffect(() => {
-    const currentPath = isTree ? schema.path : path || schema.path;
+    const currentPath = schema.view?.layout === 'tree'
+      ? schema.path
+      : path || schema.path;
     let isMounted = true;
 
     setIsLoading(true);
     setError(null);
 
-    fetchCollectionData(currentPath, {
-      page: pagination.pageIndex + 1,
-      pageSize: pagination.pageSize,
-      sortBy: sorting[0]?.id,
-      sortDir: sorting[0]?.desc ? "desc" : "asc",
-      query: tableSearch.trim(),
-    })
+    fetchCollectionData(currentPath)
       .then(fetchedData => {
         if (isMounted && fetchedData) {
-          setData(fetchedData.contents);
-          setPageCount(fetchedData.pageCount ?? 0);
+          setData(fetchedData);
         }
       })
       .finally(() => {
@@ -574,7 +517,7 @@ export function Collection({
       });
 
     return () => { isMounted = false };
-  }, [fetchCollectionData, isTree, pagination.pageIndex, pagination.pageSize, path, schema.path, sorting, tableSearch]);
+  }, [fetchCollectionData, path, schema.path, schema.view?.layout]);
 
   const handleNavigate = useCallback((newPath: string) => {
     const params = new URLSearchParams(Array.from(searchParams.entries()));
@@ -584,9 +527,8 @@ export function Collection({
 
   const handleExpand = useCallback(async (row: any) => {
     if (!row) return;
-    const subRowsResult = await fetchCollectionData(row.isNode ? row.parentPath : row.path);
-    if (subRowsResult !== undefined) {
-      const subRows = subRowsResult.contents;
+    const subRows = await fetchCollectionData(row.isNode ? row.parentPath : row.path);
+    if (subRows !== undefined) {
       setData((currentData: any[]) => {
         const updateNestedData = (items: any[]): any[] => {
           return items.map((item: any) => {
@@ -644,7 +586,7 @@ export function Collection({
                     <EllipsisVertical className="h-4 w-4" />
                   </Button>
                 </ButtonGroup>
-                {isTree && (
+                {schema.view?.layout === 'tree' && (
                   <Button variant="outline" size="icon-sm" className="w-8 h-8" disabled>
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -655,14 +597,14 @@ export function Collection({
         ))}
       </tbody>
     </table>
-  ), [isTree]);
+  ), [schema.view?.layout]);
 
-  const collectionPath = isTree
+  const collectionPath = schema.view?.layout === "tree"
     ? schema.path
     : path || schema.path;
 
   const addEntryHref = `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new${
-    !isTree && path && path !== schema.path
+    schema.view?.layout !== "tree" && path && path !== schema.path
       ? `?parent=${encodeURIComponent(path)}`
       : ""
   }`;
@@ -778,9 +720,9 @@ export function Collection({
                 : (
                   <Link
                     className={buttonVariants({ variant: "default", size: "sm" })}
-                    href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/configuration`}
+                    href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/settings`}
                   >
-                    Go to configuration
+                    Go to settings
                   </Link>
                 )
               }
@@ -797,14 +739,8 @@ export function Collection({
           onExpand={handleExpand}
           pathname={pathname}
           path={path || schema.path}
-          isTree={isTree}
+          isTree={schema.view?.layout === 'tree'}
           primaryField={primaryField}
-          serverMode={!isTree}
-          pagination={pagination}
-          pageCount={pageCount}
-          onPaginationChange={setPagination}
-          sorting={sorting}
-          onSortingChange={setSorting}
         />;
 
   return (
