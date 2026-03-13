@@ -1,8 +1,4 @@
-const configuredMaxDuration = Number.parseInt(process.env.COLLECTION_API_MAX_DURATION ?? "30", 10);
-// <= 0 means "no explicit cap" from the route itself; platform/runtime limits still apply.
-export const maxDuration = Number.isFinite(configuredMaxDuration) && configuredMaxDuration > 0
-  ? configuredMaxDuration
-  : 86400;
+export const maxDuration = 30;
 
 import { type NextRequest } from "next/server";
 import { headers } from "next/headers";
