@@ -80,6 +80,7 @@ const schema = (field: Field, configObject?: Record<string, any>) => {
   let zodSchema: z.ZodTypeAny;
 
   const isMultiple = !!field.options?.multiple;
+  const enforceUnique = isMultiple && field.options?.unique === true;
 
   zodSchema = isMultiple
     ? z.array(z.string()).optional().nullable()
@@ -106,6 +107,19 @@ const schema = (field: Field, configObject?: Record<string, any>) => {
 
     if (isMultiple && hasEmptyElementInArray) {
       ctx.addIssue({ code: ZodIssueCode.custom, message: "File path cannot be empty within the list." });
+    }
+
+    if (enforceUnique && Array.isArray(data)) {
+      const normalizedPaths = data
+        .filter((path): path is string => typeof path === "string" && path !== "")
+        .map((path) => normalizeMediaPath(path));
+      if (new Set(normalizedPaths).size !== normalizedPaths.length) {
+        ctx.addIssue({
+          code: ZodIssueCode.custom,
+          message: "File paths must be unique.",
+        });
+        return;
+      }
     }
 
     if (isEmpty) return;

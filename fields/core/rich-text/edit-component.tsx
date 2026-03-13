@@ -763,7 +763,6 @@ const EditComponent = forwardRef(
           <MediaDialog
             ref={mediaDialogRef}
             media={mediaConfig.name}
-            selected={[]}
             maxSelected={1}
             initialPath={rootPath}
             extensions={allowedExtensions}

@@ -491,7 +491,6 @@ const EditComponent = forwardRef((props: any, ref) => {
           media={mediaConfig?.name}
           initialPath={rootPath}
           extensions={allowedExtensions}
-          selected={[]} 
           onSubmit={handleMediaDialogSubmit} 
         />}
       </div>

@@ -24,6 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const generateId = () => crypto.randomUUID().replace(/-/g, "").slice(0, 8);
 
@@ -118,9 +119,14 @@ const SortableItem = ({ id, file, config, media, onRemove }: {
 
   return (
     <div ref={setNodeRef} style={style}>
-      <div {...attributes} {...listeners}>
-        <Thumbnail name={media} path={file} className="rounded-md w-28 h-28"/>
-      </div>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div {...attributes} {...listeners}>
+            <Thumbnail name={media} path={file} className="rounded-md w-28 h-28"/>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>{file}</TooltipContent>
+      </Tooltip>
       <ImageTeaser file={file} config={config} onRemove={onRemove} />
     </div>
   );
@@ -175,19 +181,11 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
     return getAllowedExtensions(field, mediaConfig);
   }, [field, mediaConfig]);
 
-  const isMultiple = useMemo(() => 
-    !!options.multiple,
-    [options.multiple]
-  );
-
-  const remainingSlots = useMemo(() => 
-    options.multiple
-      ? (typeof options.multiple === "object" && options.multiple !== null && typeof options.multiple.max === "number")
-        ? options.multiple.max - files.length
-        : Infinity
-      : 1 - files.length,
-    [options.multiple, files.length]
-  );
+  const isMultiple = !!options.multiple;
+  const maxFiles = typeof options.multiple === "object" && options.multiple !== null && typeof options.multiple.max === "number"
+    ? options.multiple.max
+    : isMultiple ? undefined : 1;
+  const remainingSlots = (maxFiles ?? Infinity) - files.length;
 
   useEffect(() => {
     if (isMultiple) {
@@ -199,15 +197,19 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
 
   const handleUpload = useCallback((fileData: FileSaveData) => {
     if (!fileData.path) return;
-    
-    const newFile = { id: generateId(), path: normalizeMediaPath(fileData.path) };
-    
+
+    const normalizedPath = normalizeMediaPath(fileData.path);
+
     if (isMultiple) {
-      setFiles(prev => [...prev, newFile]);
+      setFiles((prev) => {
+        const next = [...prev, { id: generateId(), path: normalizedPath }];
+        if (typeof maxFiles !== "number") return next;
+        return next.slice(0, maxFiles);
+      });
     } else {
-      setFiles([newFile]);
+      setFiles([{ id: generateId(), path: normalizedPath }]);
     }
-  }, [isMultiple]);
+  }, [isMultiple, maxFiles]);
 
   const handleRemove = useCallback((fileId: string) => {
     setFiles(prev => prev.filter(file => file.id !== fileId));
@@ -234,21 +236,23 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
   };
 
   const handleSelected = useCallback((newPaths: string[]) => {
-    if (newPaths.length === 0) {
-      setFiles([]);
-    } else {
-      const newFiles = newPaths.map(path => ({
-        id: generateId(),
-        path: normalizeMediaPath(path)
-      }));
-      
-      if (isMultiple) {
-        setFiles(prev => [...prev, ...newFiles]);
-      } else {
-        setFiles([newFiles[0]]);
-      }
+    const normalizedPaths = newPaths.map((path) => normalizeMediaPath(path));
+
+    if (!isMultiple) {
+      const firstPath = normalizedPaths[0];
+      setFiles(firstPath ? [{ id: generateId(), path: firstPath }] : []);
+      return;
     }
-  }, [isMultiple]);
+
+    setFiles((prev) => {
+      const next = [
+        ...prev,
+        ...normalizedPaths.map((path) => ({ id: generateId(), path })),
+      ];
+      if (typeof maxFiles !== "number") return next;
+      return next.slice(0, maxFiles);
+    });
+  }, [isMultiple, maxFiles]);
 
   if (!mediaConfig) {
     return (
@@ -302,7 +306,12 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
               </div>
             ) : (
               <div className="aspect-square w-28 relative">
-                <Thumbnail name={mediaConfig.name} path={files[0].path} className="rounded-md w-28 h-28"/>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Thumbnail name={mediaConfig.name} path={files[0].path} className="rounded-md w-28 h-28"/>
+                  </TooltipTrigger>
+                  <TooltipContent>{files[0].path}</TooltipContent>
+                </Tooltip>
                 <ImageTeaser file={files[0].path} config={config} onRemove={() => handleRemove(files[0].id)} />
               </div>
             )
@@ -320,7 +329,6 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
                 initialPath={rootPath}
                 maxSelected={remainingSlots}
                 extensions={allowedExtensions}
-                selected={files.map((file) => file.path)}
                 onSubmit={handleSelected}
               >
                   <Button type="button" size="sm" variant="outline">

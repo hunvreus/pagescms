@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from "react";
+import { forwardRef, useCallback, useImperativeHandle, useState } from "react";
 import { useConfig } from "@/contexts/config-context";
 import { MediaView } from "@/components/media/media-view";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,6 @@ export interface MediaDialogHandle {
 
 const MediaDialog = forwardRef(({
   media,
-  selected,
   onSubmit,
   maxSelected,
   initialPath,
@@ -34,7 +33,6 @@ const MediaDialog = forwardRef(({
 }: {
   media?: string,
   onSubmit: (images: string[]) => void,
-  selected?: string[],
   maxSelected?: number,
   initialPath?: string,
   children?: React.ReactNode,
@@ -48,14 +46,8 @@ const MediaDialog = forwardRef(({
     ? getSchemaByName(config.object, media, "media")
     : config.object.media[0];
 
-  const [selectedImages, setSelectedImages] = useState(selected || []);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      setSelectedImages(selected || []);
-    }
-  }, [open, selected]);
 
   const handleSelect = useCallback((newSelected: string[]) => {
     setSelectedImages(newSelected);
@@ -68,8 +60,14 @@ const MediaDialog = forwardRef(({
   const handleUpload = useCallback((entry: FileSaveData) => {
     const path = entry.path;
     if (!path) return;
-    setSelectedImages((prev) => [...prev, path]);
-  }, []);
+    setSelectedImages((prev) => {
+      const next = [...prev, path];
+      if (maxSelected == null) return next;
+      if (maxSelected <= 0) return [];
+      if (next.length <= maxSelected) return next;
+      return next.slice(next.length - maxSelected);
+    });
+  }, [maxSelected]);
 
   useImperativeHandle(ref, () => ({
     open: () => setOpen(true),
@@ -78,6 +76,7 @@ const MediaDialog = forwardRef(({
 
   const handleOpenChange = useCallback((nextOpen: boolean) => {
     setOpen(nextOpen);
+    setSelectedImages([]);
     onOpenChange?.(nextOpen);
   }, [onOpenChange]);
 

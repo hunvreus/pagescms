@@ -415,19 +415,17 @@ const MediaView = ({
 
   const handleSelect = useCallback((path: string) => {
     setSelected((prevSelected) => {
-      let newSelected = prevSelected;
-
-      if (maxSelected != null && prevSelected.length >= maxSelected) {
-        newSelected = maxSelected > 1
-          ? newSelected.slice(1 - maxSelected)
-          : [];
+      const isSelected = prevSelected.includes(path);
+      if (isSelected) {
+        return prevSelected.filter((item) => item !== path);
       }
 
-      newSelected = newSelected.includes(path)
-        ? newSelected.filter(item => item !== path)
-        : [...newSelected, path];
-      
-      return newSelected;
+      const nextSelected = [...prevSelected, path];
+      if (maxSelected == null) return nextSelected;
+      if (maxSelected <= 0) return [];
+      if (nextSelected.length <= maxSelected) return nextSelected;
+
+      return nextSelected.slice(nextSelected.length - maxSelected);
     });
   }, [maxSelected]);
 

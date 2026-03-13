@@ -340,9 +340,12 @@ const generateFilename = (
     .replace(/\{minute\}/g, format(now, 'mm'))
     .replace(/\{second\}/g, format(now, 'ss'));
 
-  // Replace `{primary}` with the actual name of the primary field
+  // Replace `{primary}` and `{slug}` with the actual name of the primary field.
+  // `{slug}` is kept as an alias for compatibility with existing configs.
   const primaryField = getPrimaryField(schema);
-  pattern = pattern.replace(/\{primary\}/g, primaryField ? `{fields.${primaryField}}` : "untitled");
+  pattern = pattern
+    .replace(/\{primary\}/g, primaryField ? `{fields.${primaryField}}` : "untitled")
+    .replace(/\{slug\}/g, primaryField ? `{fields.${primaryField}}` : "untitled");
   
   // Replace field placeholders
   return pattern.replace(/\{fields\.([^}]+)\}/g, (_, fieldName) => {
