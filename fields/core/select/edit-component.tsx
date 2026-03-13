@@ -67,6 +67,7 @@ type FetchConfig = {
 
 const EditComponent = forwardRef((props: any, ref: any) => {
   const { value, field, onChange } = props;
+  const storeAsObject = field?.type === "reference" && field.options?.store === "object";
   
   const [isMounted, setIsMounted] = useState(false);
 
@@ -85,7 +86,7 @@ const EditComponent = forwardRef((props: any, ref: any) => {
   );
 
   const loadOptions = useCallback(
-    async (input: string) => {
+    async (input: string): Promise<any[]> => {
       const fetchConfig = field.options?.fetch as FetchConfig;
       const minLength = fetchConfig?.minlength || 0;
       if (!fetchConfig?.url || input.length < minLength) {
@@ -140,13 +141,31 @@ const EditComponent = forwardRef((props: any, ref: any) => {
     [field.options?.fetch]
   );
 
-  const [selectedOptions, setSelectedOptions] = useState(() => {
+  const [selectedOptions, setSelectedOptions] = useState<any>(() => {
     if (field.options?.multiple) {
       const values = Array.isArray(value) ? value : [];
-      return values.map((val: any) => ({ value: val, label: val }));
+      return values.map((val: any) => {
+        if (val && typeof val === "object") {
+          return {
+            value: String(val.value ?? ""),
+            label: String(val.label ?? val.value ?? ""),
+            image: val.image,
+            meta: val.meta,
+          };
+        }
+        return { value: String(val), label: String(val) };
+      });
     }
     if (!value) return null;
-    return { value: value, label: value };
+    if (value && typeof value === "object") {
+      return {
+        value: String(value.value ?? ""),
+        label: String(value.label ?? value.value ?? ""),
+        image: value.image,
+        meta: value.meta,
+      };
+    }
+    return { value: String(value), label: String(value) };
   });
 
   const handleChange = useCallback(
@@ -156,18 +175,29 @@ const EditComponent = forwardRef((props: any, ref: any) => {
       } else {
         const selectedValue = newValue 
           ? field.options?.multiple 
-            ? newValue.map((item: any) => ({ value: item.value, label: item.value }))
-            : { value: newValue.value, label: newValue.value }
+            ? newValue.map((item: any) => ({ value: item.value, label: item.label ?? item.value, image: item.image, meta: item.meta }))
+            : { value: newValue.value, label: newValue.label ?? newValue.value, image: newValue.image, meta: newValue.meta }
           : field.options?.multiple ? [] : null;
         setSelectedOptions(selectedValue);
       }
 
+      const toOutput = (item: any) => (
+        storeAsObject
+          ? {
+              value: item.value,
+              label: item.label ?? item.value,
+              ...(item.image ? { image: item.image } : {}),
+              ...(item.meta !== undefined ? { meta: item.meta } : {}),
+            }
+          : item.value
+      );
+
       const output = field.options?.multiple
-        ? newValue ? newValue.map((item: any) => item.value) : []
-        : newValue ? newValue.value : null;
+        ? newValue ? newValue.map((item: any) => toOutput(item)) : []
+        : newValue ? toOutput(newValue) : null;
       onChange(output);
     },
-    [onChange, field.options?.multiple, field.options?.fetch]
+    [onChange, field.options?.multiple, field.options?.fetch, storeAsObject]
   );
 
   if (!isMounted) return null;

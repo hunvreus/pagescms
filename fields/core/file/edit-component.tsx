@@ -22,7 +22,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const generateId = () => crypto.randomUUID().replace(/-/g, "").slice(0, 8);
 
@@ -61,15 +60,10 @@ const FileTeaser = ({ file, config, onRemove, getFileIcon }: {
 }) => {
   return (
     <>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="flex items-center gap-x-1 px-2 h-9 rounded-md bg-muted truncate text-sm">
-            {getFileIcon(file)}
-            {getFileName(file)}
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>{file}</TooltipContent>
-      </Tooltip>
+      <div title={file} className="flex items-center gap-x-1 px-2 h-9 rounded-md bg-muted truncate text-sm">
+        {getFileIcon(file)}
+        {getFileName(file)}
+      </div>
 
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>

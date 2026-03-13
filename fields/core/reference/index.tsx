@@ -1,9 +1,27 @@
 import { z } from "zod";
 import { Field } from "@/types/field";
 import { EditComponent } from "./edit-component";
+import { ViewComponent } from "./view-component";
 
 const schema = (field: Field) => {
-  let zodSchema: z.ZodTypeAny = z.coerce.string();
+  const storeMode = field.options?.store === "object" ? "object" : "value";
+
+  let zodSchema: z.ZodTypeAny = storeMode === "object"
+    ? z.object({
+        value: z.coerce.string(),
+        label: z.coerce.string(),
+        image: z.coerce.string().optional(),
+        meta: z.unknown().optional(),
+      })
+    : z.coerce.string();
+
+  if (storeMode === "object") {
+    zodSchema = z.preprocess((val) => {
+      if (val == null || val === "") return val;
+      if (typeof val === "string") return { value: val, label: val };
+      return val;
+    }, zodSchema);
+  }
 
   if (field.options?.multiple) zodSchema = z.array(zodSchema);
   
@@ -14,4 +32,4 @@ const schema = (field: Field) => {
 
 const label = "Reference";
 
-export { label, schema, EditComponent };
+export { label, schema, EditComponent, ViewComponent };

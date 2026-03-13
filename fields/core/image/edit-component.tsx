@@ -24,7 +24,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const generateId = () => crypto.randomUUID().replace(/-/g, "").slice(0, 8);
 
@@ -119,14 +118,9 @@ const SortableItem = ({ id, file, config, media, onRemove }: {
 
   return (
     <div ref={setNodeRef} style={style}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div {...attributes} {...listeners}>
-            <Thumbnail name={media} path={file} className="rounded-md w-28 h-28"/>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>{file}</TooltipContent>
-      </Tooltip>
+      <div title={file} {...attributes} {...listeners}>
+        <Thumbnail name={media} path={file} className="rounded-md w-28 h-28"/>
+      </div>
       <ImageTeaser file={file} config={config} onRemove={onRemove} />
     </div>
   );
@@ -141,9 +135,13 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
   
   const [files, setFiles] = useState<FileEntry[]>(() => 
     typeof value === "string"
-      ? [{ id: generateId(), path: normalizeMediaPath(value) }]
+      ? (value.trim()
+        ? [{ id: generateId(), path: normalizeMediaPath(value) }]
+        : [])
       : Array.isArray(value)
-        ? value.filter((path): path is string => typeof path === "string").map((path) => ({ id: generateId(), path: normalizeMediaPath(path) }))
+        ? value
+            .filter((path): path is string => typeof path === "string" && path.trim().length > 0)
+            .map((path) => ({ id: generateId(), path: normalizeMediaPath(path) }))
         : []
   );
 
@@ -306,12 +304,9 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
               </div>
             ) : (
               <div className="aspect-square w-28 relative">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Thumbnail name={mediaConfig.name} path={files[0].path} className="rounded-md w-28 h-28"/>
-                  </TooltipTrigger>
-                  <TooltipContent>{files[0].path}</TooltipContent>
-                </Tooltip>
+                <div title={files[0].path}>
+                  <Thumbnail name={mediaConfig.name} path={files[0].path} className="rounded-md w-28 h-28"/>
+                </div>
                 <ImageTeaser file={files[0].path} config={config} onRemove={() => handleRemove(files[0].id)} />
               </div>
             )

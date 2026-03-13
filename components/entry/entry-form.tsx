@@ -368,7 +368,7 @@ const ListField = ({
                 ))}
               </SortableContext>
             </DndContext>
-            <div className="flex items-center gap-2 flex-wrap pl-6.5">
+            <div className="flex items-center gap-2 flex-wrap">
               {typeof field.list === "object" &&
               field.list?.max &&
               arrayFields.length >= field.list.max ? null : (

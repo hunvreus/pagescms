@@ -173,7 +173,7 @@ const parseContents = (
           const parsedObject = parse(item.content, { format: schema.format, delimiters: schema.delimiters });
           if (Array.isArray(selectedFields) && selectedFields.length > 0) {
             const requestedFieldPaths = selectedFields
-              .filter((fieldPath) => fieldPath !== "name" && fieldPath !== "path")
+              .filter((fieldPath) => fieldPath !== "path")
               .map((fieldPath) => fieldPath.startsWith("fields.") ? fieldPath.replace(/^fields\./, "") : fieldPath);
             contentObject = pickAndTransformFields(parsedObject, schema.fields, requestedFieldPaths, config);
           } else {

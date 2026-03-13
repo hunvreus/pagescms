@@ -250,6 +250,15 @@ export function Entry({
         
         if (data.data.sha !== sha) setSha(data.data.sha);
         if (submitStartChangeVersion === changeVersionRef.current) {
+          const savedContentObject = schema?.list === true
+            ? contentObject.listWrapper
+            : contentObject;
+          const savedContentSnapshot = JSON.parse(JSON.stringify(savedContentObject));
+          setEntry((prevEntry) => (
+            prevEntry
+              ? { ...prevEntry, contentObject: savedContentSnapshot }
+              : prevEntry
+          ));
           setHasRegisteredChanges(false);
         }
 

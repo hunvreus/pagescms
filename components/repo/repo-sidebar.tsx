@@ -1,20 +1,23 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useTheme } from "next-themes";
 import { useConfig } from "@/contexts/config-context";
 import { useRepo } from "@/contexts/repo-context";
 import { useUser } from "@/contexts/user-context";
 import { hasGithubIdentity } from "@/lib/authz";
 import { isCacheEnabled, isConfigEnabled } from "@/lib/config-settings";
-import { signOut } from "@/lib/auth-client";
 import { getVisits } from "@/lib/tracker";
-import { getInitialsFromName } from "@/lib/utils/avatar";
 import { RepoBranches } from "@/components/repo/repo-branches";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { buttonVariants } from "@/components/ui/button";
 import { User } from "@/components/user";
 import { About } from "@/components/about";
 import {
@@ -39,7 +42,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -67,8 +76,13 @@ function RepoSwitcher() {
   const { owner, repo, branches = [] } = useRepo();
   const { config } = useConfig();
   const currentBranch = config?.branch ?? "";
-  const sortedBranches = useMemo(() => [...branches].sort((a, b) => a.localeCompare(b)), [branches]);
-  const [recentRepos, setRecentRepos] = useState<Array<{ owner: string; repo: string; branch: string }>>([]);
+  const sortedBranches = useMemo(
+    () => [...branches].sort((a, b) => a.localeCompare(b)),
+    [branches],
+  );
+  const [recentRepos, setRecentRepos] = useState<
+    Array<{ owner: string; repo: string; branch: string }>
+  >([]);
   const triggerWrapperRef = useRef<HTMLDivElement | null>(null);
   const [menuWidth, setMenuWidth] = useState<number | null>(null);
 
@@ -94,8 +108,12 @@ function RepoSwitcher() {
 
   const loadRecentRepos = useCallback(() => {
     const visits = getVisits()
-      .filter((visit) =>
-        !(visit.owner.toLowerCase() === owner.toLowerCase() && visit.repo.toLowerCase() === repo.toLowerCase())
+      .filter(
+        (visit) =>
+          !(
+            visit.owner.toLowerCase() === owner.toLowerCase() &&
+            visit.repo.toLowerCase() === repo.toLowerCase()
+          ),
       )
       .slice(0, 3)
       .map((visit) => ({
@@ -123,14 +141,24 @@ function RepoSwitcher() {
           }}
         >
           <DropdownMenuTrigger asChild>
-            <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+            <SidebarMenuButton
+              size="lg"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+            >
               <Avatar className="h-8 w-8 rounded-md">
-                <AvatarImage src={`https://github.com/${owner}.png`} alt={owner} />
-                <AvatarFallback>{owner.slice(0, 2).toUpperCase()}</AvatarFallback>
+                <AvatarImage
+                  src={`https://github.com/${owner}.png`}
+                  alt={owner}
+                />
+                <AvatarFallback>
+                  {owner.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{repo}</span>
-                <span className="truncate text-xs text-muted-foreground">{currentBranch || owner}</span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {currentBranch || owner}
+                </span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -138,17 +166,30 @@ function RepoSwitcher() {
           <DropdownMenuContent
             className="rounded-lg"
             align="start"
-            style={menuWidth ? { width: `${menuWidth}px`, minWidth: `${menuWidth}px` } : undefined}
+            style={
+              menuWidth
+                ? { width: `${menuWidth}px`, minWidth: `${menuWidth}px` }
+                : undefined
+            }
           >
             <DropdownMenuItem asChild>
-              <a href={`https://github.com/${owner}/${repo}`} target="_blank" rel="noreferrer">
+              <a
+                href={`https://github.com/${owner}/${repo}`}
+                target="_blank"
+                rel="noreferrer"
+              >
                 View on GitHub
                 <ArrowUpRight className="size-3 text-muted-foreground ml-auto" />
               </a>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-xs text-muted-foreground">Branches</DropdownMenuLabel>
-            <DropdownMenuRadioGroup value={currentBranch} onValueChange={handleBranchChange}>
+            <DropdownMenuLabel className="text-xs text-muted-foreground">
+              Branches
+            </DropdownMenuLabel>
+            <DropdownMenuRadioGroup
+              value={currentBranch}
+              onValueChange={handleBranchChange}
+            >
               {sortedBranches.map((branch) => (
                 <DropdownMenuRadioItem key={branch} value={branch}>
                   <span className="truncate">{branch}</span>
@@ -166,8 +207,13 @@ function RepoSwitcher() {
                   Recently visited
                 </DropdownMenuLabel>
                 {recentRepos.map((visit) => (
-                  <DropdownMenuItem asChild key={`${visit.owner}/${visit.repo}/${visit.branch}`}>
-                    <Link href={`/${visit.owner}/${visit.repo}/${encodeURIComponent(visit.branch)}`}>
+                  <DropdownMenuItem
+                    asChild
+                    key={`${visit.owner}/${visit.repo}/${visit.branch}`}
+                  >
+                    <Link
+                      href={`/${visit.owner}/${visit.repo}/${encodeURIComponent(visit.branch)}`}
+                    >
                       <img
                         src={`https://github.com/${visit.owner}.png`}
                         alt={`${visit.owner}'s avatar`}
@@ -209,7 +255,12 @@ export function RepoSidebar() {
       key: `content-${item.name}`,
       label: item.label || item.name,
       href: `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/${item.type}/${encodeURIComponent(item.name)}`,
-      icon: item.type === "collection" ? <FileStack className="size-4" /> : <FileText className="size-4" />,
+      icon:
+        item.type === "collection" ? (
+          <FileStack className="size-4" />
+        ) : (
+          <FileText className="size-4" />
+        ),
     }));
   }, [config]);
 
@@ -272,7 +323,8 @@ export function RepoSidebar() {
         <SidebarGroupContent>
           <SidebarMenu>
             {items.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const isActive =
+                pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
                 <SidebarMenuItem key={item.key}>
                   <SidebarMenuButton asChild isActive={isActive}>
