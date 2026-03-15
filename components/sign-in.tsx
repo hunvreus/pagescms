@@ -40,9 +40,23 @@ export function SignIn() {
         provider: "github",
         callbackURL,
         errorCallbackURL,
+        disableRedirect: true,
       });
-      if (result.error?.message) toast.error(result.error.message);
-    } finally {
+      if (result.error?.message) {
+        toast.error(result.error.message);
+        setSubmittingMethod(null);
+        return;
+      }
+
+      if (result.data?.url) {
+        window.location.assign(result.data.url);
+        return;
+      }
+
+      setSubmittingMethod(null);
+      toast.error("Could not start GitHub sign-in. Please try again.");
+    } catch (error: any) {
+      toast.error(error?.message || "Could not start GitHub sign-in.");
       setSubmittingMethod(null);
     }
   };

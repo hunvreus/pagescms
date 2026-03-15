@@ -10,7 +10,7 @@ const ViewComponent = ({ value }: { value: boolean}) => {
 
   return (
     <span className="flex items-center gap-x-1.5">
-      {value
+      {firstValue
         ? <Badge variant="secondary">True</Badge>
         : <Badge variant="secondary" className="text-muted-foreground">False</Badge>
       }
