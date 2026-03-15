@@ -29,7 +29,7 @@ export async function POST(
     if (!session?.user) return new Response(null, { status: 401 });
     const user = session.user;
 
-    const token = await getToken(user, params.owner, params.repo);
+    const token = await getToken(user, params.owner, params.repo, true);
     if (!token) throw new Error("Token not found");
 
     if (params.path === ".pages.yml") throw new Error(`Renaming the settings file isn't allowed.`);

@@ -17,9 +17,11 @@ import { getGithubAccount } from "@/lib/github-account";
 import { createHttpError } from "@/lib/api-error";
 
 // Get a token for a user (including collagborators who need to provide an owner/repo scope).
-const getToken = cache(async (user: User, owner: string, repo: string) => {
+const getToken = cache(async (user: User, owner: string, repo: string, verifyGithubAccess: boolean = false) => {
   const githubAccount = await getGithubAccount(user.id);
   if (githubAccount?.accessToken) {
+    if (!verifyGithubAccess) return githubAccount.accessToken;
+
     const hasGithubAccess = await canAccessRepoWithToken(githubAccount.accessToken, owner, repo);
     if (hasGithubAccess) return githubAccount.accessToken;
   }
