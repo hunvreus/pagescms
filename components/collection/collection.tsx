@@ -54,6 +54,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import useSWR, { useSWRConfig } from "swr";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -135,7 +136,8 @@ export function Collection({
   const [tableSearch, setTableSearch] = useState("");
   const [data, setData] = useState<Record<string, any>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const { cache, mutate } = useSWRConfig();
 
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -207,34 +209,73 @@ export function Collection({
     setTableSearch(value);
   }, []);
 
+  const buildCollectionApiUrl = useCallback((fetchPath: string): string => {
+    const params = new URLSearchParams({
+      path: fetchPath,
+      fields: requestedFieldPaths.join(","),
+    });
+    return `/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collections/${encodeURIComponent(name)}?${params.toString()}`;
+  }, [config.branch, config.owner, config.repo, name, requestedFieldPaths]);
+
+  const fetchCollectionByUrl = useCallback(async (apiUrl: string): Promise<Record<string, any>[]> => {
+    const response = await fetch(apiUrl);
+    const result = await requireApiSuccess<any>(response, "Fetch failed");
+
+    if (result.data.errors?.length) {
+      result.data.errors.forEach((e: any) => toast.error(e));
+    }
+
+    const unsortedData = result.data.contents || [];
+    if (unsortedData.length === 0) return [];
+    return unsortedData.sort((a: any, b: any) => {
+      if (a.type === "dir" && b.type === "file") return schema.view?.foldersFirst ? -1 : 1;
+      if (a.type === "file" && b.type === "dir") return schema.view?.foldersFirst ? 1 : -1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [schema.view?.foldersFirst]);
+
+  const collectionPath = schema.view?.layout === "tree"
+    ? schema.path
+    : path || schema.path;
+  const rootCollectionKey = useMemo(() => buildCollectionApiUrl(collectionPath), [buildCollectionApiUrl, collectionPath]);
+
+  const { data: swrCollectionData, error: swrCollectionError } = useSWR<Record<string, any>[]>(
+    rootCollectionKey,
+    fetchCollectionByUrl,
+    {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      dedupingInterval: 2000,
+    },
+  );
+
+  useEffect(() => {
+    setIsLoading(true);
+    setError(null);
+  }, [rootCollectionKey]);
+
+  useEffect(() => {
+    if (!swrCollectionData) return;
+    setData(swrCollectionData);
+    setIsLoading(false);
+    setError(null);
+  }, [swrCollectionData]);
+
+  useEffect(() => {
+    if (!swrCollectionError) return;
+    setError(swrCollectionError instanceof Error ? swrCollectionError.message : "Fetch failed");
+    setIsLoading(false);
+  }, [swrCollectionError]);
+
   const fetchCollectionData = useCallback(async (fetchPath: string): Promise<Record<string, any>[] | undefined> => {
-    if (!config) return undefined;
+    const apiUrl = buildCollectionApiUrl(fetchPath);
+    const cachedValue = cache.get(apiUrl) as { data?: Record<string, any>[] } | undefined;
+    if (cachedValue?.data) return cachedValue.data;
 
     try {
-      const params = new URLSearchParams({
-        path: fetchPath,
-        fields: requestedFieldPaths.join(","),
-      });
-      const apiUrl = `/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collections/${encodeURIComponent(name)}?${params.toString()}`;
-      
-      const response = await fetch(apiUrl);
-      if (response.status === 404 && fetchPath === (path || schema.path)) {
-        throw new Error("Not found");
-      }
-      const result = await requireApiSuccess<any>(response, "Fetch failed");
-
-      if (result.data.errors?.length) {
-        result.data.errors.forEach((e: any) => toast.error(e));
-      }
-
-      const unsortedData = result.data.contents || [];
-      
-      if (unsortedData.length === 0) return [];
-      return unsortedData.sort((a: any, b: any) => {
-        if (a.type === "dir" && b.type === "file") return schema.view?.foldersFirst ? -1 : 1;
-        if (a.type === "file" && b.type === "dir") return schema.view?.foldersFirst ? 1 : -1;
-        return a.name.localeCompare(b.name);
-      });
+      const rows = await fetchCollectionByUrl(apiUrl);
+      await mutate(apiUrl, rows, { revalidate: false });
+      return rows;
 
     } catch (err: any) {
       console.error(`Fetch failed for path ${fetchPath}:`, err);
@@ -243,9 +284,10 @@ export function Collection({
       } else {
         toast.error(`Could not load items inside ${getFileName(fetchPath)}: ${err.message}`);
       }
+      setIsLoading(false);
       return undefined;
     }
-  }, [config, name, path, requestedFieldPaths, schema.path, schema.view?.foldersFirst]);
+  }, [buildCollectionApiUrl, cache, fetchCollectionByUrl, mutate, path, schema.path]);
 
   const handleDelete = useCallback((path: string) => {
     setData((prevData) => prevData?.filter((item: any) => item.path !== path));
@@ -495,30 +537,6 @@ export function Collection({
     };
   }, [schema, primaryField, viewFields]);
 
-  useEffect(() => {
-    const currentPath = schema.view?.layout === 'tree'
-      ? schema.path
-      : path || schema.path;
-    let isMounted = true;
-
-    setIsLoading(true);
-    setError(null);
-
-    fetchCollectionData(currentPath)
-      .then(fetchedData => {
-        if (isMounted && fetchedData) {
-          setData(fetchedData);
-        }
-      })
-      .finally(() => {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      });
-
-    return () => { isMounted = false };
-  }, [fetchCollectionData, path, schema.path, schema.view?.layout]);
-
   const handleNavigate = useCallback((newPath: string) => {
     const params = new URLSearchParams(Array.from(searchParams.entries()));
     params.set("path", newPath || schema.path);
@@ -598,10 +616,6 @@ export function Collection({
       </tbody>
     </table>
   ), [schema.view?.layout]);
-
-  const collectionPath = schema.view?.layout === "tree"
-    ? schema.path
-    : path || schema.path;
 
   const addEntryHref = `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/new${
     schema.view?.layout !== "tree" && path && path !== schema.path

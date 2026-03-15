@@ -40,6 +40,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 import { requireApiSuccess } from "@/lib/api-client";
 import type { ApiResponse, FileSaveData, MediaItem } from "@/types/api";
+import useSWR, { useSWRConfig } from "swr";
 import {
   CornerLeftUp,
   House,
@@ -207,6 +208,7 @@ const MediaView = ({
 }) => {
   const { config } = useConfig();
   if (!config) throw new Error(`Configuration not found.`);
+  const { mutate } = useSWRConfig();
 
   const mediaConfig = useMemo(() => {
     if (!media) return config.object.media[0];
@@ -267,8 +269,6 @@ const MediaView = ({
     );
   }, [data, filteredExtensionsSet]);
 
-  const [isLoading, setIsLoading] = useState(true);
-
   const sortMediaItems = useCallback((items: MediaItem[]) => {
     return [...items].sort((a, b) => {
       if (a.type === b.type) return a.name.localeCompare(b.name);
@@ -276,45 +276,47 @@ const MediaView = ({
     });
   }, []);
   
+  const buildMediaApiUrl = useCallback((targetPath: string): string => (
+    `/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/media/${encodeURIComponent(mediaConfig.name)}/${encodeURIComponent(targetPath)}`
+  ), [config.branch, config.owner, config.repo, mediaConfig.name]);
+
+  const mediaKey = useMemo(() => buildMediaApiUrl(path), [buildMediaApiUrl, path]);
+  const fetchMediaByUrl = useCallback(async (apiUrl: string): Promise<MediaItem[]> => {
+    const response = await fetch(apiUrl);
+    const payload = await requireApiSuccess<any>(
+      response,
+      "Failed to fetch media",
+    );
+    return payload.data as MediaItem[];
+  }, []);
+
+  const {
+    data: swrMediaData,
+    error: swrMediaError,
+    isLoading: swrMediaLoading,
+  } = useSWR<MediaItem[]>(
+    mediaKey,
+    fetchMediaByUrl,
+    {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      dedupingInterval: 2000,
+    },
+  );
+
   useEffect(() => {
-    if (!config) return;
-    const cfg = config;
+    if (!swrMediaData) return;
+    setData(swrMediaData);
+    setError(null);
+  }, [swrMediaData]);
 
-    const controller = new AbortController();
+  useEffect(() => {
+    if (!swrMediaError) return;
+    const message = swrMediaError instanceof Error ? swrMediaError.message : "Failed to fetch media.";
+    setError(message);
+  }, [swrMediaError]);
 
-    async function fetchMedia() {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const response = await fetch(
-          `/api/${cfg.owner}/${cfg.repo}/${encodeURIComponent(cfg.branch)}/media/${encodeURIComponent(mediaConfig.name)}/${encodeURIComponent(path)}`,
-          { signal: controller.signal },
-        );
-        const payload = await requireApiSuccess<any>(
-          response,
-          "Failed to fetch media",
-        );
-        if (controller.signal.aborted) return;
-
-        setData(payload.data);
-      } catch (error: unknown) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
-        const message = error instanceof Error ? error.message : "Failed to fetch media.";
-        setError(message);
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    fetchMedia();
-
-    return () => {
-      controller.abort();
-    };
-  }, [config.branch, config.owner, config.repo, mediaConfig.name, path]);
+  const isLoading = swrMediaLoading && !data;
 
   const handleUpload = useCallback((entry: FileSaveData) => {
     if (!entry.path || !entry.name) return;
@@ -340,8 +342,9 @@ const MediaView = ({
 
         return sortMediaItems([...prevData, mediaEntry]);
     });
+    void mutate((key) => typeof key === "string" && key.includes(`/media/${encodeURIComponent(mediaConfig.name)}/`));
     onUpload?.(entry);
-  }, [onUpload, sortMediaItems]);
+  }, [mediaConfig.name, mutate, onUpload, sortMediaItems]);
 
   const handleDelete = useCallback((deletedPath: string) => {
     setData((prevData) => {
@@ -349,7 +352,8 @@ const MediaView = ({
       const next = prevData.filter((item) => item.path !== deletedPath);
       return next.length === prevData.length ? prevData : next;
     });
-  }, []);
+    void mutate((key) => typeof key === "string" && key.includes(`/media/${encodeURIComponent(mediaConfig.name)}/`));
+  }, [mediaConfig.name, mutate]);
 
   const handleRename = useCallback((oldPath: string, newPath: string) => {
     setData((prevData) => {
@@ -368,7 +372,8 @@ const MediaView = ({
       const next = prevData.filter((item) => item.path !== oldPath);
       return next.length === prevData.length ? prevData : next;
     });
-  }, []);
+    void mutate((key) => typeof key === "string" && key.includes(`/media/${encodeURIComponent(mediaConfig.name)}/`));
+  }, [mediaConfig.name, mutate, sortMediaItems]);
 
   const handleFolderCreate = useCallback((entry: unknown) => {
     const createdPath = typeof entry === "string"
@@ -397,7 +402,8 @@ const MediaView = ({
       }
       return sortMediaItems([...prevData, parent]);
     });
-  }, [sortMediaItems]);
+    void mutate((key) => typeof key === "string" && key.includes(`/media/${encodeURIComponent(mediaConfig.name)}/`));
+  }, [mediaConfig.name, mutate, sortMediaItems]);
 
   const handleNavigate = useCallback((newPath: string) => {
     setPath(newPath);

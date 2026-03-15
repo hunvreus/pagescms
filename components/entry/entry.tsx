@@ -48,6 +48,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner";
 import { EllipsisVertical, History } from "lucide-react";
+import useSWR, { useSWRConfig } from "swr";
 
 type LintView = {
   state: {
@@ -89,6 +90,7 @@ export function Entry({
   // TODO: this feels like a bit of a hack
   const [refetchTrigger, setRefetchTrigger] = useState<number>(0);
   const changeVersionRef = useRef(0);
+  const { mutate } = useSWRConfig();
 
   const router = useRouter();
   
@@ -138,52 +140,68 @@ export function Entry({
         : {};
   }, [schema, entry, path]);
 
+  const entryApiUrl = useMemo(() => (
+    path
+      ? `/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/entries/${encodeURIComponent(path)}?name=${encodeURIComponent(name)}`
+      : null
+  ), [config.branch, config.owner, config.repo, name, path]);
+
+  const fetchEntryByUrl = useCallback(async (apiUrl: string): Promise<EntryData> => {
+    const response = await fetch(apiUrl);
+    const data = await requireApiSuccess<any>(
+      response,
+      "Failed to fetch entry",
+    );
+    return data.data as EntryData;
+  }, []);
+
+  const {
+    data: swrEntryData,
+    error: swrEntryError,
+    isLoading: swrEntryLoading,
+    mutate: mutateEntry,
+  } = useSWR<EntryData>(
+    entryApiUrl,
+    fetchEntryByUrl,
+    {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      dedupingInterval: 2000,
+    },
+  );
+
   useEffect(() => {
-    const controller = new AbortController();
+    if (!path) return;
+    setIsLoading(swrEntryLoading);
+  }, [path, swrEntryLoading]);
 
-    const fetchEntry = async () => {
-      if (path) {
-        setIsLoading(true);
-        setError(null);
+  useEffect(() => {
+    if (!swrEntryData || !path) return;
+    setEntry(swrEntryData);
+    setSha(swrEntryData.sha);
+    setHasRegisteredChanges(false);
+    setIsLoading(false);
+    setError(null);
 
-        try {
-          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/entries/${encodeURIComponent(path)}?name=${encodeURIComponent(name)}`, {
-            signal: controller.signal,
-          });
-          const data = await requireApiSuccess<any>(
-            response,
-            "Failed to fetch entry",
-          );
-          if (controller.signal.aborted) return;
-          
-          setEntry(data.data);
-          setSha(data.data.sha);
-          setHasRegisteredChanges(false);
+    if (initialPath && schema && schema.type === "collection") {
+      const primaryField = getPrimaryField(schema);
+      setDisplayTitle(`Editing "${swrEntryData.contentObject?.[primaryField] || getFileName(normalizePath(path))}"`);
+    } else if (!title && path && path !== ".pages.yml") {
+      setDisplayTitle(`Editing "${getFileName(normalizePath(path))}"`);
+    }
+  }, [initialPath, path, schema, swrEntryData, title]);
 
-          if (initialPath && schema && schema.type === "collection") {
-            const primaryField = getPrimaryField(schema);
-            setDisplayTitle(`Editing "${data.data.contentObject?.[primaryField] || getFileName(normalizePath(path))}"`);
-          } else if (!title && path && path !== ".pages.yml") {
-            setDisplayTitle(`Editing "${getFileName(normalizePath(path))}"`);
-          }
-        } catch (error: unknown) {
-          if (error instanceof DOMException && error.name === "AbortError") return;
-          const message = error instanceof Error ? error.message : "Failed to fetch entry.";
-          setError(message);
-        } finally {
-          if (!controller.signal.aborted) {
-            setIsLoading(false);
-          }
-        }
-      }
-    };
+  useEffect(() => {
+    if (!swrEntryError) return;
+    const message = swrEntryError instanceof Error ? swrEntryError.message : "Failed to fetch entry.";
+    setError(message);
+    setIsLoading(false);
+  }, [swrEntryError]);
 
-    fetchEntry();
-
-    return () => {
-      controller.abort();
-    };
-  }, [config.branch, config.owner, config.repo, name, path, refetchTrigger, initialPath, schema, title]);
+  useEffect(() => {
+    if (refetchTrigger === 0 || !path) return;
+    void mutateEntry();
+  }, [mutateEntry, path, refetchTrigger]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -260,9 +278,19 @@ export function Entry({
               : prevEntry
           ));
           setHasRegisteredChanges(false);
+          if (entryApiUrl) {
+            void mutate(entryApiUrl, {
+              ...data.data,
+              contentObject: savedContentSnapshot,
+            }, { revalidate: false });
+          }
         }
 
         if (!path && schemaType === "collection") router.push(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/edit/${encodeURIComponent(data.data.path)}`);
+        if (schemaType === "collection") {
+          const collectionKeyPrefix = `/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collections/${encodeURIComponent(name)}?`;
+          void mutate((key) => typeof key === "string" && key.startsWith(collectionKeyPrefix));
+        }
 
         resolve(data);
       } catch (error) {
@@ -300,16 +328,30 @@ export function Entry({
   const handleDelete = useCallback((path: string) => {
     // TODO: disable save button or freeze form while deleting?
     if (schemaType === "collection") {
+      const collectionKeyPrefix = `/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collections/${encodeURIComponent(name)}?`;
+      void mutate((key) => typeof key === "string" && key.startsWith(collectionKeyPrefix));
+    }
+    if (schemaType === "collection") {
       router.push(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}`);
     } else {
+      if (entryApiUrl) {
+        void mutate(entryApiUrl, undefined, { revalidate: true });
+      }
       setRefetchTrigger((prev) => prev + 1);
     }
-  }, [config.branch, config.owner, config.repo, name, router, schemaType]);
+  }, [config.branch, config.owner, config.repo, entryApiUrl, mutate, name, router, schemaType]);
 
   const handleRename = useCallback((oldPath: string, newPath: string) => {
+    if (schemaType === "collection") {
+      const collectionKeyPrefix = `/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collections/${encodeURIComponent(name)}?`;
+      void mutate((key) => typeof key === "string" && key.startsWith(collectionKeyPrefix));
+    }
+    if (entryApiUrl) {
+      void mutate(entryApiUrl, undefined, { revalidate: false });
+    }
     setPath(newPath);
     router.replace(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/edit/${encodeURIComponent(newPath)}`);
-  }, [config.branch, config.owner, config.repo, name, router]);
+  }, [config.branch, config.owner, config.repo, entryApiUrl, mutate, name, router, schemaType]);
 
   const breadcrumbNode = useMemo(() => {
     if (!path || schemaType !== "collection" || !schema) {
