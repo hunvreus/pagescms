@@ -141,32 +141,43 @@ const EditComponent = forwardRef((props: any, ref: any) => {
     [field.options?.fetch]
   );
 
-  const [selectedOptions, setSelectedOptions] = useState<any>(() => {
-    if (field.options?.multiple) {
-      const values = Array.isArray(value) ? value : [];
-      return values.map((val: any) => {
-        if (val && typeof val === "object") {
-          return {
-            value: String(val.value ?? ""),
-            label: String(val.label ?? val.value ?? ""),
-            image: val.image,
-            meta: val.meta,
-          };
-        }
-        return { value: String(val), label: String(val) };
-      });
-    }
-    if (!value) return null;
-    if (value && typeof value === "object") {
-      return {
-        value: String(value.value ?? ""),
-        label: String(value.label ?? value.value ?? ""),
-        image: value.image,
-        meta: value.meta,
-      };
-    }
-    return { value: String(value), label: String(value) };
-  });
+  const toSelectedOptions = useCallback(
+    (inputValue: any) => {
+      if (field.options?.multiple) {
+        const values = Array.isArray(inputValue) ? inputValue : [];
+        return values.map((val: any) => {
+          if (val && typeof val === "object") {
+            return {
+              value: String(val.value ?? ""),
+              label: String(val.label ?? val.value ?? ""),
+              image: val.image,
+              meta: val.meta,
+            };
+          }
+          return { value: String(val), label: String(val) };
+        });
+      }
+      if (!inputValue) return null;
+      if (inputValue && typeof inputValue === "object") {
+        return {
+          value: String(inputValue.value ?? ""),
+          label: String(inputValue.label ?? inputValue.value ?? ""),
+          image: inputValue.image,
+          meta: inputValue.meta,
+        };
+      }
+      return { value: String(inputValue), label: String(inputValue) };
+    },
+    [field.options?.multiple]
+  );
+
+  const [selectedOptions, setSelectedOptions] = useState<any>(() =>
+    toSelectedOptions(value)
+  );
+
+  useEffect(() => {
+    setSelectedOptions(toSelectedOptions(value));
+  }, [value, toSelectedOptions]);
 
   const handleChange = useCallback(
     (newValue: any) => {

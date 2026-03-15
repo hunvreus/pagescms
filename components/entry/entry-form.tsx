@@ -184,7 +184,10 @@ const ListField = ({
   renderFields: RenderFields;
   registerBeforeSubmitHook?: RegisterBeforeSubmitHook;
 }) => {
+  const supportsItemCollapse =
+    field.type === "object" || field.type === "block";
   const isCollapsible = !!(
+    supportsItemCollapse &&
     field.list &&
     !(typeof field.list === "object" && field.list?.collapsible === false)
   );

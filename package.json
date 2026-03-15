@@ -17,7 +17,9 @@
     "db:generate": "npx drizzle-kit generate",
     "db:migrate": "npx drizzle-kit migrate",
     "auth:generate": "npx @better-auth/cli generate --config ./lib/auth.ts --output ./auth-schema.ts --yes",
-    "db:clear-cache": "npx tsx db/scripts/clear-cache.ts"
+    "db:clear-cache": "npx tsx db/scripts/clear-cache.ts",
+    "db:collaborators:export": "npx tsx db/scripts/collaborators/export.ts",
+    "db:collaborators:import": "npx tsx db/scripts/collaborators/import.ts"
   },
   "dependencies": {
     "@codemirror/lang-html": "^6.4.9",

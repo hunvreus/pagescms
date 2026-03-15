@@ -135,6 +135,51 @@ Note: for local webhook delivery from GitHub, use a public tunnel URL as `--base
 
 There are [plenty of other options](https://nextjs.org/docs/app/building-your-application/deploying#self-hosting): Fly.io, Digital Ocean, Render, SST, etc.
 
+## Collaborator Export/Import (CSV)
+
+If you need to migrate collaborator access between environments/databases, you can export/import collaborators as CSV.
+
+### Export collaborators
+
+```bash
+npm run db:collaborators:export -- --output=collaborators.csv
+```
+
+Default output file is `collaborators-export.csv` in the current directory.
+
+### Import collaborators
+
+```bash
+npm run db:collaborators:import -- --input=collaborators.csv --default-invited-by-email=admin@example.com
+```
+
+Supported flags:
+
+- `--input=<path>`: required CSV file path
+- `--replace`: delete existing collaborator rows before import
+- `--default-invited-by-user-id=<userId>`: fallback inviter user id
+- `--default-invited-by-email=<email>`: fallback inviter email
+
+Notes:
+
+- Import upserts by `(owner, repo, email)` (case-insensitive).
+- `invitedBy` is optional; if no inviter can be resolved from CSV or fallback flags, it is imported as `null`.
+- `userId` is optional; if omitted, import attempts to match by collaborator email.
+
+CSV columns used:
+
+- `type`
+- `installationId`
+- `ownerId`
+- `repoId`
+- `owner`
+- `repo`
+- `branch`
+- `email`
+- `userId`
+- `invitedBy`
+- `invitedByEmail`
+
 ## License
 
 Everything in this repo is released under the [MIT License](LICENSE).

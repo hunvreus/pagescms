@@ -73,10 +73,10 @@ export function About() {
         <Tooltip>
           <TooltipTrigger asChild>
             <DialogTrigger asChild>
-              <Button size="icon-sm">
-                <span className="bg-primary text-primary-foreground rounded-lg size-6 flex items-center justify-center">
+              <Button size="icon-sm" variant="ghost">
+                <span className="bg-primary text-primary-foreground rounded-md size-6 flex items-center justify-center">
                   <svg
-                    className="size-4"
+                    className="size-3"
                     viewBox="0 0 24 24"
                     fill="currentColor"
                     xmlns="http://www.w3.org/2000/svg"
