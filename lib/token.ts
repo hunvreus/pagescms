@@ -14,12 +14,7 @@ import {
 import { and, eq, sql } from "drizzle-orm";
 import { User } from "@/types/user";
 import { getGithubAccount } from "@/lib/github-account";
-
-const createHttpError = (message: string, status: number) => {
-  const error = new Error(message) as Error & { status: number };
-  error.status = status;
-  return error;
-};
+import { createHttpError } from "@/lib/api-error";
 
 // Get a token for a user (including collagborators who need to provide an owner/repo scope).
 const getToken = cache(async (user: User, owner: string, repo: string) => {
@@ -51,9 +46,9 @@ const getToken = cache(async (user: User, owner: string, repo: string) => {
 // Get the GitHub App installation token for a specific repository.
 const getInstallationToken = cache(async (owner: string, repo: string) => {
   const app = new App({
-		appId: process.env.GITHUB_APP_ID!,
-		privateKey: process.env.GITHUB_APP_PRIVATE_KEY!,
-	});
+    appId: process.env.GITHUB_APP_ID!,
+    privateKey: process.env.GITHUB_APP_PRIVATE_KEY!,
+  });
 
   const repoInstallation = await app.octokit.request(
     "GET /repos/{owner}/{repo}/installation",
@@ -61,46 +56,51 @@ const getInstallationToken = cache(async (owner: string, repo: string) => {
   );
   if (!repoInstallation) throw new Error(`Installation token not found for "${owner}/${repo}".`);
 
-  let tokenData = await db.query.githubInstallationTokenTable.findFirst({
-    where: eq(githubInstallationTokenTable.installationId, repoInstallation.data.id)
-  });
+  const installationId = repoInstallation.data.id;
 
-  if (tokenData && Date.now() < tokenData.expiresAt.getTime() - 60_000) {
-    const token = await decrypt(tokenData.ciphertext, tokenData.iv);
-    if (!token) throw new Error(`Token could not be retrieved and/or decrypted.`);
+  return db.transaction(async (tx) => {
+    // Prevent duplicate token refresh/insert under concurrent requests for the same installation.
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(${installationId})`);
 
-    return token;
-  }
+    let tokenData = await tx.query.githubInstallationTokenTable.findFirst({
+      where: eq(githubInstallationTokenTable.installationId, installationId)
+    });
 
-  const installationToken = await app.octokit.request(
-    "POST /app/installations/{installation_id}/access_tokens",
-    {
-      installation_id: repoInstallation.data.id,
-    },
-  );
+    if (tokenData && Date.now() < tokenData.expiresAt.getTime() - 60_000) {
+      const token = await decrypt(tokenData.ciphertext, tokenData.iv);
+      if (!token) throw new Error(`Token could not be retrieved and/or decrypted.`);
+      return token;
+    }
 
-  const { ciphertext, iv } = await encrypt(installationToken.data.token);
-    
-  const expiresAt = new Date(installationToken.data.expires_at)
-
-  if (tokenData) {
-    await db.update(githubInstallationTokenTable).set({
-      ciphertext,
-      iv,
-      expiresAt
-    }).where(
-      eq(githubInstallationTokenTable.id, tokenData.id)
+    const installationToken = await app.octokit.request(
+      "POST /app/installations/{installation_id}/access_tokens",
+      {
+        installation_id: installationId,
+      },
     );
-  } else {
-    await db.insert(githubInstallationTokenTable).values({
-      ciphertext,
-      iv,
-      installationId: repoInstallation.data.id,
-      expiresAt
-    }).returning();
-  }
 
-  return installationToken.data.token;
+    const { ciphertext, iv } = await encrypt(installationToken.data.token);
+    const expiresAt = new Date(installationToken.data.expires_at);
+
+    if (tokenData) {
+      await tx.update(githubInstallationTokenTable).set({
+        ciphertext,
+        iv,
+        expiresAt
+      }).where(
+        eq(githubInstallationTokenTable.id, tokenData.id)
+      );
+    } else {
+      await tx.insert(githubInstallationTokenTable).values({
+        ciphertext,
+        iv,
+        installationId,
+        expiresAt
+      });
+    }
+
+    return installationToken.data.token;
+  });
 });
 
 // Get the GitHub user token.

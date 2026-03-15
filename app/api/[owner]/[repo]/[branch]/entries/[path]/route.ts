@@ -9,13 +9,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { assertGithubIdentity } from "@/lib/authz";
 import { getToken } from "@/lib/token";
-import { toErrorResponse } from "@/lib/api-error";
-
-const createHttpError = (message: string, status: number) => {
-  const error = new Error(message) as Error & { status: number };
-  error.status = status;
-  return error;
-};
+import { createHttpError, toErrorResponse } from "@/lib/api-error";
 
 /**
  * Fetches and parses individual file contents from GitHub repositories

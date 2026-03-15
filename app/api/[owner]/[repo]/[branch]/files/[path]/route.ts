@@ -294,8 +294,16 @@ const githubSaveFile = async (
         throw new Error('Expected directory listing');
       }
 
-      const [filename, extension] = path.split('/').pop()!.split('.');
-      const pattern = new RegExp(`^${filename}-(\\d+)\\.${extension}$`);
+      const basename = path.split('/').pop() || "";
+      const lastDotIndex = basename.lastIndexOf(".");
+      const filename = lastDotIndex > 0 ? basename.slice(0, lastDotIndex) : basename;
+      const extension = lastDotIndex > 0 ? basename.slice(lastDotIndex + 1) : "";
+      const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const escapedFilename = escapeRegExp(filename);
+      const escapedExtension = escapeRegExp(extension);
+      const pattern = extension
+        ? new RegExp(`^${escapedFilename}-(\\d+)\\.${escapedExtension}$`)
+        : new RegExp(`^${escapedFilename}-(\\d+)$`);
       const maxNumber = Math.max(0, ...data
         .map(file => {
           const match = file.name.match(pattern);
@@ -304,7 +312,10 @@ const githubSaveFile = async (
 
       // Try up to 3 times with incrementing numbers
       for (let i = 1; i <= 3; i++) {
-        const newPath = `${parentDir ? parentDir + '/' : ''}${filename}-${maxNumber + i}.${extension}`;
+        const candidateFilename = extension
+          ? `${filename}-${maxNumber + i}.${extension}`
+          : `${filename}-${maxNumber + i}`;
+        const newPath = `${parentDir ? parentDir + '/' : ''}${candidateFilename}`;
         try {
           const response = await octokit.rest.repos.createOrUpdateFileContents({
             owner,
@@ -395,20 +406,20 @@ export async function DELETE(
       owner: params.owner,
       repo: params.repo,
       branch: params.branch,
-      path: params.path,
+      path: normalizedPath,
       sha: sha,
-      message: `Delete ${params.path} (via Pages CMS)`,
+      message: `Delete ${normalizedPath} (via Pages CMS)`,
     });
 
     // Update cache after successful deletion
     await updateFileCache(
-      'collection',
+      type === "content" ? "collection" : "media",
       params.owner,
       params.repo,
       params.branch,
       {
         type: 'delete',
-        path: params.path
+        path: normalizedPath
       }
     );
 

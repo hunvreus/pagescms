@@ -4,6 +4,12 @@ type ErrorLike = {
   message?: string;
 };
 
+const createHttpError = (message: string, status: number) => {
+  const error = new Error(message) as Error & { status: number };
+  error.status = status;
+  return error;
+};
+
 const getErrorMessage = (error: unknown): string => {
   if (error instanceof Error && error.message) return error.message;
   if (error && typeof error === "object" && "message" in error) {
@@ -24,13 +30,13 @@ const getErrorStatus = (error: unknown): number => {
 
   const message = getErrorMessage(error).toLowerCase();
 
-  if (message.includes("not found")) return 404;
   if (
     message.includes("permission")
     || message.includes("no access")
     || message.includes("forbidden")
     || message.includes("only github users")
   ) return 403;
+  if (message.includes("not found")) return 404;
   if (message.includes("unauthorized") || message.includes("not signed in")) return 401;
   if (message.includes("conflict") || message.includes("changed since you last loaded")) return 409;
   if (message.includes("rate limit")) return 429;
@@ -55,4 +61,4 @@ const toErrorResponse = (error: unknown) => {
   );
 };
 
-export { toErrorResponse };
+export { createHttpError, toErrorResponse };

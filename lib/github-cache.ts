@@ -844,7 +844,7 @@ const getCollectionCache = async (
   // If set to "-1", the file cache doesn't expire
   if (entries.length > 0 && process.env.FILE_CACHE_TTL !== "-1") {
     const now = new Date();
-    const ttl = parseInt(process.env.FILE_CACHE_TTL || "1440") * 60 * 1000; // Defaults to 7 days cache
+    const ttl = parseInt(process.env.FILE_CACHE_TTL || "1440") * 60 * 1000; // Defaults to 1 day cache
     cacheExpired = entries[0].lastUpdated.getTime() < now.getTime() - ttl;
   }
 
@@ -1035,7 +1035,7 @@ const getMediaCache = async (
   // If set to "-1", the file cache doesn't expire
   if (entries.length > 0 && process.env.FILE_CACHE_TTL !== "-1") {
     const now = new Date();
-    const ttl = parseInt(process.env.FILE_CACHE_TTL || "1440") * 60 * 1000; // Defaults to 7 days cache
+    const ttl = parseInt(process.env.FILE_CACHE_TTL || "1440") * 60 * 1000; // Defaults to 1 day cache
     cacheExpired = entries[0].lastUpdated.getTime() < now.getTime() - ttl;
   }
 

@@ -283,7 +283,12 @@ function safeAccess(obj: Record<string, any>, path: string) {
   return path.split(".").reduce((acc, part) => {
     if (part.endsWith("]")) {
       const [arrayPath, index] = part.split("[");
-      return (acc[arrayPath] || [])[parseInt(index.replace("]", ""), 10)];
+      if (!acc || typeof acc !== "object") return undefined;
+      const arrayValue = acc[arrayPath];
+      if (!Array.isArray(arrayValue)) return undefined;
+      const parsedIndex = parseInt(index.replace("]", ""), 10);
+      if (Number.isNaN(parsedIndex)) return undefined;
+      return arrayValue[parsedIndex];
     }
     return acc && acc[part];
   }, obj);
