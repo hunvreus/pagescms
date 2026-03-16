@@ -7,7 +7,7 @@ const defaultCommitTemplates: Record<CommitAction, string> = {
   create: "Create {path} (via Pages CMS)",
   update: "Update {path} (via Pages CMS)",
   delete: "Delete {path} (via Pages CMS)",
-  rename: "Rename {oldPath} to {newPath}",
+  rename: "Rename {oldPath} to {newPath} (via Pages CMS)",
 };
 
 const getCommitTemplates = (configObject?: Record<string, any>): CommitTemplates => {
