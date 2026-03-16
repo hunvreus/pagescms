@@ -7,6 +7,21 @@
 import { z } from "zod";
 import { fieldTypes } from "@/fields/registry";
 
+const CommitTemplatesSchema = z.object({
+  create: z.string({
+    message: "'create' must be a string."
+  }).optional(),
+  update: z.string({
+    message: "'update' must be a string."
+  }).optional(),
+  delete: z.string({
+    message: "'delete' must be a string."
+  }).optional(),
+  rename: z.string({
+    message: "'rename' must be a string."
+  }).optional(),
+}).strict();
+
 // Media configuration object schema (for single object)
 const MediaConfigObject = z.object({
   input: z.string({
@@ -31,6 +46,11 @@ const MediaConfigObject = z.object({
     message: "Entries in the 'categories' array must be 'image', 'document', 'video', 'audio', 'compressed', 'code', 'font', or 'spreadsheet'."
   }), {
     message: "'categories' must be an array of strings."
+  }).optional(),
+  commit: z.object({
+    templates: CommitTemplatesSchema.optional(),
+  }, {
+    message: "'commit' must be an object."
   }).optional(),
   name: z.string().optional(),
   label: z.string().optional(),
@@ -335,6 +355,11 @@ const ContentObjectSchema = z.object({
     { message: "'fields' must be an array of field definitions." }
   ).optional(),
   list: ListSchema.optional(),
+  commit: z.object({
+    templates: CommitTemplatesSchema.optional(),
+  }, {
+    message: "'commit' must be an object."
+  }).optional(),
 }).strict();
 
 // Main schema with media and content
@@ -374,22 +399,7 @@ const ConfigSchema = z.object({
         message: "'content' must be an object."
       }).optional(),
       commit: z.object({
-        templates: z.object({
-          create: z.string({
-            message: "'create' must be a string."
-          }).optional(),
-          update: z.string({
-            message: "'update' must be a string."
-          }).optional(),
-          delete: z.string({
-            message: "'delete' must be a string."
-          }).optional(),
-          rename: z.string({
-            message: "'rename' must be a string."
-          }).optional(),
-        }, {
-          message: "'templates' must be an object."
-        }).optional(),
+        templates: CommitTemplatesSchema.optional(),
       }, {
         message: "'commit' must be an object."
       }).optional(),

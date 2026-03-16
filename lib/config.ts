@@ -102,6 +102,17 @@ const normalizeConfig = (configObject: any) => {
         }
       }
 
+      if (mediaConfig.commit && typeof mediaConfig.commit === "object") {
+        if (
+          mediaConfig.commit.message
+          && typeof mediaConfig.commit.message === "object"
+          && (mediaConfig.commit.templates == null || typeof mediaConfig.commit.templates !== "object")
+        ) {
+          mediaConfig.commit.templates = mediaConfig.commit.message;
+        }
+        delete mediaConfig.commit.message;
+      }
+
       return mediaConfig;
     });
   }
@@ -164,6 +175,17 @@ const normalizeConfig = (configObject: any) => {
           filename: item.view.node,
           hideDirs: "nodes"
         };
+      }
+
+      if (item.commit && typeof item.commit === "object") {
+        if (
+          item.commit.message
+          && typeof item.commit.message === "object"
+          && (item.commit.templates == null || typeof item.commit.templates !== "object")
+        ) {
+          item.commit.templates = item.commit.message;
+        }
+        delete item.commit.message;
       }
       
       // Process content fields to resolve component references

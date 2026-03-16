@@ -49,6 +49,7 @@ export async function POST(
 
     let contentBase64;
     let schema;
+    let schemaCommitTemplates: Record<string, string> | undefined;
 
     switch (data.type) {
       case "content":
@@ -56,6 +57,7 @@ export async function POST(
 
         schema = getSchemaByName(config?.object, data.name);
         if (!schema) throw new Error(`Content schema not found for ${data.name}.`);
+        schemaCommitTemplates = schema?.commit?.templates;
 
         if (!normalizedPath.startsWith(schema.path)) throw new Error(`Invalid path "${params.path}" for ${data.type} "${data.name}".`);
 
@@ -158,6 +160,7 @@ export async function POST(
 
         schema = getSchemaByName(config?.object, data.name, "media");
         if (!schema) throw new Error(`Media schema not found for ${data.name}.`);
+        schemaCommitTemplates = schema?.commit?.templates;
 
         if (!normalizedPath.startsWith(schema.input)) throw new Error(`Invalid path "${params.path}" for media "${data.name}".`);
         
@@ -193,6 +196,7 @@ export async function POST(
       data.sha,
       {
         configObject: config?.object,
+        templatesOverride: schemaCommitTemplates,
         contentName: data.name,
         user: user.email || user.name || String(user.id || ""),
         onConflict,
@@ -272,6 +276,7 @@ const githubSaveFile = async (
   sha?: string,
   options?: {
     configObject?: Record<string, any>;
+    templatesOverride?: Record<string, string>;
     contentName?: string;
     user?: string;
     onConflict?: "rename" | "error";
@@ -282,6 +287,7 @@ const githubSaveFile = async (
   
   const message = resolveCommitMessage({
     configObject: options?.configObject,
+    templatesOverride: options?.templatesOverride,
     action: sha ? "update" : "create",
     tokens: buildCommitTokens({
       action: sha ? "update" : "create",
@@ -358,6 +364,7 @@ const githubSaveFile = async (
         const newPath = `${parentDir ? parentDir + '/' : ''}${candidateFilename}`;
         const fallbackMessage = resolveCommitMessage({
           configObject: options?.configObject,
+          templatesOverride: options?.templatesOverride,
           action: "create",
           tokens: buildCommitTokens({
             action: "create",
@@ -423,6 +430,7 @@ export async function DELETE(
 
     const normalizedPath = normalizePath(params.path);
     let schema;
+    let schemaCommitTemplates: Record<string, string> | undefined;
 
     switch (type) {
       case "content":
@@ -430,6 +438,7 @@ export async function DELETE(
 
         schema = getSchemaByName(config.object, name);
         if (!schema) throw new Error(`Content schema not found for ${name}.`);
+        schemaCommitTemplates = schema?.commit?.templates;
         
         if (!normalizedPath.startsWith(schema.path)) throw new Error(`Invalid path "${params.path}" for ${type} "${name}".`);
         
@@ -444,6 +453,7 @@ export async function DELETE(
 
         schema = getSchemaByName(config.object, name, "media");
         if (!schema) throw new Error(`Media schema not found for ${name}.`);
+        schemaCommitTemplates = schema?.commit?.templates;
 
         if (!normalizedPath.startsWith(schema.input)) throw new Error(`Invalid path "${params.path}" for media "${name}".`);
 
@@ -463,6 +473,7 @@ export async function DELETE(
       sha: sha,
       message: resolveCommitMessage({
         configObject: config.object,
+        templatesOverride: schemaCommitTemplates,
         action: "delete",
         tokens: buildCommitTokens({
           action: "delete",

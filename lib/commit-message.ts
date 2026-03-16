@@ -68,17 +68,22 @@ const buildCommitTokens = ({
 
 const resolveCommitMessage = ({
   configObject,
+  templatesOverride,
   action,
   tokens,
 }: {
   configObject?: Record<string, any>;
+  templatesOverride?: CommitTemplates;
   action: CommitAction;
   tokens: Record<string, string | undefined>;
 }): string => {
-  const templates = getCommitTemplates(configObject);
-  const template = typeof templates[action] === "string" && templates[action]?.trim()
-    ? (templates[action] as string)
-    : defaultCommitTemplates[action];
+  const globalTemplates = getCommitTemplates(configObject);
+  const overrideTemplate = templatesOverride?.[action];
+  const template = typeof overrideTemplate === "string" && overrideTemplate.trim()
+    ? overrideTemplate
+    : (typeof globalTemplates[action] === "string" && globalTemplates[action]?.trim()
+      ? (globalTemplates[action] as string)
+      : defaultCommitTemplates[action]);
   return renderCommitTemplate(template, tokens).replace(/\s+/g, " ").trim().slice(0, 200);
 };
 

@@ -49,6 +49,7 @@ export async function POST(
     if (normalizedPath === normalizedNewPath) throw new Error(`New path "${data.newPath}" is the same as the old path.`);
 
     let schema;
+    let schemaCommitTemplates: Record<string, string> | undefined;
 
     switch (data.type) {
       case "content":
@@ -56,6 +57,7 @@ export async function POST(
 
         schema = getSchemaByName(config.object, data.name);
         if (!schema) throw new Error(`Content schema not found for ${data.name}.`);
+        schemaCommitTemplates = schema?.commit?.templates;
 
         if (schema.type === "file") throw new Error(`Renaming content of type "file" isn't allowed.`);
         
@@ -70,6 +72,7 @@ export async function POST(
 
         schema = getSchemaByName(config.object, data.name, "media");
         if (!schema) throw new Error(`Media schema not found for ${data.name}.`);
+        schemaCommitTemplates = schema?.commit?.templates;
         
         if (!normalizedPath.startsWith(schema.input)) throw new Error(`Invalid path "${params.path}" for media.`);
         if (!normalizedNewPath.startsWith(schema.input)) throw new Error(`Invalid path "${data.newPath}" for media.`);
@@ -94,6 +97,7 @@ export async function POST(
       normalizedNewPath,
       {
         configObject: config.object,
+        templatesOverride: schemaCommitTemplates,
         contentName: data.name,
         user: user.email || user.name || String(user.id || ""),
       }
@@ -147,6 +151,7 @@ const githubRenameFile = async (
   newPath: string,
   options?: {
     configObject?: Record<string, any>;
+    templatesOverride?: Record<string, string>;
     contentName?: string;
     user?: string;
   },
@@ -188,6 +193,7 @@ const githubRenameFile = async (
     repo,
     message: resolveCommitMessage({
       configObject: options?.configObject,
+      templatesOverride: options?.templatesOverride,
       action: "rename",
       tokens: buildCommitTokens({
         action: "rename",
