@@ -15,12 +15,11 @@ import {
   joinPathSegments,
   normalizePath
 } from "@/lib/utils/file";
-import type { ApiResponse, ApiSuccess, EntryData, EntryHistoryItem } from "@/types/api";
+import type { ApiSuccess, EntryData, EntryHistoryItem } from "@/types/api";
 import { EntryForm } from "./entry-form";
 import { EntryHistoryDropdown } from "./entry-history";
 import { EmptyCreate } from "@/components/empty-create";
 import { FileOptions } from "@/components/file/file-options";
-import { Message } from "@/components/message";
 import { Button } from "@/components/ui/button";
 import {
   Empty,
@@ -81,14 +80,11 @@ export function Entry({
     }
     return "Edit";
   });
-  const [history, setHistory] = useState<EntryHistoryItem[]>();
   const [isLoading, setIsLoading] = useState(path ? true : false);
   const [isSaving, setIsSaving] = useState(false);
   const [isFormDirty, setIsFormDirty] = useState(false);
   const [hasRegisteredChanges, setHasRegisteredChanges] = useState(false);
   const [error, setError] = useState<string | undefined | null>(null);
-  // TODO: this feels like a bit of a hack
-  const [refetchTrigger, setRefetchTrigger] = useState<number>(0);
   const changeVersionRef = useRef(0);
   const { mutate } = useSWRConfig();
 
@@ -136,7 +132,7 @@ export function Entry({
         ? { listWrapper: entry?.contentObject }
         : entry?.contentObject
       : schema?.list === true
-        ? { listWrapper: {} }
+        ? { listWrapper: [] }
         : {};
   }, [schema, entry, path]);
 
@@ -198,41 +194,35 @@ export function Entry({
     setIsLoading(false);
   }, [swrEntryError]);
 
-  useEffect(() => {
-    if (refetchTrigger === 0 || !path) return;
-    void mutateEntry();
-  }, [mutateEntry, path, refetchTrigger]);
+  const historyApiUrl = useMemo(() => (
+    path
+      ? `/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/entries/${encodeURIComponent(path)}/history?name=${encodeURIComponent(name)}`
+      : null
+  ), [config.branch, config.owner, config.repo, name, path]);
 
-  useEffect(() => {
-    const controller = new AbortController();
+  const historyKey = useMemo(
+    () => historyApiUrl ? [historyApiUrl, sha ?? ""] as const : null,
+    [historyApiUrl, sha],
+  );
 
-    // TODO: add loading for history ?
-    const fetchHistory = async () => {
-      if (path) {
-        try {
-          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/entries/${encodeURIComponent(path)}/history?name=${encodeURIComponent(name)}`, {
-            signal: controller.signal,
-          });
-          const data = await requireApiSuccess<any>(
-            response,
-            "Failed to fetch entry's history",
-          );
-          if (controller.signal.aborted) return;
-          
-          setHistory(data.data);
-        } catch (error: unknown) {
-          if (error instanceof DOMException && error.name === "AbortError") return;
-          console.error(error);
-        }
-      }
-    };
+  const fetchEntryHistory = useCallback(async ([apiUrl]: readonly [string, string]): Promise<EntryHistoryItem[]> => {
+    const response = await fetch(apiUrl);
+    const data = await requireApiSuccess<any>(
+      response,
+      "Failed to fetch entry's history",
+    );
+    return data.data as EntryHistoryItem[];
+  }, []);
 
-    fetchHistory();
-
-    return () => {
-      controller.abort();
-    };
-  }, [config.branch, config.owner, config.repo, path, sha, refetchTrigger, name]);
+  const { data: historyData } = useSWR<EntryHistoryItem[]>(
+    historyKey,
+    fetchEntryHistory,
+    {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      dedupingInterval: 2000,
+    },
+  );
 
   const onSubmit = async (contentObject: Record<string, unknown>) => {
     setIsSaving(true);
@@ -337,9 +327,9 @@ export function Entry({
       if (entryApiUrl) {
         void mutate(entryApiUrl, undefined, { revalidate: true });
       }
-      setRefetchTrigger((prev) => prev + 1);
+      void mutateEntry();
     }
-  }, [config.branch, config.owner, config.repo, entryApiUrl, mutate, name, router, schemaType]);
+  }, [config.branch, config.owner, config.repo, entryApiUrl, mutate, mutateEntry, name, router, schemaType]);
 
   const handleRename = useCallback((oldPath: string, newPath: string) => {
     if (schemaType === "collection") {
@@ -439,8 +429,8 @@ export function Entry({
       {showHeaderActions && (
         <div className="flex items-center gap-x-2">
           {path && (
-            history && history.length > 0 && !isLoading
-              ? <EntryHistoryDropdown history={history} path={path} />
+            historyData && historyData.length > 0 && !isLoading
+              ? <EntryHistoryDropdown history={historyData} path={path} />
               : <Button variant="ghost" size="icon" className="shrink-0" disabled><History /></Button>
           )}
           <Button
@@ -474,7 +464,7 @@ export function Entry({
         </div>
       )}
     </div>
-  ), [breadcrumbNode, handleDelete, handleRename, hasRegisteredChanges, history, isBusy, isFormDirty, isLoading, name, path, schemaType, sha, showHeaderActions]);
+  ), [breadcrumbNode, handleDelete, handleRename, hasRegisteredChanges, historyData, isBusy, isFormDirty, isLoading, name, path, schemaType, sha, showHeaderActions]);
 
   useRepoHeader({ header: headerNode });
 

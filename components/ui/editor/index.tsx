@@ -61,6 +61,9 @@ export type ImageUploadHandler = (
 
 const DEFAULT_MAX_IMAGE_BYTES = 1_000_000;
 const UPLOADED_IMAGE_PRELOAD_TIMEOUT_MS = 8_000;
+const MARKDOWN_TABLE_ROW_PATTERN = /^\s*\|.*\|\s*$/;
+const MARKDOWN_TABLE_DELIMITER_CELL_PATTERN = /^:?-{3,}:?$/;
+const TABLE_CELL_NBSP_PATTERN = /^(?:&nbsp;|\u00A0)+$/i;
 const UploadableImage = Image.extend({
   addAttributes() {
     return {
@@ -183,6 +186,52 @@ const toUploadableAttrs = (attrs: unknown): UploadableImageAttrs => {
   return attrs as UploadableImageAttrs;
 };
 
+const splitMarkdownTableCells = (line: string): string[] => {
+  const trimmed = line.trim();
+  if (trimmed.length < 2 || !trimmed.startsWith("|") || !trimmed.endsWith("|")) return [];
+
+  const row = trimmed.slice(1, -1);
+  const cells: string[] = [];
+  let start = 0;
+
+  for (let index = 0; index < row.length; index += 1) {
+    if (row[index] !== "|") continue;
+
+    let slashCount = 0;
+    for (let slashIndex = index - 1; slashIndex >= 0 && row[slashIndex] === "\\"; slashIndex -= 1) {
+      slashCount += 1;
+    }
+    if (slashCount % 2 === 1) continue;
+
+    cells.push(row.slice(start, index));
+    start = index + 1;
+  }
+
+  cells.push(row.slice(start));
+  return cells;
+};
+
+const isMarkdownTableDelimiterLine = (line: string): boolean => {
+  if (!MARKDOWN_TABLE_ROW_PATTERN.test(line)) return false;
+  const cells = splitMarkdownTableCells(line);
+  if (!cells.length) return false;
+  return cells.every((cell) => MARKDOWN_TABLE_DELIMITER_CELL_PATTERN.test(cell.trim()));
+};
+
+const normalizeMarkdownTables = (markdown: string): string =>
+  markdown
+    .split("\n")
+    .map((line) => {
+      if (!MARKDOWN_TABLE_ROW_PATTERN.test(line) || isMarkdownTableDelimiterLine(line)) return line;
+
+      const cells = splitMarkdownTableCells(line);
+      if (!cells.length) return line;
+
+      const normalizedCells = cells.map((cell) => (TABLE_CELL_NBSP_PATTERN.test(cell.trim()) ? "" : cell.trim()));
+      return `| ${normalizedCells.join(" | ")} |`;
+    })
+    .join("\n");
+
 const blockOptions: Array<{ value: BlockType; label: string }> = [
   { value: "paragraph", label: "Text" },
   { value: "heading1", label: "Heading 1" },
@@ -224,7 +273,7 @@ export function Editor({
   const objectUrlByUploadIdRef = useRef(new Map<string, string>());
   const expectedBlobByUploadIdRef = useRef(new Map<string, string>());
   const tiptapSurfaceClass = cn(
-    "border-input placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 min-h-16 w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] md:text-sm [&_p.is-empty::before]:text-muted-foreground [&_p.is-empty::before]:content-[attr(data-placeholder)] [&_p.is-empty::before]:pointer-events-none [&_p.is-empty::before]:float-left [&_p.is-empty::before]:h-0 [&_img[data-uploading=true]]:opacity-70 [&_img[data-uploading=true]]:animate-pulse [&_img[data-upload-error]]:ring-2 [&_img[data-upload-error]]:ring-destructive [&_img[data-upload-error]]:ring-offset-2 [&_img[data-upload-error]]:ring-offset-background",
+    "border-input placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 min-h-16 w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] md:text-sm [&_p.is-empty::before]:text-muted-foreground [&_p.is-empty::before]:content-[attr(data-placeholder)] [&_p.is-empty::before]:pointer-events-none [&_p.is-empty::before]:float-left [&_p.is-empty::before]:h-0 [&_td_p.is-empty::before]:content-none [&_th_p.is-empty::before]:content-none [&_img[data-uploading=true]]:opacity-70 [&_img[data-uploading=true]]:animate-pulse [&_img[data-upload-error]]:ring-2 [&_img[data-upload-error]]:ring-destructive [&_img[data-upload-error]]:ring-offset-2 [&_img[data-upload-error]]:ring-offset-background",
     editorClassName,
   );
 
@@ -249,8 +298,18 @@ export function Editor({
       TableHeader,
       TableCell,
       Placeholder.configure({
-        placeholder: ({ node }: { node: ProseMirrorNode }): string =>
-          node.type.name === "paragraph" ? "Press '/' for commands" : "",
+        placeholder: ({
+          node,
+          editor: currentEditor,
+        }: {
+          node: ProseMirrorNode;
+          editor: TiptapEditor;
+        }): string =>
+          node.type.name === "paragraph" &&
+          !currentEditor.isActive("tableCell") &&
+          !currentEditor.isActive("tableHeader")
+            ? "Press '/' for commands"
+            : "",
         showOnlyCurrent: true,
         includeChildren: true,
       }),
@@ -330,7 +389,7 @@ export function Editor({
     onUpdate: ({ editor: nextEditor }) => {
       const nextValue =
         format === "markdown"
-          ? nextEditor.getMarkdown()
+          ? normalizeMarkdownTables(nextEditor.getMarkdown())
           : nextEditor
               .getHTML()
               .replace(/\sdata-upload-id="[^"]*"/g, "")
@@ -380,7 +439,7 @@ export function Editor({
     if (!editor) return;
     if (value === lastEmittedValueRef.current) return;
 
-    const current = format === "markdown" ? editor.getMarkdown() : editor.getHTML();
+    const current = format === "markdown" ? normalizeMarkdownTables(editor.getMarkdown()) : editor.getHTML();
     const hasChanged =
       format === "markdown" ? value.trimEnd() !== current.trimEnd() : value !== current;
 
@@ -881,26 +940,28 @@ export function Editor({
       >
         <div className="flex flex-col gap-1">
           <div className="border-border bg-popover flex flex-nowrap items-center gap-0.5 overflow-x-auto rounded-md border p-1 shadow-sm whitespace-nowrap">
-            <div className="group/native-select relative w-fit">
-              <select
-                id="block-style"
-                value={activeState.blockType}
-                onChange={(event) => setBlockType(event.target.value as BlockType)}
-                disabled={disabled}
-                aria-label="Block style"
-                className="h-7 w-full appearance-none rounded-md border border-transparent bg-transparent px-2 pr-5.5 text-sm shadow-none outline-none hover:bg-accent focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {blockOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <ChevronDownIcon
-                className="text-muted-foreground pointer-events-none absolute top-1/2 right-1.5 size-3.5 -translate-y-1/2 opacity-50"
-                aria-hidden="true"
-              />
-            </div>
+            {!isInTable ? (
+              <div className="group/native-select relative w-fit">
+                <select
+                  id="block-style"
+                  value={activeState.blockType}
+                  onChange={(event) => setBlockType(event.target.value as BlockType)}
+                  disabled={disabled}
+                  aria-label="Block style"
+                  className="h-7 w-full appearance-none rounded-md border border-transparent bg-transparent px-2 pr-5.5 text-sm shadow-none outline-none hover:bg-accent focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {blockOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDownIcon
+                  className="text-muted-foreground pointer-events-none absolute top-1/2 right-1.5 size-3.5 -translate-y-1/2 opacity-50"
+                  aria-hidden="true"
+                />
+              </div>
+            ) : null}
             {inlineActions.map((action) =>
               renderIconButton({
                 label: action.label,

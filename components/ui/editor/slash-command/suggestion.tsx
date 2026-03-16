@@ -39,6 +39,8 @@ type SuggestionOptions = {
   imageSlashFallback?: SlashImageFallback;
 };
 
+const TABLE_SAFE_COMMANDS = new Set(["Image"]);
+
 type RequestImageAndInsertArgs = ImagePickerContext & {
   onRequestImage: ImagePickerHandler | null;
   onInsertLocalImageFile: ((context: ImagePickerContext & Omit<ImagePickerFileResult, "kind">) => void | Promise<void>) | null;
@@ -157,11 +159,14 @@ type SuggestionRenderLifecycle = NonNullable<ReturnType<NonNullable<SlashSuggest
 type SuggestionKeyDownProps = Parameters<NonNullable<SuggestionRenderLifecycle["onKeyDown"]>>[0];
 
 const createSuggestion = (options: SuggestionOptions = {}): SlashSuggestion => ({
-  items: ({ query }: { query: string }) =>
-    getAllItems(options)
+  items: ({ query, editor }: { query: string; editor: Editor }) => {
+    const isInTableCell = editor.isActive("tableCell") || editor.isActive("tableHeader");
+    return getAllItems(options)
+      .filter((item) => !isInTableCell || TABLE_SAFE_COMMANDS.has(item.title))
       .filter((item) => options.enableImages !== false || item.title !== "Image")
       .filter((item) => item.title.toLowerCase().includes(query.toLowerCase()))
-      .slice(0, 10),
+      .slice(0, 10);
+  },
 
   render: (): SuggestionRenderLifecycle => {
     let component: ReactRenderer<CommandsListHandle> | null = null;

@@ -10,7 +10,7 @@ import {
   ensureFileCacheFreshness,
 } from "@/lib/github-cache";
 import { getCacheFileMeta, upsertCacheFileMeta } from "@/lib/cache-file-meta";
-import { getConfigWithSync } from "@/lib/utils/config";
+import { getConfig } from "@/lib/utils/config";
 import { toErrorResponse } from "@/lib/api-error";
 import { isCacheEnabled } from "@/lib/config-settings";
 import { getBranchHeadSha } from "@/lib/github-cache";
@@ -33,12 +33,15 @@ export async function GET(
       "Only GitHub users can view cache status.",
     );
 
-    const config = await getConfigWithSync(
+    const config = await getConfig(
       params.owner,
       params.repo,
       params.branch,
-      async () => token,
-      { backgroundRefreshWhenStale: true },
+      {
+        sync: true,
+        getToken: async () => token,
+        backgroundRefreshWhenStale: true,
+      },
     );
     if (!config?.object || !isCacheEnabled(config.object)) {
       return Response.json({ status: "error", message: "Cache is disabled for this repository." }, { status: 403 });
@@ -117,12 +120,15 @@ export async function POST(
       "Only GitHub users can manage cache.",
     );
 
-    const config = await getConfigWithSync(
+    const config = await getConfig(
       params.owner,
       params.repo,
       params.branch,
-      async () => token,
-      { backgroundRefreshWhenStale: true },
+      {
+        sync: true,
+        getToken: async () => token,
+        backgroundRefreshWhenStale: true,
+      },
     );
     if (!config?.object || !isCacheEnabled(config.object)) {
       return Response.json({ status: "error", message: "Cache is disabled for this repository." }, { status: 403 });
@@ -155,12 +161,15 @@ export async function POST(
           message: "Permission cache cleared.",
         });
       case "refresh-config":
-        await getConfigWithSync(
+        await getConfig(
           params.owner,
           params.repo,
           params.branch,
-          async () => token,
-          { ttlMs: 0 },
+          {
+            sync: true,
+            getToken: async () => token,
+            ttlMs: 0,
+          },
         );
         return Response.json({
           status: "success",

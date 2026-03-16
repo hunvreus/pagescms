@@ -4,6 +4,12 @@ import { EditComponent } from "./edit-component";
 import { ViewComponent } from "./view-component";
 import { parse, format, isValid, isBefore, isAfter } from "date-fns";
 
+const defaultValue = (field: Field) => {
+  const inputType = field?.options?.time ? "datetime-local" : "date";
+  const inputFormat = inputType === "datetime-local" ? "yyyy-MM-dd'T'HH:mm" : "yyyy-MM-dd";
+  return format(new Date(), inputFormat);
+};
+
 const read = (value: any, field: Field) => {
   const inputType = field?.options?.time ? "datetime-local" : "date";
   const inputFormat = inputType === "datetime-local" ? "yyyy-MM-dd'T'HH:mm" : "yyyy-MM-dd";
@@ -61,4 +67,4 @@ const schema = (field: Field) => {
   return zodSchema;
 };
 
-export { EditComponent, ViewComponent, schema, read, write };
+export { EditComponent, ViewComponent, schema, read, write, defaultValue };

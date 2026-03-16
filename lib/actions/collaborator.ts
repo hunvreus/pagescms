@@ -5,7 +5,8 @@ import { auth } from "@/lib/auth";
 import { getInstallationRepos, getInstallations } from "@/lib/github-app";
 import { requireGithubRepoWriteAccess } from "@/lib/authz-server";
 import { InviteEmailTemplate } from "@/components/email/invite";
-import { Resend } from "resend";
+import { render } from "@react-email/render";
+import { sendEmail } from "@/lib/mailer";
 import { db } from "@/db";
 import { and, eq, sql } from "drizzle-orm";
 import { collaboratorTable, verificationTable } from "@/db/schema";
@@ -147,7 +148,6 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
 
     const { repoAccess, installation } = await assertRepoInInstallation(user, owner, repo);
 
-    const resend = new Resend(process.env.RESEND_API_KEY);
 		const baseUrl = await getBaseUrlFromHeaders();
     const createdCollaborators: (typeof collaboratorTable.$inferSelect)[] = [];
     const errors: string[] = [];
@@ -171,20 +171,22 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
         repo,
         baseUrl,
       });
-      const { error } = await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL!,
-        to: [email],
-        subject: `Join "${owner}/${repo}" on Pages CMS`,
-        react: InviteEmailTemplate({
-          inviteUrl,
-          repoName: `${formData.get("owner")}/${formData.get("repo")}`,
-          email,
-          invitedByName: user.name || user.githubUsername || user.email,
-          invitedByUrl: `https://github.com/${user.githubUsername}`,
-        }),
-      });
-
-      if (error) {
+      try {
+        const html = await render(
+          InviteEmailTemplate({
+            inviteUrl,
+            repoName: `${formData.get("owner")}/${formData.get("repo")}`,
+            email,
+            invitedByName: user.name || user.githubUsername || user.email,
+            invitedByUrl: `https://github.com/${user.githubUsername}`,
+          }),
+        );
+        await sendEmail({
+          to: email,
+          subject: `Join "${owner}/${repo}" on Pages CMS`,
+          html,
+        });
+      } catch (error: any) {
         console.error(`Failed to send invitation email to ${email}:`, error.message);
         errors.push(`${email}: ${error.message}`);
         continue;
@@ -276,21 +278,21 @@ const handleResendCollaboratorInvite = async (collaboratorId: number, owner: str
       baseUrl,
     });
 
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const { error } = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL!,
-      to: [collaborator.email],
-      subject: `Join "${owner}/${repo}" on Pages CMS`,
-      react: InviteEmailTemplate({
+    const html = await render(
+      InviteEmailTemplate({
         inviteUrl,
         repoName: `${owner}/${repo}`,
         email: collaborator.email,
         invitedByName: user.name || user.githubUsername || user.email,
         invitedByUrl: `https://github.com/${user.githubUsername}`,
       }),
-    });
+    );
 
-    if (error) throw new Error(error.message);
+    await sendEmail({
+      to: collaborator.email,
+      subject: `Join "${owner}/${repo}" on Pages CMS`,
+      html,
+    });
 
     return { message: `Invitation email resent to ${collaborator.email}.` };
   } catch (error: any) {

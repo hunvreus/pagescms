@@ -2,9 +2,9 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { magicLink } from "better-auth/plugins";
-import { Resend } from "resend";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import { sendEmail } from "@/lib/mailer";
 
 export const auth = betterAuth({
   baseURL: process.env.BASE_URL as string,
@@ -53,7 +53,6 @@ export const auth = betterAuth({
     nextCookies(),
     magicLink({
       sendMagicLink: async ({ email, url }) => {
-        const resend = new Resend(process.env.RESEND_API_KEY);
         const escapedEmail = email.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         const escapedUrl = url.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
         const html = `<!doctype html>
@@ -76,14 +75,11 @@ export const auth = betterAuth({
   </body>
 </html>`;
 
-        const { error } = await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL!,
-          to: [email],
+        await sendEmail({
+          to: email,
           subject: "Sign in link for Pages CMS",
           html,
         });
-
-        if (error) throw new Error(error.message);
       },
     }),
   ],

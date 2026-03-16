@@ -39,7 +39,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { requireApiSuccess } from "@/lib/api-client";
-import type { ApiResponse, FileSaveData, MediaItem } from "@/types/api";
+import type { FileSaveData, MediaItem } from "@/types/api";
 import useSWR, { useSWRConfig } from "swr";
 import {
   CornerLeftUp,

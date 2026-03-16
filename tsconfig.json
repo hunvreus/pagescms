@@ -36,7 +36,6 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules",
-    "fields/core/rich-text-legacy/**/*"
+    "node_modules"
   ]
 }

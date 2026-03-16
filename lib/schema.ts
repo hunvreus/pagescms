@@ -83,9 +83,9 @@ const initializeState = (
     let appliedValue = value;
     if (value === undefined) {
       appliedValue = field.list
-        ? (typeof field.list === "object" && field.list.default)
+        ? (typeof field.list === "object" && field.list.default !== undefined)
           ? field.list.default
-          : undefined
+          : []
         : getDefaultValue(field);
     }
     // Handle potential null values passed from traverse if the object didn't exist
@@ -179,8 +179,10 @@ const generateZodSchema = (
         }
         if (field.required) {
           arraySchema = arraySchema.min(1, { message: `Field requires at least one item.` });
+          fieldSchema = arraySchema;
+        } else {
+          fieldSchema = arraySchema.optional();
         }
-        fieldSchema = arraySchema;
       }
       
       if (!field.list) {

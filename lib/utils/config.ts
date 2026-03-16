@@ -6,7 +6,6 @@
  * normalized and validated.
  */
 
-import { cache } from "react";
 import { Config } from "@/types/config";
 import { db } from "@/db";
 import { configTable } from "@/db/schema";
@@ -15,7 +14,7 @@ import { createOctokitInstance } from "@/lib/utils/octokit";
 import { configVersion, normalizeConfig, parseConfig } from "@/lib/config";
 
 // TODO: add a fallback behavior to retrieve conf if not in DB
-const getConfigUncached = async (
+const getConfigFromDb = async (
   owner: string,
   repo: string,
   branch: string,
@@ -32,7 +31,7 @@ const getConfigUncached = async (
   
   if (!config) return null;
 
-  return {
+  const parsedConfig = {
     owner: config.owner,
     repo: config.repo,
     branch: config.branch,
@@ -40,18 +39,10 @@ const getConfigUncached = async (
     version: config.version,
     object: JSON.parse(config.object),
     lastCheckedAt: config.lastCheckedAt,
-  }
-};
+  };
 
-const getConfig = cache(
-  async (
-    owner: string,
-    repo: string,
-    branch: string,
-  ): Promise<Config | null> => {
-    return getConfigUncached(owner, repo, branch);
-  }
-);
+  return parsedConfig;
+};
 
 const saveConfig = async (
   config: Config,
@@ -104,7 +95,9 @@ const touchConfigCheck = async (
   );
 };
 
-type ConfigSyncOptions = {
+type GetConfigOptions = {
+  sync?: boolean;
+  getToken?: () => Promise<string>;
   ttlMs?: number;
   backgroundRefreshWhenStale?: boolean;
 };
@@ -162,13 +155,18 @@ const fetchConfigFromGithub = async (
   }
 };
 
-const getConfigWithSync = async (
+const getConfig = async (
   owner: string,
   repo: string,
   branch: string,
-  getToken: () => Promise<string>,
-  options?: ConfigSyncOptions,
+  options?: GetConfigOptions,
 ): Promise<Config | null> => {
+  const sync = options?.sync ?? false;
+  if (!sync) return getConfigFromDb(owner, repo, branch);
+
+  const getToken = options?.getToken;
+  if (!getToken) throw new Error("getToken is required when sync is enabled.");
+
   const normalizedOwner = owner.toLowerCase();
   const normalizedRepo = repo.toLowerCase();
   const key = getConfigSyncKey(normalizedOwner, normalizedRepo, branch);
@@ -176,7 +174,7 @@ const getConfigWithSync = async (
   if (existing) return existing;
 
   const run = (async (): Promise<Config | null> => {
-  const cachedConfig = await getConfig(normalizedOwner, normalizedRepo, branch);
+  const cachedConfig = await getConfigFromDb(normalizedOwner, normalizedRepo, branch);
   const ttlMs = options?.ttlMs ?? DEFAULT_CONFIG_CHECK_TTL_MS;
   const backgroundRefreshWhenStale = options?.backgroundRefreshWhenStale ?? false;
 
@@ -281,4 +279,4 @@ const getConfigWithSync = async (
   }
 };
 
-export { getConfig, getConfigWithSync, saveConfig, updateConfig, touchConfigCheck };
+export { getConfig, saveConfig, updateConfig, touchConfigCheck };

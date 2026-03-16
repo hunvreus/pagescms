@@ -30,7 +30,7 @@ Go to [pagescms.org/docs](https://pagescms.org/docs).
 - [drizzle](https://orm.drizzle.team/)
 - [Vercel](https://vercel.com/)
 - [Supabase](https://supabase.tech/)
-- [Resend](https://resend.com/)
+- [Resend](https://resend.com/) / SMTP
 
 ## Use online
 
@@ -98,11 +98,21 @@ Variable | Comments
 `GITHUB_APP_WEBHOOK_SECRET` | The secret you picked for your webhook. This is used to ensure the request is coming from GitHub.
 `GITHUB_APP_CLIENT_ID` | GitHub App Client ID from your GitHub App details page.
 `GITHUB_APP_CLIENT_SECRET` | GitHub App Client Secret from the GitHub App details page.
-`RESEND_FROM_EMAIL` | The sender for authentication emails. Must be a verified domain in your Resend account and follow the format `email@example.com` or `Name <email@example.com>`.
-`RESEND_API_KEY` | You'll get that when you create a (free) [Resend](https://resend.com) account to handle emails.
-`FILE_CACHE_TTL` | **OPTIONAL**. Time to live (in minutes) for file cache (collections and media folders). Defaults to 1440 (1 day). Set to "-1" to prevent the cache from ever expiring, or "0" if you want no cache.
+`EMAIL_PROVIDER` | **OPTIONAL**. Set to `resend` or `smtp`. If omitted, Pages CMS auto-selects `resend` when `RESEND_API_KEY` is set, otherwise `smtp` when `SMTP_HOST` is set.
+`EMAIL_FROM` | Sender for authentication/invite emails, format `email@example.com` or `Name <email@example.com>`.
+`RESEND_API_KEY` | Required when using `EMAIL_PROVIDER=resend`. You can create one from [Resend](https://resend.com). If set and `EMAIL_PROVIDER` is omitted, `resend` is selected automatically.
+`RESEND_FROM_EMAIL` | Backward-compatible alias for `EMAIL_FROM` (used when `EMAIL_FROM` is not set).
+`SMTP_HOST` | Required when using `EMAIL_PROVIDER=smtp`.
+`SMTP_PORT` | **OPTIONAL**. SMTP port, defaults to `587`.
+`SMTP_SECURE` | **OPTIONAL**. Set to `true` or `false`. Defaults to `true` when `SMTP_PORT=465`, otherwise `false`.
+`SMTP_USER` | **OPTIONAL**. SMTP username. Must be set together with `SMTP_PASSWORD`.
+`SMTP_PASSWORD` | **OPTIONAL**. SMTP password. Must be set together with `SMTP_USER`.
+`CACHE_RECONCILE_INTERVAL_MIN` | **OPTIONAL**. Backend reconcile interval (in minutes) for checking branch HEAD SHA against GitHub to detect external changes and invalidate stale file cache. Defaults to 5. Legacy alias: `CACHE_FILE_CHECK_TTL`.
+`FILE_CACHE_TTL` | **OPTIONAL**. Backend cache entry max age (in minutes) for `cache_file` rows (collections and media folders). Defaults to 1440 (1 day). Set to "-1" to prevent cache entry expiry, or "0" if you want no cache.
 `PERMISSION_CACHE_TTL` | **OPTIONAL**. Time to live (in minutes) for the permission cache, which controls access to file cache. Defaults to 60. Set to "0" if you want to always check permissions against the GitHub API.
 `CRON_SECRET` | Secret token used to secure the access of the cron API endpoint.
+
+SMTP note: install `nodemailer` in your deployment/runtime with `npm install nodemailer` if you plan to use `EMAIL_PROVIDER=smtp`. If no provider can be resolved (no `EMAIL_PROVIDER`, no `RESEND_API_KEY`, and no `SMTP_HOST`), email sending fails with an explicit startup/runtime error.
 
 ### Local development
 
@@ -127,7 +137,7 @@ Note: for local webhook delivery from GitHub, use a public tunnel URL as `--base
     1. **Create a fork**: fork the `pages-cms/pages-cms` repo in your account and deploy that fork. This will allow you to get updates. **Make sure you define all of the environment variables listed above**.
     2. **Use the deploy button**:
     
-        [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fpages-cms%2Fpages-cms%2Ftree%2Fmain&project-name=pages-cms&repository-name=pages-cms&redirect-url=https%3A%2F%2Fpagescms.org&env=CRYPTO_KEY,GITHUB_APP_ID,GITHUB_APP_NAME,GITHUB_APP_PRIVATE_KEY,GITHUB_APP_WEBHOOK_SECRET,GITHUB_APP_CLIENT_ID,GITHUB_APP_CLIENT_SECRET,RESEND_API_KEY,DATABASE_URL)
+        [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fpages-cms%2Fpages-cms%2Ftree%2Fmain&project-name=pages-cms&repository-name=pages-cms&redirect-url=https%3A%2F%2Fpagescms.org&env=CRYPTO_KEY,GITHUB_APP_ID,GITHUB_APP_NAME,GITHUB_APP_PRIVATE_KEY,GITHUB_APP_WEBHOOK_SECRET,GITHUB_APP_CLIENT_ID,GITHUB_APP_CLIENT_SECRET,EMAIL_PROVIDER,EMAIL_FROM,RESEND_API_KEY,SMTP_HOST,SMTP_PORT,SMTP_SECURE,SMTP_USER,SMTP_PASSWORD,DATABASE_URL)
 
 3. **Update your GitHub OAuth app**: you'll probably need to go back to your GitHub App settings to update some of the settings once you have the Vercel URL (e.g. "Callback URL" and "Webhook URL").
 
@@ -165,6 +175,7 @@ Notes:
 - Import upserts by `(owner, repo, email)` (case-insensitive).
 - `invitedBy` is optional; if no inviter can be resolved from CSV or fallback flags, it is imported as `null`.
 - `userId` is optional; if omitted, import attempts to match by collaborator email.
+- Existing rows are updated with CSV values (`type`, installation/repo ids, branch, owner/repo, `userId`, `invitedBy`).
 
 CSV columns used:
 
@@ -179,6 +190,17 @@ CSV columns used:
 - `userId`
 - `invitedBy`
 - `invitedByEmail`
+
+### Legacy SQLite/libSQL export (old versions)
+
+For old Pages CMS deployments that used libSQL/Turso, use the standalone legacy export script (shared as a gist) and then import the generated CSV with the command above.
+
+Example run command for the legacy exporter:
+
+```bash
+SQLITE_URL="libsql://..." SQLITE_AUTH_TOKEN="..." \
+npx -y -p @libsql/client node export-collaborators-legacy-libsql.mjs --out=collaborators.csv
+```
 
 ## License
 

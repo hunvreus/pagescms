@@ -38,6 +38,17 @@ import {
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -264,14 +275,14 @@ const ListField = ({
   };
 
   const removeItem = (index: number) => {
-    const shouldRemove = window.confirm("Remove this item?");
-    if (!shouldRemove) return;
-
     remove(index);
     setOpenStates((prev) =>
       prev.filter((_, currentIndex) => currentIndex !== index),
     );
   };
+  const [pendingRemoveIndex, setPendingRemoveIndex] = useState<number | null>(
+    null,
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -354,17 +365,45 @@ const ListField = ({
                       />
                     </div>
                     <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="text-muted-foreground hover:text-foreground self-start"
-                          onClick={() => removeItem(index)}
-                        >
-                          <Trash2 />
-                        </Button>
-                      </TooltipTrigger>
+                      <AlertDialog
+                        open={pendingRemoveIndex === index}
+                        onOpenChange={(open) => {
+                          if (!open) setPendingRemoveIndex(null);
+                        }}
+                      >
+                        <TooltipTrigger asChild>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="text-muted-foreground hover:text-foreground self-start"
+                              onClick={() => setPendingRemoveIndex(index)}
+                            >
+                              <Trash2 />
+                            </Button>
+                          </AlertDialogTrigger>
+                        </TooltipTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Remove this item?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => {
+                                removeItem(index);
+                                setPendingRemoveIndex(null);
+                              }}
+                            >
+                              Remove
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                       <TooltipContent>Remove item</TooltipContent>
                     </Tooltip>
                   </SortableItem>
@@ -429,6 +468,8 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>(
     const { blocks = [] } = field;
     const blockKey = field.blockKey || "_block";
     const selectedBlockName = value?.[blockKey];
+    const [isRemoveBlockDialogOpen, setIsRemoveBlockDialogOpen] =
+      useState(false);
 
     const handleBlockSelect = (blockName: string) => {
       const selectedBlockDef = blocks.find((b: Field) => b.name === blockName);
@@ -442,8 +483,6 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>(
     };
 
     const handleRemoveBlock = () => {
-      const shouldRemove = window.confirm("Remove this block?");
-      if (!shouldRemove) return;
       onChange(null);
     };
 
@@ -512,18 +551,44 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>(
                 {selectedBlockDefinition.label || selectedBlockDefinition.name}
 
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleRemoveBlock();
-                      }}
-                      className="text-muted-foreground hover:text-foreground -my-0.5 -mx-2 px-2 transition-colors"
-                    >
-                      <X className="size-3" />
-                    </button>
-                  </TooltipTrigger>
+                  <AlertDialog
+                    open={isRemoveBlockDialogOpen}
+                    onOpenChange={setIsRemoveBlockDialogOpen}
+                  >
+                    <TooltipTrigger asChild>
+                      <AlertDialogTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setIsRemoveBlockDialogOpen(true);
+                          }}
+                          className="text-muted-foreground hover:text-foreground -my-0.5 -mx-2 px-2 transition-colors"
+                        >
+                          <X className="size-3" />
+                        </button>
+                      </AlertDialogTrigger>
+                    </TooltipTrigger>
+                    <AlertDialogContent onClick={(event) => event.stopPropagation()}>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Remove this block?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => {
+                            handleRemoveBlock();
+                            setIsRemoveBlockDialogOpen(false);
+                          }}
+                        >
+                          Remove
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                   <TooltipContent>Remove block</TooltipContent>
                 </Tooltip>
               </Badge>

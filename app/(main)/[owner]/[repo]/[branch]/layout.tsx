@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { getToken } from "@/lib/token";
-import { getConfigWithSync } from "@/lib/utils/config";
+import { getConfig } from "@/lib/utils/config";
 import { ConfigProvider } from "@/contexts/config-context";
 import { RepoLayout } from "@/components/repo/repo-layout";
 import { Message } from "@/components/message";
@@ -32,18 +31,10 @@ export default async function Layout({
   let errorMessage = null;
 
   try {
-    const syncedConfig = await getConfigWithSync(
+    const syncedConfig = await getConfig(
       owner,
       repo,
       decodedBranch,
-      async () => {
-        const token = await getToken(user, owner, repo);
-        if (!token) throw new Error("Token not found");
-        return token;
-      },
-      {
-        backgroundRefreshWhenStale: true,
-      },
     );
 
     if (syncedConfig) {

@@ -28,6 +28,7 @@ type RepoSnapshotCacheEntry = {
 
 const BRANCH_HEAD_CACHE_TTL_MS = parseInt(process.env.BRANCH_HEAD_CACHE_TTL_MS || "15000", 10);
 const REPO_SNAPSHOT_CACHE_TTL_MS = parseInt(process.env.REPO_SNAPSHOT_CACHE_TTL_MS || "15000", 10);
+const CACHE_RECONCILE_INTERVAL_MIN = process.env.CACHE_RECONCILE_INTERVAL_MIN || process.env.CACHE_FILE_CHECK_TTL || "5";
 
 const branchHeadCache = new Map<string, BranchHeadCacheEntry>();
 const branchHeadInFlight = new Map<string, Promise<string>>();
@@ -164,7 +165,7 @@ type FileOperation = {
 };
 
 const cacheFileReconcileInFlight = new Map<string, Promise<void>>();
-const cacheFileCheckTTLms = parseInt(process.env.CACHE_FILE_CHECK_TTL || "5", 10) * 60 * 1000;
+const cacheFileCheckTTLms = parseInt(CACHE_RECONCILE_INTERVAL_MIN, 10) * 60 * 1000;
 
 const getCacheFileMetaKey = (owner: string, repo: string, branch: string) =>
   `${owner.toLowerCase()}::${repo.toLowerCase()}::${branch}`;

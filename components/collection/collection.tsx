@@ -19,7 +19,6 @@ import { EmptyCreate } from "@/components/empty-create";
 import { FileOptions } from "@/components/file/file-options";
 import { CollectionTable } from "./collection-table";
 import { FolderCreate} from "@/components/folder-create";
-import { Message } from "@/components/message";
 import { useRepoHeader } from "@/components/repo/repo-header-context";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
@@ -135,7 +134,6 @@ export function Collection({
 }) {
   const [tableSearch, setTableSearch] = useState("");
   const [data, setData] = useState<Record<string, any>[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { cache, mutate } = useSWRConfig();
 
@@ -250,21 +248,19 @@ export function Collection({
   );
 
   useEffect(() => {
-    setIsLoading(true);
+    setData([]);
     setError(null);
   }, [rootCollectionKey]);
 
   useEffect(() => {
     if (!swrCollectionData) return;
     setData(swrCollectionData);
-    setIsLoading(false);
     setError(null);
   }, [swrCollectionData]);
 
   useEffect(() => {
     if (!swrCollectionError) return;
     setError(swrCollectionError instanceof Error ? swrCollectionError.message : "Fetch failed");
-    setIsLoading(false);
   }, [swrCollectionError]);
 
   const fetchCollectionData = useCallback(async (fetchPath: string): Promise<Record<string, any>[] | undefined> => {
@@ -284,7 +280,6 @@ export function Collection({
       } else {
         toast.error(`Could not load items inside ${getFileName(fetchPath)}: ${err.message}`);
       }
-      setIsLoading(false);
       return undefined;
     }
   }, [buildCollectionApiUrl, cache, fetchCollectionByUrl, mutate, path, schema.path]);
@@ -714,6 +709,8 @@ export function Collection({
     header: headerNode,
   });
   
+  const isLoading = !swrCollectionData && !swrCollectionError && data.length === 0;
+
   const contentNode = isLoading
     ? loadingSkeleton
     : error
