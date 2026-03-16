@@ -38,6 +38,9 @@ export async function GET(
 
     const searchParams = request.nextUrl.searchParams;
     const name = searchParams.get("name");
+    const metaOnly =
+      searchParams.get("meta") === "true" ||
+      searchParams.get("meta") === "1";
     
     const normalizedPath = normalizePath(params.path);
     if (normalizedPath === ".pages.yml") {
@@ -45,6 +48,18 @@ export async function GET(
     }
 
     if (!name && normalizedPath !== ".pages.yml") throw new Error("If no content entry name is provided, the path must be \".pages.yml\".");
+
+    if (!name && normalizedPath === ".pages.yml" && metaOnly) {
+      const cachedConfig = await getConfig(params.owner, params.repo, params.branch);
+      return Response.json({
+        status: "success",
+        data: {
+          sha: cachedConfig?.sha ?? null,
+          version: cachedConfig?.version ?? null,
+          lastCheckedAt: cachedConfig?.lastCheckedAt ?? null,
+        },
+      });
+    }
 
     let config;
     let schema;

@@ -125,7 +125,9 @@ function InviteCollaboratorsDialog({
             rows={6}
           />
           {state?.error ? (
-            <p className="text-sm font-medium text-red-500">{state.error}</p>
+            <p className="text-sm font-medium text-destructive">
+              {state.error}
+            </p>
           ) : null}
           <DialogFooter>
             <SubmitButton
@@ -328,7 +330,12 @@ export function Collaborators({
           >
             <Skeleton className="h-6 w-6 rounded-full" />
             <Skeleton className="h-5 w-24 text-left rounded" />
-            <Button variant="outline" size="icon-xs" className="ml-auto" disabled>
+            <Button
+              variant="outline"
+              size="icon-xs"
+              className="ml-auto"
+              disabled
+            >
               <EllipsisVertical className="h-4 w-4" />
             </Button>
           </li>

@@ -386,7 +386,9 @@ const ListField = ({
                         </TooltipTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Remove this item?</AlertDialogTitle>
+                            <AlertDialogTitle>
+                              Remove this item?
+                            </AlertDialogTitle>
                             <AlertDialogDescription>
                               This action cannot be undone.
                             </AlertDialogDescription>
@@ -569,7 +571,9 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>(
                         </button>
                       </AlertDialogTrigger>
                     </TooltipTrigger>
-                    <AlertDialogContent onClick={(event) => event.stopPropagation()}>
+                    <AlertDialogContent
+                      onClick={(event) => event.stopPropagation()}
+                    >
                       <AlertDialogHeader>
                         <AlertDialogTitle>Remove this block?</AlertDialogTitle>
                         <AlertDialogDescription>
@@ -672,7 +676,7 @@ const ObjectField = forwardRef<HTMLDivElement, NestedFieldProps>(
                 isOpen ? "rotate-90" : "",
               )}
             />
-            <span className={hasErrors() ? "text-red-500" : ""}>
+            <span className={hasErrors() ? "text-destructive" : ""}>
               {itemLabel}
             </span>
           </header>
@@ -746,7 +750,7 @@ const SingleField = ({
         {shouldShowFieldMeta && (
           <div className="flex items-center h-5 gap-x-2">
             {field.label !== false && (
-              <Label className={hasErrors() ? "text-red-500" : ""}>
+              <Label className={hasErrors() ? "text-destructive" : ""}>
                 {field.label || field.name}
               </Label>
             )}

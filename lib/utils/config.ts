@@ -103,7 +103,10 @@ type GetConfigOptions = {
 };
 
 const DEFAULT_CONFIG_CHECK_TTL_MS = parseInt(
-  process.env.CONFIG_CHECK_TTL || "5",
+  process.env.CONFIG_CHECK_MIN ||
+    process.env.CFG_CHECK_MIN ||
+    process.env.CONFIG_CHECK_TTL ||
+    "5",
   10,
 ) * 60 * 1000;
 

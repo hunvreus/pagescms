@@ -112,6 +112,25 @@ const getDefaultValue = (field: Record<string, any>) => {
   }
 };
 
+// Treat optional object fields as absent when all nested values are empty.
+const isEffectivelyEmpty = (value: unknown): boolean => {
+  if (value == null || value === "") return true;
+
+  if (Array.isArray(value)) {
+    return value.length === 0 || value.every((item) => isEffectivelyEmpty(item));
+  }
+
+  if (value instanceof Date) return false;
+
+  if (typeof value === "object") {
+    const entries = Object.values(value as Record<string, unknown>);
+    return entries.length === 0 || entries.every((item) => isEffectivelyEmpty(item));
+  }
+
+  // Booleans and numbers are meaningful values (`false`/`0` included).
+  return false;
+};
+
 // Generate a Zod schema for validation
 const generateZodSchema = (
   fields: Field[],
@@ -124,8 +143,14 @@ const generateZodSchema = (
       let fieldSchema: z.ZodTypeAny;
 
       if (field.type === 'object') {
-        // Object field
-        fieldSchema = z.object(buildSchemaObject(field.fields || []));
+        // Optional objects should only be validated when they are meaningfully present.
+        const objectSchema = z.object(buildSchemaObject(field.fields || []));
+        fieldSchema = field.required
+          ? objectSchema
+          : z.preprocess(
+              (value) => (isEffectivelyEmpty(value) ? undefined : value),
+              objectSchema.optional()
+            );
       } else if (field.type === 'block') {
         // Block field
         if (!field.blocks || field.blocks.length === 0) {

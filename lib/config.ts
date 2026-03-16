@@ -112,6 +112,19 @@ const normalizeConfig = (configObject: any) => {
       if (item.path != null) {
         item.path = item.path.replace(/^\/|\/$/g, "");
       }
+      if (item.type === "collection" && item.filename && typeof item.filename === "object") {
+        if (typeof item.filename.template === "string") {
+          const filenameField = item.filename.field;
+          item.filename = item.filename.template;
+          if (
+            filenameField === true ||
+            filenameField === false ||
+            filenameField === "create"
+          ) {
+            item.filenameField = filenameField;
+          }
+        }
+      }
       if (item.filename == null && item.type === "collection") {
         item.filename = "{year}-{month}-{day}-{primary}.md";
       }

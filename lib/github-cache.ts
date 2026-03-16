@@ -26,9 +26,33 @@ type RepoSnapshotCacheEntry = {
   expiresAt: number;
 };
 
-const BRANCH_HEAD_CACHE_TTL_MS = parseInt(process.env.BRANCH_HEAD_CACHE_TTL_MS || "15000", 10);
-const REPO_SNAPSHOT_CACHE_TTL_MS = parseInt(process.env.REPO_SNAPSHOT_CACHE_TTL_MS || "15000", 10);
-const CACHE_RECONCILE_INTERVAL_MIN = process.env.CACHE_RECONCILE_INTERVAL_MIN || process.env.CACHE_FILE_CHECK_TTL || "5";
+const BRANCH_HEAD_TTL_MS = parseInt(
+  process.env.BRANCH_HEAD_TTL_MS ||
+    process.env.HEAD_TTL_MS ||
+    process.env.BRANCH_HEAD_CACHE_TTL_MS ||
+    "15000",
+  10,
+);
+const REPO_META_TTL_MS = parseInt(
+  process.env.REPO_META_TTL_MS ||
+    process.env.SNAP_TTL_MS ||
+    process.env.REPO_SNAPSHOT_CACHE_TTL_MS ||
+    "15000",
+  10,
+);
+const CACHE_RECONCILE_INTERVAL_MIN =
+  process.env.CACHE_CHECK_MIN ||
+  process.env.CACHE_RECONCILE_INTERVAL_MIN ||
+  process.env.CACHE_FILE_CHECK_TTL ||
+  "5";
+const FILE_CACHE_TTL_MIN =
+  process.env.FILE_TTL_MIN || process.env.FILE_CACHE_TTL || "1440";
+const FILE_CACHE_EXPIRY_DISABLED = FILE_CACHE_TTL_MIN === "-1";
+const PERMISSIONS_CACHE_TTL_MIN =
+  process.env.PERMISSIONS_TTL_MIN ||
+  process.env.PERM_TTL_MIN ||
+  process.env.PERMISSION_CACHE_TTL ||
+  "60";
 
 const branchHeadCache = new Map<string, BranchHeadCacheEntry>();
 const branchHeadInFlight = new Map<string, Promise<string>>();
@@ -45,7 +69,7 @@ const setBranchHeadSha = (owner: string, repo: string, branch: string, sha: stri
   const key = getBranchHeadCacheKey(owner, repo, branch);
   branchHeadCache.set(key, {
     sha,
-    expiresAt: Date.now() + BRANCH_HEAD_CACHE_TTL_MS,
+    expiresAt: Date.now() + BRANCH_HEAD_TTL_MS,
   });
 };
 
@@ -137,7 +161,7 @@ const getRepoSnapshot = async (
 
     repoSnapshotCache.set(key, {
       value,
-      expiresAt: Date.now() + REPO_SNAPSHOT_CACHE_TTL_MS,
+      expiresAt: Date.now() + REPO_META_TTL_MS,
     });
     return value;
   })();
@@ -843,9 +867,9 @@ const getCollectionCache = async (
 
   let cacheExpired = false;
   // If set to "-1", the file cache doesn't expire
-  if (entries.length > 0 && process.env.FILE_CACHE_TTL !== "-1") {
+  if (entries.length > 0 && !FILE_CACHE_EXPIRY_DISABLED) {
     const now = new Date();
-    const ttl = parseInt(process.env.FILE_CACHE_TTL || "1440") * 60 * 1000; // Defaults to 1 day cache
+    const ttl = parseInt(FILE_CACHE_TTL_MIN, 10) * 60 * 1000; // Defaults to 1 day cache
     cacheExpired = entries[0].lastUpdated.getTime() < now.getTime() - ttl;
   }
 
@@ -1034,9 +1058,9 @@ const getMediaCache = async (
 
   let cacheExpired = false;
   // If set to "-1", the file cache doesn't expire
-  if (entries.length > 0 && process.env.FILE_CACHE_TTL !== "-1") {
+  if (entries.length > 0 && !FILE_CACHE_EXPIRY_DISABLED) {
     const now = new Date();
-    const ttl = parseInt(process.env.FILE_CACHE_TTL || "1440") * 60 * 1000; // Defaults to 1 day cache
+    const ttl = parseInt(FILE_CACHE_TTL_MIN, 10) * 60 * 1000; // Defaults to 1 day cache
     cacheExpired = entries[0].lastUpdated.getTime() < now.getTime() - ttl;
   }
 
@@ -1108,7 +1132,7 @@ const checkRepoAccess = async (
 ): Promise<boolean> => {
   // Check if we have a cached result
   const now = new Date();
-  const ttl = parseInt(process.env.PERMISSION_CACHE_TTL || "60") * 60 * 1000;
+  const ttl = parseInt(PERMISSIONS_CACHE_TTL_MIN, 10) * 60 * 1000;
 
   const cacheEntry = await db.query.cachePermissionTable.findFirst({
     where: and(

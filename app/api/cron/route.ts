@@ -12,14 +12,23 @@ export async function GET(request: Request) {
     console.log("Cron job started: Cleaning up cache.");
 
     // Delete expired cache_file entries (default 7 days)
-    const fileCacheTTL = parseInt(process.env.FILE_CACHE_TTL || "10080") * 60 * 1000;
+    const fileCacheTTL = parseInt(
+      process.env.FILE_TTL_MIN || process.env.FILE_CACHE_TTL || "10080",
+      10,
+    ) * 60 * 1000;
     const fileExpiryDate = new Date(Date.now() - fileCacheTTL);
     const deletedFiles = await db.delete(cacheFileTable)
       .where(lt(cacheFileTable.lastUpdated, fileExpiryDate)).returning();
     console.log(`Deleted ${deletedFiles.length} expired file cache entries.`);
 
     // Delete expired cache_permission entries (default 1 hour)
-    const permissionCacheTTL = parseInt(process.env.PERMISSION_CACHE_TTL || "60") * 60 * 1000;
+    const permissionCacheTTL = parseInt(
+      process.env.PERMISSIONS_TTL_MIN ||
+      process.env.PERM_TTL_MIN ||
+      process.env.PERMISSION_CACHE_TTL ||
+      "60",
+      10,
+    ) * 60 * 1000;
     const permissionExpiryDate = new Date(Date.now() - permissionCacheTTL);
     const deletedPermissions = await db.delete(cachePermissionTable)
       .where(lt(cachePermissionTable.lastUpdated, permissionExpiryDate)).returning();

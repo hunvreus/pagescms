@@ -75,6 +75,28 @@ const ListSchema = z.union([
   }).strict()
 ]);
 
+const FilenameConfigSchema = z.union([
+  z.string({
+    message: "'filename' must be a string or an object.",
+  }),
+  z.object({
+    template: z.string({
+      required_error: "'template' is required.",
+      invalid_type_error: "'template' must be a string.",
+    }),
+    field: z.union([
+      z.boolean({
+        message: "'field' must be a boolean or 'create'.",
+      }),
+      z.enum(["create"], {
+        message: "'field' must be a boolean or 'create'.",
+      }),
+    ]).optional(),
+  }, {
+    message: "'filename' object must contain 'template' and optionally 'field'.",
+  }).strict(),
+]);
+
 // Generator for Field Object Schema (components do not have a `name` field)
 const generateFieldObjectSchema = (isComponent?: boolean, isBlock?: boolean): z.ZodType<any> => {
   let baseObjectSchema = {
@@ -229,9 +251,7 @@ const ContentObjectSchema = z.object({
   }).regex(/^[^/].*[^/]$|^$/, {
     message: "'path' must be a valid relative path (no leading or trailing slash)."
   }),
-  filename: z.string({
-    message: "'filename' must be a string."
-  }).optional().nullable(),
+  filename: FilenameConfigSchema.optional().nullable(),
   exclude: z.array(z.string({
     message: "Entries in the 'exclude' array must be strings."
   }), {

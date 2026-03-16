@@ -22,6 +22,13 @@ import { EmptyCreate } from "@/components/empty-create";
 import { FileOptions } from "@/components/file/file-options";
 import { Button } from "@/components/ui/button";
 import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
   Empty,
   EmptyContent,
   EmptyDescription,
@@ -46,7 +53,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner";
-import { EllipsisVertical, History } from "lucide-react";
+import { EllipsisVertical, History, Lock, LockOpen } from "lucide-react";
 import useSWR, { useSWRConfig } from "swr";
 
 type LintView = {
@@ -98,13 +105,29 @@ export function Entry({
     return getSchemaByName(config?.object, name)
   }, [config, name]);
   const schemaType = schema?.type;
+  const isFileEditorMode = !schema?.fields || schema.fields.length === 0;
+  const filenameFieldMode = useMemo(() => {
+    if (!schema || schema.type !== "collection") return "hidden";
+    if (schema.filenameField === true) return "enabled";
+    if (schema.filenameField === "create") return "create";
+    if (schema.filenameField === false) return "hidden";
+    return isFileEditorMode ? "enabled" : "hidden";
+  }, [isFileEditorMode, schema]);
+  const showFilenameField = useMemo(() => {
+    if (schemaType !== "collection") return false;
+    if (filenameFieldMode === "enabled") return true;
+    if (filenameFieldMode === "create") return !path;
+    return false;
+  }, [filenameFieldMode, path, schemaType]);
+  const [filenameValue, setFilenameValue] = useState("");
+  const [isFilenameUnlocked, setIsFilenameUnlocked] = useState(false);
   
   const entryFields = useMemo(() => {
     return !schema?.fields || schema.fields.length === 0
       ? [{
           name: "body",
           type: "code",
-          label: false,
+          label: showFilenameField ? "Content" : false,
           options: {
             format: schema?.extension || (entry?.name && getFileExtension(entry.name)) || "markdown",
             lintFn: path === ".pages.yml"
@@ -124,7 +147,7 @@ export function Entry({
             fields: schema.fields
           }]
         : schema.fields;
-  }, [schema, entry, path]);
+  }, [schema, entry, path, showFilenameField]);
 
   const entryContentObject = useMemo(() => {
     return path
@@ -135,6 +158,20 @@ export function Entry({
         ? { listWrapper: [] }
         : {};
   }, [schema, entry, path]);
+
+  useEffect(() => {
+    if (!showFilenameField || schemaType !== "collection" || !schema) return;
+
+    if (path) {
+      setFilenameValue(getFileName(normalizePath(path)));
+      setIsFilenameUnlocked(false);
+      return;
+    }
+
+    const generated = generateFilename(schema.filename, schema, entryContentObject as Record<string, unknown>);
+    setFilenameValue(generated || "untitled");
+    setIsFilenameUnlocked(true);
+  }, [entryContentObject, path, schema, schemaType, showFilenameField]);
 
   const entryApiUrl = useMemo(() => (
     path
@@ -224,6 +261,14 @@ export function Entry({
     },
   );
 
+  const currentFilename = useMemo(
+    () => path ? getFileName(normalizePath(path)) : "",
+    [path],
+  );
+  const filenameChanged = showFilenameField
+    && filenameValue.trim().length > 0
+    && filenameValue.trim() !== currentFilename;
+
   const onSubmit = async (contentObject: Record<string, unknown>) => {
     setIsSaving(true);
     const submitStartChangeVersion = changeVersionRef.current;
@@ -231,12 +276,49 @@ export function Entry({
     const savePromise = new Promise<ApiSuccess<EntryData>>(async (resolve, reject) => {
       try {
         let savePath = path;
+        const trimmedFilename = filenameValue.trim();
+        const normalizedFilename = normalizePath(trimmedFilename).split("/").pop() || "";
+
+        if (showFilenameField && !normalizedFilename) {
+          throw new Error("Filename is required.");
+        }
+
         if (!savePath) {
           if (!schema) throw new Error("Cannot create entry without schema.");
           const basePath = parent ?? schema.path;
           if (basePath == null) throw new Error("Cannot create entry without a target path.");
-          const generatedFilename = generateFilename(schema.filename, schema, contentObject);
+          const generatedFilename = showFilenameField
+            ? normalizedFilename
+            : generateFilename(schema.filename, schema, contentObject);
           savePath = joinPathSegments([basePath, generatedFilename]);
+        } else if (
+          showFilenameField
+          && filenameFieldMode === "enabled"
+          && isFilenameUnlocked
+          && filenameChanged
+          && schemaType === "collection"
+        ) {
+          const newPath = joinPathSegments([getParentPath(savePath), normalizedFilename]);
+          const renameResponse = await fetch(
+            `/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/files/${encodeURIComponent(savePath)}/rename`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                type: "content",
+                name,
+                newPath,
+              }),
+            },
+          );
+          await requireApiSuccess<any>(renameResponse, "Failed to rename file");
+          savePath = newPath;
+          setPath(newPath);
+          setIsFilenameUnlocked(false);
+          router.replace(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/edit/${encodeURIComponent(newPath)}`);
+
+          const collectionKeyPrefix = `/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collections/${encodeURIComponent(name)}?`;
+          void mutate((key) => typeof key === "string" && key.startsWith(collectionKeyPrefix));
         }
 
         const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/files/${encodeURIComponent(savePath)}`, {
@@ -438,7 +520,20 @@ export function Entry({
             form="entry-form"
             disabled={
               isBusy ||
-              (Boolean(path) && !(isFormDirty || hasRegisteredChanges))
+              (showFilenameField && filenameValue.trim().length === 0) ||
+              (
+                Boolean(path) &&
+                !(
+                  isFormDirty
+                  || hasRegisteredChanges
+                  || (
+                    showFilenameField
+                    && filenameFieldMode === "enabled"
+                    && isFilenameUnlocked
+                    && filenameChanged
+                  )
+                )
+              )
             }
           >
             Save
@@ -555,6 +650,41 @@ export function Entry({
         fields={entryFields}
         contentObject={entryContentObject}
         onSubmit={onSubmit}
+        filePath={
+          showFilenameField
+            ? <InputGroup data-disabled={path ? !isFilenameUnlocked : false}>
+                <InputGroupInput
+                  value={filenameValue}
+                  onChange={(event) => setFilenameValue(event.target.value)}
+                  placeholder="Filename"
+                  disabled={path ? !isFilenameUnlocked : false}
+                  aria-label="Filename"
+                />
+                {path && filenameFieldMode === "enabled" && (
+                  <InputGroupAddon align="inline-end">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <InputGroupButton
+                          type="button"
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={() => setIsFilenameUnlocked((prev) => !prev)}
+                          aria-label={isFilenameUnlocked ? "Lock filename" : "Unlock filename"}
+                        >
+                          {isFilenameUnlocked
+                            ? <LockOpen className="size-3.5" />
+                            : <Lock className="size-3.5" />}
+                        </InputGroupButton>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {isFilenameUnlocked ? "Lock filename" : "Unlock to edit"}
+                      </TooltipContent>
+                    </Tooltip>
+                  </InputGroupAddon>
+                )}
+              </InputGroup>
+            : undefined
+        }
         onDirtyChange={setIsFormDirty}
         onChangeRegistered={() => {
           changeVersionRef.current += 1;

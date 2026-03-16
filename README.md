@@ -107,9 +107,12 @@ Variable | Comments
 `SMTP_SECURE` | **OPTIONAL**. Set to `true` or `false`. Defaults to `true` when `SMTP_PORT=465`, otherwise `false`.
 `SMTP_USER` | **OPTIONAL**. SMTP username. Must be set together with `SMTP_PASSWORD`.
 `SMTP_PASSWORD` | **OPTIONAL**. SMTP password. Must be set together with `SMTP_USER`.
-`CACHE_RECONCILE_INTERVAL_MIN` | **OPTIONAL**. Backend reconcile interval (in minutes) for checking branch HEAD SHA against GitHub to detect external changes and invalidate stale file cache. Defaults to 5. Legacy alias: `CACHE_FILE_CHECK_TTL`.
-`FILE_CACHE_TTL` | **OPTIONAL**. Backend cache entry max age (in minutes) for `cache_file` rows (collections and media folders). Defaults to 1440 (1 day). Set to "-1" to prevent cache entry expiry, or "0" if you want no cache.
-`PERMISSION_CACHE_TTL` | **OPTIONAL**. Time to live (in minutes) for the permission cache, which controls access to file cache. Defaults to 60. Set to "0" if you want to always check permissions against the GitHub API.
+`CACHE_CHECK_MIN` | **OPTIONAL**. Backend reconcile interval (in minutes) for checking branch HEAD SHA against GitHub to detect external changes and invalidate stale file cache. Defaults to 5. Legacy aliases: `CACHE_RECONCILE_INTERVAL_MIN`, `CACHE_FILE_CHECK_TTL`.
+`CONFIG_CHECK_MIN` | **OPTIONAL**. Backend config check interval (in minutes) when config sync is enabled. Defaults to 5. Legacy aliases: `CFG_CHECK_MIN`, `CONFIG_CHECK_TTL`.
+`FILE_TTL_MIN` | **OPTIONAL**. Backend cache entry max age (in minutes) for `cache_file` rows (collections and media folders). Defaults to 1440 (1 day). Set to "-1" to prevent cache entry expiry, or "0" if you want no cache. Legacy alias: `FILE_CACHE_TTL`.
+`PERMISSIONS_TTL_MIN` | **OPTIONAL**. Time to live (in minutes) for the permission cache, which controls access to file cache. Defaults to 60. Set to "0" if you want to always check permissions against the GitHub API. Legacy aliases: `PERM_TTL_MIN`, `PERMISSION_CACHE_TTL`.
+`BRANCH_HEAD_TTL_MS` | **OPTIONAL**. In-memory TTL (in milliseconds) for cached branch HEAD SHA. Defaults to 15000. Legacy aliases: `HEAD_TTL_MS`, `BRANCH_HEAD_CACHE_TTL_MS`.
+`REPO_META_TTL_MS` | **OPTIONAL**. In-memory TTL (in milliseconds) for cached repository metadata snapshot (repository info + branch list). Defaults to 15000. Legacy aliases: `SNAP_TTL_MS`, `REPO_SNAPSHOT_CACHE_TTL_MS`.
 `CRON_SECRET` | Secret token used to secure the access of the cron API endpoint.
 
 SMTP note: install `nodemailer` in your deployment/runtime with `npm install nodemailer` if you plan to use `EMAIL_PROVIDER=smtp`. If no provider can be resolved (no `EMAIL_PROVIDER`, no `RESEND_API_KEY`, and no `SMTP_HOST`), email sending fails with an explicit startup/runtime error.
