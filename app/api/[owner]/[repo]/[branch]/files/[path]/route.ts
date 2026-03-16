@@ -13,6 +13,7 @@ import { getToken } from "@/lib/token";
 import { updateFileCache } from "@/lib/github-cache";
 import { toErrorResponse } from "@/lib/api-error";
 import mergeWith from "lodash.mergewith";
+import { buildCommitTokens, resolveCommitMessage } from "@/lib/commit-message";
 
 /**
  * Create, update and delete individual files in a GitHub repository.
@@ -181,7 +182,20 @@ export async function POST(
         throw new Error(`Invalid type "${data.type}".`);
     }
     
-    const response = await githubSaveFile(token, params.owner, params.repo, params.branch, normalizedPath, contentBase64, data.sha);
+    const response = await githubSaveFile(
+      token,
+      params.owner,
+      params.repo,
+      params.branch,
+      normalizedPath,
+      contentBase64,
+      data.sha,
+      {
+        configObject: config?.object,
+        contentName: data.name,
+        user: user.email || user.name || String(user.id || ""),
+      }
+    );
   
     const savedPath = response?.data.content?.path;
 
@@ -254,17 +268,36 @@ const githubSaveFile = async (
   path: string,
   contentBase64: string,
   sha?: string,
+  options?: {
+    configObject?: Record<string, any>;
+    contentName?: string;
+    user?: string;
+  },
 ) => {
   // We disable retries for 409 errors as it means the file has changed (conflict on SHA)
   const octokit = createOctokitInstance(token, { retry: { doNotRetry: [409] } });
   
+  const message = resolveCommitMessage({
+    configObject: options?.configObject,
+    action: sha ? "update" : "create",
+    tokens: buildCommitTokens({
+      action: sha ? "update" : "create",
+      owner,
+      repo,
+      branch,
+      path,
+      contentName: options?.contentName,
+      user: options?.user,
+    }),
+  });
+
   try {
     // First attempt: try with original path
     const response = await octokit.rest.repos.createOrUpdateFileContents({
       owner,
       repo,
       path,
-      message: sha ? `Update ${path} (via Pages CMS)` : `Create ${path} (via Pages CMS)`,
+      message,
       content: contentBase64,
       branch,
       sha: sha || undefined,
@@ -316,12 +349,25 @@ const githubSaveFile = async (
           ? `${filename}-${maxNumber + i}.${extension}`
           : `${filename}-${maxNumber + i}`;
         const newPath = `${parentDir ? parentDir + '/' : ''}${candidateFilename}`;
+        const fallbackMessage = resolveCommitMessage({
+          configObject: options?.configObject,
+          action: "create",
+          tokens: buildCommitTokens({
+            action: "create",
+            owner,
+            repo,
+            branch,
+            path: newPath,
+            contentName: options?.contentName,
+            user: options?.user,
+          }),
+        });
         try {
           const response = await octokit.rest.repos.createOrUpdateFileContents({
             owner,
             repo,
             path: newPath,
-            message: `Create ${newPath} (via Pages CMS)`,
+            message: fallbackMessage,
             content: contentBase64,
             branch,
           });
@@ -408,7 +454,19 @@ export async function DELETE(
       branch: params.branch,
       path: normalizedPath,
       sha: sha,
-      message: `Delete ${normalizedPath} (via Pages CMS)`,
+      message: resolveCommitMessage({
+        configObject: config.object,
+        action: "delete",
+        tokens: buildCommitTokens({
+          action: "delete",
+          owner: params.owner,
+          repo: params.repo,
+          branch: params.branch,
+          path: normalizedPath,
+          contentName: name || undefined,
+          user: user.email || user.name || String(user.id || ""),
+        }),
+      }),
     });
 
     // Update cache after successful deletion

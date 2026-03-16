@@ -8,6 +8,7 @@ import { getToken } from "@/lib/token";
 import { updateFileCache } from "@/lib/github-cache";
 import { toErrorResponse } from "@/lib/api-error";
 import { getBranchHeadSha, setBranchHeadSha } from "@/lib/github-cache";
+import { buildCommitTokens, resolveCommitMessage } from "@/lib/commit-message";
 
 /**
  * Renames a file in a GitHub repository.
@@ -84,7 +85,19 @@ export async function POST(
         break;
     }
     
-    const response = await githubRenameFile(token, params.owner, params.repo, params.branch, normalizedPath, normalizedNewPath);
+    const response = await githubRenameFile(
+      token,
+      params.owner,
+      params.repo,
+      params.branch,
+      normalizedPath,
+      normalizedNewPath,
+      {
+        configObject: config.object,
+        contentName: data.name,
+        user: user.email || user.name || String(user.id || ""),
+      }
+    );
 
     // Update the cache with the rename operation
     await updateFileCache(
@@ -132,6 +145,11 @@ const githubRenameFile = async (
   branch: string,
   path: string,
   newPath: string,
+  options?: {
+    configObject?: Record<string, any>;
+    contentName?: string;
+    user?: string;
+  },
 ) => {
   const octokit = createOctokitInstance(token);
 
@@ -168,7 +186,20 @@ const githubRenameFile = async (
   const { data: commitData } = await octokit.rest.git.createCommit({
     owner,
     repo,
-    message: `Rename ${path} to ${newPath}`,
+    message: resolveCommitMessage({
+      configObject: options?.configObject,
+      action: "rename",
+      tokens: buildCommitTokens({
+        action: "rename",
+        owner,
+        repo,
+        branch,
+        oldPath: path,
+        newPath,
+        contentName: options?.contentName,
+        user: options?.user,
+      }),
+    }),
     tree: newTreeSha,
     parents: [currentSha],
   });

@@ -152,7 +152,6 @@ const parseContent = (
         contentObject,
         entryFields,
         (value, field) => {
-          if (field.hidden) return;
           const type = field.type;
           if (typeof type === 'string' && readFns[type]) {
             return readFns[type](value, field, config);

@@ -186,6 +186,21 @@ const normalizeConfig = (configObject: any) => {
       configObjectCopy.settings.config = !configObjectCopy.settings.hide;
     }
     delete configObjectCopy.settings.hide;
+
+    if (
+      configObjectCopy.settings.commit
+      && typeof configObjectCopy.settings.commit === "object"
+    ) {
+      const commit = configObjectCopy.settings.commit;
+      if (
+        commit.message
+        && typeof commit.message === "object"
+        && (commit.templates == null || typeof commit.templates !== "object")
+      ) {
+        commit.templates = commit.message;
+      }
+      delete commit.message;
+    }
   }
   
   return configObjectCopy;

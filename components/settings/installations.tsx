@@ -2,6 +2,7 @@
 
 import { useUser } from "@/contexts/user-context";
 import { Button } from "@/components/ui/button";
+import { getGithubInstallationUrl } from "@/lib/github-installation-url";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,18 +10,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ArrowUpRight, Ban, EllipsisVertical } from "lucide-react";
-
-const getInstallationUrl = (account: {
-  type: string;
-  login: string;
-  installationId?: number | null;
-}) => {
-  if (account.type === "org") {
-    return `https://github.com/organizations/${account.login}/settings/installations/${account.installationId ?? ""}`;
-  }
-
-  return `https://github.com/settings/installations/${account.installationId ?? ""}`;
-};
 
 const Installations = () => {
   const { user } = useUser();
@@ -39,7 +28,7 @@ const Installations = () => {
       {user.accounts.map((account) => (
         <li
           className="flex items-center gap-x-3 border border-b-0 last:border-b first:rounded-t-md last:rounded-b-md px-3 py-2 text-sm"
-          key={account.login}
+          key={`${account.login}-${account.installationId}`}
         >
           <div className="flex gap-x-2 items-center">
             <img
@@ -59,11 +48,11 @@ const Installations = () => {
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
                 <a
-                  href={getInstallationUrl(account)}
+                  href={getGithubInstallationUrl(account)}
                   target="_blank"
                   rel="noreferrer"
                 >
-                  Manage on GitHub
+                  Manage GitHub App
                   <ArrowUpRight className="size-3 text-muted-foreground ml-auto" />
                 </a>
               </DropdownMenuItem>

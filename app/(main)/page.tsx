@@ -24,8 +24,8 @@ export default function Page() {
     <MainRootLayout>
 			<div className="max-w-screen-sm mx-auto p-4 md:p-6 space-y-8">
 				{user.accounts.length > 0
-					? <div className="space-y-8">
-				    <div className="space-y-4">
+					? <div className="min-h-[calc(100vh-12rem)] flex flex-col justify-center space-y-8">
+					    <div className="space-y-4">
 								<h2 className="text-lg leading-none font-semibold">Recently visited</h2>
 								<RepoLatest/>
 							</div>

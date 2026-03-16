@@ -373,6 +373,26 @@ const ConfigSchema = z.object({
       }, {
         message: "'content' must be an object."
       }).optional(),
+      commit: z.object({
+        templates: z.object({
+          create: z.string({
+            message: "'create' must be a string."
+          }).optional(),
+          update: z.string({
+            message: "'update' must be a string."
+          }).optional(),
+          delete: z.string({
+            message: "'delete' must be a string."
+          }).optional(),
+          rename: z.string({
+            message: "'rename' must be a string."
+          }).optional(),
+        }, {
+          message: "'templates' must be an object."
+        }).optional(),
+      }, {
+        message: "'commit' must be an object."
+      }).optional(),
     }, {
       message: "'settings' must be an object."
     }).strict().optional(),

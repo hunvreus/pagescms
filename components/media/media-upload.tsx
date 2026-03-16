@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { getSchemaByName } from "@/lib/schema";
 import { cn } from "@/lib/utils";
 import { requireApiSuccess } from "@/lib/api-client";
-import type { ApiResponse, FileSaveData } from "@/types/api";
+import type { FileSaveData } from "@/types/api";
 
 interface MediaUploadContextValue {
   handleFiles: (files: File[]) => Promise<void>;
@@ -64,45 +64,43 @@ function MediaUploadRoot({ children, path, onUpload, media, extensions, multiple
   const handleFiles = useCallback(async (files: File[]) => {
     try {
       for (const file of files) {
-        const reader = new FileReader();
         const effectiveRename = rename ?? Boolean(configMedia?.rename);
         const extension = getFileExtension(file.name);
         const uploadFilename = effectiveRename
           ? generateRandomUploadName(extension)
           : file.name;
 
-        const uploadPromise = new Promise<FileSaveData>((resolve, reject) => {
-          reader.onload = async () => {
-            try {
-              const content = (reader.result as string).replace(/^(.+,)/, "");
-              const fullPath = joinPathSegments([path ?? "", uploadFilename]);
+        const uploadPromise = (async () => {
+          const content = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const base64Content = (reader.result as string).replace(/^(.+,)/, "");
+              resolve(base64Content);
+            };
+            reader.onerror = () => reject(new Error("Failed to read file"));
+            reader.readAsDataURL(file);
+          });
 
-              const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/files/${encodeURIComponent(fullPath)}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  type: "media",
-                  name: configMedia.name,
-                  content,
-                }),
-              });
+          const fullPath = joinPathSegments([path ?? "", uploadFilename]);
+          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/files/${encodeURIComponent(fullPath)}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "media",
+              name: configMedia.name,
+              content,
+            }),
+          });
 
-              const data = await requireApiSuccess<any>(
-                response,
-                "Failed to upload file",
-              );
-              
-              resolve(data.data);
-            } catch (error) {
-              reject(error);
-            }
-          };
-          reader.onerror = () => reject(new Error("Failed to read file"));
-        });
+          const data = await requireApiSuccess<any>(
+            response,
+            "Failed to upload file",
+          );
 
-        reader.readAsDataURL(file);
+          return data.data as FileSaveData;
+        })();
 
-        toast.promise(uploadPromise, {
+        await toast.promise(uploadPromise, {
           loading: `Uploading ${file.name}`,
           success: (savedEntry) => {
             onUpload?.(savedEntry);
