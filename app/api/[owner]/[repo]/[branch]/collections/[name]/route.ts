@@ -1,17 +1,16 @@
 export const maxDuration = 30;
 
 import { type NextRequest } from "next/server";
-import { headers } from "next/headers";
 import { readFns } from "@/fields/registry";
 import { parse } from "@/lib/serialization";
 import { deepMap, getDateFromFilename, getFieldByPath, getSchemaByName, safeAccess } from "@/lib/schema";
 import { getConfig } from "@/lib/utils/config";
 import { normalizePath } from "@/lib/utils/file";
-import { auth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
 import { getCollectionCache, checkRepoAccess } from "@/lib/github-cache";
 import { getGithubId } from "@/lib/github-account";
 import { toErrorResponse } from "@/lib/api-error";
+import { requireApiUserSession } from "@/lib/session-server";
 
 /**
  * Fetches and parses collection contents from GitHub repositories
@@ -29,13 +28,11 @@ export async function GET(
 ) {
   try {
     const params = await context.params;
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-    if (!session?.user) return new Response(null, { status: 401 });
-    const user = session.user;
+    const sessionResult = await requireApiUserSession();
+    if ("response" in sessionResult) return sessionResult.response;
+    const user = sessionResult.user;
 
-    const token = await getToken(user, params.owner, params.repo);
+    const { token } = await getToken(user, params.owner, params.repo);
     if (!token) throw new Error("Token not found");
 
     const githubId = await getGithubId(user.id);

@@ -2,13 +2,12 @@ import { createOctokitInstance } from "@/lib/utils/octokit";
 import { getSchemaByName } from "@/lib/schema";
 import { getConfig } from "@/lib/utils/config";
 import { getFileExtension, normalizePath } from "@/lib/utils/file";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
 import { updateFileCache } from "@/lib/github-cache";
 import { toErrorResponse } from "@/lib/api-error";
 import { getBranchHeadSha, setBranchHeadSha } from "@/lib/github-cache";
 import { buildCommitTokens, resolveCommitMessage } from "@/lib/commit-message";
+import { requireApiUserSession } from "@/lib/session-server";
 
 /**
  * Renames a file in a GitHub repository.
@@ -24,14 +23,18 @@ export async function POST(
 ) {
   try {
     const params = await context.params;
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-    if (!session?.user) return new Response(null, { status: 401 });
-    const user = session.user;
+    const sessionResult = await requireApiUserSession();
+    if ("response" in sessionResult) return sessionResult.response;
+    const user = sessionResult.user;
 
-    const token = await getToken(user, params.owner, params.repo, true);
+    const { token, source } = await getToken(user, params.owner, params.repo, true);
     if (!token) throw new Error("Token not found");
+    const committer = source === "installation"
+      ? {
+          name: user.name?.trim() || user.email,
+          email: user.email,
+        }
+      : undefined;
 
     if (params.path === ".pages.yml") throw new Error(`Renaming the settings file isn't allowed.`);
 
@@ -100,6 +103,7 @@ export async function POST(
         templatesOverride: schemaCommitTemplates,
         contentName: data.name,
         user: user.email || user.name || String(user.id || ""),
+        committer,
       }
     );
 
@@ -154,6 +158,7 @@ const githubRenameFile = async (
     templatesOverride?: Record<string, string>;
     contentName?: string;
     user?: string;
+    committer?: { name: string; email: string };
   },
 ) => {
   const octokit = createOctokitInstance(token);
@@ -208,6 +213,7 @@ const githubRenameFile = async (
     }),
     tree: newTreeSha,
     parents: [currentSha],
+    committer: options?.committer,
   });
   const commitSha = commitData.sha;
 

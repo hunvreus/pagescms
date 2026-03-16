@@ -47,7 +47,7 @@ const getConfigFromDb = async (
 const saveConfig = async (
   config: Config,
 ): Promise<Config> => {
-  const result = await db.insert(configTable).values({
+  await db.insert(configTable).values({
     owner: config.owner,
     repo: config.repo,
     branch: config.branch,

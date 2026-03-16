@@ -1,6 +1,4 @@
-import { headers } from "next/headers";
 import { and, eq, sql } from "drizzle-orm";
-import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { cacheFileTable, cachePermissionTable, configTable } from "@/db/schema";
 import { requireGithubRepoWriteAccess } from "@/lib/authz-server";
@@ -14,6 +12,7 @@ import { getConfig } from "@/lib/utils/config";
 import { toErrorResponse } from "@/lib/api-error";
 import { isCacheEnabled } from "@/lib/config-settings";
 import { getBranchHeadSha } from "@/lib/github-cache";
+import { requireApiUserSession } from "@/lib/session-server";
 
 export async function GET(
   _request: Request,
@@ -21,13 +20,11 @@ export async function GET(
 ) {
   try {
     const params = await context.params;
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-    if (!session?.user) return new Response(null, { status: 401 });
+    const sessionResult = await requireApiUserSession();
+    if ("response" in sessionResult) return sessionResult.response;
 
     const { token } = await requireGithubRepoWriteAccess(
-      session.user,
+      sessionResult.user,
       params.owner,
       params.repo,
       "Only GitHub users can view cache status.",
@@ -108,13 +105,11 @@ export async function POST(
     const body = (await request.json()) as { action?: string };
     const action = body?.action || "";
 
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-    if (!session?.user) return new Response(null, { status: 401 });
+    const sessionResult = await requireApiUserSession();
+    if ("response" in sessionResult) return sessionResult.response;
 
     const { token } = await requireGithubRepoWriteAccess(
-      session.user,
+      sessionResult.user,
       params.owner,
       params.repo,
       "Only GitHub users can manage cache.",

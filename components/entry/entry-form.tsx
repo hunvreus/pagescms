@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  memo,
   useState,
   useMemo,
   useEffect,
@@ -139,6 +140,12 @@ const getCollapsibleItemLabel = (
   return `Item ${index !== undefined ? `#${index + 1}` : ""}`;
 };
 
+const hasCollapsibleSummary = (field: Field) =>
+  typeof field.list === "object" &&
+  !!field.list.collapsible &&
+  typeof field.list.collapsible === "object" &&
+  !!field.list.collapsible.summary;
+
 const SortableItem = ({
   id,
   children,
@@ -183,6 +190,88 @@ const SortableItem = ({
     </div>
   );
 };
+
+const ListItemRow = memo(function ListItemRow({
+  id,
+  field,
+  fieldName,
+  index,
+  isOpen,
+  defaultOpen,
+  isPendingRemove,
+  renderFields,
+  registerBeforeSubmitHook,
+  onToggleOpen,
+  onRequestRemove,
+  onRemoveConfirm,
+  onPendingRemoveChange,
+}: {
+  id: string;
+  field: Field;
+  fieldName: string;
+  index: number;
+  isOpen?: boolean;
+  defaultOpen: boolean;
+  isPendingRemove: boolean;
+  renderFields: RenderFields;
+  registerBeforeSubmitHook?: RegisterBeforeSubmitHook;
+  onToggleOpen: (index: number) => void;
+  onRequestRemove: (index: number) => void;
+  onRemoveConfirm: (index: number) => void;
+  onPendingRemoveChange: (index: number, open: boolean) => void;
+}) {
+  return (
+    <SortableItem id={id}>
+      <div className="grid gap-6 flex-1">
+        <SingleField
+          field={field}
+          fieldName={`${fieldName}.${index}`}
+          renderFields={renderFields}
+          registerBeforeSubmitHook={registerBeforeSubmitHook}
+          showLabel={false}
+          isOpen={isOpen ?? defaultOpen}
+          toggleOpen={() => onToggleOpen(index)}
+          index={index}
+        />
+      </div>
+      <Tooltip>
+        <AlertDialog
+          open={isPendingRemove}
+          onOpenChange={(open) => onPendingRemoveChange(index, open)}
+        >
+          <TooltipTrigger asChild>
+            <AlertDialogTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-foreground self-start"
+                onClick={() => onRequestRemove(index)}
+              >
+                <Trash2 />
+              </Button>
+            </AlertDialogTrigger>
+          </TooltipTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove this item?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => onRemoveConfirm(index)}>
+                Remove
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        <TooltipContent>Remove item</TooltipContent>
+      </Tooltip>
+    </SortableItem>
+  );
+});
 
 const ListField = ({
   field,
@@ -244,13 +333,13 @@ const ListField = ({
     });
   }, [arrayFields.length, defaultOpen]);
 
-  const toggleOpen = (index: number) => {
+  const toggleOpen = useCallback((index: number) => {
     setOpenStates((prev) =>
       prev.map((isOpen, currentIndex) =>
         currentIndex === index ? !isOpen : isOpen,
       ),
     );
-  };
+  }, []);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -274,24 +363,50 @@ const ListField = ({
     setOpenStates((prev) => [...prev, true]);
   };
 
-  const removeItem = (index: number) => {
+  const removeItem = useCallback((index: number) => {
     remove(index);
     setOpenStates((prev) =>
       prev.filter((_, currentIndex) => currentIndex !== index),
     );
-  };
+  }, [remove]);
   const [pendingRemoveIndex, setPendingRemoveIndex] = useState<number | null>(
     null,
   );
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 6,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
 
-  const modifiers = [restrictToVerticalAxis, restrictToParentElement];
+  const modifiers = useMemo(
+    () => [restrictToVerticalAxis, restrictToParentElement],
+    [],
+  );
+  const sortableItems = useMemo(
+    () => arrayFields.map((item) => item.id),
+    [arrayFields],
+  );
+
+  const handleToggleOpen = useCallback((index: number) => {
+    toggleOpen(index);
+  }, [toggleOpen]);
+  const handleRequestRemove = useCallback((index: number) => {
+    setPendingRemoveIndex(index);
+  }, []);
+  const handlePendingRemoveChange = useCallback((index: number, open: boolean) => {
+    if (open) return;
+    setPendingRemoveIndex((prev) => (prev === index ? null : prev));
+  }, []);
+  const handleRemoveConfirm = useCallback((index: number) => {
+    removeItem(index);
+    setPendingRemoveIndex(null);
+  }, [removeItem]);
 
   const toggleAll = (collapsed: boolean) => {
     setOpenStates(Array(arrayFields.length).fill(!collapsed));
@@ -347,68 +462,26 @@ const ListField = ({
               onDragEnd={handleDragEnd}
             >
               <SortableContext
-                items={arrayFields.map((item) => item.id)}
+                items={sortableItems}
                 strategy={verticalListSortingStrategy}
               >
                 {arrayFields.map((arrayField, index) => (
-                  <SortableItem key={arrayField.id} id={arrayField.id}>
-                    <div className="grid gap-6 flex-1">
-                      <SingleField
-                        field={field}
-                        fieldName={`${fieldName}.${index}`}
-                        renderFields={renderFields}
-                        registerBeforeSubmitHook={registerBeforeSubmitHook}
-                        showLabel={false}
-                        isOpen={openStates[index] ?? defaultOpen}
-                        toggleOpen={() => toggleOpen(index)}
-                        index={index}
-                      />
-                    </div>
-                    <Tooltip>
-                      <AlertDialog
-                        open={pendingRemoveIndex === index}
-                        onOpenChange={(open) => {
-                          if (!open) setPendingRemoveIndex(null);
-                        }}
-                      >
-                        <TooltipTrigger asChild>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="text-muted-foreground hover:text-foreground self-start"
-                              onClick={() => setPendingRemoveIndex(index)}
-                            >
-                              <Trash2 />
-                            </Button>
-                          </AlertDialogTrigger>
-                        </TooltipTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              Remove this item?
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => {
-                                removeItem(index);
-                                setPendingRemoveIndex(null);
-                              }}
-                            >
-                              Remove
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                      <TooltipContent>Remove item</TooltipContent>
-                    </Tooltip>
-                  </SortableItem>
+                  <ListItemRow
+                    key={arrayField.id}
+                    id={arrayField.id}
+                    field={field}
+                    fieldName={fieldName}
+                    index={index}
+                    isOpen={openStates[index]}
+                    defaultOpen={defaultOpen}
+                    isPendingRemove={pendingRemoveIndex === index}
+                    renderFields={renderFields}
+                    registerBeforeSubmitHook={registerBeforeSubmitHook}
+                    onToggleOpen={handleToggleOpen}
+                    onRequestRemove={handleRequestRemove}
+                    onRemoveConfirm={handleRemoveConfirm}
+                    onPendingRemoveChange={handlePendingRemoveChange}
+                  />
                 ))}
               </SortableContext>
             </DndContext>
@@ -495,8 +568,7 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>(
       return definition;
     }, [blocks, selectedBlockName]);
 
-    const fieldValues = useWatch({ control, name: fieldName });
-    const itemLabel = getCollapsibleItemLabel(field, fieldValues, index);
+    const itemLabel = getCollapsibleItemLabel(field, value, index);
 
     return (
       <div className="space-y-3" ref={ref as React.Ref<HTMLDivElement>}>
@@ -631,6 +703,20 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>(
 
 BlocksField.displayName = "BlocksField";
 
+const ObjectFieldSummaryLabel = ({
+  field,
+  fieldName,
+  index,
+}: {
+  field: Field;
+  fieldName: string;
+  index?: number;
+}) => {
+  const { control } = useFormContext();
+  const fieldValues = useWatch({ control, name: fieldName });
+  return <>{getCollapsibleItemLabel(field, fieldValues, index)}</>;
+};
+
 const ObjectField = forwardRef<HTMLDivElement, NestedFieldProps>(
   (props, ref) => {
     const {
@@ -648,17 +734,21 @@ const ObjectField = forwardRef<HTMLDivElement, NestedFieldProps>(
       !(typeof field.list === "object" && field.list?.collapsible === false)
     );
 
-    const {
-      control,
-      formState: { errors },
-    } = useFormContext();
+    const { formState: { errors } } = useFormContext();
 
     const hasErrors = () => {
       return hasFieldPathError(errors, fieldName);
     };
 
-    const fieldValues = useWatch({ control, name: fieldName });
-    const itemLabel = getCollapsibleItemLabel(field, fieldValues, index);
+    const itemLabel = hasCollapsibleSummary(field)
+      ? (
+        <ObjectFieldSummaryLabel
+          field={field}
+          fieldName={fieldName}
+          index={index}
+        />
+      )
+      : `Item ${index !== undefined ? `#${index + 1}` : ""}`;
 
     return (
       <div className="border rounded-lg">
@@ -676,9 +766,7 @@ const ObjectField = forwardRef<HTMLDivElement, NestedFieldProps>(
                 isOpen ? "rotate-90" : "",
               )}
             />
-            <span className={hasErrors() ? "text-destructive" : ""}>
-              {itemLabel}
-            </span>
+            <span className={hasErrors() ? "text-destructive" : ""}>{itemLabel}</span>
           </header>
         )}
         <div

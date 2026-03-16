@@ -1,11 +1,10 @@
 import { type NextRequest } from "next/server";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { collaboratorTable } from "@/db/schema";
 import { requireGithubRepoWriteAccess } from "@/lib/authz-server";
 import { toErrorResponse } from "@/lib/api-error";
+import { requireApiUserSession } from "@/lib/session-server";
 
 /**
  * Fetches collaborators for a repository.
@@ -21,10 +20,8 @@ export async function GET(
 ) {
   try {
     const params = await context.params;
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-    if (!session?.user) return new Response(null, { status: 401 });
+    const sessionResult = await requireApiUserSession();
+    if ("response" in sessionResult) return sessionResult.response;
 
     // TODO: support for branches and account collaborators
     if (!params.slug || params.slug.length !== 2) throw new Error("Invalid slug: owner and repo are mandatory");
@@ -33,7 +30,7 @@ export async function GET(
 		const repo = params.slug[1];
 
     const { repoAccess } = await requireGithubRepoWriteAccess(
-      session.user,
+      sessionResult.user,
       owner,
       repo,
       "Only GitHub users can manage collaborators.",

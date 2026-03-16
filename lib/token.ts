@@ -20,10 +20,16 @@ import { createHttpError } from "@/lib/api-error";
 const getToken = cache(async (user: User, owner: string, repo: string, verifyGithubAccess: boolean = false) => {
   const githubAccount = await getGithubAccount(user.id);
   if (githubAccount?.accessToken) {
-    if (!verifyGithubAccess) return githubAccount.accessToken;
+    if (!verifyGithubAccess) return {
+      token: githubAccount.accessToken,
+      source: "user" as const,
+    };
 
     const hasGithubAccess = await canAccessRepoWithToken(githubAccount.accessToken, owner, repo);
-    if (hasGithubAccess) return githubAccount.accessToken;
+    if (hasGithubAccess) return {
+      token: githubAccount.accessToken,
+      source: "user" as const,
+    };
   }
 
   const permission = await db.query.collaboratorTable.findFirst({
@@ -42,7 +48,10 @@ const getToken = cache(async (user: User, owner: string, repo: string, verifyGit
 
   const installationToken = await getInstallationToken(owner, repo);
 
-  return installationToken
+  return {
+    token: installationToken,
+    source: "installation" as const,
+  };
 });
 
 // Get the GitHub App installation token for a specific repository.

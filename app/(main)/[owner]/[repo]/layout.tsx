@@ -18,7 +18,7 @@ export default async function Layout({
   if (!user) return redirect("/sign-in");
 
   try {
-    const token = await getToken(user, owner, repo);
+    const { token } = await getToken(user, owner, repo);
     if (!token) throw new Error("Token not found");
 
     const repoInfo = await getRepoSnapshot(owner, repo, token);

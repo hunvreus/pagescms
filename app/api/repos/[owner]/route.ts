@@ -1,7 +1,5 @@
 import { type NextRequest } from "next/server";
-import { headers } from "next/headers";
 import { createOctokitInstance } from "@/lib/utils/octokit";
-import { auth } from "@/lib/auth";
 import { getInstallations, getInstallationRepos } from "@/lib/github-app";
 import { db } from "@/db";
 import { and, sql } from "drizzle-orm";
@@ -9,6 +7,7 @@ import { collaboratorTable } from "@/db/schema";
 import { getGithubAccount } from "@/lib/github-account";
 import { hasGithubIdentity } from "@/lib/authz";
 import { toErrorResponse } from "@/lib/api-error";
+import { requireApiUserSession } from "@/lib/session-server";
 
 export const dynamic = "force-dynamic";
 
@@ -26,11 +25,9 @@ export async function GET(
 ) {
   try {
     const params = await context.params;
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-    if (!session?.user) return new Response(null, { status: 401 });
-    const user = session.user;
+    const sessionResult = await requireApiUserSession();
+    if ("response" in sessionResult) return sessionResult.response;
+    const user = sessionResult.user;
 
     let githubRepos: any[] = [];
     let collaboratorRepos: any[] = [];

@@ -8,4 +8,15 @@ const getServerSession = cache(async () => {
   });
 });
 
-export { getServerSession };
+const requireApiUserSession = async () => {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  if (!session?.user) {
+    return { response: new Response(null, { status: 401 }) };
+  }
+
+  return { user: session.user };
+};
+
+export { getServerSession, requireApiUserSession };

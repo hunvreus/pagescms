@@ -3,10 +3,9 @@ import { createOctokitInstance } from "@/lib/utils/octokit";
 import { getSchemaByName } from "@/lib/schema";
 import { getConfig } from "@/lib/utils/config";
 import { getFileExtension, normalizePath } from "@/lib/utils/file";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
 import { getToken } from "@/lib/token";
 import { toErrorResponse } from "@/lib/api-error";
+import { requireApiUserSession } from "@/lib/session-server";
 
 /**
  * Fetches the history of a file from GitHub repositories.
@@ -22,13 +21,11 @@ export async function GET(
 ) {
   try {
     const params = await context.params;
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-    if (!session?.user) return new Response(null, { status: 401 });
-    const user = session.user;
+    const sessionResult = await requireApiUserSession();
+    if ("response" in sessionResult) return sessionResult.response;
+    const user = sessionResult.user;
 
-    const token = await getToken(user, params.owner, params.repo);
+    const { token } = await getToken(user, params.owner, params.repo);
     if (!token) throw new Error("Token not found");
 
     const searchParams = request.nextUrl.searchParams;
