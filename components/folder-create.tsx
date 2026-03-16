@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useConfig } from "@/contexts/config-context";
 import { joinPathSegments, normalizePath } from "@/lib/utils/file";
-import { requireApiSuccess } from "@/lib/api-client";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -34,49 +33,77 @@ const FolderCreate = ({
   const { config } = useConfig();
   if (!config) throw new Error(`Configuration not found.`);
 
-  const [folderPath, setFolderPath] = useState(path);
+  const [open, setOpen] = useState(false);
+  const [folderPath, setFolderPath] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const handleCreate = async () => {
-    try {
-      const fullNewPath = joinPathSegments([
-        normalizePath(path),
-        normalizePath(folderPath)
-      ]);
+    const normalizedFolderInput = normalizePath(folderPath.trim());
+    if (!normalizedFolderInput) {
+      toast.error("Folder name is required.");
+      return;
+    }
 
-      const createPromise = new Promise(async (resolve, reject) => {
-        try {
-          const response = await fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/files/${encodeURIComponent(fullNewPath + "/.gitkeep")}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              type,
-              name,
-              content: "",
-            }),
-          });
-          const data = await requireApiSuccess<any>(response, "Failed to create folder");
-          
-          resolve(data)
-        } catch (error) {
-          reject(error);
+    const fullNewPath = joinPathSegments([
+      normalizePath(path),
+      normalizedFolderInput,
+    ]);
+
+    setIsSubmitting(true);
+    try {
+      const createPromise = fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/files/${encodeURIComponent(fullNewPath + "/.gitkeep")}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type,
+          name,
+          content: "",
+          onConflict: "error",
+        }),
+      }).then(async (response) => {
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) {
+          if (response.status === 409) {
+            throw new Error(`Folder \"${fullNewPath}\" already exists.`);
+          }
+
+          throw new Error(payload?.message || "Failed to create folder");
         }
+
+        if (!payload || payload.status !== "success") {
+          throw new Error(payload?.message || "Failed to create folder");
+        }
+
+        return payload;
       });
 
-      toast.promise(createPromise, {
+      const result = await toast.promise(createPromise, {
         loading: `Creating folder "${fullNewPath}"`,
-        success: (response: any) => {
-          if (onCreate) onCreate(response.data);
-          return `Folder "${fullNewPath}" created successfully.`;
-        },
+        success: `Folder "${fullNewPath}" created successfully.`,
         error: (error: any) => error.message,
       });
+
+      if (onCreate) onCreate(result.data);
+      setFolderPath("");
+      setOpen(false);
     } catch (error) {
       console.error(error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <Dialog>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (!nextOpen) {
+          setFolderPath("");
+          setIsSubmitting(false);
+        }
+      }}
+    >
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
@@ -85,18 +112,25 @@ const FolderCreate = ({
           <DialogTitle>Create a folder</DialogTitle>
           <DialogDescription>Choose a name for the folder to create{path ? ` under "${normalizePath(path)}"` : null}.</DialogDescription>
         </DialogHeader>
-        <Input
-          defaultValue=""
-          onChange={(e) => setFolderPath(e.target.value)}
-        />
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button type="button" variant="secondary">Cancel</Button>
-          </DialogClose>
-          <DialogClose asChild>
-            <Button type="submit" onClick={handleCreate}>Create</Button>
-          </DialogClose>
-        </DialogFooter>
+        <form
+          onSubmit={async (event) => {
+            event.preventDefault();
+            if (!isSubmitting) await handleCreate();
+          }}
+          className="space-y-4"
+        >
+          <Input
+            autoFocus
+            value={folderPath}
+            onChange={(e) => setFolderPath(e.target.value)}
+          />
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="secondary" disabled={isSubmitting}>Cancel</Button>
+            </DialogClose>
+            <Button type="submit" disabled={isSubmitting || !folderPath.trim()}>Create</Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

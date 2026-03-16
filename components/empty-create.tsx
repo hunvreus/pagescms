@@ -79,6 +79,7 @@ const EmptyCreate = ({
           type,
           name,
           content,
+          ...(path.endsWith("/.gitkeep") ? { onConflict: "error" } : {}),
         }),
       });
       await requireApiSuccess<any>(

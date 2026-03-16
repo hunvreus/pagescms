@@ -91,8 +91,7 @@ export function About() {
           <TooltipContent>About Pages CMS</TooltipContent>
         </Tooltip>
       </TooltipProvider>
-      {open ? (
-        <DialogContent className="w-[20rem] max-w-[calc(100vw-2rem)]">
+      <DialogContent className="w-[20rem] max-w-[calc(100vw-2rem)]">
           <DialogHeader className="items-center gap-3 text-center">
             <div className="flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
               <svg
@@ -164,7 +163,6 @@ export function About() {
             />
           </div>
         </DialogContent>
-      ) : null}
     </Dialog>
   );
 }

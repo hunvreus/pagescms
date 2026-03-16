@@ -11,7 +11,7 @@ import { auth } from "@/lib/auth";
 import { assertGithubIdentity } from "@/lib/authz";
 import { getToken } from "@/lib/token";
 import { updateFileCache } from "@/lib/github-cache";
-import { toErrorResponse } from "@/lib/api-error";
+import { createHttpError, toErrorResponse } from "@/lib/api-error";
 import mergeWith from "lodash.mergewith";
 import { buildCommitTokens, resolveCommitMessage } from "@/lib/commit-message";
 
@@ -45,6 +45,7 @@ export async function POST(
     if (!config && normalizedPath !== ".pages.yml") throw new Error(`Configuration not found for ${params.owner}/${params.repo}/${params.branch}.`);
 
     const data: any = await request.json();
+    const onConflict = data.onConflict === "error" ? "error" : "rename";
 
     let contentBase64;
     let schema;
@@ -194,6 +195,7 @@ export async function POST(
         configObject: config?.object,
         contentName: data.name,
         user: user.email || user.name || String(user.id || ""),
+        onConflict,
       }
     );
   
@@ -272,6 +274,7 @@ const githubSaveFile = async (
     configObject?: Record<string, any>;
     contentName?: string;
     user?: string;
+    onConflict?: "rename" | "error";
   },
 ) => {
   // We disable retries for 409 errors as it means the file has changed (conflict on SHA)
@@ -314,6 +317,10 @@ const githubSaveFile = async (
 
     // Only handle 422 errors for new files (no sha)
     if (error.status === 422 && !sha) {
+      if (options?.onConflict === "error") {
+        throw createHttpError(`File \"${path}\" already exists.`, 409);
+      }
+
       // Get directory contents to find next available name
       const parentDir = getParentPath(path);
       const { data } = await octokit.rest.repos.getContent({
