@@ -17,6 +17,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
+type FolderCreateResult = {
+  path: string;
+  [key: string]: unknown;
+};
+
 const FolderCreate = ({
   children,
   path,
@@ -28,7 +33,7 @@ const FolderCreate = ({
   path: string;
   type: "content" | "media";
   name?: string;
-  onCreate?: (path: string) => void;
+  onCreate?: (entry: FolderCreateResult) => void;
 }) => {
   const { config } = useConfig();
   if (!config) throw new Error(`Configuration not found.`);
@@ -51,7 +56,11 @@ const FolderCreate = ({
 
     setIsSubmitting(true);
     try {
-      const createPromise = fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/files/${encodeURIComponent(fullNewPath + "/.gitkeep")}`, {
+      const createPromise: Promise<{
+        status: string;
+        message?: string;
+        data: FolderCreateResult;
+      }> = fetch(`/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/files/${encodeURIComponent(fullNewPath + "/.gitkeep")}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -77,12 +86,13 @@ const FolderCreate = ({
         return payload;
       });
 
-      const result = await toast.promise(createPromise, {
+      await toast.promise(createPromise, {
         loading: `Creating folder "${fullNewPath}"`,
         success: `Folder "${fullNewPath}" created successfully.`,
         error: (error: any) => error.message,
       });
 
+      const result = await createPromise;
       if (onCreate) onCreate(result.data);
       setFolderPath("");
       setOpen(false);
