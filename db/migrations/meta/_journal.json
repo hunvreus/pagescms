@@ -43,6 +43,13 @@
       "when": 1773281396715,
       "tag": "0005_greedy_sugar_man",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1773679499992,
+      "tag": "0006_square_white_tiger",
+      "breakpoints": true
     }
   ]
 }
