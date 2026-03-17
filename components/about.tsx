@@ -74,9 +74,9 @@ export function About() {
           <TooltipTrigger asChild>
             <DialogTrigger asChild>
               <Button size="icon-sm" variant="ghost">
-                <span className="bg-primary text-primary-foreground rounded-md size-6 flex items-center justify-center">
+                <span className="bg-primary text-primary-foreground rounded-lg size-8 flex items-center justify-center">
                   <svg
-                    className="size-3"
+                    className="size-4"
                     viewBox="0 0 24 24"
                     fill="currentColor"
                     xmlns="http://www.w3.org/2000/svg"
@@ -92,77 +92,77 @@ export function About() {
         </Tooltip>
       </TooltipProvider>
       <DialogContent className="w-[20rem] max-w-[calc(100vw-2rem)]">
-          <DialogHeader className="items-center gap-3 text-center">
-            <div className="flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-              <svg
-                className="size-6"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="M0 4.8C0 2.14903 2.14903 0 4.8 0H12.0118C13.2848 0 14.5057 0.505713 15.4059 1.40589L22.5941 8.59411C23.4943 9.49429 24 10.7152 24 11.9882V19.2C24 21.851 21.851 24 19.2 24H4.8C2.14903 24 0 21.851 0 19.2V4.8Z" />
-              </svg>
-            </div>
-            <DialogTitle className="text-base font-semibold">
-              Pages CMS
-            </DialogTitle>
-            <DialogDescription>
-              Open source CMS for static sites. Edit directly on GitHub with a
-              clean interface.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="rounded-lg border">
-            <Row
-              label="Version"
-              value={
-                <div className="flex items-center gap-2">
-                  <span className="text-sm">{version}</span>
-                  {updateAvailable ? (
-                    <a
-                      href={UPDATE_DOCS_URL}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      className="inline-flex"
-                    >
-                      <Badge
-                        variant="secondary"
-                        className="bg-primary/10 font-medium text-primary"
-                      >
-                        Update to {latestVersion}
-                        <ArrowUpRight className="ml-1 size-3" />
-                      </Badge>
-                    </a>
-                  ) : null}
-                </div>
-              }
-            />
-            <Row
-              label="Website"
-              value={
-                <ExternalLink href="https://pagescms.org">
-                  pagescms.org
-                </ExternalLink>
-              }
-            />
-            <Row
-              label="Docs"
-              value={
-                <ExternalLink href="https://pagescms.org/docs">
-                  pagescms.org/docs
-                </ExternalLink>
-              }
-            />
-            <Row
-              label="GitHub"
-              value={
-                <ExternalLink href="https://github.com/pages-cms/pages-cms">
-                  pages-cms/pages-cms
-                </ExternalLink>
-              }
-            />
+        <DialogHeader className="items-center gap-3 text-center">
+          <div className="flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+            <svg
+              className="size-6"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M0 4.8C0 2.14903 2.14903 0 4.8 0H12.0118C13.2848 0 14.5057 0.505713 15.4059 1.40589L22.5941 8.59411C23.4943 9.49429 24 10.7152 24 11.9882V19.2C24 21.851 21.851 24 19.2 24H4.8C2.14903 24 0 21.851 0 19.2V4.8Z" />
+            </svg>
           </div>
-        </DialogContent>
+          <DialogTitle className="text-base font-semibold">
+            Pages CMS
+          </DialogTitle>
+          <DialogDescription>
+            Open source CMS for static sites. Edit directly on GitHub with a
+            clean interface.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="rounded-lg border">
+          <Row
+            label="Version"
+            value={
+              <div className="flex items-center gap-2">
+                <span className="text-sm">{version}</span>
+                {updateAvailable ? (
+                  <a
+                    href={UPDATE_DOCS_URL}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="inline-flex"
+                  >
+                    <Badge
+                      variant="secondary"
+                      className="bg-primary/10 font-medium text-primary"
+                    >
+                      Update to {latestVersion}
+                      <ArrowUpRight className="ml-1 size-3" />
+                    </Badge>
+                  </a>
+                ) : null}
+              </div>
+            }
+          />
+          <Row
+            label="Website"
+            value={
+              <ExternalLink href="https://pagescms.org">
+                pagescms.org
+              </ExternalLink>
+            }
+          />
+          <Row
+            label="Docs"
+            value={
+              <ExternalLink href="https://pagescms.org/docs">
+                pagescms.org/docs
+              </ExternalLink>
+            }
+          />
+          <Row
+            label="GitHub"
+            value={
+              <ExternalLink href="https://github.com/pages-cms/pages-cms">
+                pages-cms/pages-cms
+              </ExternalLink>
+            }
+          />
+        </div>
+      </DialogContent>
     </Dialog>
   );
 }

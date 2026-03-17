@@ -16,42 +16,42 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { ArrowUpRight, Settings, LogOut } from "lucide-react";
 
 export function User({
   className,
-  onClick
+  onClick,
 }: {
-  className?: string,
-  onClick?: () => void
+  className?: string;
+  onClick?: () => void;
 }) {
   const { user } = useUser();
   const { theme, setTheme } = useTheme();
-  
+
   if (!user) return null;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon-sm" className={cn(className, "rounded-full")}>
-          <Avatar className="size-6">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className={cn(className, "rounded-full")}
+        >
+          <Avatar className="size-8">
             <AvatarImage
               src={
                 user?.githubUsername
                   ? `https://github.com/${user.githubUsername}.png`
                   : `https://unavatar.io/${user?.email}?fallback=false`
               }
-              alt={
-                user?.name || user.email
-              }
+              alt={user?.name || user.email}
             />
-            <AvatarFallback>{getInitialsFromName(user.name ?? undefined)}</AvatarFallback>
+            <AvatarFallback>
+              {getInitialsFromName(user.name ?? undefined)}
+            </AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
@@ -69,9 +69,15 @@ export function User({
           Theme
         </DropdownMenuLabel>
         <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
-          <DropdownMenuRadioItem value="light" onClick={onClick}>Light</DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="dark" onClick={onClick}>Dark</DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="system" onClick={onClick}>System</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="light" onClick={onClick}>
+            Light
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="dark" onClick={onClick}>
+            Dark
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="system" onClick={onClick}>
+            System
+          </DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
@@ -90,5 +96,5 @@ export function User({
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }
