@@ -34,7 +34,9 @@ export async function GET(
     const normalizedPath = normalizePath(params.path);
     
     if (name) {
-      const config = await getConfig(params.owner, params.repo, params.branch);
+      const config = await getConfig(params.owner, params.repo, params.branch, {
+        getToken: async () => token,
+      });
       if (!config) throw new Error(`Configuration not found for ${params.owner}/${params.repo}/${params.branch}.`);
       
       const schema = getSchemaByName(config.object, name);

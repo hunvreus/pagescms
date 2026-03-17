@@ -13,7 +13,6 @@ import { and, eq, sql } from "drizzle-orm";
 import { createOctokitInstance } from "@/lib/utils/octokit";
 import { configVersion, normalizeConfig, parseConfig } from "@/lib/config";
 
-// TODO: add a fallback behavior to retrieve conf if not in DB
 const getConfigFromDb = async (
   owner: string,
   repo: string,
@@ -98,6 +97,7 @@ const touchConfigCheck = async (
 type GetConfigOptions = {
   sync?: boolean;
   getToken?: () => Promise<string>;
+  bootstrapOnMiss?: boolean;
   ttlMs?: number;
   backgroundRefreshWhenStale?: boolean;
 };
@@ -165,10 +165,13 @@ const getConfig = async (
   options?: GetConfigOptions,
 ): Promise<Config | null> => {
   const sync = options?.sync ?? false;
-  if (!sync) return getConfigFromDb(owner, repo, branch);
-
   const getToken = options?.getToken;
-  if (!getToken) throw new Error("getToken is required when sync is enabled.");
+  const bootstrapOnMiss = options?.bootstrapOnMiss ?? true;
+
+  if (!sync && (!getToken || !bootstrapOnMiss)) {
+    return getConfigFromDb(owner, repo, branch);
+  }
+  if (sync && !getToken) throw new Error("getToken is required when sync is enabled.");
 
   const normalizedOwner = owner.toLowerCase();
   const normalizedRepo = repo.toLowerCase();
@@ -177,101 +180,122 @@ const getConfig = async (
   if (existing) return existing;
 
   const run = (async (): Promise<Config | null> => {
-  const cachedConfig = await getConfigFromDb(normalizedOwner, normalizedRepo, branch);
-  const ttlMs = options?.ttlMs ?? DEFAULT_CONFIG_CHECK_TTL_MS;
-  const backgroundRefreshWhenStale = options?.backgroundRefreshWhenStale ?? false;
+    const cachedConfig = await getConfigFromDb(normalizedOwner, normalizedRepo, branch);
+    if (!sync) {
+      if (cachedConfig) return cachedConfig;
 
-  if (
-    cachedConfig &&
-    cachedConfig.version === configVersion &&
-    !isConfigCheckDue(cachedConfig.lastCheckedAt, ttlMs)
-  ) {
-    return cachedConfig;
-  }
+      const token = await getToken!();
+      if (!token) throw new Error("Token not found");
 
-  if (
-    cachedConfig &&
-    cachedConfig.version === configVersion &&
-    backgroundRefreshWhenStale
-  ) {
-    // Return stale cache immediately and refresh async to reduce branch-layout blocking.
-    void (async () => {
-      try {
-        const token = await getToken();
-        if (!token) return;
-        const latest = await fetchConfigFromGithub(owner, repo, branch, token);
-        if (!latest) {
-          await db.delete(configTable).where(
-            and(
-              sql`lower(${configTable.owner}) = lower(${normalizedOwner})`,
-              sql`lower(${configTable.repo}) = lower(${normalizedRepo})`,
-              eq(configTable.branch, branch),
-            ),
-          );
-          return;
-        }
-        if (cachedConfig.sha === latest.sha) {
-          await touchConfigCheck(owner, repo, branch);
-          return;
-        }
-        const nextConfig: Config = {
-          owner: normalizedOwner,
-          repo: normalizedRepo,
-          branch,
-          sha: latest.sha,
-          version: configVersion ?? "0.0",
-          object: latest.object,
-        };
-        await updateConfig(nextConfig);
-      } catch {
-        // Ignore background refresh failures; stale cached config remains usable.
-      }
-    })();
+      const latest = await fetchConfigFromGithub(owner, repo, branch, token);
+      if (!latest) return null;
 
-    return cachedConfig;
-  }
-
-  const token = await getToken();
-  if (!token) throw new Error("Token not found");
-
-  const latest = await fetchConfigFromGithub(owner, repo, branch, token);
-  if (!latest) {
-    if (cachedConfig) {
-      await db.delete(configTable).where(
-        and(
-          sql`lower(${configTable.owner}) = lower(${normalizedOwner})`,
-          sql`lower(${configTable.repo}) = lower(${normalizedRepo})`,
-          eq(configTable.branch, branch),
-        ),
-      );
+      const nextConfig: Config = {
+        owner: normalizedOwner,
+        repo: normalizedRepo,
+        branch,
+        sha: latest.sha,
+        version: configVersion ?? "0.0",
+        object: latest.object,
+      };
+      await saveConfig(nextConfig);
+      return nextConfig;
     }
-    return null;
-  }
 
-  if (cachedConfig && cachedConfig.version === configVersion && cachedConfig.sha === latest.sha) {
-    await touchConfigCheck(normalizedOwner, normalizedRepo, branch);
-    return {
-      ...cachedConfig,
-      lastCheckedAt: new Date(),
+    const ttlMs = options?.ttlMs ?? DEFAULT_CONFIG_CHECK_TTL_MS;
+    const backgroundRefreshWhenStale = options?.backgroundRefreshWhenStale ?? false;
+
+    if (
+      cachedConfig &&
+      cachedConfig.version === configVersion &&
+      !isConfigCheckDue(cachedConfig.lastCheckedAt, ttlMs)
+    ) {
+      return cachedConfig;
+    }
+
+    if (
+      cachedConfig &&
+      cachedConfig.version === configVersion &&
+      backgroundRefreshWhenStale
+    ) {
+      // Return stale cache immediately and refresh async to reduce branch-layout blocking.
+      void (async () => {
+        try {
+          const token = await getToken();
+          if (!token) return;
+          const latest = await fetchConfigFromGithub(owner, repo, branch, token);
+          if (!latest) {
+            await db.delete(configTable).where(
+              and(
+                sql`lower(${configTable.owner}) = lower(${normalizedOwner})`,
+                sql`lower(${configTable.repo}) = lower(${normalizedRepo})`,
+                eq(configTable.branch, branch),
+              ),
+            );
+            return;
+          }
+          if (cachedConfig.sha === latest.sha) {
+            await touchConfigCheck(owner, repo, branch);
+            return;
+          }
+          const nextConfig: Config = {
+            owner: normalizedOwner,
+            repo: normalizedRepo,
+            branch,
+            sha: latest.sha,
+            version: configVersion ?? "0.0",
+            object: latest.object,
+          };
+          await updateConfig(nextConfig);
+        } catch {
+          // Ignore background refresh failures; stale cached config remains usable.
+        }
+      })();
+
+      return cachedConfig;
+    }
+
+    const token = await getToken();
+    if (!token) throw new Error("Token not found");
+
+    const latest = await fetchConfigFromGithub(owner, repo, branch, token);
+    if (!latest) {
+      if (cachedConfig) {
+        await db.delete(configTable).where(
+          and(
+            sql`lower(${configTable.owner}) = lower(${normalizedOwner})`,
+            sql`lower(${configTable.repo}) = lower(${normalizedRepo})`,
+            eq(configTable.branch, branch),
+          ),
+        );
+      }
+      return null;
+    }
+
+    if (cachedConfig && cachedConfig.version === configVersion && cachedConfig.sha === latest.sha) {
+      await touchConfigCheck(normalizedOwner, normalizedRepo, branch);
+      return {
+        ...cachedConfig,
+        lastCheckedAt: new Date(),
+      };
+    }
+
+    const nextConfig: Config = {
+      owner: normalizedOwner,
+      repo: normalizedRepo,
+      branch,
+      sha: latest.sha,
+      version: configVersion ?? "0.0",
+      object: latest.object,
     };
-  }
 
-  const nextConfig: Config = {
-    owner: normalizedOwner,
-    repo: normalizedRepo,
-    branch,
-    sha: latest.sha,
-    version: configVersion ?? "0.0",
-    object: latest.object,
-  };
+    if (cachedConfig) {
+      await updateConfig(nextConfig);
+    } else {
+      await saveConfig(nextConfig);
+    }
 
-  if (cachedConfig) {
-    await updateConfig(nextConfig);
-  } else {
-    await saveConfig(nextConfig);
-  }
-
-  return nextConfig;
+    return nextConfig;
   })();
 
   configSyncInFlight.set(key, run);

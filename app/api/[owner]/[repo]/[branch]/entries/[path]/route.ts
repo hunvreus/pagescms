@@ -47,7 +47,9 @@ export async function GET(
     if (!name && normalizedPath !== ".pages.yml") throw new Error("If no content entry name is provided, the path must be \".pages.yml\".");
 
     if (!name && normalizedPath === ".pages.yml" && metaOnly) {
-      const cachedConfig = await getConfig(params.owner, params.repo, params.branch);
+      const cachedConfig = await getConfig(params.owner, params.repo, params.branch, {
+        getToken: async () => token,
+      });
       return Response.json({
         status: "success",
         data: {
@@ -62,7 +64,9 @@ export async function GET(
     let schema;
 
     if (name) {
-      config = await getConfig(params.owner, params.repo, params.branch);
+      config = await getConfig(params.owner, params.repo, params.branch, {
+        getToken: async () => token,
+      });
       if (!config) throw new Error(`Configuration not found for ${params.owner}/${params.repo}/${params.branch}.`);
 
       schema = getSchemaByName(config.object, name);

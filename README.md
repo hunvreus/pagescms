@@ -119,12 +119,10 @@ SMTP note: install `nodemailer` in your deployment/runtime with `npm install nod
 
 ### Local development
 
-If you need a quick local PostgreSQL instance, you can run:
-
-```bash
-docker run --name pagescms-db -e POSTGRES_USER=pagescms -e POSTGRES_PASSWORD=pagescms -e POSTGRES_DB=pagescms -p 5432:5432 -d postgres:16
-```
-
+0. **Start local PostgreSQL (Docker)**:
+   ```bash
+   docker run --name pagescms-db -e POSTGRES_USER=pagescms -e POSTGRES_PASSWORD=pagescms -e POSTGRES_DB=pagescms -p 5432:5432 -d postgres:16
+   ```
 1. **Install the dependencies**: `npm install`
 2. **Create env file**: copy `.env.local.example` to `.env.local` and fill values from the table above.
 3. **Create your GitHub App env values**: run `npm run setup:github-app -- --base-url http://localhost:3000` (or configure manually).

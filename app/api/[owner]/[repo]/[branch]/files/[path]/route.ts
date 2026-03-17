@@ -44,7 +44,9 @@ export async function POST(
 
     const normalizedPath = normalizePath(params.path);
 
-    const config = await getConfig(params.owner, params.repo, params.branch);
+    const config = await getConfig(params.owner, params.repo, params.branch, {
+      getToken: async () => token,
+    });
     if (!config && normalizedPath !== ".pages.yml") throw new Error(`Configuration not found for ${params.owner}/${params.repo}/${params.branch}.`);
 
     const data: any = await request.json();
@@ -436,7 +438,9 @@ export async function DELETE(
     if (!name && type === "content") throw new Error(`"name" is required.`);
     if (!sha) throw new Error(`"sha" is required.`);
 
-    const config = await getConfig(params.owner, params.repo, params.branch);
+    const config = await getConfig(params.owner, params.repo, params.branch, {
+      getToken: async () => token,
+    });
     if (!config) throw new Error(`Configuration not found for ${params.owner}/${params.repo}/${params.branch}.`);
 
     const normalizedPath = normalizePath(params.path);

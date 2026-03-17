@@ -38,7 +38,9 @@ export async function POST(
 
     if (params.path === ".pages.yml") throw new Error(`Renaming the settings file isn't allowed.`);
 
-    const config = await getConfig(params.owner, params.repo, params.branch);
+    const config = await getConfig(params.owner, params.repo, params.branch, {
+      getToken: async () => token,
+    });
     if (!config) throw new Error(`Configuration not found for ${params.owner}/${params.repo}/${params.branch}.`);
 
     const data: any = await request.json();

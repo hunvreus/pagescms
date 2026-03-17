@@ -4,6 +4,7 @@ import { ConfigProvider } from "@/contexts/config-context";
 import { RepoLayout } from "@/components/repo/repo-layout";
 import { Message } from "@/components/message";
 import { getServerSession } from "@/lib/session-server";
+import { getToken } from "@/lib/token";
 
 export default async function Layout({
   children,
@@ -31,10 +32,14 @@ export default async function Layout({
   let errorMessage = null;
 
   try {
+    const { token } = await getToken(user, owner, repo);
     const syncedConfig = await getConfig(
       owner,
       repo,
       decodedBranch,
+      {
+        getToken: async () => token,
+      },
     );
 
     if (syncedConfig) {
