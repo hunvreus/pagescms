@@ -172,6 +172,7 @@ const getConfig = async (
     return getConfigFromDb(owner, repo, branch);
   }
   if (sync && !getToken) throw new Error("getToken is required when sync is enabled.");
+  const resolveToken = getToken!;
 
   const normalizedOwner = owner.toLowerCase();
   const normalizedRepo = repo.toLowerCase();
@@ -184,7 +185,7 @@ const getConfig = async (
     if (!sync) {
       if (cachedConfig) return cachedConfig;
 
-      const token = await getToken!();
+      const token = await resolveToken();
       if (!token) throw new Error("Token not found");
 
       const latest = await fetchConfigFromGithub(owner, repo, branch, token);
@@ -221,7 +222,7 @@ const getConfig = async (
       // Return stale cache immediately and refresh async to reduce branch-layout blocking.
       void (async () => {
         try {
-          const token = await getToken();
+          const token = await resolveToken();
           if (!token) return;
           const latest = await fetchConfigFromGithub(owner, repo, branch, token);
           if (!latest) {
@@ -255,7 +256,7 @@ const getConfig = async (
       return cachedConfig;
     }
 
-    const token = await getToken();
+    const token = await resolveToken();
     if (!token) throw new Error("Token not found");
 
     const latest = await fetchConfigFromGithub(owner, repo, branch, token);
