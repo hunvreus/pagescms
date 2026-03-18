@@ -3,9 +3,8 @@
 import { use, useMemo } from "react";
 import { useConfig } from "@/contexts/config-context";
 import { Entry } from "@/components/entry/entry";
-import { DocumentTitle } from "@/components/document-title";
+import { DocumentTitle, formatRepoBranchTitle } from "@/components/document-title";
 import { getSchemaByName } from "@/lib/schema";
-import { formatRepoBranchTitle } from "@/lib/title";
 
 export default function Page({
   params

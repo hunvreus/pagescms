@@ -1,11 +1,10 @@
 "use client";
 
 import { use, useMemo } from "react";
-import { DocumentTitle } from "@/components/document-title";
+import { DocumentTitle, formatRepoBranchTitle } from "@/components/document-title";
 import { useConfig } from "@/contexts/config-context";
 import { getSchemaByName } from "@/lib/schema";
 import { Entry } from "@/components/entry/entry";
-import { formatRepoBranchTitle } from "@/lib/title";
 
 export default function Page({
   params

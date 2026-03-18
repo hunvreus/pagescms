@@ -1,12 +1,11 @@
 "use client";
 
 import { Entry } from "@/components/entry/entry";
-import { DocumentTitle } from "@/components/document-title";
+import { DocumentTitle, formatRepoBranchTitle } from "@/components/document-title";
 import { useConfig } from "@/contexts/config-context";
 import { useUser } from "@/contexts/user-context";
 import { Message } from "@/components/message";
 import { hasGithubIdentity } from "@/lib/authz";
-import { formatRepoBranchTitle } from "@/lib/title";
 
 export default function Page() {
   const { config, setConfig } = useConfig();
