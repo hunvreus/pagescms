@@ -74,7 +74,7 @@ export function About() {
           <TooltipTrigger asChild>
             <DialogTrigger asChild>
               <Button size="icon-sm" variant="ghost">
-                <span className="bg-primary text-primary-foreground rounded-lg size-8 flex items-center justify-center">
+                <span className="bg-primary text-primary-foreground rounded-md size-6 flex items-center justify-center">
                   <svg
                     className="size-4"
                     viewBox="0 0 24 24"
@@ -93,9 +93,9 @@ export function About() {
       </TooltipProvider>
       <DialogContent className="w-[20rem] max-w-[calc(100vw-2rem)]">
         <DialogHeader className="items-center gap-3 text-center">
-          <div className="flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+          <div className="flex size-15 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
             <svg
-              className="size-6"
+              className="size-10"
               viewBox="0 0 24 24"
               fill="currentColor"
               xmlns="http://www.w3.org/2000/svg"

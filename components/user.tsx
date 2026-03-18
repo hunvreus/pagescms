@@ -40,7 +40,7 @@ export function User({
           size="icon-sm"
           className={cn(className, "rounded-full")}
         >
-          <Avatar className="size-8">
+          <Avatar className="size-6">
             <AvatarImage
               src={
                 user?.githubUsername
