@@ -6,6 +6,11 @@ import { db } from "@/db";
 import { collaboratorTable, verificationTable } from "@/db/schema";
 import { SignInFromInvite } from "@/components/sign-in-from-invite";
 import { hasGithubIdentity } from "@/lib/authz";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Collaborator sign in",
+};
 
 export default async function Page({
   searchParams,
