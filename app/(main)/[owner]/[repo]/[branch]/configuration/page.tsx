@@ -1,13 +1,15 @@
 "use client";
 
 import { Entry } from "@/components/entry/entry";
+import { DocumentTitle } from "@/components/document-title";
 import { useConfig } from "@/contexts/config-context";
 import { useUser } from "@/contexts/user-context";
 import { Message } from "@/components/message";
 import { hasGithubIdentity } from "@/lib/authz";
+import { formatRepoBranchTitle } from "@/lib/title";
 
 export default function Page() {
-  const { setConfig } = useConfig();
+  const { config, setConfig } = useConfig();
   const { user } = useUser();
 
   const handleSave = async (data: Record<string, any>) => {
@@ -25,6 +27,13 @@ export default function Page() {
   }
 
   return (
-    <Entry path=".pages.yml" onSave={handleSave} title="Configuration" />
+    <>
+      {config && (
+        <DocumentTitle
+          title={formatRepoBranchTitle("Configuration", config.owner, config.repo, config.branch)}
+        />
+      )}
+      <Entry path=".pages.yml" onSave={handleSave} title="Configuration" />
+    </>
   );
 }

@@ -8,6 +8,7 @@ import { MainRootLayout } from "../main-root-layout";
 import { Installations } from "@/components/settings/installations";
 import { Identities } from "@/components/settings/identities";
 import { Profile } from "@/components/settings/profile";
+import { DocumentTitle } from "@/components/document-title";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -18,11 +19,6 @@ import {
 } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Settings",
-};
 
 export default async function Page() {
   const session = await auth.api.getSession({
@@ -43,6 +39,7 @@ export default async function Page() {
 
   return (
     <MainRootLayout>
+      <DocumentTitle title="Settings" />
       <div className="max-w-screen-sm mx-auto p-4 md:p-6 space-y-6">
         <Link
           className={cn(

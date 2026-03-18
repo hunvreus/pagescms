@@ -2,7 +2,11 @@
 
 import { use } from "react";
 import { useSearchParams } from "next/navigation";
+import { DocumentTitle } from "@/components/document-title";
 import { Entry } from "@/components/entry/entry";
+import { useConfig } from "@/contexts/config-context";
+import { getSchemaByName } from "@/lib/schema";
+import { formatRepoBranchTitle } from "@/lib/title";
 
 export default function Page({
   params
@@ -16,10 +20,20 @@ export default function Page({
   }>
 }) {
   const resolvedParams = use(params);
+  const { config } = useConfig();
+  if (!config) throw new Error("Configuration not found.");
   const searchParams = useSearchParams();
   const parent = searchParams.get("parent") || undefined;
+  const schemaName = decodeURIComponent(resolvedParams.name);
+  const schema = getSchemaByName(config.object, schemaName);
+  const displayName = schema?.label || schema?.name || schemaName;
 
   return (
-    <Entry name={decodeURIComponent(resolvedParams.name)} title="Create a new entry" parent={parent}/>
+    <>
+      <DocumentTitle
+        title={formatRepoBranchTitle(`New entry | ${displayName}`, config.owner, config.repo, config.branch)}
+      />
+      <Entry name={schemaName} title="Create a new entry" parent={parent}/>
+    </>
   );
 }

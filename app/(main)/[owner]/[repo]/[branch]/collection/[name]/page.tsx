@@ -2,9 +2,11 @@
 
 import { use, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
+import { DocumentTitle } from "@/components/document-title";
 import { useConfig } from "@/contexts/config-context";
 import { getSchemaByName } from "@/lib/schema";
 import { Collection } from "@/components/collection/collection";
+import { formatRepoBranchTitle } from "@/lib/title";
 
 export default function Page({
   params
@@ -28,6 +30,11 @@ export default function Page({
   const path = searchParams.get("path") || "";
 
   return (
-    <Collection name={name} path={path}/>
+    <>
+      <DocumentTitle
+        title={formatRepoBranchTitle(schema.label || schema.name, config.owner, config.repo, config.branch)}
+      />
+      <Collection name={name} path={path}/>
+    </>
   );
 }

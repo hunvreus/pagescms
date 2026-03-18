@@ -2,11 +2,6 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { SignIn } from "@/components/sign-in";
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Sign in",
-};
 
 export default async function Page() {  
   const session = await auth.api.getSession({

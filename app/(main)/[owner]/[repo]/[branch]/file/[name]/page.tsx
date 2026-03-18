@@ -3,7 +3,9 @@
 import { use, useMemo } from "react";
 import { useConfig } from "@/contexts/config-context";
 import { Entry } from "@/components/entry/entry";
+import { DocumentTitle } from "@/components/document-title";
 import { getSchemaByName } from "@/lib/schema";
+import { formatRepoBranchTitle } from "@/lib/title";
 
 export default function Page({
   params
@@ -23,6 +25,11 @@ export default function Page({
   if (!schema) throw new Error(`Schema not found for ${decodeURIComponent(resolvedParams.name)}.`);
   
   return (
-    <Entry name={resolvedParams.name} path={schema.path} title={schema.label || schema.name}/>
+    <>
+      <DocumentTitle
+        title={formatRepoBranchTitle(schema.label || schema.name, config.owner, config.repo, config.branch)}
+      />
+      <Entry name={resolvedParams.name} path={schema.path} title={schema.label || schema.name}/>
+    </>
   );
 }
