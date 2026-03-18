@@ -3,44 +3,36 @@ import { Field } from "@/types/field";
 import { EditComponent } from "./edit-component";
 
 const schema = (field: Field) => {
-  let zodSchema;
-  
-  if (!field.options?.creatable && !field.options?.fetch && field.options?.values && Array.isArray(field.options.values)) {
-    const normalizedValues = field.options.values.map((item) => {
-      return typeof item === "object"
-        ? String(item.value)
-        : String(item);
-    });
+  const normalizedValues = Array.isArray(field.options?.values)
+    ? field.options.values.map((item) => (
+        typeof item === "object"
+          ? String(item.value ?? item.name ?? "")
+          : String(item)
+      ))
+    : [];
 
-    zodSchema = z.enum(
-      normalizedValues as [string, ...string[]],
-      { message: "This field is required" }
-    );
-
-    zodSchema = field.required
-      ? zodSchema
-      : z.union([z.literal(""), zodSchema]).optional().nullable();
-  } else {
-    zodSchema = z.string();
-    if (field.required) zodSchema = zodSchema.min(1, "This field is required");
-  }
+  const optionSchema = z.string().refine(
+    (value) => normalizedValues.includes(value),
+    { message: normalizedValues.length === 0 ? "This select field requires options.values" : "Invalid option" }
+  );
 
   if (field.options?.multiple) {
-    zodSchema = z.array(zodSchema);
+    let zodSchema = z.array(optionSchema);
 
     if (field.required) zodSchema = zodSchema.min(1, "This field is required");
 
-    zodSchema = z.preprocess(
+    return z.preprocess(
       (val) => {
         if (val === "" || val === null) return [];
-        // Ensure array values are converted to strings
         return Array.isArray(val) ? val.map(String) : val;
       },
       zodSchema
     );
   }
-  
-  return zodSchema;
+
+  return field.required
+    ? optionSchema
+    : z.union([z.literal(""), optionSchema]).optional().nullable();
 };
 
 const label = "Select";

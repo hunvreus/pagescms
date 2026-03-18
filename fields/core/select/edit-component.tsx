@@ -1,261 +1,129 @@
 "use client";
 
-import { forwardRef, useMemo, useState, useCallback, useEffect } from "react";
-import "./edit-component.css";
-import Select, { components } from "react-select";
-import CreatableSelect from "react-select/creatable";
-import AsyncSelect from "react-select/async";
-import AsyncCreatableSelect from "react-select/async-creatable";
-import { ChevronDown, X } from "lucide-react";
-import { safeAccess, interpolate } from "@/lib/schema";
+import { useMemo } from "react";
+import {
+  Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxValue,
+  useComboboxAnchor,
+} from "@/components/ui/combobox";
 
-const Option = ({ children, ...props }: any) => {
-  const { data } = props;
-  return (
-    <components.Option {...props}>
-      <div className="flex items-center gap-2">
-        {data.image && <img src={data.image} alt="" className="w-6 h-6 rounded-full" />}
-        {children}
-      </div>
-    </components.Option>
-  );
+type Option = {
+  value: string;
+  label: string;
 };
 
-const SingleValue = ({ children, ...props }: any) => {
-  const { data } = props;
-  return (
-    <components.SingleValue {...props}>
-      <div className="flex items-center gap-2">
-        {data.image && <img src={data.image} alt="" className="w-6 h-6 rounded-full" />}
-        {children}
-      </div>
-    </components.SingleValue>
-  );
+const normalizeOption = (option: any): Option => {
+  if (typeof option === "object" && option !== null) {
+    const value = option.value ?? option.name;
+    return {
+      value: String(value ?? ""),
+      label: String(option.label ?? value ?? ""),
+    };
+  }
+
+  return { value: String(option), label: String(option) };
 };
 
-const DropdownIndicator = (props: any) => (
-  <components.DropdownIndicator {...props}>
-    <ChevronDown className="w-4 h-4" />
-  </components.DropdownIndicator>
-);
-
-const ClearIndicator = (props: any) => (
-  <components.ClearIndicator {...props}>
-    <X className="w-4 h-4" />
-  </components.ClearIndicator>
-);
-
-const MultiValueRemove = (props: any) => (
-  <components.MultiValueRemove {...props}>
-    <X className="w-3 h-3 stroke-[2.5]" />
-  </components.MultiValueRemove>
-);
-
-type ParamValue = string | { value: 'input' } | { template: string };
-
-type FetchConfig = {
-  url: string;
-  method?: string;
-  params?: Record<string, string>;
-  headers?: Record<string, string>;
-  results?: string;
-  value?: string;
-  label?: string;
-  minlength?: number;
-  image?: string;
-};
-
-const EditComponent = forwardRef((props: any, ref: any) => {
+const EditComponent = (props: any) => {
   const { value, field, onChange } = props;
+  const multiple = Boolean(field.options?.multiple);
   const storeAsObject = field?.type === "reference" && field.options?.store === "object";
-  
-  const [isMounted, setIsMounted] = useState(false);
+  const anchor = useComboboxAnchor();
 
-  useEffect(() => setIsMounted(true), []);
-
-  const staticOptions = useMemo(
-    () =>
-      !field.options?.fetch && field.options?.values
-        ? field.options.values.map((opt: any) =>
-            typeof opt === "object"
-              ? { value: opt.value, label: opt.label }
-              : { value: opt, label: opt }
-          )
-        : [],
-    [field.options?.values, field.options?.fetch]
+  const options = useMemo(
+    () => (Array.isArray(field.options?.values) ? field.options.values.map(normalizeOption) : []),
+    [field.options?.values],
   );
 
-  const loadOptions = useCallback(
-    async (input: string): Promise<any[]> => {
-      const fetchConfig = field.options?.fetch as FetchConfig;
-      const minLength = fetchConfig?.minlength || 0;
-      if (!fetchConfig?.url || input.length < minLength) {
-        return [];
-      }
+  const selectedValue = useMemo(() => {
+    if (multiple) {
+      const values = Array.isArray(value) ? value : [];
+      return values.map((item) => {
+        const option = typeof item === "object" && item !== null ? normalizeOption(item) : null;
+        const optionValue = option?.value ?? String(item);
+        return options.find((candidate) => candidate.value === optionValue) ?? option ?? normalizeOption(item);
+      });
+    }
 
-      try {
-        const searchParams = new URLSearchParams();
-        
-        // Handle params
-        if (fetchConfig.params) {
-          Object.entries(fetchConfig.params).forEach(([key, paramValue]) => {
-            if (Array.isArray(paramValue)) {
-              paramValue.forEach(value => {
-                const interpolatedValue = interpolate(value, { input }, "fields");
-                searchParams.append(key, interpolatedValue);
-              });
-            } else {
-              const value = interpolate(paramValue, { input }, "fields");
-              searchParams.append(key, value);
-            }
-          });
-        }
+    if (value === null || value === undefined || value === "") {
+      return null;
+    }
 
-        const queryString = searchParams.toString();
-        const url = `${fetchConfig.url}${queryString ? `?${queryString}` : ''}`;
-        
-        const response = await fetch(url, {
-          method: fetchConfig.method || "GET",
-          headers: fetchConfig.headers || {},
-        });
-        if (!response.ok) throw new Error("Fetch failed");
-        const data = await response.json();
-        const results = fetchConfig.results ? safeAccess(data, fetchConfig.results) : data;
-        if (!Array.isArray(results)) return [];
-        return results.map((item: any) => ({
-          value: fetchConfig.value ? 
-            interpolate(fetchConfig.value, item, "fields")
-            : item.id,
-          label: fetchConfig.label ?
-            interpolate(fetchConfig.label, item, "fields")
-            : item.name,
-          image: fetchConfig.image ? 
-            interpolate(fetchConfig.image, item, "fields")
-            : undefined,
-        }));
-      } catch (error) {
-        console.error("Error loading options:", error);
-        return [];
-      }
-    },
-    [field.options?.fetch]
-  );
+    const option = typeof value === "object" && value !== null ? normalizeOption(value) : null;
+    const optionValue = option?.value ?? String(value);
+    return options.find((candidate) => candidate.value === optionValue) ?? option ?? normalizeOption(value);
+  }, [multiple, options, value]);
 
-  const toSelectedOptions = useCallback(
-    (inputValue: any) => {
-      if (field.options?.multiple) {
-        const values = Array.isArray(inputValue) ? inputValue : [];
-        return values.map((val: any) => {
-          if (val && typeof val === "object") {
-            return {
-              value: String(val.value ?? ""),
-              label: String(val.label ?? val.value ?? ""),
-              image: val.image,
-              meta: val.meta,
-            };
-          }
-          return { value: String(val), label: String(val) };
-        });
-      }
-      if (!inputValue) return null;
-      if (inputValue && typeof inputValue === "object") {
-        return {
-          value: String(inputValue.value ?? ""),
-          label: String(inputValue.label ?? inputValue.value ?? ""),
-          image: inputValue.image,
-          meta: inputValue.meta,
-        };
-      }
-      return { value: String(inputValue), label: String(inputValue) };
-    },
-    [field.options?.multiple]
-  );
+  const handleValueChange = (nextValue: Option[] | Option | null) => {
+    const toOutput = (option: Option) => (storeAsObject ? option : option.value);
 
-  const [selectedOptions, setSelectedOptions] = useState<any>(() =>
-    toSelectedOptions(value)
-  );
+    if (multiple) {
+      onChange(Array.isArray(nextValue) ? nextValue.map(toOutput) : []);
+      return;
+    }
 
-  useEffect(() => {
-    setSelectedOptions(toSelectedOptions(value));
-  }, [value, toSelectedOptions]);
-
-  const handleChange = useCallback(
-    (newValue: any) => {
-      if (!field.options?.fetch) {
-        setSelectedOptions(newValue);
-      } else {
-        const selectedValue = newValue 
-          ? field.options?.multiple 
-            ? newValue.map((item: any) => ({ value: item.value, label: item.label ?? item.value, image: item.image, meta: item.meta }))
-            : { value: newValue.value, label: newValue.label ?? newValue.value, image: newValue.image, meta: newValue.meta }
-          : field.options?.multiple ? [] : null;
-        setSelectedOptions(selectedValue);
-      }
-
-      const toOutput = (item: any) => (
-        storeAsObject
-          ? {
-              value: item.value,
-              label: item.label ?? item.value,
-              ...(item.image ? { image: item.image } : {}),
-              ...(item.meta !== undefined ? { meta: item.meta } : {}),
-            }
-          : item.value
-      );
-
-      const output = field.options?.multiple
-        ? newValue ? newValue.map((item: any) => toOutput(item)) : []
-        : newValue ? toOutput(newValue) : null;
-      onChange(output);
-    },
-    [onChange, field.options?.multiple, field.options?.fetch, storeAsObject]
-  );
-
-  if (!isMounted) return null;
-
-  const SelectComponent = field.options?.fetch
-    ? field.options?.creatable
-      ? AsyncCreatableSelect
-      : AsyncSelect
-    : field.options?.creatable
-      ? CreatableSelect
-      : Select;
-
-  const fetchConfig = field.options?.fetch as FetchConfig;
-  
-  // Determine if we should load options immediately based on minlength
-  const shouldLoadInitially = fetchConfig?.minlength === undefined || fetchConfig?.minlength === 0;
-  
-  // Use field.options.default if defined, otherwise use our automatic behavior
-  const defaultOptions = field.options?.default !== undefined 
-    ? field.options.default 
-    : shouldLoadInitially;
+    onChange(nextValue ? toOutput(nextValue as Option) : null);
+  };
 
   return (
-    <SelectComponent
-      ref={ref}
-      isMulti={field.options?.multiple}
-      isClearable={true}
-      classNamePrefix="react-select"
-      placeholder={field.options?.placeholder || "Select..."}
-      components={{ 
-        DropdownIndicator, 
-        ClearIndicator, 
-        MultiValueRemove,
-        Option,
-        SingleValue,
-      }}
-      value={selectedOptions}
-      onChange={handleChange}
-      {...(fetchConfig
-        ? {
-            loadOptions,
-            cacheOptions: field.options?.cache ?? true,
-            defaultOptions: defaultOptions
-          }
-        : { options: staticOptions })}
-    />
+    <Combobox
+      items={options}
+      multiple={multiple}
+      value={selectedValue as any}
+      onValueChange={handleValueChange as any}
+      isItemEqualToValue={(item, selected) => item.value === selected?.value}
+      autoHighlight
+    >
+      {multiple ? (
+        <>
+          <ComboboxChips ref={anchor}>
+            <ComboboxValue>
+              {(values: Option[]) => (
+                <>
+                  {values.map((option) => (
+                    <ComboboxChip key={option.value}>{option.label}</ComboboxChip>
+                  ))}
+                  <ComboboxChipsInput placeholder={field.options?.placeholder || "Select..."} />
+                </>
+              )}
+            </ComboboxValue>
+          </ComboboxChips>
+          <ComboboxContent anchor={anchor}>
+            <ComboboxEmpty>No options found.</ComboboxEmpty>
+            <ComboboxList>
+              {(option: Option) => (
+                <ComboboxItem key={option.value} value={option}>
+                  {option.label}
+                </ComboboxItem>
+              )}
+            </ComboboxList>
+          </ComboboxContent>
+        </>
+      ) : (
+        <>
+          <ComboboxInput placeholder={field.options?.placeholder || "Select..."} />
+          <ComboboxContent>
+            <ComboboxEmpty>No options found.</ComboboxEmpty>
+            <ComboboxList>
+              {(option: Option) => (
+                <ComboboxItem key={option.value} value={option}>
+                  {option.label}
+                </ComboboxItem>
+              )}
+            </ComboboxList>
+          </ComboboxContent>
+        </>
+      )}
+    </Combobox>
   );
-});
+};
 
 export { EditComponent };
