@@ -3,6 +3,7 @@ import { createOctokitInstance } from "@/lib/utils/octokit";
 import { getSchemaByName } from "@/lib/schema";
 import { getConfig } from "@/lib/utils/config";
 import { getFileExtension, normalizePath } from "@/lib/utils/file";
+import { assertGithubIdentity } from "@/lib/authz";
 import { getToken } from "@/lib/token";
 import { toErrorResponse } from "@/lib/api-error";
 import { requireApiUserSession } from "@/lib/session-server";
@@ -32,6 +33,9 @@ export async function GET(
     const name = searchParams.get("name") || "";
     
     const normalizedPath = normalizePath(params.path);
+    if (normalizedPath === ".pages.yml") {
+      assertGithubIdentity(user, "Only GitHub users can access settings history.");
+    }
     
     if (name) {
       const config = await getConfig(params.owner, params.repo, params.branch, {

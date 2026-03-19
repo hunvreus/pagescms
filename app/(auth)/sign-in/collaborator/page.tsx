@@ -7,6 +7,13 @@ import { collaboratorTable, verificationTable } from "@/db/schema";
 import { SignInFromInvite } from "@/components/sign-in-from-invite";
 import { hasGithubIdentity } from "@/lib/authz";
 
+const getSafeRedirect = (redirectTo?: string) => {
+  if (!redirectTo) return "/";
+  return redirectTo.startsWith("/") && !redirectTo.startsWith("//")
+    ? redirectTo
+    : "/";
+};
+
 export default async function Page({
   searchParams,
 }: {
@@ -70,7 +77,9 @@ export default async function Page({
       : process.env.VERCEL_PROJECT_PRODUCTION_URL
         ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
         : "http://localhost:3000";
-    const redirectTo = resolvedSearchParams.redirect || `/${owner}/${repo}`;
+    const redirectTo = getSafeRedirect(
+      resolvedSearchParams.redirect || `/${owner}/${repo}`
+    );
     const verifyUrl = new URL("/api/auth/magic-link/verify", baseUrl);
     verifyUrl.searchParams.set("token", inviteToken);
     verifyUrl.searchParams.set("callbackURL", redirectTo);
@@ -100,7 +109,7 @@ export default async function Page({
   }
 
   if (user && !isGithubUser) {
-    redirect(resolvedSearchParams.redirect || "/");
+    redirect(getSafeRedirect(resolvedSearchParams.redirect));
   }
 
   const invite = await db.query.collaboratorTable.findFirst({
@@ -119,7 +128,7 @@ export default async function Page({
     <SignInFromInvite
       githubUsername={isGithubUser ? user?.githubUsername ?? undefined : undefined}
       signedInEmail={user?.email ?? undefined}
-      redirectTo={resolvedSearchParams.redirect}
+      redirectTo={getSafeRedirect(resolvedSearchParams.redirect)}
       email={inviteEmail}
     />
   );
