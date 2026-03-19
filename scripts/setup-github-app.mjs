@@ -46,6 +46,9 @@ async function main() {
     public: false,
     default_permissions: {
       administration: "write",
+      actions: "write",
+      checks: "read",
+      statuses: "read",
       contents: "write",
       metadata: "read",
     },
