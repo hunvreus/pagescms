@@ -32,14 +32,14 @@ async function main() {
   }
 
   const localCallbackUrl = `http://${host}:${port}/api/github-app/callback`;
-  const authCallbackUrl = `${baseUrl}/api/auth/callback/github`;
+  const userAuthorizationCallbackUrl = `${baseUrl}/api/auth/callback/github`;
   const webhookUrl = `${baseUrl}/api/webhook/github`;
-  const setupUrl = `${baseUrl}/settings`;
+  const setupUrl = `${baseUrl}/`;
 
   const manifest = {
     name: appName,
     url: baseUrl,
-    callback_urls: [authCallbackUrl],
+    callback_urls: [userAuthorizationCallbackUrl],
     redirect_url: localCallbackUrl,
     description:
       "Pages CMS is an open source CMS for editing content in GitHub repositories.",
@@ -98,10 +98,13 @@ async function main() {
   console.log("\nGitHub App created and env updated.");
   console.log(`- App: ${converted.name} (${converted.slug})`);
   console.log(`- Env file: ${envPath}`);
-  console.log(`- Auth callback: ${authCallbackUrl}`);
+  console.log(`- User authorization callback: ${userAuthorizationCallbackUrl}`);
+  console.log(`- Setup URL: ${setupUrl}`);
   console.log(`- Webhook URL: ${webhookUrl}`);
   console.log("\nNext:");
   console.log("1) Install the app on your target account/repositories.");
+  console.log("   Keep 'Request user authorization (OAuth) during installation' disabled.");
+  console.log("   Keep 'Redirect on update' enabled.");
   console.log("2) Start Pages CMS.");
 }
 
