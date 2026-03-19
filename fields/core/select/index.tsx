@@ -10,6 +10,8 @@ const schema = (field: Field) => {
           : String(item)
       ))
     : [];
+  const min = typeof field.options?.min === "number" ? field.options.min : undefined;
+  const max = typeof field.options?.max === "number" ? field.options.max : undefined;
 
   const optionSchema = z.string().refine(
     (value) => normalizedValues.includes(value),
@@ -20,19 +22,24 @@ const schema = (field: Field) => {
     let zodSchema = z.array(optionSchema);
 
     if (field.required) zodSchema = zodSchema.min(1, "This field is required");
+    if (min !== undefined) zodSchema = zodSchema.min(min, `Select at least ${min} option${min === 1 ? "" : "s"}`);
+    if (max !== undefined) zodSchema = zodSchema.max(max, `Select at most ${max} option${max === 1 ? "" : "s"}`);
 
     return z.preprocess(
       (val) => {
-        if (val === "" || val === null) return [];
+        if (val === "" || val === null || val === undefined) return [];
         return Array.isArray(val) ? val.map(String) : val;
       },
       zodSchema
     );
   }
 
-  return field.required
-    ? optionSchema
-    : z.union([z.literal(""), optionSchema]).optional().nullable();
+  return z.preprocess(
+    (val) => (val === null || val === undefined ? "" : val),
+    field.required
+      ? optionSchema
+      : z.union([z.literal(""), optionSchema]).optional()
+  );
 };
 
 const label = "Select";

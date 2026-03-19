@@ -35,11 +35,15 @@ const normalizeOption = (option: any): Option => {
 const EditComponent = (props: any) => {
   const { value, field, onChange } = props;
   const multiple = Boolean(field.options?.multiple);
-  const storeAsObject = field?.type === "reference" && field.options?.store === "object";
+  const storeAsObject =
+    field?.type === "reference" && field.options?.store === "object";
   const anchor = useComboboxAnchor();
 
   const options = useMemo(
-    () => (Array.isArray(field.options?.values) ? field.options.values.map(normalizeOption) : []),
+    () =>
+      Array.isArray(field.options?.values)
+        ? field.options.values.map(normalizeOption)
+        : [],
     [field.options?.values],
   );
 
@@ -47,9 +51,16 @@ const EditComponent = (props: any) => {
     if (multiple) {
       const values = Array.isArray(value) ? value : [];
       return values.map((item) => {
-        const option = typeof item === "object" && item !== null ? normalizeOption(item) : null;
+        const option =
+          typeof item === "object" && item !== null
+            ? normalizeOption(item)
+            : null;
         const optionValue = option?.value ?? String(item);
-        return options.find((candidate) => candidate.value === optionValue) ?? option ?? normalizeOption(item);
+        return (
+          options.find((candidate) => candidate.value === optionValue) ??
+          option ??
+          normalizeOption(item)
+        );
       });
     }
 
@@ -57,13 +68,21 @@ const EditComponent = (props: any) => {
       return null;
     }
 
-    const option = typeof value === "object" && value !== null ? normalizeOption(value) : null;
+    const option =
+      typeof value === "object" && value !== null
+        ? normalizeOption(value)
+        : null;
     const optionValue = option?.value ?? String(value);
-    return options.find((candidate) => candidate.value === optionValue) ?? option ?? normalizeOption(value);
+    return (
+      options.find((candidate) => candidate.value === optionValue) ??
+      option ??
+      normalizeOption(value)
+    );
   }, [multiple, options, value]);
 
   const handleValueChange = (nextValue: Option[] | Option | null) => {
-    const toOutput = (option: Option) => (storeAsObject ? option : option.value);
+    const toOutput = (option: Option) =>
+      storeAsObject ? option : option.value;
 
     if (multiple) {
       onChange(Array.isArray(nextValue) ? nextValue.map(toOutput) : []);
@@ -89,9 +108,13 @@ const EditComponent = (props: any) => {
               {(values: Option[]) => (
                 <>
                   {values.map((option) => (
-                    <ComboboxChip key={option.value}>{option.label}</ComboboxChip>
+                    <ComboboxChip key={option.value}>
+                      {option.label}
+                    </ComboboxChip>
                   ))}
-                  <ComboboxChipsInput placeholder={field.options?.placeholder || "Select..."} />
+                  <ComboboxChipsInput
+                    placeholder={field.options?.placeholder || "Select..."}
+                  />
                 </>
               )}
             </ComboboxValue>
@@ -109,7 +132,9 @@ const EditComponent = (props: any) => {
         </>
       ) : (
         <>
-          <ComboboxInput placeholder={field.options?.placeholder || "Select..."} />
+          <ComboboxInput
+            placeholder={field.options?.placeholder || "Select..."}
+          />
           <ComboboxContent>
             <ComboboxEmpty>No options found.</ComboboxEmpty>
             <ComboboxList>
