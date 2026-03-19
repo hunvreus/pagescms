@@ -57,7 +57,7 @@ const EditComponent = (props: any) => {
             : null;
         const optionValue = option?.value ?? String(item);
         return (
-          options.find((candidate) => candidate.value === optionValue) ??
+          options.find((candidate: Option) => candidate.value === optionValue) ??
           option ??
           normalizeOption(item)
         );
@@ -74,7 +74,7 @@ const EditComponent = (props: any) => {
         : null;
     const optionValue = option?.value ?? String(value);
     return (
-      options.find((candidate) => candidate.value === optionValue) ??
+      options.find((candidate: Option) => candidate.value === optionValue) ??
       option ??
       normalizeOption(value)
     );

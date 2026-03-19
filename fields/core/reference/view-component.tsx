@@ -31,11 +31,20 @@ const fetcher = async (url: string) => {
 
 const ViewComponent = ({ value, field }: { value: unknown; field: Field }) => {
   const { config } = useConfig();
-  const collection = config ? getSchemaByName(config.object, field.options?.collection) : null;
+  const collectionName = typeof field.options?.collection === "string"
+    ? field.options.collection
+    : null;
+  const collection = config && collectionName
+    ? getSchemaByName(config.object, collectionName)
+    : null;
   const values = Array.isArray(value) ? value : value == null || value === "" ? [] : [value];
 
-  const valueTemplate = field.options?.value || "{path}";
-  const labelTemplate = field.options?.label || "{name}";
+  const valueTemplate = typeof field.options?.value === "string"
+    ? field.options.value
+    : "{path}";
+  const labelTemplate = typeof field.options?.label === "string"
+    ? field.options.label
+    : "{name}";
   const fieldList = Array.from(new Set([
     ...extractTemplateFields(valueTemplate),
     ...extractTemplateFields(labelTemplate),
@@ -49,7 +58,7 @@ const ViewComponent = ({ value, field }: { value: unknown; field: Field }) => {
 
   const { data } = useSWR(
     config && collection
-      ? `/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collections/${field.options.collection}?${params?.toString()}`
+      ? `/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collections/${collectionName}?${params?.toString()}`
       : null,
     fetcher
   );
