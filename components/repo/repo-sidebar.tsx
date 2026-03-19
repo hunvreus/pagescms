@@ -364,7 +364,7 @@ export function RepoSidebar() {
       </SidebarContent>
       <SidebarFooter className="border-t">
         <div className="flex items-center justify-between gap-2">
-          <User />
+          <User align="start" />
           <About />
         </div>
       </SidebarFooter>

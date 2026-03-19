@@ -23,9 +23,11 @@ import { ArrowUpRight, Settings, LogOut } from "lucide-react";
 export function User({
   className,
   onClick,
+  align = "end",
 }: {
   className?: string;
   onClick?: () => void;
+  align?: "start" | "center" | "end";
 }) {
   const { user } = useUser();
   const { theme, setTheme } = useTheme();
@@ -55,7 +57,7 @@ export function User({
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent forceMount align="start" className="max-w-[12.5rem]">
+      <DropdownMenuContent forceMount align={align} className="max-w-[12.5rem]">
         <DropdownMenuLabel>
           <div className="text-sm font-medium truncate">
             {user.name || user.githubUsername || user.email}
