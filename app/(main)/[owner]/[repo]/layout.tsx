@@ -4,6 +4,8 @@ import { RepoProvider } from "@/contexts/repo-context";
 import { Message } from "@/components/message";
 import { getServerSession } from "@/lib/session-server";
 import { getRepoSnapshot } from "@/lib/github-cache";
+import { GithubAuthExpired } from "@/components/github-auth-expired";
+import { isGithubAuthError } from "@/lib/github-auth";
 
 export default async function Layout({
   children,
@@ -42,6 +44,10 @@ export default async function Layout({
       </RepoProvider>
     );
   } catch (error: any) {
+    if (isGithubAuthError(error)) {
+      return <GithubAuthExpired />;
+    }
+
     switch (error.status) {
       case 404:
         // TODO: adjust as it may be the permissions as insufficient (suggest installing the app)
