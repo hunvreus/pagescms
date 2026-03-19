@@ -74,6 +74,7 @@ function InviteCollaboratorsDialog({
   disabled,
   triggerLabel,
   triggerVariant = "outline",
+  triggerSize = "default",
 }: {
   owner: string;
   repo: string;
@@ -86,6 +87,7 @@ function InviteCollaboratorsDialog({
   disabled: boolean;
   triggerLabel?: string;
   triggerVariant?: "default" | "outline";
+  triggerSize?: "default" | "sm";
 }) {
   const parsedInviteEmails = useMemo(() => {
     return Array.from(
@@ -101,7 +103,7 @@ function InviteCollaboratorsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        <Button variant={triggerVariant} disabled={disabled}>
+        <Button variant={triggerVariant} size={triggerSize} disabled={disabled}>
           {triggerLabel || "Invite"}
         </Button>
       </DialogTrigger>
@@ -489,6 +491,7 @@ export function Collaborators({
                 disabled={isLoading}
                 triggerLabel="Invite a collaborator"
                 triggerVariant="default"
+                triggerSize="sm"
               />
             </EmptyContent>
           </Empty>

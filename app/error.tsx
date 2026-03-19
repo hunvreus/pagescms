@@ -29,10 +29,10 @@ export default function Error({
         <EmptyDescription>{error.message}</EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
-        <Link className={buttonVariants({ variant: "default" })} href="/">
+        <Link className={buttonVariants({ variant: "default", size: "sm" })} href="/">
           Go home
         </Link>
-        <button className={buttonVariants({ variant: "outline" })} onClick={reset}>
+        <button className={buttonVariants({ variant: "outline", size: "sm" })} onClick={reset}>
           Try again
         </button>
       </EmptyContent>

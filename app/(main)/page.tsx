@@ -74,7 +74,7 @@ export default function Page() {
             </EmptyHeader>
             <EmptyContent>
               <form action={handleAppInstall}>
-                <SubmitButton type="submit">
+                <SubmitButton type="submit" size="sm">
                   <svg
                     role="img"
                     viewBox="0 0 24 24"
