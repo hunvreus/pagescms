@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useConfig } from "@/contexts/config-context";
 import { useUser } from "@/contexts/user-context";
-import { Message } from "@/components/message";
 import { hasGithubIdentity } from "@/lib/authz";
 import { isConfigEnabled } from "@/lib/config-settings";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 
 export default function Page() {
   const { config } = useConfig();
@@ -29,18 +31,26 @@ export default function Page() {
   return error
     ? (
       hasGithubIdentity(user)
-        ? <Message
-            title="Nothing to see here."
-            description={<>This branch and/or repository has no configuration and configuration access is disabled. Edit on GitHub if you think this is a mistake.</>}
-            className="absolute inset-0"
-            cta="Edit configuration on GitHub"
-            href={`https://github.com/${config?.owner}/${config?.repo}/edit/${encodeURIComponent(config!.branch)}/.pages.yml`}
-          />
-        : <Message
-            title="Repository not configured yet"
-            description="This repository does not have a .pages.yml file yet. Ask a GitHub admin to initialize repository configuration first."
-            className="absolute inset-0"
-          />
+        ? <Empty className="absolute inset-0 border-0 rounded-none">
+            <EmptyHeader>
+              <EmptyTitle>Nothing to see here.</EmptyTitle>
+              <EmptyDescription>This branch and/or repository has no configuration and configuration access is disabled. Edit on GitHub if you think this is a mistake.</EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Link
+                className={buttonVariants({ variant: "default", size: "sm" })}
+                href={`https://github.com/${config?.owner}/${config?.repo}/edit/${encodeURIComponent(config!.branch)}/.pages.yml`}
+              >
+                Edit configuration on GitHub
+              </Link>
+            </EmptyContent>
+          </Empty>
+        : <Empty className="absolute inset-0 border-0 rounded-none">
+            <EmptyHeader>
+              <EmptyTitle>Repository not configured yet</EmptyTitle>
+              <EmptyDescription>This repository does not have a .pages.yml file yet. Ask a GitHub admin to initialize repository configuration first.</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
     )
     : null;
 }

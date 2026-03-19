@@ -4,8 +4,8 @@ import { Entry } from "@/components/entry/entry";
 import { DocumentTitle, formatRepoBranchTitle } from "@/components/document-title";
 import { useConfig } from "@/contexts/config-context";
 import { useUser } from "@/contexts/user-context";
-import { Message } from "@/components/message";
 import { hasGithubIdentity } from "@/lib/authz";
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 export default function Page() {
   const { config, setConfig } = useConfig();
@@ -17,11 +17,12 @@ export default function Page() {
 
   if (!hasGithubIdentity(user)) {
     return (
-      <Message
-        title="Access restricted"
-        description="Only GitHub users can manage repository configuration."
-        className="absolute inset-0"
-      />
+      <Empty className="absolute inset-0 border-0 rounded-none">
+        <EmptyHeader>
+          <EmptyTitle>Access restricted</EmptyTitle>
+          <EmptyDescription>Only GitHub users can manage repository configuration.</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     );
   }
 

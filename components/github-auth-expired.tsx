@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { Message } from "@/components/message";
 import { signOut } from "@/lib/auth-client";
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 const GithubAuthExpired = () => {
   useEffect(() => {
@@ -24,11 +24,12 @@ const GithubAuthExpired = () => {
   }, []);
 
   return (
-    <Message
-      title="GitHub session expired"
-      description="Your GitHub access is no longer valid. Signing you out now."
-      className="absolute inset-0"
-    />
+    <Empty className="absolute inset-0 border-0 rounded-none">
+      <EmptyHeader>
+        <EmptyTitle>GitHub session expired</EmptyTitle>
+        <EmptyDescription>Your GitHub access is no longer valid. Signing you out now.</EmptyDescription>
+      </EmptyHeader>
+    </Empty>
   );
 };
 

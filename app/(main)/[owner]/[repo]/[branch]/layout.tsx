@@ -2,9 +2,11 @@ import { redirect } from "next/navigation";
 import { getConfig } from "@/lib/utils/config";
 import { ConfigProvider } from "@/contexts/config-context";
 import { RepoLayout } from "@/components/repo/repo-layout";
-import { Message } from "@/components/message";
 import { getServerSession } from "@/lib/session-server";
 import { getToken } from "@/lib/token";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 
 export default async function Layout({
   children,
@@ -52,24 +54,32 @@ export default async function Layout({
       } else {
         // We assume the branch is not valid
         errorMessage = (
-          <Message
-            title="Invalid branch"
-            description={`The branch "${decodedBranch}" doesn't exist. It may have been removed or renamed.`}
-            className="absolute inset-0"
-            href={`/${owner}/${repo}`}
-            cta={"Switch to the default branch"}
-          />
+          <Empty className="absolute inset-0 border-0 rounded-none">
+            <EmptyHeader>
+              <EmptyTitle>Invalid branch</EmptyTitle>
+              <EmptyDescription>{`The branch "${decodedBranch}" doesn't exist. It may have been removed or renamed.`}</EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Link className={buttonVariants({ variant: "default", size: "sm" })} href={`/${owner}/${repo}`}>
+                Switch to the default branch
+              </Link>
+            </EmptyContent>
+          </Empty>
         );
       }
     } else if (error.status === 403) {
       errorMessage = (
-        <Message
-          title="You can't access this repository."
-          description={<>You do not have sufficient permissions to access this repository.</>}
-          className="absolute inset-0"
-          href="/"
-          cta="Select another repository"
-        />
+        <Empty className="absolute inset-0 border-0 rounded-none">
+          <EmptyHeader>
+            <EmptyTitle>You can't access this repository.</EmptyTitle>
+            <EmptyDescription>You do not have sufficient permissions to access this repository.</EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Link className={buttonVariants({ variant: "default", size: "sm" })} href="/">
+              Select another repository
+            </Link>
+          </EmptyContent>
+        </Empty>
       );
     } else {
       throw error;

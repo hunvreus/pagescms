@@ -1,11 +1,13 @@
 import { redirect } from "next/navigation";
 import { getToken } from "@/lib/token";
 import { RepoProvider } from "@/contexts/repo-context";
-import { Message } from "@/components/message";
 import { getServerSession } from "@/lib/session-server";
 import { getRepoSnapshot } from "@/lib/github-cache";
 import { GithubAuthExpired } from "@/components/github-auth-expired";
 import { isGithubAuthError } from "@/lib/github-auth";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 
 export default async function Layout({
   children,
@@ -28,13 +30,17 @@ export default async function Layout({
     
     if (branchNames.length === 0) {
       return(
-        <Message
-          title="This repository is empty."
-          description={`You need to create a branch and add a ".pages.yml" file to configure it.`}
-          className="absolute inset-0"
-          cta="Select another repository"
-          href="/"
-        />
+        <Empty className="absolute inset-0 border-0 rounded-none">
+          <EmptyHeader>
+            <EmptyTitle>This repository is empty.</EmptyTitle>
+            <EmptyDescription>You need to create a branch and add a ".pages.yml" file to configure it.</EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Link className={buttonVariants({ variant: "default", size: "sm" })} href="/">
+              Select another repository
+            </Link>
+          </EmptyContent>
+        </Empty>
       );
     }
 
@@ -52,23 +58,31 @@ export default async function Layout({
       case 404:
         // TODO: adjust as it may be the permissions as insufficient (suggest installing the app)
         return(
-          <Message
-            title="This repository doesn't exist."
-            description={<>It may have been removed, renamed or the path may be wrong.</>}
-            className="absolute inset-0"
-            cta="Select another repository"
-            href="/"
-          />
+          <Empty className="absolute inset-0 border-0 rounded-none">
+            <EmptyHeader>
+              <EmptyTitle>This repository doesn't exist.</EmptyTitle>
+              <EmptyDescription>It may have been removed, renamed or the path may be wrong.</EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Link className={buttonVariants({ variant: "default", size: "sm" })} href="/">
+                Select another repository
+              </Link>
+            </EmptyContent>
+          </Empty>
         ); 
       case 403:
         return(
-          <Message
-            title="You can't access this repository."
-            description={<>You do not have the sufficient permissions to access this repository.</>}
-            className="absolute inset-0"
-            cta="Select another repository"
-            href="/"
-          />
+          <Empty className="absolute inset-0 border-0 rounded-none">
+            <EmptyHeader>
+              <EmptyTitle>You can't access this repository.</EmptyTitle>
+              <EmptyDescription>You do not have the sufficient permissions to access this repository.</EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Link className={buttonVariants({ variant: "default", size: "sm" })} href="/">
+                Select another repository
+              </Link>
+            </EmptyContent>
+          </Empty>
         ); 
       default:
         throw error;

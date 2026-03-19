@@ -17,10 +17,10 @@ import { FolderCreate} from "@/components/folder-create";
 import { FileOptions } from "@/components/file/file-options";
 import { useOptionalRepoHeader } from "@/components/repo/repo-header-context";
 import { MediaUpload} from "./media-upload";
-import { Message } from "@/components/message";
 import { Thumbnail } from "@/components/thumbnail";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import {
   Breadcrumb,
   BreadcrumbEllipsis,
@@ -577,13 +577,20 @@ const MediaView = ({
 
   if (!mediaConfig.input) {
     return (
-      <Message
-        title="No media defined"
-        description="You have no media defined in your settings."
-        className="absolute inset-0"
-        cta="Go to configuration"
-        href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/configuration`}
-      />
+      <Empty className="absolute inset-0 border-0 rounded-none">
+        <EmptyHeader>
+          <EmptyTitle>No media defined</EmptyTitle>
+          <EmptyDescription>You have no media defined in your settings.</EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Link
+            className={buttonVariants({ variant: "default", size: "sm" })}
+            href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/configuration`}
+          >
+            Go to configuration
+          </Link>
+        </EmptyContent>
+      </Empty>
     );
   }
 
@@ -591,23 +598,27 @@ const MediaView = ({
     // TODO: should we use a custom error class with code?
     if (path === mediaConfig.input && error === "Not found") {
       return (
-        <Message
-            title="Media folder missing"
-            description={`The media folder "${mediaConfig.input}" has not been created yet.`}
-            className="absolute inset-0"
-          >
-          <EmptyCreate type="media" name={mediaConfig.name}>Create folder</EmptyCreate>
-        </Message>
+        <Empty className="absolute inset-0 border-0 rounded-none">
+          <EmptyHeader>
+            <EmptyTitle>Media folder missing</EmptyTitle>
+            <EmptyDescription>{`The media folder "${mediaConfig.input}" has not been created yet.`}</EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <EmptyCreate type="media" name={mediaConfig.name}>Create folder</EmptyCreate>
+          </EmptyContent>
+        </Empty>
       );
     } else {
       return (
-        <Message
-          title="Something's wrong..."
-          description={error}
-          className="absolute inset-0"
-        >
-          <Button size="sm" onClick={() => handleNavigate(mediaConfig.input)}>Go to media root</Button>
-        </Message>
+        <Empty className="absolute inset-0 border-0 rounded-none">
+          <EmptyHeader>
+            <EmptyTitle>Something's wrong...</EmptyTitle>
+            <EmptyDescription>{error}</EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Button size="sm" onClick={() => handleNavigate(mediaConfig.input)}>Go to media root</Button>
+          </EmptyContent>
+        </Empty>
       );
     }
   }

@@ -27,8 +27,8 @@ export function SignInFromInvite({
   const isSignedIn = Boolean(signedInEmail);
   const isEmailMismatch = Boolean(
     normalizedInviteEmail &&
-      normalizedSignedInEmail &&
-      normalizedInviteEmail !== normalizedSignedInEmail,
+    normalizedSignedInEmail &&
+    normalizedInviteEmail !== normalizedSignedInEmail,
   );
 
   const getNameFromEmail = (value: string) => {
@@ -73,9 +73,12 @@ export function SignInFromInvite({
         errorCallbackURL: "/sign-in",
       });
       if (result.error?.message) throw new Error(result.error.message);
-      toast.success("We sent you a sign-in link. Check your inbox (and spam folder).", {
-        duration: 10000,
-      });
+      toast.success(
+        "We sent you a sign-in link. Check your inbox (and spam folder).",
+        {
+          duration: 10000,
+        },
+      );
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to sign in");
     } finally {
@@ -89,19 +92,15 @@ export function SignInFromInvite({
         {verifyUrl ? (
           isSignedIn ? (
             <>
-              <h1 className="text-xl lg:text-2xl font-semibold tracking-tight text-center">
+              <h1 className="text-lg font-medium tracking-tight text-center">
                 Continue with invite?
               </h1>
               <p className="text-sm text-muted-foreground">
                 You are currently signed in as {signedInEmail}.
                 {isEmailMismatch ? (
-                  <>
-                    {" "}This invite is for {email}.
-                  </>
+                  <> This invite is for {email}.</>
                 ) : (
-                  <>
-                    {" "}This invite matches your current account ({email}).
-                  </>
+                  <> This invite matches your current account ({email}).</>
                 )}
               </p>
               <footer className="flex flex-col gap-y-2">
@@ -120,71 +119,111 @@ export function SignInFromInvite({
                     disabled={isLoading}
                   >
                     {email ? `Continue as ${email}` : "Continue"}
-                    {isLoading && <Loader className="ml-2 h-4 w-4 animate-spin" />}
+                    {isLoading && (
+                      <Loader className="ml-2 h-4 w-4 animate-spin" />
+                    )}
                   </Button>
                 ) : (
-                  <Button variant="default" onClick={handleContinueWithInvite} disabled={isLoading}>
+                  <Button
+                    variant="default"
+                    onClick={handleContinueWithInvite}
+                    disabled={isLoading}
+                  >
                     Continue
-                    {isLoading && <Loader className="ml-2 h-4 w-4 animate-spin" />}
+                    {isLoading && (
+                      <Loader className="ml-2 h-4 w-4 animate-spin" />
+                    )}
                   </Button>
                 )}
                 {redirectTo && (
-                  <Link href={redirectTo} className={buttonVariants({ variant: "outline" })}>
-                    <span className="truncate">Go to &quot;{redirectTo}&quot;</span>
+                  <Link
+                    href={redirectTo}
+                    className={buttonVariants({ variant: "outline" })}
+                  >
+                    <span className="truncate">
+                      Go to &quot;{redirectTo}&quot;
+                    </span>
                   </Link>
                 )}
               </footer>
             </>
           ) : (
             <>
-              <h1 className="text-xl lg:text-2xl font-semibold tracking-tight text-center">Sign in as a collaborator?</h1>
+              <h1 className="text-lg font-medium tracking-tight text-center">
+                Sign in as a collaborator?
+              </h1>
               <p className="text-sm text-muted-foreground">
                 Please confirm that you want to continue with {email}.
               </p>
               <footer className="flex flex-col gap-y-2">
-                <Button variant="default" onClick={handleContinueWithInvite} disabled={isLoading}>
+                <Button
+                  variant="default"
+                  onClick={handleContinueWithInvite}
+                  disabled={isLoading}
+                >
                   Continue
-                  {isLoading && <Loader className="ml-2 h-4 w-4 animate-spin" />}
+                  {isLoading && (
+                    <Loader className="ml-2 h-4 w-4 animate-spin" />
+                  )}
                 </Button>
               </footer>
             </>
           )
         ) : githubUsername ? (
           <>
-            <h1 className="text-xl lg:text-2xl font-semibold tracking-tight text-center">Sign out from your GitHub account?</h1>
+            <h1 className="text-lg font-medium tracking-tight text-center">
+              Sign out from your GitHub account?
+            </h1>
             <p className="text-sm text-muted-foreground">
-              You are already signed in with your GitHub account (@{githubUsername}).
+              You are already signed in with your GitHub account (@
+              {githubUsername}).
               {redirectTo
                 ? ` Do you want to sign out from your GitHub account and sign in as a collaborator with ${email} or try to access "${redirectTo}" with your GitHub account?`
-                : ` Do you want to sign out from your GitHub account and sign in as a collaborator with ${email}?`
-              }
+                : ` Do you want to sign out from your GitHub account and sign in as a collaborator with ${email}?`}
             </p>
             <footer className="flex flex-col gap-y-2">
-              <Button variant="default" onClick={async () => {
-                setIsLoading(true);
-                try {
-                  await signOut();
-                  window.location.reload();
-                } finally {
-                  setIsLoading(false);
-                }
-              }} disabled={isLoading}>
+              <Button
+                variant="default"
+                onClick={async () => {
+                  setIsLoading(true);
+                  try {
+                    await signOut();
+                    window.location.reload();
+                  } finally {
+                    setIsLoading(false);
+                  }
+                }}
+                disabled={isLoading}
+              >
                 Sign in as collaborator
                 {isLoading && <Loader className="ml-2 h-4 w-4 animate-spin" />}
               </Button>
               {redirectTo && (
-                <Link href={redirectTo} className={buttonVariants({ variant: "outline" })}><span className="truncate">Go to &quot;{redirectTo}&quot;</span></Link>
+                <Link
+                  href={redirectTo}
+                  className={buttonVariants({ variant: "outline" })}
+                >
+                  <span className="truncate">
+                    Go to &quot;{redirectTo}&quot;
+                  </span>
+                </Link>
               )}
             </footer>
           </>
         ) : (
           <>
-            <h1 className="text-xl lg:text-2xl font-semibold tracking-tight text-center">Sign in as a collaborator?</h1>
+            <h1 className="text-lg font-medium tracking-tight text-center">
+              Sign in as a collaborator?
+            </h1>
             <p className="text-sm text-muted-foreground">
               Please confirm that you want to sign in with {email}.
             </p>
             <footer className="flex flex-col gap-y-2">
-              <Button variant="default" onClick={handleSignIn} disabled={isLoading}>
+              <Button
+                variant="default"
+                onClick={handleSignIn}
+                disabled={isLoading}
+              >
                 Sign in
                 {isLoading && <Loader className="ml-2 h-4 w-4 animate-spin" />}
               </Button>
