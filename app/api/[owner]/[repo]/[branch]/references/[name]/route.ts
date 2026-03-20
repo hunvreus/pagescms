@@ -24,8 +24,6 @@ type ParsedReferenceItem = {
   fields: Record<string, any>;
 };
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
 const extractTemplateFields = (template: string) =>
   Array.from(template.matchAll(/\{([^}]+)\}/g))
     .map((match) => match[1])
@@ -36,8 +34,6 @@ export async function GET(
   context: { params: Promise<{ owner: string; repo: string; branch: string; name: string }> }
 ) {
   try {
-    await sleep(3000);
-
     const params = await context.params;
     const sessionResult = await requireApiUserSession();
     if ("response" in sessionResult) return sessionResult.response;
