@@ -88,13 +88,13 @@ async function main() {
   });
 
   const converted = await exchangeManifestCode(code);
-  const envPath = resolve(process.cwd(), args.envPath || ".env.local");
+  const envPath = args.envPath ? resolve(process.cwd(), args.envPath) : "";
   const authSecret =
     process.env.BETTER_AUTH_SECRET ||
     process.env.AUTH_SECRET ||
     randomBytes(32).toString("base64url");
 
-  upsertEnv(envPath, {
+  const envValues = {
     BASE_URL: baseUrl,
     BETTER_AUTH_SECRET: authSecret,
     GITHUB_APP_ID: String(converted.id),
@@ -103,11 +103,23 @@ async function main() {
     GITHUB_APP_CLIENT_SECRET: converted.client_secret,
     GITHUB_APP_PRIVATE_KEY: wrapQuoted(escapeNewlines(converted.pem || "")),
     GITHUB_APP_WEBHOOK_SECRET: webhookSecret,
-  });
+  };
 
-  console.log("\nGitHub App created and env updated.");
+  if (envPath) {
+    upsertEnv(envPath, envValues);
+  }
+
+  console.log("\nGitHub App created.");
   console.log(`- App: ${converted.name} (${converted.slug})`);
-  console.log(`- Env file: ${envPath}`);
+  if (envPath) {
+    console.log(`- Env file updated: ${envPath}`);
+  } else {
+    console.log("- Env vars:");
+    for (const [key, value] of Object.entries(envValues)) {
+      console.log(`  ${key}=${value}`);
+    }
+    console.log("\nPass --env <path> to write them to a file automatically.");
+  }
   console.log(`- User authorization callback: ${userAuthorizationCallbackUrl}`);
   console.log(`- Setup URL: ${setupUrl}`);
   console.log(`- Webhook URL: ${webhookUrl}`);
@@ -342,7 +354,7 @@ function printHelp() {
       "  --owner-type <type>      personal or org (default: personal)",
       "  --org <slug>             Organization slug when owner-type=org",
       "  --port <number>          Local callback port (default: 8787)",
-      "  --env <path>             Env file path (default: .env.local)",
+      "  --env <path>             Write generated env vars to this file",
       "  --no-open                Do not try to open browser automatically",
       "  -h, --help               Show help",
       "",

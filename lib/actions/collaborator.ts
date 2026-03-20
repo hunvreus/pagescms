@@ -7,6 +7,7 @@ import { requireGithubRepoWriteAccess } from "@/lib/authz-server";
 import { InviteEmailTemplate } from "@/components/email/invite";
 import { render } from "@react-email/render";
 import { sendEmail } from "@/lib/mailer";
+import { getBaseUrl } from "@/lib/base-url";
 import { db } from "@/db";
 import { and, eq, sql } from "drizzle-orm";
 import { collaboratorTable, verificationTable } from "@/db/schema";
@@ -51,15 +52,6 @@ const assertRepoInInstallation = async (
     repoAccess,
     installation: installations[0],
   };
-};
-
-const getBaseUrlFromHeaders = async () => {
-  const requestHeaders = await headers();
-  return process.env.BASE_URL
-    ? process.env.BASE_URL
-    : process.env.VERCEL_PROJECT_PRODUCTION_URL
-      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : requestHeaders.get("origin") || "http://localhost:3000";
 };
 
 const getDisplayNameFromEmail = (email: string) => {
@@ -148,7 +140,7 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
 
     const { repoAccess, installation } = await assertRepoInInstallation(user, owner, repo);
 
-		const baseUrl = await getBaseUrlFromHeaders();
+		const baseUrl = getBaseUrl();
     const createdCollaborators: (typeof collaboratorTable.$inferSelect)[] = [];
     const errors: string[] = [];
 

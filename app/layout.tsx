@@ -2,12 +2,12 @@ import { Toaster } from "@/components/ui/sonner"
 import { Providers } from "@/components/providers";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { getBaseUrl } from "@/lib/base-url";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
-const appUrl = process.env.BASE_URL
-  || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+const appUrl = getBaseUrl();
 const socialImage = "/images/social-card.png";
 const description = "The No-Hassle CMS for GitHub";
 

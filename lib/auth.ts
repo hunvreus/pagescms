@@ -4,10 +4,11 @@ import { nextCookies } from "better-auth/next-js";
 import { magicLink } from "better-auth/plugins";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import { getBaseUrl } from "@/lib/base-url";
 import { sendEmail } from "@/lib/mailer";
 
 export const auth = betterAuth({
-  baseURL: process.env.BASE_URL as string,
+  baseURL: getBaseUrl(),
   secret: (process.env.AUTH_SECRET || process.env.BETTER_AUTH_SECRET) as string,
   user: {
     additionalFields: {

@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { collaboratorTable, verificationTable } from "@/db/schema";
 import { SignInFromInvite } from "@/components/sign-in-from-invite";
 import { hasGithubIdentity } from "@/lib/authz";
+import { getBaseUrl } from "@/lib/base-url";
 
 const getSafeRedirect = (redirectTo?: string) => {
   if (!redirectTo) return "/";
@@ -72,11 +73,7 @@ export default async function Page({
       throw new Error("Your invite is invalid or has been removed.");
     }
 
-    const baseUrl = process.env.BASE_URL
-      ? process.env.BASE_URL
-      : process.env.VERCEL_PROJECT_PRODUCTION_URL
-        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-        : "http://localhost:3000";
+    const baseUrl = getBaseUrl();
     const redirectTo = getSafeRedirect(
       resolvedSearchParams.redirect || `/${owner}/${repo}`
     );
