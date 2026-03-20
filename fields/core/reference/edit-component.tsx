@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Loader } from "lucide-react";
 import {
   Combobox,
   ComboboxChip,
@@ -15,7 +16,7 @@ import {
   useComboboxAnchor,
 } from "@/components/ui/combobox";
 import { useConfig } from "@/contexts/config-context";
-import { getSchemaByName, interpolate } from "@/lib/schema";
+import { getSchemaByName } from "@/lib/schema";
 
 type Option = {
   value: string;
@@ -51,24 +52,31 @@ const EditComponent = (props: any) => {
   const { config } = useConfig();
   const anchor = useComboboxAnchor();
   const multiple = Boolean(field.options?.multiple);
-  const collection = config ? getSchemaByName(config.object, field.options.collection) : null;
-  const url = config && collection
-    ? `/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collections/${field.options.collection}`
+  const collectionName = typeof field.options?.collection === "string" ? field.options.collection : null;
+  const collectionPath = config && collectionName ? getSchemaByName(config.object, collectionName)?.path || null : null;
+  const url = config && collectionName
+    ? `/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/references/${collectionName}`
     : null;
+  const searchFields = typeof field.options?.search === "string" ? field.options.search : "name";
+  const valueTemplate = typeof field.options?.value === "string" ? field.options.value : "{path}";
+  const labelTemplate = typeof field.options?.label === "string" ? field.options.label : "{name}";
 
   const [searchTerm, setSearchTerm] = useState("");
   const [options, setOptions] = useState<Option[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!url || !collection) return;
+    if (!url || !collectionPath) return;
 
     let cancelled = false;
     const timeoutId = window.setTimeout(async () => {
+      if (!cancelled) setIsLoading(true);
+
       const searchParams = new URLSearchParams({
-        path: collection.path,
-        type: "search",
         query: searchTerm,
-        fields: field.options?.search || "name",
+        searchFields,
+        valueTemplate,
+        labelTemplate,
       });
 
       try {
@@ -76,17 +84,19 @@ const EditComponent = (props: any) => {
         if (!response.ok) throw new Error("Fetch failed");
 
         const json = await response.json();
-        const contents = Array.isArray(json?.data?.contents) ? json.data.contents : [];
+        const contents = Array.isArray(json?.data?.options) ? json.data.options : [];
         if (cancelled) return;
 
         setOptions(contents.map((item: any) => ({
-          value: String(interpolate(field.options?.value || "{path}", item, "fields")),
-          label: String(interpolate(field.options?.label || "{name}", item, "fields")),
+          value: String(item.value ?? ""),
+          label: String(item.label ?? item.value ?? ""),
           resolved: true,
         })));
       } catch (error) {
         console.error("Error loading references:", error);
         if (!cancelled) setOptions([]);
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
     }, 200);
 
@@ -96,11 +106,11 @@ const EditComponent = (props: any) => {
     };
   }, [
     url,
-    collection,
+    collectionPath,
     searchTerm,
-    field.options?.search,
-    field.options?.value,
-    field.options?.label,
+    searchFields,
+    valueTemplate,
+    labelTemplate,
   ]);
 
   const selectedValue = useMemo(
@@ -121,7 +131,7 @@ const EditComponent = (props: any) => {
     onChange(nextValue ? (nextValue as Option).value : null);
   };
 
-  if (!config || !collection) return null;
+  if (!config || !collectionPath) return null;
 
   return (
     <Combobox
@@ -154,7 +164,13 @@ const EditComponent = (props: any) => {
             </ComboboxValue>
           </ComboboxChips>
           <ComboboxContent anchor={anchor}>
-            <ComboboxEmpty>No options found.</ComboboxEmpty>
+            {!isLoading && <ComboboxEmpty>No options found.</ComboboxEmpty>}
+            {isLoading && (
+              <div className="flex items-center justify-center gap-2 py-2 text-center text-sm text-muted-foreground">
+                <Loader className="h-4 w-4 animate-spin" />
+                Loading options...
+              </div>
+            )}
             <ComboboxList>
               {(option: Option) => (
                 <ComboboxItem key={option.value} value={option}>{option.label}</ComboboxItem>
@@ -169,7 +185,13 @@ const EditComponent = (props: any) => {
             className={singleSelected?.resolved === false ? "animate-pulse" : undefined}
           />
           <ComboboxContent>
-            <ComboboxEmpty>No options found.</ComboboxEmpty>
+            {!isLoading && <ComboboxEmpty>No options found.</ComboboxEmpty>}
+            {isLoading && (
+              <div className="flex items-center justify-center gap-2 py-2 text-center text-sm text-muted-foreground">
+                <Loader className="h-4 w-4 animate-spin" />
+                Loading options...
+              </div>
+            )}
             <ComboboxList>
               {(option: Option) => (
                 <ComboboxItem key={option.value} value={option}>{option.label}</ComboboxItem>
