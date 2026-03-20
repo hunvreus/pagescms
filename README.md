@@ -4,13 +4,7 @@
 
 You can use the hosted version directly at [app.pagescms.org](https://app.pagescms.org), or run your own local development copy from this repository.
 
-<a href="https://demo.pagescms.org" target="_blank">
-<picture>
-<source media="(prefers-color-scheme: dark)" srcset="https://pagescms.org/media/screenshots/nextjs-edit-with-bg-dark@2x.png">
-<source media="(prefers-color-scheme: light)" srcset="https://pagescms.org/media/screenshots/nextjs-edit-with-bg-light@2x.png">
-<img src="https://pagescms.org/media/screenshots/nextjs-edit-with-bg-light@2x.png" alt="Pages CMS screenshot">
-</picture>
-</a>
+<a href="https://demo.pagescms.org" target="_blank"><img width="3188" height="2054" alt="bg1" src="https://github.com/user-attachments/assets/6f14692b-c903-459f-9806-22504301e338" /></a>
 
 *[Watch the demo ▶](https://demo.pagescms.org)*
 
