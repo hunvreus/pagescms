@@ -50,9 +50,19 @@ async function main() {
       checks: "read",
       statuses: "read",
       contents: "write",
+      email_addresses: "read",
       metadata: "read",
     },
-    default_events: ["installation_target", "repository", "push", "delete"],
+    default_events: [
+      "installation_target",
+      "repository",
+      "push",
+      "delete",
+      "check_run",
+      "check_suite",
+      "status",
+      "workflow_run",
+    ],
     request_oauth_on_install: false,
     setup_on_update: true,
     setup_url: setupUrl,
@@ -103,8 +113,7 @@ async function main() {
   console.log(`- Webhook URL: ${webhookUrl}`);
   console.log("\nNext:");
   console.log("1) Install the app on your target account/repositories.");
-  console.log("   Keep 'Request user authorization (OAuth) during installation' disabled.");
-  console.log("   Keep 'Redirect on update' enabled.");
+  console.log("   Disable 'User-to-server token expiration' if GitHub shows that option.");
   console.log("2) Start Pages CMS.");
 }
 
