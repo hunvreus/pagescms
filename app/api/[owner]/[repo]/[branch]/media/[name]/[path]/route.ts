@@ -4,7 +4,7 @@ import { getFileExtension, normalizePath } from "@/lib/utils/file";
 import { getToken } from "@/lib/token";
 import { getMediaCache, checkRepoAccess } from "@/lib/github-cache";
 import { getGithubId } from "@/lib/github-account";
-import { toErrorResponse } from "@/lib/api-error";
+import { createHttpError, toErrorResponse } from "@/lib/api-error";
 import { requireApiUserSession } from "@/lib/session-server";
 
 // Add docs
@@ -28,24 +28,24 @@ export async function GET(
     const user = sessionResult.user;
 
     const { token } = await getToken(user, params.owner, params.repo);
-    if (!token) throw new Error("Token not found");
+    if (!token) throw createHttpError("Token not found", 401);
 
     const githubId = await getGithubId(user.id);
     if (githubId) {
       const hasAccess = await checkRepoAccess(token, params.owner, params.repo, githubId);
-      if (!hasAccess) throw new Error(`No access to repository ${params.owner}/${params.repo}.`);
+      if (!hasAccess) throw createHttpError(`No access to repository ${params.owner}/${params.repo}.`, 403);
     }
 
     const config = await getConfig(params.owner, params.repo, params.branch, {
       getToken: async () => token,
     });
-    if (!config) throw new Error(`Configuration not found for ${params.owner}/${params.repo}/${params.branch}.`);   
+    if (!config) throw createHttpError(`Configuration not found for ${params.owner}/${params.repo}/${params.branch}.`, 404);
     
     const mediaConfig = config.object.media.find((item: any) => item.name === params.name) || config.object.media[0];
 
     if (!mediaConfig) {
-      if (params.name) throw new Error(`No media configuration named "${params.name}" found for ${params.owner}/${params.repo}/${params.branch}.`);
-      throw new Error(`No media configuration found for ${params.owner}/${params.repo}/${params.branch}.`);
+      if (params.name) throw createHttpError(`No media configuration named "${params.name}" found for ${params.owner}/${params.repo}/${params.branch}.`, 404);
+      throw createHttpError(`No media configuration found for ${params.owner}/${params.repo}/${params.branch}.`, 404);
     }
 
     const normalizedPath = normalizeMediaPath(
@@ -54,7 +54,7 @@ export async function GET(
       params.repo,
       params.branch,
     );
-    if (!normalizedPath.startsWith(mediaConfig.input)) throw new Error(`Invalid path "${params.path}" for media "${params.name}".`);
+    if (!normalizedPath.startsWith(mediaConfig.input)) throw createHttpError(`Invalid path "${params.path}" for media "${params.name}".`, 400);
 
     const { searchParams } = new URL(request.url);
     const nocache = searchParams.get('nocache');

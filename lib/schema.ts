@@ -379,8 +379,8 @@ const generateFilename = (
     .replace(/\{primary\}/g, primaryField ? `{fields.${primaryField}}` : "untitled")
     .replace(/\{slug\}/g, primaryField ? `{fields.${primaryField}}` : "untitled");
   
-  // Replace field placeholders
-  return pattern.replace(/\{fields\.([^}]+)\}/g, (_, fieldName) => {
+  // Replace field placeholders, accepting both `{fields.title}` and `{title}`.
+  return pattern.replace(/\{(?:fields\.)?([^}]+)\}/g, (_, fieldName) => {
     const value = safeAccess(state, fieldName);
     return value ? slugify(String(value), { lower: true, strict: true }) : "";
   });

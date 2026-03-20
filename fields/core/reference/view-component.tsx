@@ -29,6 +29,11 @@ const fetcher = async (url: string) => {
   return Array.isArray(json?.data?.contents) ? json.data.contents : [];
 };
 
+type ResolvedLabel = {
+  label: string;
+  resolved: boolean;
+};
+
 const ViewComponent = ({ value, field }: { value: unknown; field: Field }) => {
   const { config } = useConfig();
   const collectionName = typeof field.options?.collection === "string"
@@ -71,20 +76,27 @@ const ViewComponent = ({ value, field }: { value: unknown; field: Field }) => {
     );
   });
 
-  const labels = values.map((item) => {
+  const labels: ResolvedLabel[] = values.map((item) => {
     const normalized = normalizeValue(item);
-    return labelsByValue.get(normalized) || normalized;
+    const resolved = labelsByValue.get(normalized);
+    return {
+      label: resolved || normalized,
+      resolved: Boolean(resolved),
+    };
   }).filter(Boolean);
 
   if (!labels.length) return null;
 
   return (
     <span className="flex items-center gap-x-1.5">
-      <Badge variant="secondary" className="max-w-full">
-        <span className="truncate">{labels[0]}</span>
+      <Badge variant="secondary" className={labels[0]?.resolved === false ? "max-w-full animate-pulse" : "max-w-full"}>
+        <span className="truncate">{labels[0]?.label}</span>
       </Badge>
       {labels.length > 1 && (
-        <Badge variant="secondary" className="px-1">
+        <Badge
+          variant="secondary"
+          className={labels.slice(1).some((item) => item.resolved === false) ? "px-1 animate-pulse" : "px-1"}
+        >
           +{labels.length - 1}
         </Badge>
       )}

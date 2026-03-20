@@ -20,6 +20,7 @@ import { getSchemaByName, interpolate } from "@/lib/schema";
 type Option = {
   value: string;
   label: string;
+  resolved?: boolean;
 };
 
 const normalizeSelected = (input: any, options: Option[], multiple: boolean) => {
@@ -29,11 +30,12 @@ const normalizeSelected = (input: any, options: Option[], multiple: boolean) => 
       return options.find((option) => option.value === value) ?? {
         value,
         label: String(item.label ?? item.value ?? ""),
+        resolved: false,
       };
     }
 
     const value = String(item ?? "");
-    return options.find((option) => option.value === value) ?? { value, label: value };
+    return options.find((option) => option.value === value) ?? { value, label: value, resolved: false };
   };
 
   if (multiple) {
@@ -80,6 +82,7 @@ const EditComponent = (props: any) => {
         setOptions(contents.map((item: any) => ({
           value: String(interpolate(field.options?.value || "{path}", item, "fields")),
           label: String(interpolate(field.options?.label || "{name}", item, "fields")),
+          resolved: true,
         })));
       } catch (error) {
         console.error("Error loading references:", error);
@@ -104,6 +107,10 @@ const EditComponent = (props: any) => {
     () => normalizeSelected(value, options, multiple),
     [value, options, multiple],
   );
+
+  const singleSelected = !multiple && selectedValue && !Array.isArray(selectedValue)
+    ? selectedValue
+    : null;
 
   const handleValueChange = (nextValue: Option[] | Option | null) => {
     if (multiple) {
@@ -134,7 +141,12 @@ const EditComponent = (props: any) => {
               {(values: Option[]) => (
                 <>
                   {values.map((option) => (
-                    <ComboboxChip key={option.value}>{option.label}</ComboboxChip>
+                    <ComboboxChip
+                      key={option.value}
+                      className={option.resolved === false ? "animate-pulse" : undefined}
+                    >
+                      {option.label}
+                    </ComboboxChip>
                   ))}
                   <ComboboxChipsInput placeholder={field.options?.placeholder || "Select..."} />
                 </>
@@ -152,7 +164,10 @@ const EditComponent = (props: any) => {
         </>
       ) : (
         <>
-          <ComboboxInput placeholder={field.options?.placeholder || "Select..."} />
+          <ComboboxInput
+            placeholder={field.options?.placeholder || "Select..."}
+            className={singleSelected?.resolved === false ? "animate-pulse" : undefined}
+          />
           <ComboboxContent>
             <ComboboxEmpty>No options found.</ComboboxEmpty>
             <ComboboxList>

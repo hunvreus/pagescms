@@ -755,10 +755,8 @@ export function Collection({
         />;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="flex-1 flex flex-col space-y-6">
-        {contentNode}
-      </div>
+    <div className="min-w-0 flex flex-col space-y-6">
+      {contentNode}
     </div>
   );
 }

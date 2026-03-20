@@ -134,7 +134,7 @@ const getCollapsibleItemLabel = (
     return interpolate(field.list.collapsible.summary, {
       index: index !== undefined ? `${index + 1}` : "",
       fields: fieldValues as Record<string, unknown>,
-    });
+    }, "fields");
   }
 
   return `Item ${index !== undefined ? `#${index + 1}` : ""}`;

@@ -5,7 +5,7 @@ import { getConfig } from "@/lib/utils/config";
 import { getFileExtension, normalizePath } from "@/lib/utils/file";
 import { assertGithubIdentity } from "@/lib/authz";
 import { getToken } from "@/lib/token";
-import { toErrorResponse } from "@/lib/api-error";
+import { createHttpError, toErrorResponse } from "@/lib/api-error";
 import { requireApiUserSession } from "@/lib/session-server";
 
 /**
@@ -27,7 +27,7 @@ export async function GET(
     const user = sessionResult.user;
 
     const { token } = await getToken(user, params.owner, params.repo);
-    if (!token) throw new Error("Token not found");
+    if (!token) throw createHttpError("Token not found", 401);
 
     const searchParams = request.nextUrl.searchParams;
     const name = searchParams.get("name") || "";
@@ -41,16 +41,18 @@ export async function GET(
       const config = await getConfig(params.owner, params.repo, params.branch, {
         getToken: async () => token,
       });
-      if (!config) throw new Error(`Configuration not found for ${params.owner}/${params.repo}/${params.branch}.`);
+      if (!config) throw createHttpError(`Configuration not found for ${params.owner}/${params.repo}/${params.branch}.`, 404);
       
       const schema = getSchemaByName(config.object, name);
-      if (!schema) throw new Error(`Schema not found for ${name}.`);
+      if (!schema) throw createHttpError(`Schema not found for ${name}.`, 404);
 
-      if (!normalizedPath.startsWith(schema.path)) throw new Error(`Invalid path "${params.path}" for ${schema.type} "${name}".`);
+      if (!normalizedPath.startsWith(schema.path)) throw createHttpError(`Invalid path "${params.path}" for ${schema.type} "${name}".`, 400);
 
-      if (getFileExtension(normalizedPath) !== schema.extension) throw new Error(`Invalid extension "${getFileExtension(normalizedPath)}" for ${schema.type} "${name}".`);
+      if (getFileExtension(normalizedPath) !== schema.extension) {
+        throw createHttpError(`Invalid extension "${getFileExtension(normalizedPath)}" for ${schema.type} "${name}".`, 400);
+      }
     } else if (normalizedPath !== ".pages.yml") {
-      throw new Error("If no content entry name is provided, the path must be \".pages.yml\".");
+      throw createHttpError("If no content entry name is provided, the path must be \".pages.yml\".", 400);
     }
     
     const octokit = createOctokitInstance(token);

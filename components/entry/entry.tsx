@@ -397,6 +397,25 @@ export function Entry({
 
   const isBusy = isLoading || isSaving;
 
+  useEffect(() => {
+    const handleSaveShortcut = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== "s") return;
+      if (!event.metaKey && !event.ctrlKey) return;
+      if (event.altKey) return;
+
+      event.preventDefault();
+      if (isBusy) return;
+
+      const form = document.getElementById("entry-form");
+      if (form instanceof HTMLFormElement) {
+        form.requestSubmit();
+      }
+    };
+
+    window.addEventListener("keydown", handleSaveShortcut);
+    return () => window.removeEventListener("keydown", handleSaveShortcut);
+  }, [isBusy]);
+
   const handleDelete = useCallback((path: string) => {
     // TODO: disable save button or freeze form while deleting?
     if (schemaType === "collection") {

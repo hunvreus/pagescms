@@ -9,7 +9,7 @@ import {
 } from "@/lib/github-cache";
 import { getCacheFileMeta, upsertCacheFileMeta } from "@/lib/cache-file-meta";
 import { getConfig } from "@/lib/utils/config";
-import { toErrorResponse } from "@/lib/api-error";
+import { createHttpError, toErrorResponse } from "@/lib/api-error";
 import { isCacheEnabled } from "@/lib/config-settings";
 import { getBranchHeadSha } from "@/lib/github-cache";
 import { requireApiUserSession } from "@/lib/session-server";
@@ -41,7 +41,7 @@ export async function GET(
       },
     );
     if (!config?.object || !isCacheEnabled(config.object)) {
-      return Response.json({ status: "error", message: "Cache is disabled for this repository." }, { status: 403 });
+      throw createHttpError("Cache is disabled for this repository.", 403);
     }
 
     // Keep DB access mostly sequential to avoid spiking pool usage on the cache dashboard.
@@ -126,7 +126,7 @@ export async function POST(
       },
     );
     if (!config?.object || !isCacheEnabled(config.object)) {
-      return Response.json({ status: "error", message: "Cache is disabled for this repository." }, { status: 403 });
+      throw createHttpError("Cache is disabled for this repository.", 403);
     }
 
     switch (action) {
@@ -206,7 +206,7 @@ export async function POST(
           message: "All cache cleared.",
         });
       default:
-        throw new Error(`Invalid action "${action}".`);
+        throw createHttpError(`Invalid action "${action}".`, 400);
     }
   } catch (error: any) {
     console.error(error);

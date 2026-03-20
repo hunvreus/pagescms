@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { collaboratorTable } from "@/db/schema";
 import { requireGithubRepoWriteAccess } from "@/lib/authz-server";
-import { toErrorResponse } from "@/lib/api-error";
+import { createHttpError, toErrorResponse } from "@/lib/api-error";
 import { requireApiUserSession } from "@/lib/session-server";
 
 /**
@@ -24,7 +24,9 @@ export async function GET(
     if ("response" in sessionResult) return sessionResult.response;
 
     // TODO: support for branches and account collaborators
-    if (!params.slug || params.slug.length !== 2) throw new Error("Invalid slug: owner and repo are mandatory");
+    if (!params.slug || params.slug.length !== 2) {
+      throw createHttpError("Invalid slug: owner and repo are mandatory", 400);
+    }
 
     const owner = params.slug[0];
 		const repo = params.slug[1];

@@ -118,7 +118,7 @@ const SortableItem = ({ id, file, config, media, onRemove }: {
 
   return (
     <div ref={setNodeRef} style={style}>
-      <div title={file} {...attributes} {...listeners}>
+      <div title={file} className="cursor-move" {...attributes} {...listeners}>
         <Thumbnail name={media} path={file} className="rounded-md w-28 h-28"/>
       </div>
       <ImageTeaser file={file} config={config} onRemove={onRemove} />

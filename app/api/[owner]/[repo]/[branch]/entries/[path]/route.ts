@@ -31,7 +31,7 @@ export async function GET(
     const user = sessionResult.user;
 
     const { token } = await getToken(user, params.owner, params.repo);
-    if (!token) throw new Error("Token not found");
+    if (!token) throw createHttpError("Token not found", 401);
 
     const searchParams = request.nextUrl.searchParams;
     const name = searchParams.get("name");
@@ -44,7 +44,9 @@ export async function GET(
       assertGithubIdentity(user, "Only GitHub users can access settings.");
     }
 
-    if (!name && normalizedPath !== ".pages.yml") throw new Error("If no content entry name is provided, the path must be \".pages.yml\".");
+    if (!name && normalizedPath !== ".pages.yml") {
+      throw createHttpError("If no content entry name is provided, the path must be \".pages.yml\".", 400);
+    }
 
     if (!name && normalizedPath === ".pages.yml" && metaOnly) {
       const cachedConfig = await getConfig(params.owner, params.repo, params.branch, {
@@ -67,14 +69,16 @@ export async function GET(
       config = await getConfig(params.owner, params.repo, params.branch, {
         getToken: async () => token,
       });
-      if (!config) throw new Error(`Configuration not found for ${params.owner}/${params.repo}/${params.branch}.`);
+      if (!config) throw createHttpError(`Configuration not found for ${params.owner}/${params.repo}/${params.branch}.`, 404);
 
       schema = getSchemaByName(config.object, name);
-      if (!schema) throw new Error(`Schema not found for ${name}.`);
+      if (!schema) throw createHttpError(`Schema not found for ${name}.`, 404);
 
-      if (!normalizedPath.startsWith(schema.path)) throw new Error(`Invalid path "${params.path}" for ${schema.type} "${name}".`);
+      if (!normalizedPath.startsWith(schema.path)) throw createHttpError(`Invalid path "${params.path}" for ${schema.type} "${name}".`, 400);
 
-      if (getFileExtension(normalizedPath) !== schema.extension) throw new Error(`Invalid extension "${getFileExtension(normalizedPath)}" for ${schema.type} "${name}".`);
+      if (getFileExtension(normalizedPath) !== schema.extension) {
+        throw createHttpError(`Invalid extension "${getFileExtension(normalizedPath)}" for ${schema.type} "${name}".`, 400);
+      }
     } else {
       config = {};
     }
@@ -96,9 +100,9 @@ export async function GET(
     }
     
     if (Array.isArray(response.data)) {
-      throw new Error("Expected a file but found a directory");
+      throw createHttpError("Expected a file but found a directory", 400);
     } else if (response.data.type !== "file") {
-      throw new Error("Invalid response type");
+      throw createHttpError("Invalid response type", 500);
     }
 
     const content = Buffer.from(response.data.content, "base64").toString();
@@ -162,7 +166,7 @@ const parseContent = (
       );
       if (schema.list) contentObject = contentObject.listWrapper;
     } catch (error: any) {
-      throw new Error(`Error parsing frontmatter: ${error.message}`);
+      throw createHttpError(`Error parsing frontmatter: ${error.message}`, 400);
     }
   } else {
     contentObject = { body: content };

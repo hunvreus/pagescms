@@ -1,6 +1,6 @@
 import { createOctokitInstance } from "@/lib/utils/octokit";
 import { getToken } from "@/lib/token";
-import { toErrorResponse } from "@/lib/api-error";
+import { createHttpError, toErrorResponse } from "@/lib/api-error";
 import { requireApiUserSession } from "@/lib/session-server";
 
 /**
@@ -22,10 +22,10 @@ export async function POST(
     const user = sessionResult.user;
 
     const { token } = await getToken(user, params.owner, params.repo, true);
-    if (!token) throw new Error("Token not found");
+    if (!token) throw createHttpError("Token not found", 401);
 
     const data: any = await request.json();
-    if (!data.name) throw new Error(`"name" is required.`);
+    if (!data.name) throw createHttpError(`"name" is required.`, 400);
 
     const octokit = createOctokitInstance(token);
 

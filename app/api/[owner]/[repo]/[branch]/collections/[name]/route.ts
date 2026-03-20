@@ -9,7 +9,7 @@ import { normalizePath } from "@/lib/utils/file";
 import { getToken } from "@/lib/token";
 import { getCollectionCache, checkRepoAccess } from "@/lib/github-cache";
 import { getGithubId } from "@/lib/github-account";
-import { toErrorResponse } from "@/lib/api-error";
+import { createHttpError, toErrorResponse } from "@/lib/api-error";
 import { requireApiUserSession } from "@/lib/session-server";
 
 /**
@@ -33,21 +33,21 @@ export async function GET(
     const user = sessionResult.user;
 
     const { token } = await getToken(user, params.owner, params.repo);
-    if (!token) throw new Error("Token not found");
+    if (!token) throw createHttpError("Token not found", 401);
 
     const githubId = await getGithubId(user.id);
     if (githubId) {
       const hasAccess = await checkRepoAccess(token, params.owner, params.repo, githubId);
-      if (!hasAccess) throw new Error(`No access to repository ${params.owner}/${params.repo}.`);
+      if (!hasAccess) throw createHttpError(`No access to repository ${params.owner}/${params.repo}.`, 403);
     }
 
     const config = await getConfig(params.owner, params.repo, params.branch, {
       getToken: async () => token,
     });
-    if (!config) throw new Error(`Configuration not found for ${params.owner}/${params.repo}/${params.branch}.`);
+    if (!config) throw createHttpError(`Configuration not found for ${params.owner}/${params.repo}/${params.branch}.`, 404);
 
     const schema = getSchemaByName(config.object, params.name);
-    if (!schema) throw new Error(`Schema not found for ${params.name}.`);
+    if (!schema) throw createHttpError(`Schema not found for ${params.name}.`, 404);
 
     const searchParams = request.nextUrl.searchParams;
     const path = searchParams.get("path") || "";
@@ -56,10 +56,10 @@ export async function GET(
     const fields = searchParams.get("fields")?.split(",") || ["name"];
 
     const normalizedPath = normalizePath(path);
-    if (!normalizedPath.startsWith(schema.path)) throw new Error(`Invalid path "${path}" for collection "${params.name}".`);
+    if (!normalizedPath.startsWith(schema.path)) throw createHttpError(`Invalid path "${path}" for collection "${params.name}".`, 400);
 
     if (schema.subfolders === false) {
-      if (normalizedPath !== schema.path) throw new Error(`Invalid path "${path}" for collection "${params.name}".`);
+      if (normalizedPath !== schema.path) throw createHttpError(`Invalid path "${path}" for collection "${params.name}".`, 400);
     }
 
     let entries = await getCollectionCache(params.owner, params.repo, params.branch, normalizedPath, token, schema.view?.node?.filename);
