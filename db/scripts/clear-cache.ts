@@ -1,13 +1,11 @@
 import { db } from '../index';
-import { cacheFileTable, cachePermissionTable } from '../schema';
+import { sql } from 'drizzle-orm';
 
-db.delete(cacheFileTable)
+console.log('Clearing cache tables...');
+
+db.execute(sql`TRUNCATE TABLE cache_file, cache_permission, config, cache_file_meta`)
   .then(() => {
-    console.log('✅ File cache cleared successfully');
-    return db.delete(cachePermissionTable);
-  })
-  .then(() => {
-    console.log('✅ Permission cache cleared successfully');
+    console.log('✅ Cache tables cleared successfully');
     process.exit(0);
   })
   .catch((error) => {
