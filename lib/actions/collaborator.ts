@@ -262,7 +262,7 @@ const handleResendCollaboratorInvite = async (collaboratorId: number, owner: str
       throw new Error("Collaborator does not belong to this repository.");
     }
 
-    const baseUrl = await getBaseUrlFromHeaders();
+    const baseUrl = getBaseUrl();
     const inviteUrl = await createCollaboratorInviteMagicLink({
       email: collaborator.email,
       owner,
