@@ -2,6 +2,7 @@
 
 import { forwardRef } from "react";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) => {
   const { field, value, onChange, ...restProps } = props;
@@ -16,7 +17,8 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
       step={field?.options?.step ?? undefined}
       value={value}
       onChange={onChange}
-      className="text-base"
+      className={cn("text-base", field?.readonly && "focus-visible:border-input focus-visible:ring-0")}
+      readOnly={field?.readonly}
     />
   );
 });

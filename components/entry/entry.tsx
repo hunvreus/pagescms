@@ -445,11 +445,30 @@ export function Entry({
   }, [config.branch, config.owner, config.repo, entryApiUrl, mutate, name, router, schemaType]);
 
   const breadcrumbNode = useMemo(() => {
-    if (!path || schemaType !== "collection" || !schema) {
+    if (schemaType !== "collection" || !schema) {
       return <BreadcrumbPage className="font-semibold truncate">{displayTitle}</BreadcrumbPage>;
     }
 
     const rootLabel = schema.label || schema.name || name;
+
+    if (!path) {
+      return (
+        <>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}`}>
+                {rootLabel}
+              </Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem className="truncate">
+            <BreadcrumbPage className="font-semibold truncate">{displayTitle}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </>
+      );
+    }
+
     const rootPath = normalizePath(schema.path);
     const parentPath = normalizePath(getParentPath(path));
     const relativePath = getRelativePath(parentPath, rootPath);
@@ -645,7 +664,7 @@ export function Entry({
         <div className="absolute inset-0 p-4 md:p-6 flex items-center justify-center">
           <Empty className="max-w-[420px] flex-none">
             <EmptyHeader>
-              <EmptyTitle>Something's wrong</EmptyTitle>
+              <EmptyTitle>Something&apos;s wrong</EmptyTitle>
               <EmptyDescription>{error}</EmptyDescription>
             </EmptyHeader>
             <EmptyContent>

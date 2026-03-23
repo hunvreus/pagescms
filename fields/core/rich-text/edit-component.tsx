@@ -197,6 +197,7 @@ const EditComponent = forwardRef(
     const form = useFormContext();
 
     const options = field?.options ?? {};
+    const isReadonly = Boolean(field?.readonly);
     const format = options.format === "html" ? "html" : "markdown";
     const showSwitcher = options.switcher !== false;
     const canonicalValue = typeof value === "string" ? value : "";
@@ -684,7 +685,7 @@ const EditComponent = forwardRef(
               "bg-background text-foreground dark:border-input dark:bg-input/30 dark:text-foreground",
           )}
           onClick={() => void handleSwitchToEditor()}
-          disabled={isTransforming || pendingUploads > 0}
+          disabled={isReadonly || isTransforming || pendingUploads > 0}
           data-active={mode === "editor" ? "true" : undefined}
         >
           Editor
@@ -698,7 +699,7 @@ const EditComponent = forwardRef(
               "bg-background text-foreground dark:border-input dark:bg-input/30 dark:text-foreground",
           )}
           onClick={() => void handleSwitchToSource()}
-          disabled={isTransforming || pendingUploads > 0}
+          disabled={isReadonly || isTransforming || pendingUploads > 0}
           data-active={mode === "source" ? "true" : undefined}
         >
           Source
@@ -748,6 +749,7 @@ const EditComponent = forwardRef(
             onUploadImage={mediaConfig ? handleUploadImage : undefined}
             onRequestImage={mediaConfig ? handleRequestImage : undefined}
             onPendingUploadsChange={setPendingUploads}
+            disabled={isReadonly}
           />
           )
         ) : (
@@ -756,6 +758,7 @@ const EditComponent = forwardRef(
             onChange={(event) => handleSourceChange(event.target.value)}
             className="font-mono min-h-40"
             spellCheck={false}
+            readOnly={isReadonly}
           />
         )}
 

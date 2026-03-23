@@ -97,6 +97,7 @@ type RenderFields = (
   fields: Field[],
   parentName?: string,
   registerBeforeSubmitHook?: RegisterBeforeSubmitHook,
+  inheritedReadonly?: boolean,
 ) => React.ReactNode[];
 
 type NestedFieldProps = {
@@ -107,6 +108,10 @@ type NestedFieldProps = {
   isOpen?: boolean;
   onToggleOpen?: () => void;
   index?: number;
+};
+
+type FieldWithReadonlyMeta = Field & {
+  __inheritedReadonly?: boolean;
 };
 
 const hasFieldPathError = (errors: unknown, fieldName: string): boolean => {
@@ -146,12 +151,17 @@ const hasCollapsibleSummary = (field: Field) =>
   typeof field.list.collapsible === "object" &&
   !!field.list.collapsible.summary;
 
+const hasExplicitReadonly = (field: Field) =>
+  Boolean(field.readonly) && !(field as FieldWithReadonlyMeta).__inheritedReadonly;
+
 const SortableItem = ({
   id,
   children,
+  readonly = false,
 }: {
   id: string;
   children: React.ReactNode;
+  readonly?: boolean;
 }) => {
   const {
     attributes,
@@ -176,16 +186,18 @@ const SortableItem = ({
       )}
       style={style}
     >
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-sm"
-        className="h-auto w-6 self-stretch cursor-move text-muted-foreground hover:text-foreground"
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical />
-      </Button>
+      {!readonly && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="h-auto w-6 self-stretch cursor-move text-muted-foreground hover:text-foreground"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical />
+        </Button>
+      )}
       {children}
     </div>
   );
@@ -220,8 +232,9 @@ const ListItemRow = memo(function ListItemRow({
   onRemoveConfirm: (index: number) => void;
   onPendingRemoveChange: (index: number, open: boolean) => void;
 }) {
+  const isReadonly = Boolean(field.readonly);
   return (
-    <SortableItem id={id}>
+    <SortableItem id={id} readonly={isReadonly}>
       <div className="grid gap-6 flex-1">
         <SingleField
           field={field}
@@ -234,41 +247,43 @@ const ListItemRow = memo(function ListItemRow({
           index={index}
         />
       </div>
-      <Tooltip>
-        <AlertDialog
-          open={isPendingRemove}
-          onOpenChange={(open) => onPendingRemoveChange(index, open)}
-        >
-          <TooltipTrigger asChild>
-            <AlertDialogTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:text-foreground self-start"
-                onClick={() => onRequestRemove(index)}
-              >
-                <Trash2 />
-              </Button>
-            </AlertDialogTrigger>
-          </TooltipTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Remove this item?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => onRemoveConfirm(index)}>
-                Remove
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-        <TooltipContent>Remove item</TooltipContent>
-      </Tooltip>
+      {!isReadonly && (
+        <Tooltip>
+          <AlertDialog
+            open={isPendingRemove}
+            onOpenChange={(open) => onPendingRemoveChange(index, open)}
+          >
+            <TooltipTrigger asChild>
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground hover:text-foreground self-start"
+                  onClick={() => onRequestRemove(index)}
+                >
+                  <Trash2 />
+                </Button>
+              </AlertDialogTrigger>
+            </TooltipTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Remove this item?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => onRemoveConfirm(index)}>
+                  Remove
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <TooltipContent>Remove item</TooltipContent>
+        </Tooltip>
+      )}
     </SortableItem>
   );
 });
@@ -314,6 +329,7 @@ const ListField = ({
     field.label !== false ||
     field.required ||
     (isCollapsible && arrayFields.length > 0);
+  const isReadonly = Boolean(field.readonly);
 
   useEffect(() => {
     setOpenStates((prev) => {
@@ -342,6 +358,7 @@ const ListField = ({
   }, []);
 
   const handleDragEnd = (event: DragEndEvent) => {
+    if (isReadonly) return;
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
@@ -355,6 +372,7 @@ const ListField = ({
   };
 
   const addItem = () => {
+    if (isReadonly) return;
     append(
       field.type === "object"
         ? initializeState(field.fields, {})
@@ -364,11 +382,12 @@ const ListField = ({
   };
 
   const removeItem = useCallback((index: number) => {
+    if (isReadonly) return;
     remove(index);
     setOpenStates((prev) =>
       prev.filter((_, currentIndex) => currentIndex !== index),
     );
-  }, [remove]);
+  }, [isReadonly, remove]);
   const [pendingRemoveIndex, setPendingRemoveIndex] = useState<number | null>(
     null,
   );
@@ -430,6 +449,11 @@ const ListField = ({
                   Required
                 </Badge>
               )}
+              {hasExplicitReadonly(field) && (
+                <Badge variant="secondary" className="text-muted-foreground">
+                  Readonly
+                </Badge>
+              )}
               {isCollapsible &&
                 arrayFields.length > 0 &&
                 (() => {
@@ -486,7 +510,7 @@ const ListField = ({
               </SortableContext>
             </DndContext>
             <div className="flex items-center gap-2 flex-wrap">
-              {typeof field.list === "object" &&
+              {isReadonly ? null : typeof field.list === "object" &&
               field.list?.max &&
               arrayFields.length >= field.list.max ? null : (
                 <Button
@@ -545,8 +569,10 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>(
     const selectedBlockName = value?.[blockKey];
     const [isRemoveBlockDialogOpen, setIsRemoveBlockDialogOpen] =
       useState(false);
+    const isReadonly = Boolean(field.readonly);
 
     const handleBlockSelect = (blockName: string) => {
+      if (isReadonly) return;
       const selectedBlockDef = blocks.find((b: Field) => b.name === blockName);
       if (!selectedBlockDef) return;
       let initialState: Record<string, unknown> = { [blockKey]: blockName };
@@ -558,6 +584,7 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>(
     };
 
     const handleRemoveBlock = () => {
+      if (isReadonly) return;
       onChange(null);
     };
 
@@ -584,6 +611,7 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>(
                   size="sm"
                   className="gap-x-2"
                   onClick={() => handleBlockSelect(blockDef.name)}
+                  disabled={isReadonly}
                 >
                   {blockDef.label || blockDef.name}
                 </Button>
@@ -624,49 +652,51 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>(
               >
                 {selectedBlockDefinition.label || selectedBlockDefinition.name}
 
-                <Tooltip>
-                  <AlertDialog
-                    open={isRemoveBlockDialogOpen}
-                    onOpenChange={setIsRemoveBlockDialogOpen}
-                  >
-                    <TooltipTrigger asChild>
-                      <AlertDialogTrigger asChild>
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setIsRemoveBlockDialogOpen(true);
-                          }}
-                          className="text-muted-foreground hover:text-foreground -my-0.5 -mx-2 px-2 transition-colors"
-                        >
-                          <X className="size-3" />
-                        </button>
-                      </AlertDialogTrigger>
-                    </TooltipTrigger>
-                    <AlertDialogContent
-                      onClick={(event) => event.stopPropagation()}
+                {!isReadonly && (
+                  <Tooltip>
+                    <AlertDialog
+                      open={isRemoveBlockDialogOpen}
+                      onOpenChange={setIsRemoveBlockDialogOpen}
                     >
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Remove this block?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => {
-                            handleRemoveBlock();
-                            setIsRemoveBlockDialogOpen(false);
-                          }}
-                        >
-                          Remove
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                  <TooltipContent>Remove block</TooltipContent>
-                </Tooltip>
+                      <TooltipTrigger asChild>
+                        <AlertDialogTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setIsRemoveBlockDialogOpen(true);
+                            }}
+                            className="text-muted-foreground hover:text-foreground -my-0.5 -mx-2 px-2 transition-colors"
+                          >
+                            <X className="size-3" />
+                          </button>
+                        </AlertDialogTrigger>
+                      </TooltipTrigger>
+                      <AlertDialogContent
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remove this block?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => {
+                              handleRemoveBlock();
+                              setIsRemoveBlockDialogOpen(false);
+                            }}
+                          >
+                            Remove
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                    <TooltipContent>Remove block</TooltipContent>
+                  </Tooltip>
+                )}
               </Badge>
             </header>
             <div
@@ -681,12 +711,13 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>(
                     selectedBlockDefinition.fields || [],
                     fieldName,
                     registerBeforeSubmitHook,
+                    isReadonly,
                   );
                   return renderedElements;
                 })()
               ) : (
                 <SingleField
-                  field={selectedBlockDefinition}
+                  field={isReadonly ? { ...selectedBlockDefinition, readonly: true, __inheritedReadonly: true } : selectedBlockDefinition}
                   fieldName={fieldName}
                   renderFields={renderFields}
                   registerBeforeSubmitHook={registerBeforeSubmitHook}
@@ -780,6 +811,7 @@ const ObjectField = forwardRef<HTMLDivElement, NestedFieldProps>(
             field.fields || [],
             fieldName,
             registerBeforeSubmitHook,
+            Boolean(field.readonly),
           )}
         </div>
       </div>
@@ -835,20 +867,25 @@ const SingleField = ({
 
     return (
       <FormItem key={fieldName}>
-        {shouldShowFieldMeta && (
-          <div className="flex items-center h-5 gap-x-2">
-            {field.label !== false && (
-              <Label className={hasErrors() ? "text-destructive" : ""}>
-                {field.label || field.name}
+            {shouldShowFieldMeta && (
+              <div className="flex items-center h-5 gap-x-2">
+                {field.label !== false && (
+                  <Label className={hasErrors() ? "text-destructive" : ""}>
+                    {field.label || field.name}
               </Label>
             )}
-            {field.required && (
-              <Badge variant="secondary" className="text-muted-foreground">
-                Required
-              </Badge>
+                {field.required && (
+                  <Badge variant="secondary" className="text-muted-foreground">
+                    Required
+                  </Badge>
+                )}
+                {hasExplicitReadonly(field) && (
+                  <Badge variant="secondary" className="text-muted-foreground">
+                    Readonly
+                  </Badge>
+                )}
+              </div>
             )}
-          </div>
-        )}
         <NestedComponent
           field={field}
           fieldName={fieldName}
@@ -894,6 +931,14 @@ const SingleField = ({
                       className="text-muted-foreground"
                     >
                       Required
+                    </Badge>
+                  )}
+                  {hasExplicitReadonly(field) && (
+                    <Badge
+                      variant="secondary"
+                      className="text-muted-foreground"
+                    >
+                      Readonly
                     </Badge>
                   )}
                 </div>
@@ -986,21 +1031,25 @@ const EntryForm = ({
       fields: Field[],
       parentName?: string,
       registerBeforeSubmitHook?: RegisterBeforeSubmitHook,
+      inheritedReadonly = false,
     ): React.ReactNode[] => {
       return fields.map((field) => {
         if (!field || field.hidden) return null;
+        const effectiveField = inheritedReadonly && !field.readonly
+          ? { ...field, readonly: true, __inheritedReadonly: true }
+          : field;
         const currentFieldName = parentName
-          ? `${parentName}.${field.name}`
-          : field.name;
+          ? `${parentName}.${effectiveField.name}`
+          : effectiveField.name;
 
         if (
-          field.list === true ||
-          (typeof field.list === "object" && field.list !== null)
+          effectiveField.list === true ||
+          (typeof effectiveField.list === "object" && effectiveField.list !== null)
         ) {
           return (
             <ListField
               key={currentFieldName}
-              field={field}
+              field={effectiveField}
               fieldName={currentFieldName}
               renderFields={renderFields}
               registerBeforeSubmitHook={registerBeforeSubmitHook}
@@ -1010,7 +1059,7 @@ const EntryForm = ({
         return (
           <SingleField
             key={currentFieldName}
-            field={field}
+            field={effectiveField}
             fieldName={currentFieldName}
             renderFields={renderFields}
             registerBeforeSubmitHook={registerBeforeSubmitHook}

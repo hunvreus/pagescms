@@ -53,7 +53,7 @@ const EditComponent = forwardRef((props: any, ref: any) => {
     }
 
     return exts;
-  }, [field.options?.format]);
+  }, [field.options?.format, field.options?.lintFn]);
 
   return (
     <CodeMirror
@@ -68,6 +68,8 @@ const EditComponent = forwardRef((props: any, ref: any) => {
       extensions={extensions}
       onChange={onChange}
       theme={resolvedTheme === "dark" ? githubDark : githubLight}
+      editable={!field?.readonly}
+      readOnly={field?.readonly}
     />
   );
 });

@@ -4,13 +4,15 @@ import { forwardRef } from "react";
 import { Switch } from "@/components/ui/switch";
 
 const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) => {
+  const { field, value, onChange, ...restProps } = props;
   return (
     <div>
       <Switch
-        {...props}
+        {...restProps}
         ref={ref}
-        checked={props.value}
-        onCheckedChange={props.onChange}
+        checked={value}
+        onCheckedChange={onChange}
+        disabled={field?.readonly}
       />
     </div>
   );

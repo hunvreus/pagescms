@@ -265,6 +265,12 @@ const generateFieldObjectSchema = (
           })
           .optional()
           .nullable(),
+        readonly: z
+          .boolean({
+            message: "'readonly' must be a boolean.",
+          })
+          .optional()
+          .nullable(),
         required: z
           .boolean({
             message: "'required' must be a boolean.",

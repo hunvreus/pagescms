@@ -7,6 +7,7 @@ export type Field = {
   list?: boolean | { min?: number; max?: number; default?: any; collapsible?: boolean | { collapsed?: boolean; summary?: string } };
   collapsible?: boolean | { collapsed?: boolean; summary?: string };
   hidden?: boolean | null;
+  readonly?: boolean | null;
   required?: boolean | null;
   pattern?: string | { regex: string; message?: string };
   options?: Record<string, unknown> | null;

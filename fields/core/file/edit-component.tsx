@@ -55,7 +55,7 @@ type FieldOptions = {
 const FileTeaser = ({ file, config, onRemove, getFileIcon }: { 
   file: string;
   config: Pick<Config, "owner" | "repo" | "branch">;
-  onRemove: () => void;
+  onRemove?: () => void;
   getFileIcon: (file: string) => React.ReactNode;
 }) => {
   return (
@@ -83,25 +83,30 @@ const FileTeaser = ({ file, config, onRemove, getFileIcon }: {
               <ArrowUpRight className="size-3 ml-auto" />
             </a>
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            variant="destructive"
-            onSelect={onRemove}
-          >
-            Remove
-          </DropdownMenuItem>
+          {onRemove && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                variant="destructive"
+                onSelect={onRemove}
+              >
+                Remove
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </>
   )
 };
 
-const SortableItem = ({ id, file, config, onRemove, getFileIcon }: { 
+const SortableItem = ({ id, file, config, onRemove, getFileIcon, readonly = false }: { 
   id: string;
   file: string;
   config: Pick<Config, "owner" | "repo" | "branch">;
-  onRemove: () => void;
+  onRemove?: () => void;
   getFileIcon: (file: string) => React.ReactNode;
+  readonly?: boolean;
 }) => {
   const {
     attributes,
@@ -122,10 +127,12 @@ const SortableItem = ({ id, file, config, onRemove, getFileIcon }: {
 
   return (
     <div ref={setNodeRef} style={style}>
-      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-1">
-        <Button type="button" variant="ghost" size="icon-sm" className="h-auto w-6 self-stretch cursor-move text-muted-foreground hover:text-foreground" {...attributes} {...listeners}>
-          <GripVertical />
-        </Button>
+      <div className={readonly ? "grid grid-cols-[1fr_auto] items-center gap-1" : "grid grid-cols-[auto_1fr_auto] items-center gap-1"}>
+        {!readonly && (
+          <Button type="button" variant="ghost" size="icon-sm" className="h-auto w-6 self-stretch cursor-move text-muted-foreground hover:text-foreground" {...attributes} {...listeners}>
+            <GripVertical />
+          </Button>
+        )}
         
         <FileTeaser file={file} config={config} onRemove={onRemove} getFileIcon={getFileIcon} />
       </div>
@@ -139,6 +146,7 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
   const { config } = useConfig();
   if (!config) throw new Error("Configuration not found.");
   const options = (field.options ?? {}) as FieldOptions;
+  const isReadonly = Boolean(field.readonly);
   
   const [files, setFiles] = useState<FileEntry[]>(() => 
     typeof value === "string"
@@ -265,6 +273,7 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
+    if (isReadonly) return;
     const { active, over } = event;
     if (!over) return;
 
@@ -318,6 +327,7 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
       onUpload={handleUpload}
       multiple={isMultiple}
       rename={options.rename ?? mediaConfig.rename}
+      disabled={isReadonly}
     >
       <MediaUpload.DropZone>
         <div className="space-y-2">
@@ -339,8 +349,9 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
                         id={file.id}
                         file={file.path}
                         config={config}
-                        onRemove={() => handleRemove(file.id)}
+                        onRemove={isReadonly ? undefined : () => handleRemove(file.id)}
                         getFileIcon={getFileIcon}
+                        readonly={isReadonly}
                       />
                     ))}
                   </SortableContext>
@@ -348,11 +359,11 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
               </div>
             ) : (
               <div className="grid grid-cols-[1fr_auto] items-center gap-2 pl-3 pr-1 bg-muted rounded-md h-10">
-                <FileTeaser file={files[0].path} config={config} onRemove={() => handleRemove(files[0].id)} getFileIcon={getFileIcon} />
+                <FileTeaser file={files[0].path} config={config} onRemove={isReadonly ? undefined : () => handleRemove(files[0].id)} getFileIcon={getFileIcon} />
               </div>
             )
           )}
-          {remainingSlots > 0 && (
+          {!isReadonly && remainingSlots > 0 && (
             <div className="flex items-center gap-2">
               <MediaUpload.Trigger>
                 <Button type="button" size="sm" variant="outline" className="gap-2">

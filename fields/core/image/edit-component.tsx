@@ -55,7 +55,7 @@ type FieldOptions = {
 const ImageTeaser = ({ file, config, onRemove }: { 
   file: string;
   config: Pick<Config, "owner" | "repo" | "branch">;
-  onRemove: () => void;
+  onRemove?: () => void;
 }) => {
   return (
     <>
@@ -78,13 +78,17 @@ const ImageTeaser = ({ file, config, onRemove }: {
                 <ArrowUpRight className="size-3 ml-auto" />
               </a>
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              variant="destructive"
-              onSelect={onRemove}
-            >
-              Remove
-            </DropdownMenuItem>
+            {onRemove && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  variant="destructive"
+                  onSelect={onRemove}
+                >
+                  Remove
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -92,12 +96,13 @@ const ImageTeaser = ({ file, config, onRemove }: {
   )
 };
 
-const SortableItem = ({ id, file, config, media, onRemove }: { 
+const SortableItem = ({ id, file, config, media, onRemove, readonly = false }: { 
   id: string;
   file: string;
   config: Pick<Config, "owner" | "repo" | "branch">;
   media: string;
-  onRemove: () => void;
+  onRemove?: () => void;
+  readonly?: boolean;
 }) => {
   const {
     attributes,
@@ -118,7 +123,7 @@ const SortableItem = ({ id, file, config, media, onRemove }: {
 
   return (
     <div ref={setNodeRef} style={style}>
-      <div title={file} className="cursor-move" {...attributes} {...listeners}>
+      <div title={file} className={readonly ? undefined : "cursor-move"} {...(!readonly ? attributes : {})} {...(!readonly ? listeners : {})}>
         <Thumbnail name={media} path={file} className="rounded-md w-28 h-28"/>
       </div>
       <ImageTeaser file={file} config={config} onRemove={onRemove} />
@@ -132,6 +137,7 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
   const { config } = useConfig();
   if (!config) throw new Error("Configuration not found.");
   const options = (field.options ?? {}) as FieldOptions;
+  const isReadonly = Boolean(field.readonly);
   
   const [files, setFiles] = useState<FileEntry[]>(() => 
     typeof value === "string"
@@ -221,6 +227,7 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
+    if (isReadonly) return;
     const { active, over } = event;
     if (!over) return;
 
@@ -274,6 +281,7 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
       onUpload={handleUpload}
       multiple={isMultiple}
       rename={options.rename ?? mediaConfig.rename}
+      disabled={isReadonly}
     >
       <MediaUpload.DropZone>
         <div className="space-y-2">
@@ -296,7 +304,8 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
                         file={file.path}
                         config={config}
                         media={mediaConfig.name}
-                        onRemove={() => handleRemove(file.id)}
+                        onRemove={isReadonly ? undefined : () => handleRemove(file.id)}
+                        readonly={isReadonly}
                       />
                     ))}
                   </SortableContext>
@@ -307,11 +316,11 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
                 <div title={files[0].path}>
                   <Thumbnail name={mediaConfig.name} path={files[0].path} className="rounded-md w-28 h-28"/>
                 </div>
-                <ImageTeaser file={files[0].path} config={config} onRemove={() => handleRemove(files[0].id)} />
+                <ImageTeaser file={files[0].path} config={config} onRemove={isReadonly ? undefined : () => handleRemove(files[0].id)} />
               </div>
             )
           )}
-          {remainingSlots > 0 && (
+          {!isReadonly && remainingSlots > 0 && (
             <div className="flex gap-2">
               <MediaUpload.Trigger>
                 <Button type="button" size="sm" variant="outline" className="gap-2">

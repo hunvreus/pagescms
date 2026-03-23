@@ -13,6 +13,7 @@ interface MediaUploadContextValue {
   handleFiles: (files: File[]) => Promise<void>;
   accept?: string;
   multiple?: boolean;
+  disabled?: boolean;
 }
 
 const MediaUploadContext = createContext<MediaUploadContextValue | null>(null);
@@ -25,6 +26,7 @@ interface MediaUploadProps {
   extensions?: string[];
   multiple?: boolean;
   rename?: boolean;
+  disabled?: boolean;
 }
 
 interface MediaUploadTriggerProps {
@@ -36,7 +38,7 @@ interface MediaUploadDropZoneProps {
   className?: string;
 }
 
-function MediaUploadRoot({ children, path, onUpload, media, extensions, multiple, rename }: MediaUploadProps) {
+function MediaUploadRoot({ children, path, onUpload, media, extensions, multiple, rename, disabled = false }: MediaUploadProps) {
   const { config } = useConfig();
   if (!config) throw new Error(`Configuration not found.`);
 
@@ -117,8 +119,9 @@ function MediaUploadRoot({ children, path, onUpload, media, extensions, multiple
   const contextValue = useMemo(() => ({
     handleFiles,
     accept,
-    multiple
-  }), [handleFiles, accept, multiple]);
+    multiple,
+    disabled,
+  }), [handleFiles, accept, multiple, disabled]);
 
   return (
     <MediaUploadContext.Provider value={contextValue}>
@@ -155,10 +158,12 @@ function MediaUploadTrigger({ children }: MediaUploadTriggerProps) {
   }, [context.accept]);
 
   const handleClick = useCallback(() => {
+    if (context.disabled) return;
     fileInputRef.current?.click();
-  }, []);
+  }, [context.disabled]);
 
   const handleFileInput = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    if (context.disabled) return;
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
@@ -211,16 +216,19 @@ function MediaUploadDropZone({ children, className }: MediaUploadDropZoneProps) 
   }, [context.accept]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
+    if (context.disabled) return;
     e.preventDefault();
     setIsDragging(true);
-  }, []);
+  }, [context.disabled]);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
+    if (context.disabled) return;
     e.preventDefault();
     setIsDragging(false);
-  }, []);
+  }, [context.disabled]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
+    if (context.disabled) return;
     e.preventDefault();
     setIsDragging(false);
     
@@ -241,7 +249,7 @@ function MediaUploadDropZone({ children, className }: MediaUploadDropZoneProps) 
       className={cn("relative", className)}
     >
       {children}
-      {isDragging && (
+      {!context.disabled && isDragging && (
         <div className="absolute inset-0 bg-primary/10 rounded-lg flex items-center justify-center">
           <p className="text-sm text-foreground font-medium bg-background rounded-full px-3 py-1">
             Drop files here to upload

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Loader } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   Combobox,
   ComboboxChip,
@@ -65,6 +66,7 @@ const EditComponent = (props: any) => {
   const { value, field, onChange } = props;
   const { config } = useConfig();
   const anchor = useComboboxAnchor();
+  const isReadonly = Boolean(field?.readonly);
   const multiple = Boolean(field.options?.multiple);
   const collectionName = typeof field.options?.collection === "string" ? field.options.collection : null;
   const collectionPath = config && collectionName ? getSchemaByName(config.object, collectionName)?.path || null : null;
@@ -202,8 +204,12 @@ const EditComponent = (props: any) => {
   const singleSelected = !multiple && selectedValue && !Array.isArray(selectedValue)
     ? selectedValue
     : null;
+  const placeholder = isReadonly
+    ? undefined
+    : field.options?.placeholder || "Select...";
 
   const handleValueChange = (nextValue: Option[] | Option | null) => {
+    if (isReadonly) return;
     if (multiple) {
       onChange(Array.isArray(nextValue) ? nextValue.map((option) => option.value) : []);
       return;
@@ -220,26 +226,37 @@ const EditComponent = (props: any) => {
       multiple={multiple}
       value={selectedValue as any}
       onValueChange={handleValueChange as any}
-      onInputValueChange={setSearchTerm}
+      onInputValueChange={isReadonly ? undefined : setSearchTerm}
+      readOnly={isReadonly}
       isItemEqualToValue={(item, selected) => item.value === selected?.value}
       autoHighlight
       filter={null}
     >
       {multiple ? (
         <>
-          <ComboboxChips ref={anchor}>
+          <ComboboxChips
+            ref={anchor}
+            className={cn(
+              isReadonly && "focus-within:border-input focus-within:ring-0",
+            )}
+          >
             <ComboboxValue>
               {(values: Option[]) => (
                 <>
                   {values.map((option) => (
                     <ComboboxChip
                       key={option.value}
+                      showRemove={!isReadonly}
                       className={option.resolved === false ? "animate-pulse" : undefined}
                     >
                       {option.label}
                     </ComboboxChip>
                   ))}
-                  <ComboboxChipsInput placeholder={field.options?.placeholder || "Select..."} />
+                  <ComboboxChipsInput
+                    placeholder={placeholder}
+                    readOnly={isReadonly}
+                    className={cn(isReadonly && "cursor-default")}
+                  />
                 </>
               )}
             </ComboboxValue>
@@ -262,8 +279,13 @@ const EditComponent = (props: any) => {
       ) : (
         <>
           <ComboboxInput
-            placeholder={field.options?.placeholder || "Select..."}
-            className={singleSelected?.resolved === false ? "animate-pulse" : undefined}
+            placeholder={placeholder}
+            className={cn(
+              singleSelected?.resolved === false && "animate-pulse",
+              isReadonly && "has-[[data-slot=input-group-control]:focus-visible]:border-input has-[[data-slot=input-group-control]:focus-visible]:ring-0",
+            )}
+            showTrigger={!isReadonly}
+            readOnly={isReadonly}
           />
           <ComboboxContent>
             {!isLoading && <ComboboxEmpty>No options found.</ComboboxEmpty>}

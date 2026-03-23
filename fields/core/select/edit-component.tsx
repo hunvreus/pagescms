@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { cn } from "@/lib/utils";
 import {
   Combobox,
   ComboboxChip,
@@ -34,6 +35,7 @@ const normalizeOption = (option: any): Option => {
 
 const EditComponent = (props: any) => {
   const { value, field, onChange } = props;
+  const isReadonly = Boolean(field?.readonly);
   const multiple = Boolean(field.options?.multiple);
   const storeAsObject =
     field?.type === "reference" && field.options?.store === "object";
@@ -81,6 +83,7 @@ const EditComponent = (props: any) => {
   }, [multiple, options, value]);
 
   const handleValueChange = (nextValue: Option[] | Option | null) => {
+    if (isReadonly) return;
     const toOutput = (option: Option) =>
       storeAsObject ? option : option.value;
 
@@ -98,22 +101,30 @@ const EditComponent = (props: any) => {
       multiple={multiple}
       value={selectedValue as any}
       onValueChange={handleValueChange as any}
+      readOnly={isReadonly}
       isItemEqualToValue={(item, selected) => item.value === selected?.value}
       autoHighlight
     >
       {multiple ? (
         <>
-          <ComboboxChips ref={anchor}>
+          <ComboboxChips
+            ref={anchor}
+            className={cn(
+              isReadonly && "focus-within:border-input focus-within:ring-0",
+            )}
+          >
             <ComboboxValue>
               {(values: Option[]) => (
                 <>
                   {values.map((option) => (
-                    <ComboboxChip key={option.value}>
+                    <ComboboxChip key={option.value} showRemove={!isReadonly}>
                       {option.label}
                     </ComboboxChip>
                   ))}
                   <ComboboxChipsInput
                     placeholder={field.options?.placeholder || "Select..."}
+                    readOnly={isReadonly}
+                    className={cn(isReadonly && "cursor-default")}
                   />
                 </>
               )}
@@ -134,6 +145,9 @@ const EditComponent = (props: any) => {
         <>
           <ComboboxInput
             placeholder={field.options?.placeholder || "Select..."}
+            className={cn(isReadonly && "has-[[data-slot=input-group-control]:focus-visible]:border-input has-[[data-slot=input-group-control]:focus-visible]:ring-0")}
+            showTrigger={!isReadonly}
+            readOnly={isReadonly}
           />
           <ComboboxContent>
             <ComboboxEmpty>No options found.</ComboboxEmpty>

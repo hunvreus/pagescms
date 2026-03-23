@@ -2,6 +2,7 @@
 
 import { forwardRef } from "react";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) => {
   const { field, value, onChange } = props;
@@ -15,7 +16,8 @@ const EditComponent = forwardRef((props: any, ref: React.Ref<HTMLInputElement>) 
       type={field?.options?.time ? "datetime-local" : "date"}
       value={value}
       onChange={onChange}
-      className="w-auto text-base"
+      className={cn("w-auto text-base", field?.readonly && "focus-visible:border-input focus-visible:ring-0")}
+      readOnly={field?.readonly}
     />
   );
 });
