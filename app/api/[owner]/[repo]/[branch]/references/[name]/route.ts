@@ -172,14 +172,13 @@ const parseReferenceItems = (
   const serializedTypes = ["yaml-frontmatter", "json-frontmatter", "toml-frontmatter", "yaml", "json", "toml"];
   const excludedFiles = schema.exclude || [];
 
-  return contents
-    .map((item: any) => {
+  return contents.reduce<ParsedReferenceItem[]>((acc, item: any) => {
       if (
         item.type !== "file" ||
         (!(item.path.endsWith(`.${schema.extension}`)) && schema.extension !== "") ||
         excludedFiles.includes(item.name)
       ) {
-        return undefined;
+        return acc;
       }
 
       let contentObject: Record<string, any> = {};
@@ -202,14 +201,15 @@ const parseReferenceItems = (
         if (filenameDate) contentObject.date = filenameDate.string;
       }
 
-      return {
+      acc.push({
         name: item.name,
         path: item.path,
         primary: primaryField ? safeAccess(contentObject, primaryField) : undefined,
         fields: contentObject,
-      };
-    })
-    .filter((item): item is ParsedReferenceItem => Boolean(item));
+      });
+
+      return acc;
+    }, []);
 };
 
 const resolveReferenceFieldPaths = (

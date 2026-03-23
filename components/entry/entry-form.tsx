@@ -93,25 +93,25 @@ type RegisterBeforeSubmitHook = (
   hook: BeforeSubmitHook,
 ) => () => void;
 
+type FieldWithReadonlyMeta = Field & {
+  __inheritedReadonly?: boolean;
+};
+
 type RenderFields = (
-  fields: Field[],
+  fields: FieldWithReadonlyMeta[],
   parentName?: string,
   registerBeforeSubmitHook?: RegisterBeforeSubmitHook,
   inheritedReadonly?: boolean,
 ) => React.ReactNode[];
 
 type NestedFieldProps = {
-  field: Field;
+  field: FieldWithReadonlyMeta;
   fieldName: string;
   renderFields: RenderFields;
   registerBeforeSubmitHook?: RegisterBeforeSubmitHook;
   isOpen?: boolean;
   onToggleOpen?: () => void;
   index?: number;
-};
-
-type FieldWithReadonlyMeta = Field & {
-  __inheritedReadonly?: boolean;
 };
 
 const hasFieldPathError = (errors: unknown, fieldName: string): boolean => {
@@ -219,7 +219,7 @@ const ListItemRow = memo(function ListItemRow({
   onPendingRemoveChange,
 }: {
   id: string;
-  field: Field;
+  field: FieldWithReadonlyMeta;
   fieldName: string;
   index: number;
   isOpen?: boolean;
@@ -294,7 +294,7 @@ const ListField = ({
   renderFields,
   registerBeforeSubmitHook,
 }: {
-  field: Field;
+  field: FieldWithReadonlyMeta;
   fieldName: string;
   renderFields: RenderFields;
   registerBeforeSubmitHook?: RegisterBeforeSubmitHook;
@@ -739,7 +739,7 @@ const ObjectFieldSummaryLabel = ({
   fieldName,
   index,
 }: {
-  field: Field;
+  field: FieldWithReadonlyMeta;
   fieldName: string;
   index?: number;
 }) => {
@@ -832,7 +832,7 @@ const SingleField = ({
   toggleOpen = () => {},
   index = 0,
 }: {
-  field: Field;
+  field: FieldWithReadonlyMeta;
   fieldName: string;
   renderFields: RenderFields;
   registerBeforeSubmitHook?: RegisterBeforeSubmitHook;
@@ -1028,7 +1028,7 @@ const EntryForm = ({
 
   const renderFields: RenderFields = useCallback(
     (
-      fields: Field[],
+      fields: FieldWithReadonlyMeta[],
       parentName?: string,
       registerBeforeSubmitHook?: RegisterBeforeSubmitHook,
       inheritedReadonly = false,

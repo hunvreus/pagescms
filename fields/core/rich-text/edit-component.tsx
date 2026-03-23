@@ -39,6 +39,7 @@ import {
   normalizePath,
 } from "@/lib/utils/file";
 import type { ApiResponse, FileSaveData } from "@/types/api";
+import type { Field } from "@/types/field";
 import "./edit-component.css";
 
 type MediaSchema = {
@@ -62,7 +63,7 @@ type FieldOptions = {
 type EditProps = {
   name?: string;
   value?: string;
-  field?: {
+  field?: Field & {
     options?: FieldOptions;
   };
   labelSlotId?: string;
