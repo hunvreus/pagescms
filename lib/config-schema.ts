@@ -376,8 +376,7 @@ const generateFieldObjectSchema = (
   );
 };
 
-// Content entry schema
-const ContentObjectSchema = z
+const ContentLeafSchema = z
   .object({
     name: z
       .string({
@@ -586,6 +585,33 @@ const ContentObjectSchema = z
       .optional(),
   })
   .strict();
+
+const ContentGroupSchema: z.ZodType<any> = z.lazy(() =>
+  z
+    .object({
+      name: z
+        .string({
+          required_error: "'name' is required.",
+          invalid_type_error: "'name' must be a string.",
+        })
+        .regex(/^[a-zA-Z0-9-_]+$/, {
+          message: "'name' must be alphanumeric with dashes and underscores.",
+        }),
+      label: z.string().optional(),
+      description: z.string().optional().nullable(),
+      type: z.literal("group", {
+        invalid_type_error: "'type' must be 'group'.",
+      }),
+      items: z.array(ContentObjectSchema, {
+        message: "'items' must be an array of content entries.",
+      }),
+    })
+    .strict(),
+);
+
+const ContentObjectSchema: z.ZodType<any> = z.lazy(() =>
+  z.union([ContentLeafSchema, ContentGroupSchema]),
+);
 
 // Main schema with media and content
 const ConfigSchema = z
