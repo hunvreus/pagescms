@@ -304,6 +304,8 @@ const githubSaveFile = async (
       path,
       contentName: options?.contentName,
       user: options?.user,
+      userName: options?.committer?.name,
+      userEmail: options?.committer?.email,
     }),
   });
 
@@ -382,6 +384,8 @@ const githubSaveFile = async (
             path: newPath,
             contentName: options?.contentName,
             user: options?.user,
+            userName: options?.committer?.name,
+            userEmail: options?.committer?.email,
           }),
         });
         try {
@@ -498,6 +502,8 @@ export async function DELETE(
           path: normalizedPath,
           contentName: name || undefined,
           user: user.email || user.name || String(user.id || ""),
+          userName: committer?.name,
+          userEmail: committer?.email,
         }),
       }),
       committer,

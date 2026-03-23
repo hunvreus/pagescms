@@ -211,6 +211,8 @@ const githubRenameFile = async (
         newPath,
         contentName: options?.contentName,
         user: options?.user,
+        userName: options?.committer?.name,
+        userEmail: options?.committer?.email,
       }),
     }),
     tree: newTreeSha,

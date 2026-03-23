@@ -6,6 +6,7 @@ import { readFns } from "@/fields/registry";
 import {
   getDateFromFilename,
   getFieldByPath,
+  getPrimaryField,
   getSchemaByName,
   interpolate,
   safeAccess,
@@ -21,13 +22,19 @@ import { requireApiUserSession } from "@/lib/session-server";
 type ParsedReferenceItem = {
   name: string;
   path: string;
+  primary?: unknown;
   fields: Record<string, any>;
 };
 
 const extractTemplateFields = (template: string) =>
   Array.from(template.matchAll(/\{([^}]+)\}/g))
     .map((match) => match[1])
-    .filter((token) => token.startsWith("fields.") || token === "name" || token === "path");
+    .filter((token) =>
+      token === "primary" ||
+      token.startsWith("fields.") ||
+      token === "name" ||
+      token === "path"
+    );
 
 export async function GET(
   request: NextRequest,
@@ -62,11 +69,12 @@ export async function GET(
     const labelTemplate = searchParams.get("labelTemplate") || "{name}";
     const searchFields = searchParams.get("searchFields")?.split(",").filter(Boolean) || ["name"];
     const selectedValues = searchParams.getAll("value").filter(Boolean);
+    const primaryField = getPrimaryField(schema);
 
     const requiredFields = Array.from(new Set([
-      ...extractTemplateFields(valueTemplate),
-      ...extractTemplateFields(labelTemplate),
-      ...searchFields,
+      ...resolveReferenceFieldPaths(extractTemplateFields(valueTemplate), primaryField),
+      ...resolveReferenceFieldPaths(extractTemplateFields(labelTemplate), primaryField),
+      ...resolveReferenceFieldPaths(searchFields, primaryField),
     ]));
 
     const normalizedPath = normalizePath(schema.path || "");
@@ -99,7 +107,7 @@ export async function GET(
       }
     }
 
-    const parsedItems = parseReferenceItems(entries, schema, config, requiredFields);
+    const parsedItems = parseReferenceItems(entries, schema, config, requiredFields, primaryField);
     const options = parsedItems
       .map((item) => ({
         value: String(interpolate(valueTemplate, item, "fields")),
@@ -138,6 +146,10 @@ const filterReferenceOptions = (
     if (!item) return false;
 
     return searchFields.some((field) => {
+      if (field === "primary") {
+        return item.primary && String(item.primary).toLowerCase().includes(normalizedQuery);
+      }
+
       if (field === "name" || field === "path") {
         const value = item[field];
         return value && String(value).toLowerCase().includes(normalizedQuery);
@@ -155,6 +167,7 @@ const parseReferenceItems = (
   schema: Record<string, any>,
   config: Record<string, any>,
   selectedFields: string[],
+  primaryField?: string,
 ): ParsedReferenceItem[] => {
   const serializedTypes = ["yaml-frontmatter", "json-frontmatter", "toml-frontmatter", "yaml", "json", "toml"];
   const excludedFiles = schema.exclude || [];
@@ -192,11 +205,23 @@ const parseReferenceItems = (
       return {
         name: item.name,
         path: item.path,
+        primary: primaryField ? safeAccess(contentObject, primaryField) : undefined,
         fields: contentObject,
       };
     })
     .filter((item): item is ParsedReferenceItem => Boolean(item));
 };
+
+const resolveReferenceFieldPaths = (
+  tokens: string[],
+  primaryField?: string,
+) =>
+  tokens.flatMap((token) => {
+    if (token === "primary") {
+      return primaryField ? [primaryField] : [];
+    }
+    return [token];
+  });
 
 const pickAndTransformFields = (
   parsedObject: Record<string, any>,

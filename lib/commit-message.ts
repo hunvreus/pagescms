@@ -35,6 +35,8 @@ const buildCommitTokens = ({
   newPath,
   contentName,
   user,
+  userName,
+  userEmail,
 }: {
   action: CommitAction;
   owner: string;
@@ -45,6 +47,8 @@ const buildCommitTokens = ({
   newPath?: string;
   contentName?: string;
   user?: string;
+  userName?: string;
+  userEmail?: string;
 }): Record<string, string> => {
   const normalizedPath = path ? normalizePath(path) : "";
   const normalizedOldPath = oldPath ? normalizePath(oldPath) : "";
@@ -56,7 +60,9 @@ const buildCommitTokens = ({
     repo,
     branch,
     name: contentName || "",
-    user: user || "",
+    user: user || userName || userEmail || "",
+    userName: userName || "",
+    userEmail: userEmail || "",
     path: normalizedPath,
     filename: normalizedPath ? getFileName(normalizedPath) : "",
     oldPath: normalizedOldPath,

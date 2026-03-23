@@ -41,6 +41,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   Dialog,
@@ -246,6 +247,13 @@ export function RepoSidebar() {
   const pathname = usePathname();
   const { user } = useUser();
   const { config } = useConfig();
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  const handleNavigation = useCallback(() => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  }, [isMobile, setOpenMobile]);
 
   const contentItems = useMemo<NavItem[]>(() => {
     if (!config?.object) return [];
@@ -328,7 +336,7 @@ export function RepoSidebar() {
               return (
                 <SidebarMenuItem key={item.key}>
                   <SidebarMenuButton asChild isActive={isActive}>
-                    <Link href={item.href}>
+                    <Link href={item.href} onClick={handleNavigation}>
                       {item.icon}
                       <span>{item.label}</span>
                     </Link>
