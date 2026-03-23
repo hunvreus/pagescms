@@ -1022,24 +1022,36 @@ const EntryForm = ({
     [onChangeRegistered],
   );
 
-  const handleSubmit = async (values: Record<string, unknown>) => {
+  const runBeforeValidationHooks = useCallback(async () => {
     const hooks = Array.from(beforeSubmitHooksRef.current.values());
     for (const hook of hooks) {
       await hook();
     }
+  }, []);
+
+  const handleSubmit = useCallback(async (values: Record<string, unknown>) => {
     const latestValues = form.getValues() as Record<string, unknown>;
     await onSubmit(latestValues);
-  };
+  }, [form, onSubmit]);
 
   const handleError = () => {
     toast.error("Please fix the errors before saving.", { duration: 5000 });
   };
 
+  const handleFormSubmit = useCallback(
+    async (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      await runBeforeValidationHooks();
+      await form.handleSubmit(handleSubmit, handleError)(event);
+    },
+    [form, handleSubmit, runBeforeValidationHooks],
+  );
+
   return (
     <Form {...form}>
       <form
         id="entry-form"
-        onSubmit={form.handleSubmit(handleSubmit, handleError)}
+        onSubmit={handleFormSubmit}
         className="w-full max-w-screen-md mx-auto grid items-start gap-6"
       >
         {filePath && (

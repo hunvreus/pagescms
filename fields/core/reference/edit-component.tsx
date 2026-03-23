@@ -24,6 +24,20 @@ type Option = {
   resolved?: boolean;
 };
 
+const normalizeInputValues = (input: any, multiple: boolean): string[] => {
+  const normalizeOne = (item: any) =>
+    typeof item === "object" && item !== null
+      ? String(item.value ?? "")
+      : String(item ?? "");
+
+  if (multiple) {
+    return (Array.isArray(input) ? input : []).map(normalizeOne).filter(Boolean);
+  }
+
+  if (input == null || input === "") return [];
+  return [normalizeOne(input)].filter(Boolean);
+};
+
 const normalizeSelected = (input: any, options: Option[], multiple: boolean) => {
   const normalizeOne = (item: any): Option => {
     if (typeof item === "object" && item !== null) {
@@ -63,6 +77,7 @@ const EditComponent = (props: any) => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [options, setOptions] = useState<Option[]>([]);
+  const [selectedOptions, setSelectedOptions] = useState<Option[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -113,9 +128,75 @@ const EditComponent = (props: any) => {
     labelTemplate,
   ]);
 
+  const selectedValues = useMemo(
+    () => normalizeInputValues(value, multiple),
+    [value, multiple],
+  );
+
+  useEffect(() => {
+    if (!url || !collectionPath) return;
+    if (selectedValues.length === 0) {
+      setSelectedOptions([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadSelectedOptions = async () => {
+      const searchParams = new URLSearchParams({
+        valueTemplate,
+        labelTemplate,
+      });
+      selectedValues.forEach((selectedValue) => {
+        searchParams.append("value", selectedValue);
+      });
+
+      try {
+        const response = await fetch(`${url}?${searchParams.toString()}`);
+        if (!response.ok) throw new Error("Fetch failed");
+
+        const json = await response.json();
+        const contents = Array.isArray(json?.data?.options) ? json.data.options : [];
+        if (cancelled) return;
+
+        setSelectedOptions(contents.map((item: any) => ({
+          value: String(item.value ?? ""),
+          label: String(item.label ?? item.value ?? ""),
+          resolved: true,
+        })));
+      } catch (error) {
+        console.error("Error resolving selected references:", error);
+        if (!cancelled) setSelectedOptions([]);
+      }
+    };
+
+    loadSelectedOptions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    url,
+    collectionPath,
+    selectedValues,
+    valueTemplate,
+    labelTemplate,
+  ]);
+
+  const mergedOptions = useMemo(() => {
+    const byValue = new Map<string, Option>();
+    selectedOptions.forEach((option) => {
+      byValue.set(option.value, option);
+    });
+    options.forEach((option) => {
+      byValue.set(option.value, option);
+    });
+    return Array.from(byValue.values());
+  }, [options, selectedOptions]);
+
   const selectedValue = useMemo(
-    () => normalizeSelected(value, options, multiple),
-    [value, options, multiple],
+    () => normalizeSelected(value, mergedOptions, multiple),
+    [value, mergedOptions, multiple],
   );
 
   const singleSelected = !multiple && selectedValue && !Array.isArray(selectedValue)
@@ -135,7 +216,7 @@ const EditComponent = (props: any) => {
 
   return (
     <Combobox
-      items={options}
+      items={mergedOptions}
       multiple={multiple}
       value={selectedValue as any}
       onValueChange={handleValueChange as any}
