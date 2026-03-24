@@ -47,7 +47,11 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { requireApiSuccess } from "@/lib/api-client";
 import { toast } from "sonner";
 import { BookText, EllipsisVertical, Loader, Mail, Trash2 } from "lucide-react";
@@ -313,7 +317,7 @@ export function Collaborators({
                 </Link>
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Read documentation</TooltipContent>
+            <TooltipContent>View docs</TooltipContent>
           </Tooltip>
         </div>
         {showInviteAction ? (
