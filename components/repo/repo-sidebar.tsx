@@ -338,13 +338,16 @@ export function RepoSidebar() {
     return items;
   }, [config, user]);
 
-  const getNodeHref = (node: NavigationNode) => {
-    if (!config) return "#";
-    if (node.type === "media") {
-      return `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/media/${encodeURIComponent(node.name)}`;
-    }
-    return `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/${node.type}/${encodeURIComponent(node.name)}`;
-  };
+  const getNodeHref = useCallback(
+    (node: NavigationNode) => {
+      if (!config) return "#";
+      if (node.type === "media") {
+        return `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/media/${encodeURIComponent(node.name)}`;
+      }
+      return `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/${node.type}/${encodeURIComponent(node.name)}`;
+    },
+    [config],
+  );
 
   const getNodeIcon = (node: NavigationNode) => {
     if (node.type === "collection") return <FileStack className="size-4" />;
@@ -352,13 +355,70 @@ export function RepoSidebar() {
     return <FileText className="size-4" />;
   };
 
-  function hasActiveDescendant(node: NavigationNode): boolean {
-    if (node.type !== "group") {
-      const href = getNodeHref(node);
-      return pathname === href || pathname.startsWith(`${href}/`);
+  const hasActiveDescendant = useCallback(
+    function hasActiveDescendant(node: NavigationNode): boolean {
+      if (node.type !== "group") {
+        const href = getNodeHref(node);
+        return pathname === href || pathname.startsWith(`${href}/`);
+      }
+      return (node.items || []).some((item) => hasActiveDescendant(item));
+    },
+    [getNodeHref, pathname],
+  );
+
+  const activeGroupKeys = useMemo(
+    () => {
+      const collectActiveGroupKeys = (
+        nodes: NavigationNode[],
+        prefix: string,
+      ): string[] => {
+        const keys: string[] = [];
+
+        nodes.forEach((node) => {
+          const key = `${prefix}-${node.name}`;
+          if (node.type !== "group") {
+            return;
+          }
+
+          if (hasActiveDescendant(node)) {
+            keys.push(key);
+          }
+
+          if (node.items?.length) {
+            keys.push(...collectActiveGroupKeys(node.items, key));
+          }
+        });
+
+        return keys;
+      };
+
+      return [
+        ...collectActiveGroupKeys(contentNavigation, "Content"),
+        ...collectActiveGroupKeys(mediaNavigation, "Media"),
+      ];
+    },
+    [contentNavigation, hasActiveDescendant, mediaNavigation],
+  );
+
+  useEffect(() => {
+    if (activeGroupKeys.length === 0) {
+      return;
     }
-    return (node.items || []).some((item) => hasActiveDescendant(item));
-  }
+
+    setExpandedGroups((current) => {
+      let changed = false;
+      const next = { ...current };
+
+      activeGroupKeys.forEach((key) => {
+        if (!(key in next)) {
+          next[key] = true;
+          changed = true;
+        }
+      });
+
+      return changed ? next : current;
+    });
+  }, [activeGroupKeys]);
 
   const toggleGroup = useCallback((key: string) => {
     setExpandedGroups((current) => ({
@@ -416,7 +476,7 @@ export function RepoSidebar() {
       return (
         <SidebarMenuSubItem key={key}>
           <SidebarMenuSubButton asChild isActive={isActive}>
-            <Link href={href}>
+            <Link href={href} onClick={handleNavigation}>
               {getNodeIcon(node)}
               <span>{node.label || node.name}</span>
             </Link>
@@ -428,7 +488,7 @@ export function RepoSidebar() {
     return (
       <SidebarMenuItem key={key}>
         <SidebarMenuButton asChild isActive={isActive}>
-          <Link href={href}>
+          <Link href={href} onClick={handleNavigation}>
             {getNodeIcon(node)}
             <span>{node.label || node.name}</span>
           </Link>
