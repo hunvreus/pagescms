@@ -19,9 +19,7 @@
     "auth:generate": "npx @better-auth/cli generate --config ./lib/auth.ts --output ./auth-schema.ts --yes",
     "db:clear-cache": "npx tsx db/scripts/clear-cache.ts",
     "db:collaborators:export": "npx tsx db/scripts/collaborators/export.ts",
-    "db:collaborators:import": "npx tsx db/scripts/collaborators/import.ts",
-    "db:users:repair-emails": "npx tsx db/scripts/users/repair-emails.ts",
-    "db:legacy:backfill-user-emails": "npm run db:users:repair-emails --"
+    "db:collaborators:import": "npx tsx db/scripts/collaborators/import.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",

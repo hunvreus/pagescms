@@ -1,40 +1,10 @@
-import { Octokit } from "@octokit/rest";
-import { and, eq, isNotNull, ne, sql } from "drizzle-orm";
+import { and, eq, like, ne } from "drizzle-orm";
 import { db } from "../db";
 import { accountTable, collaboratorTable, sessionTable, userTable } from "../db/schema";
-
-type EmailCandidate = {
-  email: string;
-  verified: boolean | null;
-  primary: boolean | null;
-};
 
 const isLegacyEmail = (email: string | null | undefined) => {
   return typeof email === "string" && email.toLowerCase().endsWith("@local.invalid");
 };
-
-const selectBestEmail = (emails: EmailCandidate[]): EmailCandidate | null => {
-  return (
-    emails.find((item) => item.primary && item.verified)
-    ?? emails.find((item) => item.verified)
-    ?? emails.find((item) => item.primary)
-    ?? null
-  );
-};
-
-type RepairResult =
-  | { status: "noop"; reason: string }
-  | { status: "updated"; userId: string; email: string }
-  | { status: "merged"; fromUserId: string; toUserId: string; email: string }
-  | {
-    status: "skipped";
-    reason: string;
-    legacyUserId?: string;
-    canonicalUserId?: string;
-    email?: string;
-    legacyGithubAccountId?: string;
-    canonicalGithubAccountId?: string;
-  };
 
 const mergeUsers = async (
   fromUserId: string,
@@ -126,116 +96,64 @@ const mergeUsers = async (
   });
 };
 
-const repairLegacyEmailForUser = async (
-  userId: string,
-  options?: {
-    allowAmbiguousGithubMerge?: boolean;
-  },
-): Promise<RepairResult> => {
-  const user = await db.query.userTable.findFirst({
+const repairLegacyGithubStubOnLogin = async (userId: string) => {
+  const signedInUser = await db.query.userTable.findFirst({
     where: eq(userTable.id, userId),
   });
-  if (!user) return { status: "noop", reason: "user_not_found" };
-  if (!isLegacyEmail(user.email)) return { status: "noop", reason: "not_legacy_email" };
+  if (!signedInUser?.githubUsername) return;
+  if (isLegacyEmail(signedInUser.email)) return;
 
-  const githubAccount = await db.query.accountTable.findFirst({
+  const signedInGithubAccount = await db.query.accountTable.findFirst({
     where: and(
-      eq(accountTable.userId, user.id),
+      eq(accountTable.userId, userId),
       eq(accountTable.providerId, "github"),
-      isNotNull(accountTable.accessToken),
     ),
   });
-  if (!githubAccount?.accessToken) return { status: "skipped", reason: "no_github_token" };
+  if (!signedInGithubAccount) return;
 
-  const octokit = new Octokit({ auth: githubAccount.accessToken });
-  const response = await octokit.request("GET /user/emails", { per_page: 100 });
-  const chosen = selectBestEmail(response.data as EmailCandidate[]);
-  if (!chosen?.email) return { status: "skipped", reason: "no_email_from_github" };
-
-  const normalizedEmail = chosen.email.trim().toLowerCase();
-  if (!normalizedEmail || isLegacyEmail(normalizedEmail)) {
-    return { status: "skipped", reason: "invalid_resolved_email" };
-  }
-
-  const emailConflictUser = await db.query.userTable.findFirst({
+  const legacyStub = await db.query.userTable.findFirst({
     where: and(
-      ne(userTable.id, user.id),
-      sql`lower(${userTable.email}) = lower(${normalizedEmail})`,
+      ne(userTable.id, userId),
+      eq(userTable.githubUsername, signedInUser.githubUsername),
+      like(userTable.email, "%@local.invalid"),
+    ),
+    orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
+  });
+  if (!legacyStub) return;
+
+  const stubGithubAccount = await db.query.accountTable.findFirst({
+    where: and(
+      eq(accountTable.userId, legacyStub.id),
+      eq(accountTable.providerId, "github"),
     ),
   });
 
-  if (!emailConflictUser) {
-    await db
-      .update(userTable)
-      .set({
-        email: normalizedEmail,
-        emailVerified: Boolean(chosen.verified),
-        updatedAt: new Date(),
-      })
-      .where(eq(userTable.id, user.id));
-    return { status: "updated", userId: user.id, email: normalizedEmail };
-  }
-
-  if (!options?.allowAmbiguousGithubMerge) {
-    const conflictGithubAccount = await db.query.accountTable.findFirst({
-      where: and(
-        eq(accountTable.userId, emailConflictUser.id),
-        eq(accountTable.providerId, "github"),
-      ),
+  if (stubGithubAccount && stubGithubAccount.accountId !== signedInGithubAccount.accountId) {
+    console.warn("[auth] legacy github stub repair skipped due to ambiguous github account", {
+      signedInUserId: userId,
+      legacyStubUserId: legacyStub.id,
+      githubUsername: signedInUser.githubUsername,
+      signedInGithubAccountId: signedInGithubAccount.accountId,
+      legacyStubGithubAccountId: stubGithubAccount.accountId,
     });
-
-    const ambiguous =
-      conflictGithubAccount
-      && conflictGithubAccount.accountId !== githubAccount.accountId;
-
-    if (ambiguous) {
-      console.warn(
-        "[auth] legacy email repair skipped due to ambiguous github account merge",
-        {
-          legacyUserId: user.id,
-          canonicalUserId: emailConflictUser.id,
-          normalizedEmail,
-          legacyGithubAccountId: githubAccount.accountId,
-          canonicalGithubAccountId: conflictGithubAccount.accountId,
-        },
-      );
-      return {
-        status: "skipped",
-        reason: "ambiguous_github_account_merge",
-        legacyUserId: user.id,
-        canonicalUserId: emailConflictUser.id,
-        email: normalizedEmail,
-        legacyGithubAccountId: githubAccount.accountId,
-        canonicalGithubAccountId: conflictGithubAccount.accountId,
-      };
-    }
+    return;
   }
 
-  await mergeUsers(user.id, emailConflictUser.id, {
-    preferredEmail: normalizedEmail,
-    emailVerified: Boolean(chosen.verified),
+  await mergeUsers(legacyStub.id, userId, {
+    preferredEmail: signedInUser.email,
+    emailVerified: signedInUser.emailVerified,
   });
-
-  return {
-    status: "merged",
-    fromUserId: user.id,
-    toUserId: emailConflictUser.id,
-    email: normalizedEmail,
-  };
 };
 
 const repairLegacyEmailOnLogin = async (_sessionId: string, userId: string) => {
   try {
-    await repairLegacyEmailForUser(userId, { allowAmbiguousGithubMerge: false });
+    await repairLegacyGithubStubOnLogin(userId);
   } catch (error) {
-    console.warn(
-      "[auth] legacy email repair failed",
-      {
-        userId,
-        error: error instanceof Error ? error.message : String(error),
-      },
-    );
+    console.warn("[auth] legacy email repair failed", {
+      userId,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 };
 
-export { mergeUsers, repairLegacyEmailForUser, repairLegacyEmailOnLogin };
+export { mergeUsers, repairLegacyEmailOnLogin };
