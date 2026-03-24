@@ -5,7 +5,13 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { GithubAuthExpired } from "@/components/github-auth-expired";
 import { isGithubAuthError } from "@/lib/github-auth";
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 
 export default function Error({
   error,
@@ -28,11 +34,17 @@ export default function Error({
         <EmptyTitle>Something's wrong</EmptyTitle>
         <EmptyDescription>{error.message}</EmptyDescription>
       </EmptyHeader>
-      <EmptyContent>
-        <Link className={buttonVariants({ variant: "default", size: "sm" })} href="/">
+      <EmptyContent className="flex-row justify-center gap-2">
+        <Link
+          className={buttonVariants({ variant: "default", size: "sm" })}
+          href="/"
+        >
           Go home
         </Link>
-        <button className={buttonVariants({ variant: "outline", size: "sm" })} onClick={reset}>
+        <button
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+          onClick={reset}
+        >
           Try again
         </button>
       </EmptyContent>

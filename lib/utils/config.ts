@@ -54,6 +54,14 @@ const saveConfig = async (
     version: config.version,
     object: JSON.stringify(config.object),
     lastCheckedAt: new Date(),
+  }).onConflictDoUpdate({
+    target: [configTable.owner, configTable.repo, configTable.branch],
+    set: {
+      sha: config.sha,
+      version: config.version,
+      object: JSON.stringify(config.object),
+      lastCheckedAt: new Date(),
+    },
   });
 
   return config;
