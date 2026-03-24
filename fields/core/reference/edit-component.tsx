@@ -25,6 +25,13 @@ type Option = {
   resolved?: boolean;
 };
 
+const optionsEqual = (a: Option[], b: Option[]) =>
+  a.length === b.length && a.every((item, index) =>
+    item.value === b[index]?.value &&
+    item.label === b[index]?.label &&
+    item.resolved === b[index]?.resolved
+  );
+
 const normalizeInputValues = (input: any, multiple: boolean): string[] => {
   const normalizeOne = (item: any) =>
     typeof item === "object" && item !== null
@@ -104,11 +111,12 @@ const EditComponent = (props: any) => {
         const contents = Array.isArray(json?.data?.options) ? json.data.options : [];
         if (cancelled) return;
 
-        setOptions(contents.map((item: any) => ({
+        const nextOptions = contents.map((item: any) => ({
           value: String(item.value ?? ""),
           label: String(item.label ?? item.value ?? ""),
           resolved: true,
-        })));
+        }));
+        setOptions((previous) => optionsEqual(previous, nextOptions) ? previous : nextOptions);
       } catch (error) {
         console.error("Error loading references:", error);
         if (!cancelled) setOptions([]);
@@ -134,10 +142,18 @@ const EditComponent = (props: any) => {
     () => normalizeInputValues(value, multiple),
     [value, multiple],
   );
+  const selectedValuesKey = useMemo(
+    () => selectedValues.join("\u0000"),
+    [selectedValues],
+  );
 
   useEffect(() => {
     if (!url || !collectionPath) return;
-    if (selectedValues.length === 0) {
+    const selectedValuesForRequest = selectedValuesKey
+      ? selectedValuesKey.split("\u0000")
+      : [];
+
+    if (selectedValuesForRequest.length === 0) {
       setSelectedOptions([]);
       return;
     }
@@ -149,7 +165,7 @@ const EditComponent = (props: any) => {
         valueTemplate,
         labelTemplate,
       });
-      selectedValues.forEach((selectedValue) => {
+      selectedValuesForRequest.forEach((selectedValue) => {
         searchParams.append("value", selectedValue);
       });
 
@@ -161,11 +177,12 @@ const EditComponent = (props: any) => {
         const contents = Array.isArray(json?.data?.options) ? json.data.options : [];
         if (cancelled) return;
 
-        setSelectedOptions(contents.map((item: any) => ({
+        const nextSelectedOptions = contents.map((item: any) => ({
           value: String(item.value ?? ""),
           label: String(item.label ?? item.value ?? ""),
           resolved: true,
-        })));
+        }));
+        setSelectedOptions((previous) => optionsEqual(previous, nextSelectedOptions) ? previous : nextSelectedOptions);
       } catch (error) {
         console.error("Error resolving selected references:", error);
         if (!cancelled) setSelectedOptions([]);
@@ -180,17 +197,17 @@ const EditComponent = (props: any) => {
   }, [
     url,
     collectionPath,
-    selectedValues,
+    selectedValuesKey,
     valueTemplate,
     labelTemplate,
   ]);
 
   const mergedOptions = useMemo(() => {
     const byValue = new Map<string, Option>();
-    selectedOptions.forEach((option) => {
+    options.forEach((option) => {
       byValue.set(option.value, option);
     });
-    options.forEach((option) => {
+    selectedOptions.forEach((option) => {
       byValue.set(option.value, option);
     });
     return Array.from(byValue.values());

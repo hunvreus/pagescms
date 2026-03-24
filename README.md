@@ -17,6 +17,7 @@ Useful starting points:
 - [Install locally](https://pagescms.org/docs/guides/install-local/)
 - [Create the GitHub App](https://pagescms.org/docs/guides/creating-github-app/)
 - [Environment variables](https://pagescms.org/docs/guides/environment-variables/)
+- [Upgrading to 2.x](https://pagescms.org/docs/guides/upgrading-to-2/)
 
 ## Use online
 

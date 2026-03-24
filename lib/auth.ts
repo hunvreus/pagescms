@@ -6,6 +6,7 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { getBaseUrl } from "@/lib/base-url";
 import { sendEmail } from "@/lib/mailer";
+import { repairLegacyEmailOnLogin } from "@/lib/legacy-email-repair";
 
 export const auth = betterAuth({
   baseURL: getBaseUrl(),
@@ -50,6 +51,23 @@ export const auth = betterAuth({
       verification: schema.verificationTable,
     },
   }),
+  databaseHooks: {
+    session: {
+      create: {
+        after: async (session) => {
+          try {
+            await repairLegacyEmailOnLogin(session.id, session.userId);
+          } catch (error) {
+            console.warn("[auth] legacy email repair failed", {
+              sessionId: session.id,
+              userId: session.userId,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+        },
+      },
+    },
+  },
   plugins: [
     nextCookies(),
     magicLink({
