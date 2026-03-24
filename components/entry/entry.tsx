@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useConfig } from "@/contexts/config-context";
@@ -69,12 +70,14 @@ export function Entry({
   path: initialPath,
   parent,
   title,
+  headerMeta,
   onSave,
 }: {
   name?: string;
   path?: string;
   parent?: string;
   title?: string;
+  headerMeta?: ReactNode;
   onSave?: (data: Record<string, unknown>) => void;
 }) {
   const [path, setPath] = useState<string | undefined>(initialPath);
@@ -539,12 +542,13 @@ export function Entry({
 
   const headerNode = useMemo(() => (
     <div className="flex items-center justify-between gap-2">
-      <div className="min-w-0 truncate">
+      <div className="min-w-0 flex items-center gap-2">
         <Breadcrumb>
           <BreadcrumbList className="font-semibold text-lg flex-nowrap">
             {breadcrumbNode}
           </BreadcrumbList>
         </Breadcrumb>
+        {headerMeta}
       </div>
       {showHeaderActions && (
         <div className="flex items-center gap-x-2">
@@ -597,7 +601,7 @@ export function Entry({
         </div>
       )}
     </div>
-  ), [breadcrumbNode, handleDelete, handleRename, hasRegisteredChanges, historyData, isBusy, isFormDirty, isLoading, name, path, schemaType, sha, showHeaderActions]);
+  ), [breadcrumbNode, handleDelete, handleRename, hasRegisteredChanges, headerMeta, historyData, isBusy, isFormDirty, isLoading, name, path, schemaType, sha, showHeaderActions]);
 
   useRepoHeader({ header: headerNode });
 

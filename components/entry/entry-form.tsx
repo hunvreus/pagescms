@@ -136,10 +136,14 @@ const getCollapsibleItemLabel = (
     typeof field.list.collapsible === "object" &&
     field.list.collapsible.summary
   ) {
-    return interpolate(field.list.collapsible.summary, {
-      index: index !== undefined ? `${index + 1}` : "",
-      fields: fieldValues as Record<string, unknown>,
-    }, "fields");
+    return interpolate(
+      field.list.collapsible.summary,
+      {
+        index: index !== undefined ? `${index + 1}` : "",
+        fields: fieldValues as Record<string, unknown>,
+      },
+      "fields",
+    );
   }
 
   return `Item ${index !== undefined ? `#${index + 1}` : ""}`;
@@ -152,7 +156,8 @@ const hasCollapsibleSummary = (field: Field) =>
   !!field.list.collapsible.summary;
 
 const hasExplicitReadonly = (field: Field) =>
-  Boolean(field.readonly) && !(field as FieldWithReadonlyMeta).__inheritedReadonly;
+  Boolean(field.readonly) &&
+  !(field as FieldWithReadonlyMeta).__inheritedReadonly;
 
 const SortableItem = ({
   id,
@@ -381,13 +386,16 @@ const ListField = ({
     setOpenStates((prev) => [...prev, true]);
   };
 
-  const removeItem = useCallback((index: number) => {
-    if (isReadonly) return;
-    remove(index);
-    setOpenStates((prev) =>
-      prev.filter((_, currentIndex) => currentIndex !== index),
-    );
-  }, [isReadonly, remove]);
+  const removeItem = useCallback(
+    (index: number) => {
+      if (isReadonly) return;
+      remove(index);
+      setOpenStates((prev) =>
+        prev.filter((_, currentIndex) => currentIndex !== index),
+      );
+    },
+    [isReadonly, remove],
+  );
   const [pendingRemoveIndex, setPendingRemoveIndex] = useState<number | null>(
     null,
   );
@@ -412,20 +420,29 @@ const ListField = ({
     [arrayFields],
   );
 
-  const handleToggleOpen = useCallback((index: number) => {
-    toggleOpen(index);
-  }, [toggleOpen]);
+  const handleToggleOpen = useCallback(
+    (index: number) => {
+      toggleOpen(index);
+    },
+    [toggleOpen],
+  );
   const handleRequestRemove = useCallback((index: number) => {
     setPendingRemoveIndex(index);
   }, []);
-  const handlePendingRemoveChange = useCallback((index: number, open: boolean) => {
-    if (open) return;
-    setPendingRemoveIndex((prev) => (prev === index ? null : prev));
-  }, []);
-  const handleRemoveConfirm = useCallback((index: number) => {
-    removeItem(index);
-    setPendingRemoveIndex(null);
-  }, [removeItem]);
+  const handlePendingRemoveChange = useCallback(
+    (index: number, open: boolean) => {
+      if (open) return;
+      setPendingRemoveIndex((prev) => (prev === index ? null : prev));
+    },
+    [],
+  );
+  const handleRemoveConfirm = useCallback(
+    (index: number) => {
+      removeItem(index);
+      setPendingRemoveIndex(null);
+    },
+    [removeItem],
+  );
 
   const toggleAll = (collapsed: boolean) => {
     setOpenStates(Array(arrayFields.length).fill(!collapsed));
@@ -511,8 +528,8 @@ const ListField = ({
             </DndContext>
             <div className="flex items-center gap-2 flex-wrap">
               {isReadonly ? null : typeof field.list === "object" &&
-              field.list?.max &&
-              arrayFields.length >= field.list.max ? null : (
+                field.list?.max &&
+                arrayFields.length >= field.list.max ? null : (
                 <Button
                   type="button"
                   variant="outline"
@@ -676,7 +693,9 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>(
                         onClick={(event) => event.stopPropagation()}
                       >
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Remove this block?</AlertDialogTitle>
+                          <AlertDialogTitle>
+                            Remove this block?
+                          </AlertDialogTitle>
                           <AlertDialogDescription>
                             This action cannot be undone.
                           </AlertDialogDescription>
@@ -717,7 +736,15 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>(
                 })()
               ) : (
                 <SingleField
-                  field={isReadonly ? { ...selectedBlockDefinition, readonly: true, __inheritedReadonly: true } : selectedBlockDefinition}
+                  field={
+                    isReadonly
+                      ? {
+                          ...selectedBlockDefinition,
+                          readonly: true,
+                          __inheritedReadonly: true,
+                        }
+                      : selectedBlockDefinition
+                  }
                   fieldName={fieldName}
                   renderFields={renderFields}
                   registerBeforeSubmitHook={registerBeforeSubmitHook}
@@ -765,28 +792,30 @@ const ObjectField = forwardRef<HTMLDivElement, NestedFieldProps>(
       !(typeof field.list === "object" && field.list?.collapsible === false)
     );
 
-    const { formState: { errors } } = useFormContext();
+    const {
+      formState: { errors },
+    } = useFormContext();
 
     const hasErrors = () => {
       return hasFieldPathError(errors, fieldName);
     };
 
-    const itemLabel = hasCollapsibleSummary(field)
-      ? (
-        <ObjectFieldSummaryLabel
-          field={field}
-          fieldName={fieldName}
-          index={index}
-        />
-      )
-      : `Item ${index !== undefined ? `#${index + 1}` : ""}`;
+    const itemLabel = hasCollapsibleSummary(field) ? (
+      <ObjectFieldSummaryLabel
+        field={field}
+        fieldName={fieldName}
+        index={index}
+      />
+    ) : (
+      `Item ${index !== undefined ? `#${index + 1}` : ""}`
+    );
 
     return (
-      <div className="border rounded-lg">
+      <div>
         {isCollapsible && (
           <header
             className={cn(
-              "flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-9 text-sm font-medium hover:bg-muted transition-colors cursor-pointer",
+              "flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-9 text-sm font-medium hover:bg-muted transition-colors cursor-pointer border",
               isOpen ? "" : "rounded-b-lg",
             )}
             onClick={onToggleOpen}
@@ -797,13 +826,15 @@ const ObjectField = forwardRef<HTMLDivElement, NestedFieldProps>(
                 isOpen ? "rotate-90" : "",
               )}
             />
-            <span className={hasErrors() ? "text-destructive" : ""}>{itemLabel}</span>
+            <span className={hasErrors() ? "text-destructive" : ""}>
+              {itemLabel}
+            </span>
           </header>
         )}
         <div
           className={cn(
             "p-4 grid gap-6",
-            isCollapsible && "border-t",
+            isCollapsible && "border-x border-b rounded-b-lg",
             isOpen ? "" : "hidden",
           )}
         >
@@ -867,25 +898,25 @@ const SingleField = ({
 
     return (
       <FormItem key={fieldName}>
-            {shouldShowFieldMeta && (
-              <div className="flex items-center h-5 gap-x-2">
-                {field.label !== false && (
-                  <Label className={hasErrors() ? "text-destructive" : ""}>
-                    {field.label || field.name}
+        {shouldShowFieldMeta && (
+          <div className="flex items-center h-5 gap-x-2">
+            {field.label !== false && (
+              <Label className={hasErrors() ? "text-destructive" : ""}>
+                {field.label || field.name}
               </Label>
             )}
-                {field.required && (
-                  <Badge variant="secondary" className="text-muted-foreground">
-                    Required
-                  </Badge>
-                )}
-                {hasExplicitReadonly(field) && (
-                  <Badge variant="secondary" className="text-muted-foreground">
-                    Readonly
-                  </Badge>
-                )}
-              </div>
+            {field.required && (
+              <Badge variant="secondary" className="text-muted-foreground">
+                Required
+              </Badge>
             )}
+            {hasExplicitReadonly(field) && (
+              <Badge variant="secondary" className="text-muted-foreground">
+                Readonly
+              </Badge>
+            )}
+          </div>
+        )}
         <NestedComponent
           field={field}
           fieldName={fieldName}
@@ -1035,16 +1066,18 @@ const EntryForm = ({
     ): React.ReactNode[] => {
       return fields.map((field) => {
         if (!field || field.hidden) return null;
-        const effectiveField = inheritedReadonly && !field.readonly
-          ? { ...field, readonly: true, __inheritedReadonly: true }
-          : field;
+        const effectiveField =
+          inheritedReadonly && !field.readonly
+            ? { ...field, readonly: true, __inheritedReadonly: true }
+            : field;
         const currentFieldName = parentName
           ? `${parentName}.${effectiveField.name}`
           : effectiveField.name;
 
         if (
           effectiveField.list === true ||
-          (typeof effectiveField.list === "object" && effectiveField.list !== null)
+          (typeof effectiveField.list === "object" &&
+            effectiveField.list !== null)
         ) {
           return (
             <ListField
@@ -1078,10 +1111,13 @@ const EntryForm = ({
     }
   }, []);
 
-  const handleSubmit = useCallback(async (values: Record<string, unknown>) => {
-    const latestValues = form.getValues() as Record<string, unknown>;
-    await onSubmit(latestValues);
-  }, [form, onSubmit]);
+  const handleSubmit = useCallback(
+    async (values: Record<string, unknown>) => {
+      const latestValues = form.getValues() as Record<string, unknown>;
+      await onSubmit(latestValues);
+    },
+    [form, onSubmit],
+  );
 
   const handleError = () => {
     toast.error("Please fix the errors before saving.", { duration: 5000 });

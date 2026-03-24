@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useActionState } from "react";
 import {
@@ -46,9 +47,10 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { requireApiSuccess } from "@/lib/api-client";
 import { toast } from "sonner";
-import { EllipsisVertical, Loader, Mail, Trash2 } from "lucide-react";
+import { BookText, EllipsisVertical, Loader, Mail, Trash2 } from "lucide-react";
 
 type Collaborator = {
   id: number;
@@ -291,7 +293,29 @@ export function Collaborators({
 
     return (
       <div className="flex items-center justify-between gap-2">
-        <h1 className="font-semibold text-lg">Collaborators</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="font-semibold text-lg">Collaborators</h1>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                asChild
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <Link
+                  href="https://pagescms.org/docs/configuration/collaborators/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <BookText />
+                  <span className="sr-only">Collaborators docs</span>
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Read documentation</TooltipContent>
+          </Tooltip>
+        </div>
         {showInviteAction ? (
           <InviteCollaboratorsDialog
             owner={owner}

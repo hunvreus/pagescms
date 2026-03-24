@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCcw, Trash2 } from "lucide-react";
+import { BookText, RefreshCcw, Trash2 } from "lucide-react";
 import { useRepoHeader } from "@/components/repo/repo-header-context";
 import { Button } from "@/components/ui/button";
 import {
@@ -219,7 +220,29 @@ export function CachePage({
   const headerNode = useMemo(
     () => (
       <div className="flex items-center justify-between gap-2">
-        <h1 className="font-semibold text-lg">Cache</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="font-semibold text-lg">Cache</h1>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                asChild
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <Link
+                  href="https://pagescms.org/docs/development/caching/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <BookText />
+                  <span className="sr-only">Cache docs</span>
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Read documentation</TooltipContent>
+          </Tooltip>
+        </div>
         <ConfirmActionButton
           label="Clear all cache"
           title="Clear all cache?"

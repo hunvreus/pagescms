@@ -262,6 +262,12 @@ export function RepoSidebar() {
   const { isMobile, setOpenMobile } = useSidebar();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
+  useEffect(() => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  }, [isMobile, pathname, setOpenMobile]);
+
   const handleNavigation = useCallback(() => {
     if (isMobile) {
       setOpenMobile(false);
@@ -367,14 +373,13 @@ export function RepoSidebar() {
       const isOpen = expandedGroups[key] ?? isActive;
       if (nested) {
         return (
-          <SidebarMenuSubItem key={key}>
-            <SidebarMenuSubButton
-              asChild
-              isActive={isActive}
-            >
-              <button type="button" onClick={() => toggleGroup(key)}>
-                <ChevronRight className={cn("size-4 transition-transform", isOpen && "rotate-90")} />
-                <span>{node.label || node.name}</span>
+            <SidebarMenuSubItem key={key}>
+              <SidebarMenuSubButton
+                asChild
+              >
+                <button type="button" onClick={() => toggleGroup(key)}>
+                  <ChevronRight className={cn("size-4 transition-transform", isOpen && "rotate-90")} />
+                  <span>{node.label || node.name}</span>
               </button>
             </SidebarMenuSubButton>
             {isOpen && node.items && node.items.length > 0 && (
@@ -390,7 +395,6 @@ export function RepoSidebar() {
         <SidebarMenuItem key={key}>
           <SidebarMenuButton
             asChild
-            isActive={isActive}
           >
             <button type="button" onClick={() => toggleGroup(key)}>
               <ChevronRight className={cn("size-4 transition-transform", isOpen && "rotate-90")} />
