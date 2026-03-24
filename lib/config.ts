@@ -11,7 +11,14 @@ import { ConfigSchema } from "@/lib/config-schema";
 import { z } from "zod";
 import mergeWith from "lodash.mergewith";
 
-const configVersion = "2.3";
+const configVersion = "2.4";
+
+type NavigationNode = {
+  type: "group" | "file" | "collection" | "media";
+  name: string;
+  label?: string;
+  items?: NavigationNode[];
+};
 
 // Parse the config file (YAML to JSON)
 const parseConfig = (content: string) => {
@@ -117,86 +124,16 @@ const normalizeConfig = (configObject: any) => {
     });
   }
 
+  const navigation: Record<string, NavigationNode[]> = {};
+
   // Normalize content
   if (configObjectCopy.content && Array.isArray(configObjectCopy?.content) && configObjectCopy.content.length > 0) {
-    configObjectCopy.content = configObjectCopy.content.map((item: any) => {
-      if (item.path != null) {
-        item.path = item.path.replace(/^\/|\/$/g, "");
-      }
-      if (item.type === "collection" && item.filename && typeof item.filename === "object") {
-        if (typeof item.filename.template === "string") {
-          const filenameField = item.filename.field;
-          item.filename = item.filename.template;
-          if (
-            filenameField === true ||
-            filenameField === false ||
-            filenameField === "create"
-          ) {
-            item.filenameField = filenameField;
-          }
-        }
-      }
-      if (item.filename == null && item.type === "collection") {
-        item.filename = "{year}-{month}-{day}-{primary}.md";
-      }
-      if (item.extension == null) {
-        const filename = item.type === "file" ? item.path : item.filename;
-        item.extension = getFileExtension(filename);
-      }
-      if (item.format == null) {
-        item.format = "raw";
-        const codeExtensions = ["yaml", "yml", "javascript", "js", "jsx", "typescript", "ts", "tsx", "json", "html", "htm", "markdown", "md", "mdx"];
-        if (item.fields?.length > 0) {
-          switch (item.extension) {
-            case "json":
-              item.format = "json";
-              break;
-            case "toml":
-              item.format = "toml";
-              break;
-            case "yaml":
-            case "yml":
-              item.format = "yaml";
-              break;
-            default:
-              // TODO: should we default to this or only consider "markdown", "md", "mdx" and "html"
-              // This may catch things like csv or xml for example, which is acceptable IMO (e.g. sitemap.xml)
-              item.format = "yaml-frontmatter";
-              break;
-          }
-        } else if (codeExtensions.includes(item.extension)) {
-          item.format = "code";
-        } else if (item.extension === "csv") {
-          item.format = "datagrid";
-        }
-      }
-      if (item.view?.node && typeof item.view.node === "string") {
-        item.view.node = {
-          filename: item.view.node,
-          hideDirs: "nodes"
-        };
-      }
-
-      if (item.commit && typeof item.commit === "object") {
-        if (
-          item.commit.message
-          && typeof item.commit.message === "object"
-          && (item.commit.templates == null || typeof item.commit.templates !== "object")
-        ) {
-          item.commit.templates = item.commit.message;
-        }
-        delete item.commit.message;
-      }
-      
-      // Process content fields to resolve component references
-      if (Array.isArray(item.fields)) {
-        item.fields = item.fields.map((field: any) => {
-          return resolveComponent(field, configObjectCopy?.components);
-        });
-      }
-      
-      return item;
-    });
+    const normalizedContent = normalizeContentEntries(
+      configObjectCopy.content,
+      configObjectCopy?.components,
+    );
+    configObjectCopy.content = normalizedContent.items;
+    navigation.content = normalizedContent.navigation;
   }
 
   // Normalize settings
@@ -224,9 +161,136 @@ const normalizeConfig = (configObject: any) => {
       delete commit.message;
     }
   }
+
+  if (Array.isArray(configObjectCopy.media) && configObjectCopy.media.length > 0) {
+    navigation.media = configObjectCopy.media.map((item: any) => ({
+      type: "media",
+      name: item.name || "default",
+      label: item.label || item.name || "Media",
+    }));
+  }
+
+  if (Object.keys(navigation).length > 0) {
+    configObjectCopy.navigation = navigation;
+  } else {
+    delete configObjectCopy.navigation;
+  }
   
   return configObjectCopy;
 }
+
+const normalizeContentEntry = (
+  item: any,
+  componentsMap: Record<string, any>,
+) => {
+  if (item.path != null) {
+    item.path = item.path.replace(/^\/|\/$/g, "");
+  }
+  if (item.type === "collection" && item.filename && typeof item.filename === "object") {
+    if (typeof item.filename.template === "string") {
+      const filenameField = item.filename.field;
+      item.filename = item.filename.template;
+      if (
+        filenameField === true ||
+        filenameField === false ||
+        filenameField === "create"
+      ) {
+        item.filenameField = filenameField;
+      }
+    }
+  }
+  if (item.filename == null && item.type === "collection") {
+    item.filename = "{year}-{month}-{day}-{primary}.md";
+  }
+  if (item.extension == null) {
+    const filename = item.type === "file" ? item.path : item.filename;
+    item.extension = getFileExtension(filename);
+  }
+  if (item.format == null) {
+    item.format = "raw";
+    const codeExtensions = ["yaml", "yml", "javascript", "js", "jsx", "typescript", "ts", "tsx", "json", "html", "htm", "markdown", "md", "mdx"];
+    if (item.fields?.length > 0) {
+      switch (item.extension) {
+        case "json":
+          item.format = "json";
+          break;
+        case "toml":
+          item.format = "toml";
+          break;
+        case "yaml":
+        case "yml":
+          item.format = "yaml";
+          break;
+        default:
+          // TODO: should we default to this or only consider "markdown", "md", "mdx" and "html"
+          // This may catch things like csv or xml for example, which is acceptable IMO (e.g. sitemap.xml)
+          item.format = "yaml-frontmatter";
+          break;
+      }
+    } else if (codeExtensions.includes(item.extension)) {
+      item.format = "code";
+    } else if (item.extension === "csv") {
+      item.format = "datagrid";
+    }
+  }
+  if (item.view?.node && typeof item.view.node === "string") {
+    item.view.node = {
+      filename: item.view.node,
+      hideDirs: "nodes"
+    };
+  }
+
+  if (item.commit && typeof item.commit === "object") {
+    if (
+      item.commit.message
+      && typeof item.commit.message === "object"
+      && (item.commit.templates == null || typeof item.commit.templates !== "object")
+    ) {
+      item.commit.templates = item.commit.message;
+    }
+    delete item.commit.message;
+  }
+
+  if (Array.isArray(item.fields)) {
+    item.fields = item.fields.map((field: any) => {
+      return resolveComponent(field, componentsMap);
+    });
+  }
+
+  return item;
+};
+
+const normalizeContentEntries = (
+  entries: any[],
+  componentsMap: Record<string, any>,
+): { items: any[]; navigation: NavigationNode[] } => {
+  const items: any[] = [];
+  const navigation: NavigationNode[] = [];
+
+  entries.forEach((entry: any) => {
+    if (entry?.type === "group") {
+      const normalizedGroup = normalizeContentEntries(entry.items || [], componentsMap);
+      navigation.push({
+        type: "group",
+        name: entry.name,
+        label: entry.label || entry.name,
+        items: normalizedGroup.navigation,
+      });
+      items.push(...normalizedGroup.items);
+      return;
+    }
+
+    const normalizedEntry = normalizeContentEntry(entry, componentsMap);
+    items.push(normalizedEntry);
+    navigation.push({
+      type: normalizedEntry.type,
+      name: normalizedEntry.name,
+      label: normalizedEntry.label || normalizedEntry.name,
+    });
+  });
+
+  return { items, navigation };
+};
 
 // Helper function to resolve component references in fields
 function resolveComponent(field: any, componentsMap: Record<string, any>): any {
