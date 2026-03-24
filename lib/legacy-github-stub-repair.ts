@@ -96,7 +96,7 @@ const mergeUsers = async (
   });
 };
 
-const repairLegacyGithubStubOnLogin = async (userId: string) => {
+const repairLegacyGithubStubOnGithubSignIn = async (userId: string) => {
   const signedInUser = await db.query.userTable.findFirst({
     where: eq(userTable.id, userId),
   });
@@ -145,15 +145,15 @@ const repairLegacyGithubStubOnLogin = async (userId: string) => {
   });
 };
 
-const repairLegacyEmailOnLogin = async (_sessionId: string, userId: string) => {
+const repairLegacyGithubStubOnLogin = async (_sessionId: string, userId: string) => {
   try {
-    await repairLegacyGithubStubOnLogin(userId);
+    await repairLegacyGithubStubOnGithubSignIn(userId);
   } catch (error) {
-    console.warn("[auth] legacy email repair failed", {
+    console.warn("[auth] legacy github stub repair failed", {
       userId,
       error: error instanceof Error ? error.message : String(error),
     });
   }
 };
 
-export { mergeUsers, repairLegacyEmailOnLogin };
+export { mergeUsers, repairLegacyGithubStubOnLogin };
