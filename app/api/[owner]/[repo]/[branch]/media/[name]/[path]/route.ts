@@ -59,7 +59,16 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const nocache = searchParams.get('nocache');
 
-    let results = await getMediaCache(params.owner, params.repo, params.branch, normalizedPath, token, !!nocache);
+    let results;
+    try {
+      results = await getMediaCache(params.owner, params.repo, params.branch, normalizedPath, token, !!nocache);
+    } catch (error: any) {
+      if (error?.status === 404) {
+        results = [];
+      } else {
+        throw error;
+      }
+    }
 
     if (mediaConfig.extensions && mediaConfig.extensions.length > 0) {
       results = results.filter((item) => {

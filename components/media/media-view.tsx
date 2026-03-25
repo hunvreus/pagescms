@@ -13,7 +13,6 @@ import {
   joinPathSegments,
   normalizePath
 } from "@/lib/utils/file";
-import { EmptyCreate } from "@/components/empty-create";
 import { FolderCreate} from "@/components/folder-create";
 import { FileOptions } from "@/components/file/file-options";
 import { useOptionalRepoHeader } from "@/components/repo/repo-header-context";
@@ -578,6 +577,18 @@ const MediaView = ({
     { enabled: usePageHeader },
   );
 
+  const selectedPaths = useMemo(() => new Set(selected), [selected]);
+
+  const gridItems = useMemo(() => {
+    if (!filteredData) return [];
+
+    return filteredData.map((item) => ({
+      item,
+      isImage: item.type === "file" && imageExtensionsSet.has((item.extension || "").toLowerCase()),
+      displaySize: item.type === "file" && typeof item.size === "number" ? getFileSize(item.size) : "",
+    }));
+  }, [filteredData, imageExtensionsSet]);
+
   if (!mediaConfig.input) {
     return (
       <Empty className="absolute inset-0 border-0 rounded-none">
@@ -599,23 +610,25 @@ const MediaView = ({
 
   if (error) {
     // TODO: should we use a custom error class with code?
-    if (path === mediaConfig.input && error === "Not found") {
+    if (error === "Not found") {
+      const isRootFolder = path === mediaConfig.input;
       return (
         <Empty className="absolute inset-0 border-0 rounded-none">
           <EmptyHeader>
             <EmptyTitle>Media folder missing</EmptyTitle>
-            <EmptyDescription>{`The media folder "${mediaConfig.input}" has not been created yet.`}</EmptyDescription>
+            <EmptyDescription>
+              {isRootFolder
+                ? `The media folder "${mediaConfig.input}" has not been created yet.`
+                : `The folder "${path}" does not exist.`}
+            </EmptyDescription>
           </EmptyHeader>
-          <EmptyContent>
-            <EmptyCreate type="media" name={mediaConfig.name}>Create folder</EmptyCreate>
-          </EmptyContent>
         </Empty>
       );
     } else {
       return (
         <Empty className="absolute inset-0 border-0 rounded-none">
           <EmptyHeader>
-            <EmptyTitle>Something's wrong...</EmptyTitle>
+            <EmptyTitle>Something&apos;s wrong...</EmptyTitle>
             <EmptyDescription>{error}</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
@@ -625,18 +638,6 @@ const MediaView = ({
       );
     }
   }
-
-  const selectedPaths = useMemo(() => new Set(selected), [selected]);
-
-  const gridItems = useMemo(() => {
-    if (!filteredData) return [];
-
-    return filteredData.map((item) => ({
-      item,
-      isImage: item.type === "file" && imageExtensionsSet.has((item.extension || "").toLowerCase()),
-      displaySize: item.type === "file" && typeof item.size === "number" ? getFileSize(item.size) : "",
-    }));
-  }, [filteredData, imageExtensionsSet]);
 
   const mediaGrid = (
     <MediaUpload.DropZone className="flex-1 overflow-auto scrollbar">
@@ -666,10 +667,12 @@ const MediaView = ({
                   </li>
                 )}
               </ul>
-            : <p className="text-muted-foreground flex items-center justify-center text-sm p-6">
-                <Ban className="h-4 w-4 mr-2"/>
-                This folder is empty.
-              </p>
+            : <Empty className="border-0 shadow-none">
+                <EmptyHeader>
+                  <EmptyTitle>This folder is empty</EmptyTitle>
+                  <EmptyDescription>Drag and drop files here, or use the Upload button above to add files to this folder.</EmptyDescription>
+                </EmptyHeader>
+              </Empty>
         }
       </div>
     </MediaUpload.DropZone>
