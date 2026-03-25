@@ -20,6 +20,7 @@
 .DS_Store
 *.pem
 .docs
+.codex
 
 # debug
 npm-debug.log*

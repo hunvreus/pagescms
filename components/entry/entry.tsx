@@ -229,7 +229,10 @@ export function Entry({
       const primaryValue = primaryField
         ? safeAccess(swrEntryData.contentObject ?? {}, primaryField)
         : undefined;
-      const titleValue = primaryValue != null && primaryValue !== ""
+      const hasPrimaryValue = typeof primaryValue === "string"
+        ? primaryValue !== ""
+        : primaryValue != null;
+      const titleValue = hasPrimaryValue
         ? String(primaryValue)
         : getFileName(normalizePath(path));
       setDisplayTitle(`Editing "${titleValue}"`);
