@@ -565,7 +565,9 @@ const EditComponent = forwardRef(
         return new Promise<{ kind: "url"; src: string } | null>((resolve) => {
           context.editor.commands.blur();
           pendingImageSelectionRef.current = { context, resolve, settled: false };
-          mediaDialogRef.current?.open();
+          requestAnimationFrame(() => {
+            mediaDialogRef.current?.open();
+          });
         });
       },
       [mediaConfig, resolvePendingImageSelection],
