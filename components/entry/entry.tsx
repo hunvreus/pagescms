@@ -59,7 +59,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner";
-import { EllipsisVertical, History, Lock, LockOpen } from "lucide-react";
+import { EllipsisVertical, History, Lock, LockOpen, Save } from "lucide-react";
 import useSWR, { useSWRConfig } from "swr";
 
 type LintView = {
@@ -555,17 +555,17 @@ export function Entry({
   const showHeaderActions = error !== "Not found";
 
   const headerNode = useMemo(() => (
-    <div className="flex items-center justify-between gap-2">
-      <div className="min-w-0 flex items-center gap-2">
-        <Breadcrumb>
-          <BreadcrumbList className="font-semibold text-lg flex-nowrap">
+    <div className="flex min-w-0 items-center gap-2">
+      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+        <Breadcrumb className="min-w-0 flex-1 overflow-hidden">
+          <BreadcrumbList className="min-w-0 flex-nowrap font-semibold text-lg">
             {breadcrumbNode}
           </BreadcrumbList>
         </Breadcrumb>
         {headerMeta}
       </div>
       {showHeaderActions && (
-        <div className="flex items-center gap-x-2">
+        <div className="flex shrink-0 items-center gap-x-2">
           {path && (
             historyData && historyData.length > 0 && !isLoading
               ? <EntryHistoryDropdown history={historyData} path={path} />
@@ -574,6 +574,7 @@ export function Entry({
           <Button
             type="submit"
             form="entry-form"
+            className="size-9 px-0 sm:h-9 sm:w-auto sm:px-4 sm:py-2"
             disabled={
               isBusy ||
               (showFilenameField && filenameValue.trim().length === 0) ||
@@ -591,8 +592,10 @@ export function Entry({
                 )
               )
             }
+            aria-label="Save"
           >
-            Save
+            <Save className="size-4 sm:hidden" />
+            <span className="hidden sm:inline">Save</span>
           </Button>
           {path && (
             sha
