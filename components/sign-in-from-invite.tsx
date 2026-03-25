@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { signIn, signOut } from "@/lib/auth-client";
 import { Button, buttonVariants } from "@/components/ui/button";
 import Link from "next/link";
@@ -36,24 +36,8 @@ export function SignInFromInvite({
     return localPart || value;
   };
 
-  useEffect(() => {
-    if (verifyUrl && !isSignedIn) {
-      const timer = setTimeout(() => {
-        window.location.assign(verifyUrl);
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-
-    if (!verifyUrl && !githubUsername) {
-      const timer = setTimeout(() => {
-        void handleSignIn();
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [githubUsername, isSignedIn, verifyUrl]);
-
   const handleContinueWithInvite = async () => {
-    if (!verifyUrl) return;
+    if (!verifyUrl || isLoading) return;
     setIsLoading(true);
     try {
       window.location.assign(verifyUrl);
@@ -63,6 +47,7 @@ export function SignInFromInvite({
   };
 
   const handleSignIn = async () => {
+    if (isLoading) return;
     setIsLoading(true);
     try {
       if (!email) throw new Error("Invite email not found");

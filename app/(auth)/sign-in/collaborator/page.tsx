@@ -18,7 +18,13 @@ const getSafeRedirect = (redirectTo?: string) => {
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ token?: string; email?: string; owner?: string; repo?: string; redirect?: string }>;
+  searchParams: Promise<{
+    token?: string;
+    email?: string;
+    owner?: string;
+    repo?: string;
+    redirect?: string;
+  }>;
 }) {
   const resolvedSearchParams = await searchParams;
   const session = await auth.api.getSession({
@@ -29,7 +35,7 @@ export default async function Page({
 
   const inviteToken = resolvedSearchParams.token?.trim();
 
-  // New one-click flow: invite links carry a pre-created magic-link token.
+  // One-click flow: invite links carry a pre-created magic-link token.
   if (inviteToken) {
     const verification = await db.query.verificationTable.findFirst({
       where: sql`${verificationTable.identifier} = ${inviteToken}`,
@@ -65,7 +71,7 @@ export default async function Page({
       where: and(
         sql`lower(${collaboratorTable.email}) = ${inviteEmail}`,
         sql`lower(${collaboratorTable.owner}) = ${owner}`,
-        sql`lower(${collaboratorTable.repo}) = ${repo}`
+        sql`lower(${collaboratorTable.repo}) = ${repo}`,
       ),
     });
 
@@ -75,7 +81,7 @@ export default async function Page({
 
     const baseUrl = getBaseUrl();
     const redirectTo = getSafeRedirect(
-      resolvedSearchParams.redirect || `/${owner}/${repo}`
+      resolvedSearchParams.redirect || `/${owner}/${repo}`,
     );
     const verifyUrl = new URL("/api/auth/magic-link/verify", baseUrl);
     verifyUrl.searchParams.set("token", inviteToken);
@@ -87,7 +93,9 @@ export default async function Page({
 
     return (
       <SignInFromInvite
-        githubUsername={isGithubUser ? user?.githubUsername ?? undefined : undefined}
+        githubUsername={
+          isGithubUser ? (user?.githubUsername ?? undefined) : undefined
+        }
         signedInEmail={user?.email ?? undefined}
         redirectTo={redirectTo}
         email={inviteEmail}
@@ -113,7 +121,7 @@ export default async function Page({
     where: and(
       sql`lower(${collaboratorTable.email}) = ${inviteEmail}`,
       sql`lower(${collaboratorTable.owner}) = ${owner}`,
-      sql`lower(${collaboratorTable.repo}) = ${repo}`
+      sql`lower(${collaboratorTable.repo}) = ${repo}`,
     ),
   });
 
@@ -123,7 +131,9 @@ export default async function Page({
 
   return (
     <SignInFromInvite
-      githubUsername={isGithubUser ? user?.githubUsername ?? undefined : undefined}
+      githubUsername={
+        isGithubUser ? (user?.githubUsername ?? undefined) : undefined
+      }
       signedInEmail={user?.email ?? undefined}
       redirectTo={getSafeRedirect(resolvedSearchParams.redirect)}
       email={inviteEmail}
