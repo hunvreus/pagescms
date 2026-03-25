@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import Link from "next/link";
 import { and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
@@ -7,12 +8,37 @@ import { collaboratorTable, verificationTable } from "@/db/schema";
 import { SignInFromInvite } from "@/components/sign-in-from-invite";
 import { hasGithubIdentity } from "@/lib/authz";
 import { getBaseUrl } from "@/lib/base-url";
+import { buttonVariants } from "@/components/ui/button";
 
 const getSafeRedirect = (redirectTo?: string) => {
   if (!redirectTo) return "/";
   return redirectTo.startsWith("/") && !redirectTo.startsWith("//")
     ? redirectTo
     : "/";
+};
+
+const InviteUnavailable = ({
+  message = "This invite link is no longer valid. It may have already been used, expired, or been removed.",
+}: {
+  message?: string;
+}) => {
+  return (
+    <div className="min-h-screen p-4 md:p-6 flex justify-center items-center">
+      <div className="sm:max-w-[340px] w-full space-y-6">
+        <div className="space-y-2 text-center">
+          <h1 className="text-lg font-medium tracking-tight">
+            Invite unavailable
+          </h1>
+          <p className="text-sm text-muted-foreground">{message}</p>
+        </div>
+        <div className="flex flex-col gap-y-2">
+          <Link href="/sign-in" className={buttonVariants()}>
+            Sign in
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default async function Page({
@@ -42,7 +68,7 @@ export default async function Page({
     });
 
     if (!verification || verification.expiresAt < new Date()) {
-      throw new Error("Your invite link is invalid or has expired.");
+      return <InviteUnavailable message="This invite link has expired or is no longer valid." />;
     }
 
     let verificationData: {
@@ -55,7 +81,7 @@ export default async function Page({
     try {
       verificationData = JSON.parse(verification.value);
     } catch {
-      throw new Error("Invite data is invalid.");
+      return <InviteUnavailable />;
     }
 
     const inviteEmail = verificationData.email?.trim().toLowerCase();
@@ -64,7 +90,7 @@ export default async function Page({
     const source = verificationData.source;
 
     if (!inviteEmail || !owner || !repo || source !== "collaborator-invite") {
-      throw new Error("Invite data is invalid.");
+      return <InviteUnavailable />;
     }
 
     const invite = await db.query.collaboratorTable.findFirst({
@@ -76,7 +102,7 @@ export default async function Page({
     });
 
     if (!invite) {
-      throw new Error("Your invite is invalid or has been removed.");
+      return <InviteUnavailable message="This invitation is no longer available. Ask the repository owner to send you a new invite if you still need access." />;
     }
 
     const baseUrl = getBaseUrl();
@@ -110,7 +136,7 @@ export default async function Page({
   const repo = resolvedSearchParams.repo?.trim().toLowerCase();
 
   if (!inviteEmail || !owner || !repo) {
-    throw new Error("Invalid invite link.");
+    return <InviteUnavailable message="This invite link is invalid." />;
   }
 
   if (user && !isGithubUser) {
@@ -126,7 +152,7 @@ export default async function Page({
   });
 
   if (!invite) {
-    throw new Error("Your invite is invalid or has been removed.");
+    return <InviteUnavailable message="This invitation is no longer available. Ask the repository owner to send you a new invite if you still need access." />;
   }
 
   return (
