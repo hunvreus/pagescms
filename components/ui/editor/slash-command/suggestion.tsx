@@ -54,6 +54,8 @@ const requestImageAndInsert = async ({
   onInsertLocalImageFile,
   imageSlashFallback = "prompt-url",
 }: RequestImageAndInsertArgs): Promise<void> => {
+  editor.chain().focus().deleteRange(range).run();
+
   let result: ImagePickerResult | null = null;
   if (onRequestImage) {
     result = await onRequestImage({ editor, range });
@@ -66,7 +68,6 @@ const requestImageAndInsert = async ({
 
   if (result.kind === "file") {
     if (!onInsertLocalImageFile) return;
-    editor.chain().focus().deleteRange(range).run();
     const fileInsertContext: ImagePickerContext & Omit<ImagePickerFileResult, "kind"> = {
       editor,
       range,
@@ -87,7 +88,6 @@ const requestImageAndInsert = async ({
   editor
     .chain()
     .focus()
-    .deleteRange(range)
     .setImage(imageAttrs)
     .run();
 };
@@ -211,8 +211,10 @@ const createSuggestion = (options: SuggestionOptions = {}): SlashSuggestion => (
       },
 
       onExit: (): void => {
-        if (popup) popup.destroy();
+        if (popup && !popup.state.isDestroyed) popup.destroy();
+        popup = null;
         component?.destroy();
+        component = null;
       },
     };
   },

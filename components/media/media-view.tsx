@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, memo, startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useConfig } from "@/contexts/config-context";
@@ -421,18 +421,20 @@ const MediaView = ({
   }
 
   const handleSelect = useCallback((path: string) => {
-    setSelected((prevSelected) => {
-      const isSelected = prevSelected.includes(path);
-      if (isSelected) {
-        return prevSelected.filter((item) => item !== path);
-      }
+    startTransition(() => {
+      setSelected((prevSelected) => {
+        const isSelected = prevSelected.includes(path);
+        if (isSelected) {
+          return prevSelected.filter((item) => item !== path);
+        }
 
-      const nextSelected = [...prevSelected, path];
-      if (maxSelected == null) return nextSelected;
-      if (maxSelected <= 0) return [];
-      if (nextSelected.length <= maxSelected) return nextSelected;
+        const nextSelected = [...prevSelected, path];
+        if (maxSelected == null) return nextSelected;
+        if (maxSelected <= 0) return [];
+        if (nextSelected.length <= maxSelected) return nextSelected;
 
-      return nextSelected.slice(nextSelected.length - maxSelected);
+        return nextSelected.slice(nextSelected.length - maxSelected);
+      });
     });
   }, [maxSelected]);
 

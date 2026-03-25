@@ -347,13 +347,36 @@ function getFieldByPath(schema: Field[], path: string): Field | undefined {
     : undefined;
 }
 
+function findNestedFieldPath(
+  fields: Field[] | undefined,
+  matcher: (field: Field) => boolean,
+  prefix?: string,
+): string | undefined {
+  if (!fields?.length) return undefined;
+
+  for (const field of fields) {
+    const path = prefix ? `${prefix}.${field.name}` : field.name;
+
+    if (matcher(field)) {
+      return path;
+    }
+
+    if (field.type === "object" && field.fields) {
+      const nestedMatch = findNestedFieldPath(field.fields, matcher, path);
+      if (nestedMatch) return nestedMatch;
+    }
+  }
+
+  return undefined;
+}
+
 // Get the primary field for a schema
 const getPrimaryField = (schema: Record<string, any>) => {
   return schema?.view?.primary
-    || (
-      schema?.fields?.some((field: any) => field.name === "title")
-        ? "title"
-        : schema?.fields?.[0]?.name
+    || findNestedFieldPath(schema?.fields, (field) => field.name === "title")
+    || findNestedFieldPath(
+      schema?.fields,
+      (field) => !["object", "block"].includes(String(field.type)),
     )
 }
 

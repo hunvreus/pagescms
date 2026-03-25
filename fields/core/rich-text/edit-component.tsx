@@ -10,7 +10,7 @@ import {
 } from "react";
 import { useFormContext } from "react-hook-form";
 import { createPortal } from "react-dom";
-import { Editor } from "@/components/ui/editor";
+import { Editor, type ImagePickerContext } from "@/components/ui/editor";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -220,6 +220,7 @@ const EditComponent = forwardRef(
     const mediaDialogRef = useRef<MediaDialogHandle>(null);
     const imageSubmitInFlightRef = useRef(false);
     const pendingImageSelectionRef = useRef<{
+      context?: ImagePickerContext;
       resolve: (result: { kind: "url"; src: string } | null) => void;
       settled: boolean;
     } | null>(null);
@@ -552,7 +553,7 @@ const EditComponent = forwardRef(
     );
 
     const handleRequestImage = useCallback(
-      async (_context: unknown) => {
+      async (context: ImagePickerContext) => {
         if (!mediaConfig) return null;
         if (
           pendingImageSelectionRef.current &&
@@ -562,7 +563,8 @@ const EditComponent = forwardRef(
         }
 
         return new Promise<{ kind: "url"; src: string } | null>((resolve) => {
-          pendingImageSelectionRef.current = { resolve, settled: false };
+          context.editor.commands.blur();
+          pendingImageSelectionRef.current = { context, resolve, settled: false };
           mediaDialogRef.current?.open();
         });
       },
@@ -571,15 +573,28 @@ const EditComponent = forwardRef(
 
     const handleMediaSubmit = useCallback(
       async (images: string[]) => {
-        const selected = images[0];
-        if (!selected) {
+        if (!images.length) {
           resolvePendingImageSelection(null);
           return;
         }
         imageSubmitInFlightRef.current = true;
         try {
-          const src = await toDisplayImageUrl(selected);
-          resolvePendingImageSelection({ kind: "url", src });
+          const pending = pendingImageSelectionRef.current;
+          const sources = await Promise.all(images.map((image) => toDisplayImageUrl(image)));
+
+          if (images.length === 1 || !pending?.context) {
+            resolvePendingImageSelection({ kind: "url", src: sources[0] });
+            return;
+          }
+
+          const content = sources.map((src) => ({ type: "image", attrs: { src } }));
+
+          pending.context.editor
+            .chain()
+            .focus()
+            .insertContent(content)
+            .run();
+          resolvePendingImageSelection(null);
         } finally {
           imageSubmitInFlightRef.current = false;
         }
@@ -767,7 +782,6 @@ const EditComponent = forwardRef(
           <MediaDialog
             ref={mediaDialogRef}
             media={mediaConfig.name}
-            maxSelected={1}
             initialPath={rootPath}
             extensions={allowedExtensions}
             onSubmit={handleMediaSubmit}

@@ -400,10 +400,11 @@ export function Collection({
       if (!field) return null;
       
       return {
+        id: path,
         accessorKey: path,
         accessorFn: (originalRow: any) => safeAccess(originalRow.fields, path),
         header: field?.label ?? field.name,
-        meta: { className: field.name === primaryField ? "truncate w-full min-w-[12rem] max-w-[1px]" : "" },
+        meta: { className: path === primaryField ? "truncate w-full min-w-[12rem] max-w-[1px]" : "" },
         cell: ({ cell, row }: { cell: any, row: any }) => {
           const cellValue = cell.getValue();
           const FieldComponent = viewComponents?.[field.type];
@@ -412,7 +413,7 @@ export function Collection({
             : Array.isArray(cellValue)
               ? cellValue.join(', ')
               : cellValue;
-          if (field.name === primaryField) {
+          if (path === primaryField) {
             return (
               <Link
                 className="font-medium truncate"

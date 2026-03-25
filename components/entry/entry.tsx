@@ -7,7 +7,12 @@ import Link from "next/link";
 import { useConfig } from "@/contexts/config-context";
 import { parseAndValidateConfig } from "@/lib/config";
 import { requireApiSuccess } from "@/lib/api-client";
-import { generateFilename, getPrimaryField, getSchemaByName } from "@/lib/schema";
+import {
+  generateFilename,
+  getPrimaryField,
+  getSchemaByName,
+  safeAccess,
+} from "@/lib/schema";
 import {
   getFileExtension,
   getFileName,
@@ -221,7 +226,13 @@ export function Entry({
 
     if (initialPath && schema && schema.type === "collection") {
       const primaryField = getPrimaryField(schema);
-      setDisplayTitle(`Editing "${swrEntryData.contentObject?.[primaryField] || getFileName(normalizePath(path))}"`);
+      const primaryValue = primaryField
+        ? safeAccess(swrEntryData.contentObject ?? {}, primaryField)
+        : undefined;
+      const titleValue = primaryValue != null && primaryValue !== ""
+        ? String(primaryValue)
+        : getFileName(normalizePath(path));
+      setDisplayTitle(`Editing "${titleValue}"`);
     } else if (!title && path && path !== ".pages.yml") {
       setDisplayTitle(`Editing "${getFileName(normalizePath(path))}"`);
     }
