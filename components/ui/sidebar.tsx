@@ -68,26 +68,6 @@ function SidebarProvider({
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
 
-  React.useEffect(() => {
-    if (typeof document === "undefined" || !isMobile || openMobile) {
-      return
-    }
-
-    // Radix dialog teardown can occasionally leave body interactions disabled
-    // after the mobile sidebar closes during navigation.
-    document.body.style.removeProperty("pointer-events")
-  }, [isMobile, openMobile])
-
-  React.useEffect(() => {
-    return () => {
-      if (typeof document === "undefined" || !isMobile) {
-        return
-      }
-
-      document.body.style.removeProperty("pointer-events")
-    }
-  }, [isMobile])
-
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
   const [_open, _setOpen] = React.useState(defaultOpen)

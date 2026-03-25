@@ -268,6 +268,20 @@ export function RepoSidebar() {
     }
   }, [isMobile, pathname, setOpenMobile]);
 
+  useEffect(() => {
+    if (typeof document === "undefined" || !isMobile) {
+      return;
+    }
+
+    // Radix sheet teardown can occasionally leave body interactions disabled
+    // after mobile sidebar navigation.
+    document.body.style.removeProperty("pointer-events");
+
+    return () => {
+      document.body.style.removeProperty("pointer-events");
+    };
+  }, [isMobile, pathname]);
+
   const handleNavigation = useCallback(() => {
     if (isMobile) {
       setOpenMobile(false);
