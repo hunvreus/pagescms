@@ -210,12 +210,9 @@ export function RepoSelect({
             </ul>
           : <Empty className="h-[206px] flex-none bg-accent p-4 md:p-6">
               <EmptyHeader>
-                <EmptyTitle>No projects found</EmptyTitle>
+                <EmptyTitle>No projects</EmptyTitle>
                 <EmptyDescription>
-                  {displayedKeyword.length > 0
-                    ? `Your search for "${displayedKeyword}" did not return any results.`
-                    : "Your search did not return any results."
-                  }
+                  No projects matched your search.
                 </EmptyDescription>
               </EmptyHeader>
               {selectedAccountInstallationUrl && (

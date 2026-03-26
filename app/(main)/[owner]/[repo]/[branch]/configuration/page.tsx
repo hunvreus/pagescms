@@ -35,7 +35,7 @@ export default function Page() {
     return (
       <Empty className="absolute inset-0 border-0 rounded-none">
         <EmptyHeader>
-          <EmptyTitle>Access restricted</EmptyTitle>
+          <EmptyTitle>Access denied</EmptyTitle>
           <EmptyDescription>
             Only GitHub users can manage repository configuration.
           </EmptyDescription>

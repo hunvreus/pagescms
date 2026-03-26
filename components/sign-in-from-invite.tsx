@@ -1,8 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { signIn, signOut } from "@/lib/auth-client";
 import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import Link from "next/link";
 import { Loader } from "lucide-react";
 import { toast } from "sonner";
@@ -21,6 +28,7 @@ export function SignInFromInvite({
   verifyUrl?: string;
 }) {
   const [isLoading, setIsLoading] = useState(false);
+  const hasAutoContinuedRef = useRef(false);
 
   const normalizedInviteEmail = email?.trim().toLowerCase();
   const normalizedSignedInEmail = signedInEmail?.trim().toLowerCase();
@@ -30,6 +38,21 @@ export function SignInFromInvite({
     normalizedSignedInEmail &&
     normalizedInviteEmail !== normalizedSignedInEmail,
   );
+
+  useEffect(() => {
+    if (
+      !verifyUrl ||
+      !isSignedIn ||
+      isEmailMismatch ||
+      hasAutoContinuedRef.current
+    ) {
+      return;
+    }
+
+    hasAutoContinuedRef.current = true;
+    setIsLoading(true);
+    window.location.assign(verifyUrl);
+  }, [isEmailMismatch, isSignedIn, verifyUrl]);
 
   const getNameFromEmail = (value: string) => {
     const localPart = value.split("@")[0]?.trim();
@@ -71,24 +94,24 @@ export function SignInFromInvite({
     }
   };
 
+  const shellClassName = "absolute inset-0 border-0 rounded-none";
+
   return (
-    <div className="min-h-screen p-4 md:p-6 flex justify-center items-center">
-      <div className="sm:max-w-[340px] w-full space-y-6">
+    <Empty className={shellClassName}>
+      <EmptyHeader>
         {verifyUrl ? (
           isSignedIn ? (
             <>
-              <h1 className="text-lg font-medium tracking-tight text-center">
-                Continue with invite?
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                You are currently signed in as {signedInEmail}.
+              <EmptyTitle>{isEmailMismatch ? "Wrong account" : "Continue with invite"}</EmptyTitle>
+              <EmptyDescription>
+                You&apos;re signed in as {signedInEmail},
                 {isEmailMismatch ? (
-                  <> This invite is for {email}.</>
+                  <> but this invitation is for {email}.</>
                 ) : (
-                  <> This invite matches your current account ({email}).</>
+                  <> and this invitation matches your current account.</>
                 )}
-              </p>
-              <footer className="flex flex-col gap-y-2">
+              </EmptyDescription>
+              <EmptyContent>
                 {isEmailMismatch ? (
                   <Button
                     variant="default"
@@ -126,21 +149,19 @@ export function SignInFromInvite({
                     className={buttonVariants({ variant: "outline" })}
                   >
                     <span className="truncate">
-                      Go to &quot;{redirectTo}&quot;
+                      Open &quot;{redirectTo}&quot;
                     </span>
                   </Link>
                 )}
-              </footer>
+              </EmptyContent>
             </>
           ) : (
             <>
-              <h1 className="text-lg font-medium tracking-tight text-center">
-                Sign in as a collaborator?
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Please confirm that you want to continue with {email}.
-              </p>
-              <footer className="flex flex-col gap-y-2">
+              <EmptyTitle>Continue with invite</EmptyTitle>
+              <EmptyDescription>
+                Continue as {email} to open this invitation.
+              </EmptyDescription>
+              <EmptyContent>
                 <Button
                   variant="default"
                   onClick={handleContinueWithInvite}
@@ -151,22 +172,19 @@ export function SignInFromInvite({
                     <Loader className="ml-2 h-4 w-4 animate-spin" />
                   )}
                 </Button>
-              </footer>
+              </EmptyContent>
             </>
           )
         ) : githubUsername ? (
           <>
-            <h1 className="text-lg font-medium tracking-tight text-center">
-              Sign out from your GitHub account?
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              You are already signed in with your GitHub account (@
-              {githubUsername}).
+            <EmptyTitle>Switch account</EmptyTitle>
+            <EmptyDescription>
+              You&apos;re signed in with GitHub as @{githubUsername}.
               {redirectTo
-                ? ` Do you want to sign out from your GitHub account and sign in as a collaborator with ${email} or try to access "${redirectTo}" with your GitHub account?`
-                : ` Do you want to sign out from your GitHub account and sign in as a collaborator with ${email}?`}
-            </p>
-            <footer className="flex flex-col gap-y-2">
+                ? ` Sign out and continue as ${email}, or open "${redirectTo}" with your current GitHub account.`
+                : ` Sign out and continue as ${email}.`}
+            </EmptyDescription>
+            <EmptyContent>
               <Button
                 variant="default"
                 onClick={async () => {
@@ -180,7 +198,7 @@ export function SignInFromInvite({
                 }}
                 disabled={isLoading}
               >
-                Sign in as collaborator
+                Continue as collaborator
                 {isLoading && <Loader className="ml-2 h-4 w-4 animate-spin" />}
               </Button>
               {redirectTo && (
@@ -189,33 +207,31 @@ export function SignInFromInvite({
                   className={buttonVariants({ variant: "outline" })}
                 >
                   <span className="truncate">
-                    Go to &quot;{redirectTo}&quot;
+                    Open &quot;{redirectTo}&quot;
                   </span>
                 </Link>
               )}
-            </footer>
+            </EmptyContent>
           </>
         ) : (
           <>
-            <h1 className="text-lg font-medium tracking-tight text-center">
-              Sign in as a collaborator?
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Please confirm that you want to sign in with {email}.
-            </p>
-            <footer className="flex flex-col gap-y-2">
+            <EmptyTitle>Sign in to continue</EmptyTitle>
+            <EmptyDescription>
+              Send a sign-in link to {email} to continue with this invitation.
+            </EmptyDescription>
+            <EmptyContent>
               <Button
                 variant="default"
                 onClick={handleSignIn}
                 disabled={isLoading}
               >
-                Sign in
+                Send sign-in link
                 {isLoading && <Loader className="ml-2 h-4 w-4 animate-spin" />}
               </Button>
-            </footer>
+            </EmptyContent>
           </>
         )}
-      </div>
-    </div>
+      </EmptyHeader>
+    </Empty>
   );
 }

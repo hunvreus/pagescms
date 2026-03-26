@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { getConfig } from "@/lib/utils/config";
 import { ConfigProvider } from "@/contexts/config-context";
 import { RepoLayout } from "@/components/repo/repo-layout";
@@ -16,9 +17,15 @@ export default async function Layout({
   params: Promise<{ owner: string; repo: string; branch: string; }>;
 }) {
   const { owner, repo, branch } = await params;
+  const requestHeaders = await headers();
   const session = await getServerSession();
   const user = session?.user;
-  if (!user) return redirect("/sign-in");
+  const returnTo = requestHeaders.get("x-return-to");
+  const signInUrl =
+    returnTo && returnTo !== "/sign-in"
+      ? `/sign-in?redirect=${encodeURIComponent(returnTo)}`
+      : "/sign-in";
+  if (!user) return redirect(signInUrl);
 
   const decodedBranch = decodeURIComponent(branch);
 
@@ -56,12 +63,12 @@ export default async function Layout({
         errorMessage = (
           <Empty className="absolute inset-0 border-0 rounded-none">
             <EmptyHeader>
-              <EmptyTitle>Invalid branch</EmptyTitle>
-              <EmptyDescription>{`The branch "${decodedBranch}" doesn't exist. It may have been removed or renamed.`}</EmptyDescription>
+              <EmptyTitle>Branch not found</EmptyTitle>
+              <EmptyDescription>{`The branch "${decodedBranch}" could not be found. It may have been removed or renamed.`}</EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
               <Link className={buttonVariants({ variant: "default", size: "sm" })} href={`/${owner}/${repo}`}>
-                Switch to the default branch
+                Open default branch
               </Link>
             </EmptyContent>
           </Empty>
@@ -71,12 +78,12 @@ export default async function Layout({
       errorMessage = (
         <Empty className="absolute inset-0 border-0 rounded-none">
           <EmptyHeader>
-            <EmptyTitle>You can't access this repository.</EmptyTitle>
-            <EmptyDescription>You do not have sufficient permissions to access this repository.</EmptyDescription>
+            <EmptyTitle>Access denied</EmptyTitle>
+            <EmptyDescription>You do not have permission to access this repository.</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
             <Link className={buttonVariants({ variant: "default", size: "sm" })} href="/">
-              Select another repository
+              Choose another repository
             </Link>
           </EmptyContent>
         </Empty>

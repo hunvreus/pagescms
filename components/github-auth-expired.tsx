@@ -12,7 +12,14 @@ const GithubAuthExpired = () => {
       try {
         await signOut();
       } finally {
-        if (!cancelled) window.location.assign("/sign-in");
+        if (!cancelled) {
+          const returnTo = `${window.location.pathname}${window.location.search}`;
+          const signInUrl =
+            returnTo && returnTo !== "/sign-in"
+              ? `/sign-in?redirect=${encodeURIComponent(returnTo)}`
+              : "/sign-in";
+          window.location.assign(signInUrl);
+        }
       }
     };
 
@@ -27,7 +34,7 @@ const GithubAuthExpired = () => {
     <Empty className="absolute inset-0 border-0 rounded-none">
       <EmptyHeader>
         <EmptyTitle>GitHub session expired</EmptyTitle>
-        <EmptyDescription>Your GitHub access is no longer valid. Signing you out now.</EmptyDescription>
+        <EmptyDescription>Your GitHub session has expired. You&apos;ll need to sign in again.</EmptyDescription>
       </EmptyHeader>
     </Empty>
   );

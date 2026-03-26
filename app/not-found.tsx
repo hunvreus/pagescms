@@ -6,8 +6,8 @@ export default function NotFound() {
   return (
     <Empty className="absolute inset-0 border-0 rounded-none">
       <EmptyHeader>
-        <EmptyTitle>Not found.</EmptyTitle>
-        <EmptyDescription>Could not find requested resource.</EmptyDescription>
+        <EmptyTitle>Page not found</EmptyTitle>
+        <EmptyDescription>The page or resource you requested could not be found.</EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
         <Link className={buttonVariants({ variant: "default", size: "sm" })} href="/">

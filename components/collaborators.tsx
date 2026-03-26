@@ -380,9 +380,9 @@ export function Collaborators({
       <div className="absolute inset-0 p-4 md:p-6 flex items-center justify-center">
         <Empty className="max-w-[420px] flex-none">
           <EmptyHeader>
-            <EmptyTitle>Something's wrong</EmptyTitle>
+            <EmptyTitle>Something went wrong</EmptyTitle>
             <EmptyDescription>
-              We could not fetch the list of collaborators.
+              We couldn&apos;t load the list of collaborators.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -450,7 +450,7 @@ export function Collaborators({
                         resending.includes(collaborator.id)
                       }
                     >
-                      Resend invite
+                      Resend invitation
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
@@ -501,9 +501,9 @@ export function Collaborators({
         <div className="flex-1 flex items-center">
           <Empty>
             <EmptyHeader>
-              <EmptyTitle>No collaborators yet</EmptyTitle>
+              <EmptyTitle>No collaborators</EmptyTitle>
               <EmptyDescription>
-                Invite collaborators to grant repository access.
+                Invite collaborators to give them access to this repository.
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>

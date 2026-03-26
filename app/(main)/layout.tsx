@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { getAccounts } from "@/lib/utils/accounts";
 import { UserProvider } from "@/contexts/user-context";
 import { User } from "@/types/user";
@@ -11,8 +12,14 @@ export default async function Layout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const requestHeaders = await headers();
   const session = await getServerSession();
-  if (!session?.user) return redirect("/sign-in");
+  const returnTo = requestHeaders.get("x-return-to");
+  const signInUrl =
+    returnTo && returnTo !== "/sign-in"
+      ? `/sign-in?redirect=${encodeURIComponent(returnTo)}`
+      : "/sign-in";
+  if (!session?.user) return redirect(signInUrl);
 
   let accounts;
   try {

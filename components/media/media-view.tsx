@@ -593,15 +593,15 @@ const MediaView = ({
     return (
       <Empty className="absolute inset-0 border-0 rounded-none">
         <EmptyHeader>
-          <EmptyTitle>No media defined</EmptyTitle>
-          <EmptyDescription>You have no media defined in your settings.</EmptyDescription>
+          <EmptyTitle>Media not configured</EmptyTitle>
+          <EmptyDescription>No media folder is configured for this repository.</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
           <Link
             className={buttonVariants({ variant: "default", size: "sm" })}
             href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/configuration`}
           >
-            Go to configuration
+            Open configuration
           </Link>
         </EmptyContent>
       </Empty>
@@ -615,11 +615,11 @@ const MediaView = ({
       return (
         <Empty className="absolute inset-0 border-0 rounded-none">
           <EmptyHeader>
-            <EmptyTitle>Media folder missing</EmptyTitle>
+            <EmptyTitle>Media folder not found</EmptyTitle>
             <EmptyDescription>
               {isRootFolder
-                ? `The media folder "${mediaConfig.input}" has not been created yet.`
-                : `The folder "${path}" does not exist.`}
+                ? `The media folder "${mediaConfig.input}" does not exist yet.`
+                : `The folder "${path}" could not be found.`}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -628,11 +628,11 @@ const MediaView = ({
       return (
         <Empty className="absolute inset-0 border-0 rounded-none">
           <EmptyHeader>
-            <EmptyTitle>Something&apos;s wrong...</EmptyTitle>
+            <EmptyTitle>Something went wrong</EmptyTitle>
             <EmptyDescription>{error}</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
-            <Button size="sm" onClick={() => handleNavigate(mediaConfig.input)}>Go to media root</Button>
+            <Button size="sm" onClick={() => handleNavigate(mediaConfig.input)}>Open media root</Button>
           </EmptyContent>
         </Empty>
       );
@@ -669,8 +669,8 @@ const MediaView = ({
               </ul>
             : <Empty className="border-0 shadow-none">
                 <EmptyHeader>
-                  <EmptyTitle>This folder is empty</EmptyTitle>
-                  <EmptyDescription>Drag and drop files here, or use the Upload button above to add files to this folder.</EmptyDescription>
+                  <EmptyTitle>Empty folder</EmptyTitle>
+                  <EmptyDescription>Drag and drop files here, or use Upload to add files to this folder.</EmptyDescription>
                 </EmptyHeader>
               </Empty>
         }

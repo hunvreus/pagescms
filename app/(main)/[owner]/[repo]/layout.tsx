@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { getToken } from "@/lib/token";
 import { RepoProvider } from "@/contexts/repo-context";
 import { getServerSession } from "@/lib/session-server";
@@ -17,9 +18,15 @@ export default async function Layout({
   params: Promise<{ owner: string; repo: string; }>;
 }) {
   const { owner, repo } = await params;
+  const requestHeaders = await headers();
   const session = await getServerSession();
   const user = session?.user;
-  if (!user) return redirect("/sign-in");
+  const returnTo = requestHeaders.get("x-return-to");
+  const signInUrl =
+    returnTo && returnTo !== "/sign-in"
+      ? `/sign-in?redirect=${encodeURIComponent(returnTo)}`
+      : "/sign-in";
+  if (!user) return redirect(signInUrl);
 
   try {
     const { token } = await getToken(user, owner, repo);
@@ -32,12 +39,12 @@ export default async function Layout({
       return(
         <Empty className="absolute inset-0 border-0 rounded-none">
           <EmptyHeader>
-            <EmptyTitle>This repository is empty.</EmptyTitle>
-            <EmptyDescription>You need to create a branch and add a ".pages.yml" file to configure it.</EmptyDescription>
+            <EmptyTitle>Empty repository</EmptyTitle>
+            <EmptyDescription>Create a branch and add a &quot;.pages.yml&quot; file to configure this repository.</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
             <Link className={buttonVariants({ variant: "default", size: "sm" })} href="/">
-              Select another repository
+              Choose another repository
             </Link>
           </EmptyContent>
         </Empty>
@@ -60,12 +67,12 @@ export default async function Layout({
         return(
           <Empty className="absolute inset-0 border-0 rounded-none">
             <EmptyHeader>
-              <EmptyTitle>This repository doesn't exist.</EmptyTitle>
-              <EmptyDescription>It may have been removed, renamed or the path may be wrong.</EmptyDescription>
+              <EmptyTitle>Repository not found</EmptyTitle>
+              <EmptyDescription>It may have been removed, renamed, or the URL may be incorrect.</EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
               <Link className={buttonVariants({ variant: "default", size: "sm" })} href="/">
-                Select another repository
+                Choose another repository
               </Link>
             </EmptyContent>
           </Empty>
@@ -74,12 +81,12 @@ export default async function Layout({
         return(
           <Empty className="absolute inset-0 border-0 rounded-none">
             <EmptyHeader>
-              <EmptyTitle>You can't access this repository.</EmptyTitle>
-              <EmptyDescription>You do not have the sufficient permissions to access this repository.</EmptyDescription>
+              <EmptyTitle>Access denied</EmptyTitle>
+              <EmptyDescription>You do not have permission to access this repository.</EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
               <Link className={buttonVariants({ variant: "default", size: "sm" })} href="/">
-                Select another repository
+                Choose another repository
               </Link>
             </EmptyContent>
           </Empty>

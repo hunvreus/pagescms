@@ -663,11 +663,11 @@ export function Entry({
         <div className="absolute inset-0 p-4 md:p-6 flex items-center justify-center">
           <Empty className="max-w-[420px] flex-none">
             <EmptyHeader>
-              <EmptyTitle>{isSettingsPage ? "Configuration missing" : "File missing"}</EmptyTitle>
+              <EmptyTitle>{isSettingsPage ? "Configuration not found" : "File not found"}</EmptyTitle>
               <EmptyDescription>
                 {isSettingsPage
-                  ? "The settings file \".pages.yml\" has not been created yet."
-                  : `The file "${path ?? schema?.path ?? "unknown"}" has not been created yet.`}
+                  ? "The configuration file \".pages.yml\" does not exist yet."
+                  : `The file "${path ?? schema?.path ?? "unknown"}" does not exist yet.`}
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
@@ -685,7 +685,7 @@ export function Entry({
         <div className="absolute inset-0 p-4 md:p-6 flex items-center justify-center">
           <Empty className="max-w-[420px] flex-none">
             <EmptyHeader>
-              <EmptyTitle>Something&apos;s wrong</EmptyTitle>
+              <EmptyTitle>Something went wrong</EmptyTitle>
               <EmptyDescription>{error}</EmptyDescription>
             </EmptyHeader>
             <EmptyContent>

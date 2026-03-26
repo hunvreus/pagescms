@@ -18,8 +18,8 @@ export default function Page() {
     return (
       <Empty className="absolute inset-0 border-0 rounded-none">
         <EmptyHeader>
-          <EmptyTitle>Access restricted</EmptyTitle>
-          <EmptyDescription>Only GitHub users can manage cache.</EmptyDescription>
+          <EmptyTitle>Access denied</EmptyTitle>
+          <EmptyDescription>Only GitHub users can manage the cache.</EmptyDescription>
         </EmptyHeader>
       </Empty>
     );
@@ -29,8 +29,8 @@ export default function Page() {
     return (
       <Empty className="absolute inset-0 border-0 rounded-none">
         <EmptyHeader>
-          <EmptyTitle>Cache is disabled</EmptyTitle>
-          <EmptyDescription>Enable it in your .pages.yml with settings.cache: true.</EmptyDescription>
+          <EmptyTitle>Cache disabled</EmptyTitle>
+          <EmptyDescription>Enable the cache in &quot;.pages.yml&quot; by setting &quot;settings.cache: true&quot;.</EmptyDescription>
         </EmptyHeader>
       </Empty>
     );

@@ -33,8 +33,8 @@ export default function Page() {
       hasGithubIdentity(user)
         ? <Empty className="absolute inset-0 border-0 rounded-none">
             <EmptyHeader>
-              <EmptyTitle>Nothing to see here.</EmptyTitle>
-              <EmptyDescription>This branch and/or repository has no configuration and configuration access is disabled. Edit on GitHub if you think this is a mistake.</EmptyDescription>
+              <EmptyTitle>Configuration unavailable</EmptyTitle>
+              <EmptyDescription>This repository is not configured, and configuration access is disabled here. Edit &quot;.pages.yml&quot; on GitHub if you think this is a mistake.</EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
               <Link
@@ -47,8 +47,8 @@ export default function Page() {
           </Empty>
         : <Empty className="absolute inset-0 border-0 rounded-none">
             <EmptyHeader>
-              <EmptyTitle>Repository not configured yet</EmptyTitle>
-              <EmptyDescription>This repository does not have a .pages.yml file yet. Ask a GitHub admin to initialize repository configuration first.</EmptyDescription>
+              <EmptyTitle>Repository not configured</EmptyTitle>
+              <EmptyDescription>This repository does not have a &quot;.pages.yml&quot; file yet. Ask a GitHub admin to initialize the configuration first.</EmptyDescription>
             </EmptyHeader>
           </Empty>
     )

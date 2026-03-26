@@ -150,7 +150,7 @@ export function SignIn() {
             disabled={isSubmitting}
           />
           <Button type="submit" className="w-full" disabled={isSubmitting}>
-            Sign in with email
+            Send sign-in link
             {submittingMethod === "email" && (
               <Loader className="size-4 animate-spin" />
             )}

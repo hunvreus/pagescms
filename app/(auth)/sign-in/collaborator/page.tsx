@@ -9,6 +9,13 @@ import { SignInFromInvite } from "@/components/sign-in-from-invite";
 import { hasGithubIdentity } from "@/lib/authz";
 import { getBaseUrl } from "@/lib/base-url";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 
 const getSafeRedirect = (redirectTo?: string) => {
   if (!redirectTo) return "/";
@@ -17,27 +24,48 @@ const getSafeRedirect = (redirectTo?: string) => {
     : "/";
 };
 
+const isInviteEmailMatch = (signedInEmail?: string, inviteEmail?: string) => {
+  if (!signedInEmail || !inviteEmail) return false;
+  return signedInEmail.trim().toLowerCase() === inviteEmail.trim().toLowerCase();
+};
+
+const getWrongAccountInviteMessage = (
+  currentEmail?: string,
+  inviteEmail?: string,
+) => {
+  if (currentEmail && inviteEmail) {
+    return `This invitation is not valid for your current account (${currentEmail}). Sign in as ${inviteEmail} or ask for a new invitation.`;
+  }
+
+  return "This invitation is not valid for your current account. Sign in with the invited email or ask for a new invitation.";
+};
+
 const InviteUnavailable = ({
-  message = "This invite link is no longer valid. It may have already been used, expired, or been removed.",
+  title = "Invite unavailable",
+  message = "This invitation is no longer available. It may have expired, already been used, or been removed.",
+  redirectTo = "/",
 }: {
+  title?: string;
   message?: string;
+  redirectTo?: string;
 }) => {
+  const signInHref =
+    redirectTo && redirectTo !== "/"
+      ? `/sign-in?redirect=${encodeURIComponent(redirectTo)}`
+      : "/sign-in";
+
   return (
-    <div className="min-h-screen p-4 md:p-6 flex justify-center items-center">
-      <div className="sm:max-w-[340px] w-full space-y-6">
-        <div className="space-y-2 text-center">
-          <h1 className="text-lg font-medium tracking-tight">
-            Invite unavailable
-          </h1>
-          <p className="text-sm text-muted-foreground">{message}</p>
-        </div>
-        <div className="flex flex-col gap-y-2">
-          <Link href="/sign-in" className={buttonVariants()}>
+    <Empty className="absolute inset-0 border-0 rounded-none">
+      <EmptyHeader>
+        <EmptyTitle>{title}</EmptyTitle>
+        <EmptyDescription>{message}</EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+          <Link href={signInHref} className={buttonVariants()}>
             Sign in
           </Link>
-        </div>
-      </div>
-    </div>
+      </EmptyContent>
+    </Empty>
   );
 };
 
@@ -58,6 +86,18 @@ export default async function Page({
   });
   const user = session?.user;
   const isGithubUser = hasGithubIdentity(user);
+  const fallbackInviteEmail = resolvedSearchParams.email?.trim().toLowerCase();
+  const fallbackOwner = resolvedSearchParams.owner?.trim().toLowerCase();
+  const fallbackRepo = resolvedSearchParams.repo?.trim().toLowerCase();
+  const fallbackRedirect = getSafeRedirect(
+    resolvedSearchParams.redirect || (
+      fallbackOwner && fallbackRepo ? `/${fallbackOwner}/${fallbackRepo}` : "/"
+    ),
+  );
+  const wrongAccountMessage = getWrongAccountInviteMessage(
+    user?.email ?? undefined,
+    fallbackInviteEmail,
+  );
 
   const inviteToken = resolvedSearchParams.token?.trim();
 
@@ -68,7 +108,10 @@ export default async function Page({
     });
 
     if (!verification || verification.expiresAt < new Date()) {
-      return <InviteUnavailable message="This invite link has expired or is no longer valid." />;
+      if (isInviteEmailMatch(user?.email ?? undefined, fallbackInviteEmail)) {
+        redirect(fallbackRedirect);
+      }
+      return <InviteUnavailable title={user?.email ? "Wrong account" : undefined} message={user?.email ? wrongAccountMessage : "This invitation has expired or is no longer valid."} redirectTo={fallbackRedirect} />;
     }
 
     let verificationData: {
@@ -81,16 +124,25 @@ export default async function Page({
     try {
       verificationData = JSON.parse(verification.value);
     } catch {
-      return <InviteUnavailable />;
+      if (isInviteEmailMatch(user?.email ?? undefined, fallbackInviteEmail)) {
+        redirect(fallbackRedirect);
+      }
+      return <InviteUnavailable title={user?.email ? "Wrong account" : undefined} message={user?.email ? wrongAccountMessage : undefined} redirectTo={fallbackRedirect} />;
     }
 
     const inviteEmail = verificationData.email?.trim().toLowerCase();
     const owner = verificationData.owner?.trim().toLowerCase();
     const repo = verificationData.repo?.trim().toLowerCase();
     const source = verificationData.source;
+    const redirectTo = getSafeRedirect(
+      resolvedSearchParams.redirect || `/${owner}/${repo}`,
+    );
 
     if (!inviteEmail || !owner || !repo || source !== "collaborator-invite") {
-      return <InviteUnavailable />;
+      if (isInviteEmailMatch(user?.email ?? undefined, fallbackInviteEmail)) {
+        redirect(fallbackRedirect);
+      }
+      return <InviteUnavailable title={user?.email ? "Wrong account" : undefined} message={user?.email ? wrongAccountMessage : undefined} redirectTo={fallbackRedirect} />;
     }
 
     const invite = await db.query.collaboratorTable.findFirst({
@@ -102,13 +154,13 @@ export default async function Page({
     });
 
     if (!invite) {
-      return <InviteUnavailable message="This invitation is no longer available. Ask the repository owner to send you a new invite if you still need access." />;
+      if (isInviteEmailMatch(user?.email ?? undefined, fallbackInviteEmail || inviteEmail)) {
+        redirect(redirectTo);
+      }
+      return <InviteUnavailable title={user?.email ? "Wrong account" : undefined} message={user?.email ? getWrongAccountInviteMessage(user.email, fallbackInviteEmail || inviteEmail) : "This invitation is no longer available. Ask the repository owner to send you a new invite if you still need access."} redirectTo={redirectTo} />;
     }
 
     const baseUrl = getBaseUrl();
-    const redirectTo = getSafeRedirect(
-      resolvedSearchParams.redirect || `/${owner}/${repo}`,
-    );
     const verifyUrl = new URL("/api/auth/magic-link/verify", baseUrl);
     verifyUrl.searchParams.set("token", inviteToken);
     verifyUrl.searchParams.set("callbackURL", redirectTo);
@@ -131,12 +183,12 @@ export default async function Page({
   }
 
   // Backward compatibility for old invite links
-  const inviteEmail = resolvedSearchParams.email?.trim().toLowerCase();
-  const owner = resolvedSearchParams.owner?.trim().toLowerCase();
-  const repo = resolvedSearchParams.repo?.trim().toLowerCase();
+  const inviteEmail = fallbackInviteEmail;
+  const owner = fallbackOwner;
+  const repo = fallbackRepo;
 
   if (!inviteEmail || !owner || !repo) {
-    return <InviteUnavailable message="This invite link is invalid." />;
+    return <InviteUnavailable message="This invitation link is invalid." redirectTo={fallbackRedirect} />;
   }
 
   if (user && !isGithubUser) {
@@ -152,7 +204,10 @@ export default async function Page({
   });
 
   if (!invite) {
-    return <InviteUnavailable message="This invitation is no longer available. Ask the repository owner to send you a new invite if you still need access." />;
+    if (isInviteEmailMatch(user?.email ?? undefined, inviteEmail)) {
+      redirect(fallbackRedirect);
+    }
+    return <InviteUnavailable title={user?.email ? "Wrong account" : undefined} message={user?.email ? getWrongAccountInviteMessage(user.email, inviteEmail) : "This invitation is no longer available. Ask the repository owner to send you a new invite if you still need access."} redirectTo={fallbackRedirect} />;
   }
 
   return (
