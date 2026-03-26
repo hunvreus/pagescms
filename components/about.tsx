@@ -156,8 +156,8 @@ export function About() {
           <Row
             label="GitHub"
             value={
-              <ExternalLink href="https://github.com/pages-cms/pages-cms">
-                pages-cms/pages-cms
+              <ExternalLink href="https://github.com/pagescms/pagescms">
+                pagescms/pagescms
               </ExternalLink>
             }
           />

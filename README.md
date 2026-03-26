@@ -43,8 +43,8 @@ Use that if you want to:
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/pages-cms/pages-cms.git
-cd pages-cms
+git clone https://github.com/pagescms/pagescms.git
+cd pagescms
 ```
 
 2. Start PostgreSQL locally:
@@ -109,10 +109,10 @@ For more detail, see:
 
 ## Support the project
 
-- [Contribute code](https://github.com/pages-cms/pages-cms/pulls)
-- [Report issues](https://github.com/pages-cms/pages-cms/issues)
+- [Contribute code](https://github.com/pagescms/pagescms/pulls)
+- [Report issues](https://github.com/pagescms/pagescms/issues)
 - [Sponsor me](https://github.com/sponsors/hunvreus)
-- [Star the project on GitHub](https://github.com/pages-cms/pages-cms)
+- [Star the project on GitHub](https://github.com/pagescms/pagescms)
 - [Join the Discord chat](https://pagescms.org/chat)
 
 ## License

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
-const REPO = "pages-cms/pages-cms";
+const REPO = "pagescms/pagescms";
 const PACKAGE_JSON_URL =
-  "https://raw.githubusercontent.com/pages-cms/pages-cms/main/package.json";
+  "https://raw.githubusercontent.com/pagescms/pagescms/main/package.json";
 
 export async function GET() {
   try {
