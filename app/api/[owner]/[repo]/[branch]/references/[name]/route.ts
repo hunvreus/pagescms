@@ -29,7 +29,7 @@ type ParsedReferenceItem = {
 const extractTemplateFields = (template: string) =>
   Array.from(template.matchAll(/\{([^}]+)\}/g))
     .map((match) => match[1])
-    .filter((token) => token && token.length > 0);
+    .filter((token) => token.length > 0);
 
 export async function GET(
   request: NextRequest,
