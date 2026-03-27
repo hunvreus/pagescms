@@ -2,11 +2,13 @@ import {
   pgTable,
   text,
   integer,
+  bigint,
   boolean,
   serial,
   timestamp,
   index,
-  uniqueIndex
+  uniqueIndex,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 const userTable = pgTable("user", {
@@ -149,6 +151,36 @@ const cachePermissionTable = pgTable("cache_permission", {
   idx_cache_permission_githubId_owner_repo: uniqueIndex("idx_cache_permission_githubId_owner_repo").on(table.githubId, table.owner, table.repo)
 }));
 
+const actionRunTable = pgTable("action_run", {
+  id: serial("id").primaryKey(),
+  owner: text("owner").notNull(),
+  repo: text("repo").notNull(),
+  ref: text("ref").notNull(),
+  workflowRef: text("workflow_ref").notNull(),
+  sha: text("sha").notNull(),
+  actionName: text("action_name").notNull(),
+  contextType: text("context_type").notNull(),
+  contextName: text("context_name"),
+  contextPath: text("context_path"),
+  workflow: text("workflow").notNull(),
+  workflowRunId: bigint("workflow_run_id", { mode: "number" }),
+  status: text("status").notNull(),
+  conclusion: text("conclusion"),
+  htmlUrl: text("html_url"),
+  triggeredBy: jsonb("triggered_by").notNull(),
+  failure: jsonb("failure"),
+  payload: jsonb("payload").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  completedAt: timestamp("completed_at"),
+}, table => ({
+  idx_action_run_owner_repo_createdAt: index("idx_action_run_owner_repo_createdAt").on(table.owner, table.repo, table.createdAt),
+  idx_action_run_owner_repo_actionName: index("idx_action_run_owner_repo_actionName").on(table.owner, table.repo, table.actionName),
+  idx_action_run_owner_repo_status: index("idx_action_run_owner_repo_status").on(table.owner, table.repo, table.status),
+  idx_action_run_context: index("idx_action_run_context").on(table.owner, table.repo, table.contextType, table.contextName, table.contextPath),
+  idx_action_run_workflowRunId: uniqueIndex("idx_action_run_workflowRunId").on(table.workflowRunId),
+}));
+
 export {
   userTable,
   sessionTable,
@@ -159,5 +191,6 @@ export {
   configTable,
   cacheFileTable,
   cacheFileMetaTable,
-  cachePermissionTable
+  cachePermissionTable,
+  actionRunTable
 };

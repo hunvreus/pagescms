@@ -7,6 +7,37 @@
 import { z } from "zod";
 import { fieldTypes } from "@/fields/registry";
 
+const ActionSchema = z
+  .object({
+    name: z
+      .string({
+        required_error: "'name' is required.",
+        invalid_type_error: "'name' must be a string.",
+      })
+      .regex(/^[a-zA-Z0-9-_]+$/, {
+        message: "'name' must be alphanumeric with dashes and underscores.",
+      }),
+    label: z.string({
+      required_error: "'label' is required.",
+      invalid_type_error: "'label' must be a string.",
+    }),
+    workflow: z.string({
+      required_error: "'workflow' is required.",
+      invalid_type_error: "'workflow' must be a string.",
+    }),
+    ref: z
+      .string({
+        message: "'ref' must be a string.",
+      })
+      .optional(),
+    scope: z
+      .enum(["collection", "entry"], {
+        message: "'scope' must be either 'collection' or 'entry'.",
+      })
+      .optional(),
+  })
+  .strict();
+
 const CommitTemplatesSchema = z
   .object({
     create: z
@@ -102,6 +133,11 @@ const MediaConfigObject = z
       .optional(),
     name: z.string().optional(),
     label: z.string().optional(),
+    actions: z
+      .array(ActionSchema, {
+        message: "'actions' must be an array of action definitions.",
+      })
+      .optional(),
   })
   .strict();
 
@@ -589,6 +625,11 @@ const ContentLeafSchema = z
         },
       )
       .optional(),
+    actions: z
+      .array(ActionSchema, {
+        message: "'actions' must be an array of action definitions.",
+      })
+      .optional(),
   })
   .strict();
 
@@ -648,6 +689,11 @@ const ConfigSchema = z
         generateFieldObjectSchema(true),
       )
       .optional(),
+    actions: z
+      .array(ActionSchema, {
+        message: "'actions' must be an array of action definitions.",
+      })
+      .optional(),
     settings: z
       .union([
         z
@@ -706,6 +752,44 @@ const ConfigSchema = z
       .optional(),
   })
   .strict()
+  .superRefine((data, ctx) => {
+    const validateContentItem = (item: any, path: (string | number)[]) => {
+      if (!item || typeof item !== "object") return;
+
+      if (item.type === "group") {
+        if (Array.isArray(item.items)) {
+          item.items.forEach((child: any, index: number) =>
+            validateContentItem(child, [...path, "items", index]),
+          );
+        }
+        return;
+      }
+
+      const actions = Array.isArray(item.actions) ? item.actions : [];
+      actions.forEach((action: any, actionIndex: number) => {
+        if (item.type === "collection" && action.scope == null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message:
+              "Collection actions must define a 'scope' of 'collection' or 'entry'.",
+            path: [...path, "actions", actionIndex, "scope"],
+          });
+        }
+
+        if (item.type === "file" && action.scope != null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "File actions cannot define a 'scope'.",
+            path: [...path, "actions", actionIndex, "scope"],
+          });
+        }
+      });
+    };
+
+    const content = data?.content;
+    if (!Array.isArray(content)) return;
+    content.forEach((item, index) => validateContentItem(item, ["content", index]));
+  })
   .nullable();
 
 export { ConfigSchema };

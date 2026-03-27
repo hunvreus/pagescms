@@ -1,7 +1,7 @@
 import { after } from "next/server";
 import crypto from "crypto";
 import { db } from "@/db";
-import { cacheFileTable, collaboratorTable, configTable, githubInstallationTokenTable } from "@/db/schema";
+import { actionRunTable, cacheFileTable, collaboratorTable, configTable, githubInstallationTokenTable } from "@/db/schema";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { normalizePath } from "@/lib/utils/file";
 import { createOctokitInstance } from "@/lib/utils/octokit";
@@ -410,6 +410,22 @@ const processWebhookEvent = async (event: string | null, data: any) => {
           }
         }
       }
+      break;
+    }
+
+    case "workflow_run": {
+      const workflowRunId = data.workflow_run?.id;
+      if (!workflowRunId) break;
+
+      await db.update(actionRunTable).set({
+        status: data.workflow_run?.status ?? "completed",
+        conclusion: data.workflow_run?.conclusion ?? null,
+        htmlUrl: data.workflow_run?.html_url ?? null,
+        updatedAt: new Date(),
+        completedAt: data.workflow_run?.status === "completed"
+          ? new Date(data.workflow_run?.updated_at ?? new Date().toISOString())
+          : null,
+      }).where(eq(actionRunTable.workflowRunId, workflowRunId));
       break;
     }
   }

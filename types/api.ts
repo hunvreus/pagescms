@@ -54,3 +54,19 @@ export type MediaItem = {
   size?: number;
   url?: string | null;
 };
+
+export type ActionRunData = {
+  id: number;
+  actionName: string;
+  status: string | null;
+  conclusion: string | null;
+  htmlUrl: string | null;
+  workflowRunId: number | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  completedAt: string | null;
+  failure?: {
+    jobName?: string | null;
+    stepName?: string | null;
+  } | null;
+};

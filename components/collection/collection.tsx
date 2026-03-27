@@ -1,9 +1,10 @@
 "use client";
 
-import { Fragment, memo, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, memo, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useConfig } from "@/contexts/config-context";
+import { RepoActionButtons } from "@/components/repo/repo-action-buttons";
 import {
   getParentPath,
   getFileName,
@@ -13,6 +14,7 @@ import {
   sortFiles
 } from "@/lib/utils/file";
 import { viewComponents } from "@/fields/registry";
+import { getSchemaActions } from "@/lib/repo-actions";
 import { getSchemaByName, getPrimaryField, getFieldByPath, safeAccess } from "@/lib/schema";
 import { requireApiSuccess } from "@/lib/api-client";
 import { EmptyCreate } from "@/components/empty-create";
@@ -70,6 +72,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 const CollectionHeaderActions = memo(function CollectionHeaderActions({
   addEntryHref,
+  actionNode,
   collectionPath,
   name,
   showFolderCreate,
@@ -77,6 +80,7 @@ const CollectionHeaderActions = memo(function CollectionHeaderActions({
   onSearchChange,
 }: {
   addEntryHref: string;
+  actionNode?: ReactNode;
   collectionPath: string;
   name: string;
   showFolderCreate: boolean;
@@ -92,6 +96,7 @@ const CollectionHeaderActions = memo(function CollectionHeaderActions({
 
   return (
     <div className="flex items-center gap-x-2">
+      {actionNode}
       <div className="relative hidden sm:block w-52 md:w-64">
         <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" />
         <Input
@@ -197,6 +202,10 @@ export function Collection({
   }, [schema]);
 
   const primaryField = useMemo(() => getPrimaryField(schema) ?? "name", [schema]);
+  const collectionActions = useMemo(
+    () => getSchemaActions(schema, "collection"),
+    [schema],
+  );
   const requestedFieldPaths = useMemo(() => {
     const paths = new Set<string>(["name", "path", primaryField]);
     viewFields.forEach((item: any) => paths.add(item.path));
@@ -697,6 +706,22 @@ export function Collection({
       <div className="min-w-0 truncate">{breadcrumbNode}</div>
       <CollectionHeaderActions
         addEntryHref={addEntryHref}
+        actionNode={collectionActions.length > 0 ? (
+          <RepoActionButtons
+            actions={collectionActions}
+            owner={config.owner}
+            repo={config.repo}
+            refName={config.branch}
+            contextType="collection"
+            contextName={schema.name}
+            contextPath={collectionPath}
+            contextData={{
+              label: schema.label || schema.name,
+              rootPath: schema.path,
+              format: schema.format ?? null,
+            }}
+          />
+        ) : undefined}
         collectionPath={collectionPath}
         name={name}
         showFolderCreate={schema.subfolders !== false}
@@ -704,7 +729,7 @@ export function Collection({
         onSearchChange={handleTableSearchChange}
       />
     </div>
-  ), [addEntryHref, breadcrumbNode, collectionPath, handleFolderCreate, handleTableSearchChange, name, schema.subfolders]);
+  ), [addEntryHref, breadcrumbNode, collectionActions, collectionPath, config.branch, config.owner, config.repo, handleFolderCreate, handleTableSearchChange, name, schema.format, schema.label, schema.name, schema.path, schema.subfolders]);
 
   useRepoHeader({
     header: headerNode,

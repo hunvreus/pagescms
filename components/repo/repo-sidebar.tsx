@@ -15,7 +15,9 @@ import { useRepo } from "@/contexts/repo-context";
 import { useUser } from "@/contexts/user-context";
 import { hasGithubIdentity } from "@/lib/authz";
 import { isCacheEnabled, isConfigEnabled } from "@/lib/config-settings";
+import { getRootActions } from "@/lib/repo-actions";
 import { getVisits } from "@/lib/tracker";
+import { RepoActionButtons } from "@/components/repo/repo-action-buttons";
 import { RepoBranches } from "@/components/repo/repo-branches";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User } from "@/components/user";
@@ -351,6 +353,10 @@ export function RepoSidebar() {
 
     return items;
   }, [config, user]);
+  const rootActions = useMemo(
+    () => getRootActions(config?.object),
+    [config?.object],
+  );
 
   const getNodeHref = useCallback(
     (node: NavigationNode) => {
@@ -557,6 +563,23 @@ export function RepoSidebar() {
   const groups = [
     renderNavigationGroup("Content", contentNavigation),
     renderNavigationGroup("Media", mediaNavigation),
+    rootActions.length > 0 && config
+      ? (
+        <SidebarGroup key="Actions">
+          <SidebarGroupLabel>Actions</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <RepoActionButtons
+              actions={rootActions}
+              owner={config.owner}
+              repo={config.repo}
+              refName={config.branch}
+              contextType="repo"
+              layout="sidebar"
+            />
+          </SidebarGroupContent>
+        </SidebarGroup>
+      )
+      : null,
     renderFlatGroup("Admin", adminItems),
   ].filter(Boolean);
 
