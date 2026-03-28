@@ -100,7 +100,7 @@ const CollectionHeaderActions = memo(function CollectionHeaderActions({
       <div className="relative hidden sm:block w-52 md:w-64">
         <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" />
         <Input
-          className="h-9 pl-9"
+          className="h-8 pl-9"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           placeholder="Search entries..."
@@ -111,7 +111,7 @@ const CollectionHeaderActions = memo(function CollectionHeaderActions({
           <TooltipTrigger asChild>
             <div>
               <FolderCreate path={collectionPath} type="content" name={name} onCreate={onFolderCreate}>
-                <Button type="button" variant="outline" size="icon" className="shrink-0">
+                <Button type="button" variant="outline" size="icon-sm" className="shrink-0">
                   <FolderPlus />
                 </Button>
               </FolderCreate>
@@ -120,10 +120,10 @@ const CollectionHeaderActions = memo(function CollectionHeaderActions({
           <TooltipContent>Create folder</TooltipContent>
         </Tooltip>
       )}
-      <Link className={cn(buttonVariants(), "hidden sm:flex")} href={addEntryHref}>
+      <Link className={cn(buttonVariants({ size: "sm" }), "hidden sm:flex")} href={addEntryHref}>
         Add an entry
       </Link>
-      <Link className={cn(buttonVariants({ size: "icon" }), "sm:hidden shrink-0")} href={addEntryHref}>
+      <Link className={cn(buttonVariants({ size: "icon-sm" }), "sm:hidden shrink-0")} href={addEntryHref}>
         <Plus className="h-4 w-4" />
       </Link>
     </div>

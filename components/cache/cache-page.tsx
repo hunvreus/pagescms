@@ -230,7 +230,7 @@ export function CachePage({
               <Button
                 asChild
                 variant="ghost"
-                size="icon"
+                size="icon-sm"
                 className="text-muted-foreground hover:text-foreground"
               >
                 <Link
@@ -252,6 +252,7 @@ export function CachePage({
           description="This will clear file, config, and permission cache for this repository/branch."
           confirmLabel="Clear all"
           variant="default"
+          size="sm"
           disabled={loading || actionLoading != null}
           onConfirm={async () =>
             runAction("clear-all-cache", "All cache cleared")

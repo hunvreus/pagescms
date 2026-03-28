@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, isNotNull, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { actionRunTable } from "@/db/schema";
 import { createOctokitInstance } from "@/lib/utils/octokit";
@@ -50,8 +50,10 @@ const findWorkflowRun = async (
   workflow: string,
   workflowRef: string,
   startedAt: string,
+  claimedRunIds: number[] = [],
 ) => {
   const startedAtMs = Date.parse(startedAt);
+  const claimedRunIdsSet = new Set(claimedRunIds);
 
   for (let attempt = 0; attempt < 6; attempt++) {
     const response = await octokit.rest.actions.listWorkflowRuns({
@@ -64,7 +66,10 @@ const findWorkflowRun = async (
     });
 
     const run = response.data.workflow_runs
-      .filter((item) => Date.parse(item.created_at) >= startedAtMs - 30_000)
+      .filter((item) => (
+        Date.parse(item.created_at) >= startedAtMs - 30_000
+        && !claimedRunIdsSet.has(item.id)
+      ))
       .sort((left, right) => Date.parse(right.created_at) - Date.parse(left.created_at))[0];
 
     if (run) return run;
@@ -72,6 +77,29 @@ const findWorkflowRun = async (
   }
 
   return null;
+};
+
+const getClaimedWorkflowRunIds = async (
+  owner: string,
+  repo: string,
+  workflow: string,
+  workflowRef: string,
+  excludeRowId?: number,
+) => {
+  const rows = await db.select({
+    workflowRunId: actionRunTable.workflowRunId,
+  }).from(actionRunTable).where(and(
+    eq(actionRunTable.owner, owner),
+    eq(actionRunTable.repo, repo),
+    eq(actionRunTable.workflow, workflow),
+    eq(actionRunTable.workflowRef, workflowRef),
+    isNotNull(actionRunTable.workflowRunId),
+    excludeRowId == null ? undefined : ne(actionRunTable.id, excludeRowId),
+  ));
+
+  return rows
+    .map((row) => row.workflowRunId)
+    .filter((value): value is number => typeof value === "number");
 };
 
 const buildContextWhere = ({
@@ -105,6 +133,13 @@ const syncActionRun = async (
   row: typeof actionRunTable.$inferSelect,
 ) => {
   if (!row.workflowRunId) {
+    const claimedRunIds = await getClaimedWorkflowRunIds(
+      row.owner,
+      row.repo,
+      row.workflow,
+      row.workflowRef,
+      row.id,
+    );
     const workflowRun = await findWorkflowRun(
       octokit,
       row.owner,
@@ -112,20 +147,25 @@ const syncActionRun = async (
       row.workflow,
       row.workflowRef,
       row.createdAt.toISOString(),
+      claimedRunIds,
     );
 
     if (!workflowRun) return row;
 
-    const [updated] = await db.update(actionRunTable).set({
-      workflowRunId: workflowRun.id,
-      status: workflowRun.status ?? "queued",
-      conclusion: workflowRun.conclusion,
-      htmlUrl: workflowRun.html_url,
-      updatedAt: new Date(),
-      completedAt: workflowRun.status === "completed" ? new Date(workflowRun.updated_at) : null,
-    }).where(eq(actionRunTable.id, row.id)).returning();
+    try {
+      const [updated] = await db.update(actionRunTable).set({
+        workflowRunId: workflowRun.id,
+        status: workflowRun.status ?? "queued",
+        conclusion: workflowRun.conclusion,
+        htmlUrl: workflowRun.html_url,
+        updatedAt: new Date(),
+        completedAt: workflowRun.status === "completed" ? new Date(workflowRun.updated_at) : null,
+      }).where(eq(actionRunTable.id, row.id)).returning();
 
-    return updated ?? row;
+      return updated ?? row;
+    } catch {
+      return row;
+    }
   }
 
   if (row.status === "completed") {
@@ -138,35 +178,10 @@ const syncActionRun = async (
     run_id: row.workflowRunId,
   });
 
-  let failure = row.failure as any;
-  if (
-    workflowRunResponse.data.status === "completed"
-    && workflowRunResponse.data.conclusion
-    && workflowRunResponse.data.conclusion !== "success"
-  ) {
-    const jobsResponse = await octokit.rest.actions.listJobsForWorkflowRun({
-      owner: row.owner,
-      repo: row.repo,
-      run_id: row.workflowRunId,
-      per_page: 100,
-    });
-    const failedJob = jobsResponse.data.jobs.find((job) => job.conclusion === "failure")
-      || jobsResponse.data.jobs.find((job) => job.conclusion && job.conclusion !== "success");
-    if (failedJob) {
-      const failedStep = failedJob.steps?.find((step) => step.conclusion === "failure")
-        || failedJob.steps?.find((step) => step.conclusion && step.conclusion !== "success");
-      failure = {
-        jobName: failedJob.name,
-        stepName: failedStep?.name ?? null,
-      };
-    }
-  }
-
   const [updated] = await db.update(actionRunTable).set({
     status: workflowRunResponse.data.status ?? row.status,
     conclusion: workflowRunResponse.data.conclusion,
     htmlUrl: workflowRunResponse.data.html_url,
-    failure,
     updatedAt: new Date(),
     completedAt: workflowRunResponse.data.status === "completed"
       ? new Date(workflowRunResponse.data.updated_at)
@@ -213,39 +228,41 @@ export async function GET(
       }))
       .orderBy(desc(actionRunTable.createdAt));
 
-    const latestByAction = new Map<string, typeof rows[number]>();
-    rows.forEach((row) => {
-      if (!latestByAction.has(row.actionName)) {
-        latestByAction.set(row.actionName, row);
-      }
-    });
+    const topRowsByAction = actionNames.reduce<Record<string, typeof rows>>((accumulator, actionName) => {
+      accumulator[actionName] = rows
+        .filter((row) => row.actionName === actionName)
+        .slice(0, 3);
+      return accumulator;
+    }, {});
 
-    await Promise.all(
-      Array.from(latestByAction.entries()).map(async ([actionName, row]) => {
-        const syncedRow = await syncActionRun(octokit, row);
-        latestByAction.set(actionName, syncedRow);
-      }),
-    );
+    const syncedTopRowsByAction = Object.fromEntries(
+      await Promise.all(
+        Object.entries(topRowsByAction).map(async ([actionName, actionRows]) => {
+          const syncedRows = await Promise.all(
+            actionRows.map((row) => syncActionRun(octokit, row)),
+          );
+          return [actionName, syncedRows] as const;
+        }),
+      ),
+    ) as Record<string, typeof rows>;
 
     return Response.json({
       status: "success",
       message: "Action runs fetched successfully.",
-      data: actionNames.reduce<Record<string, any>>((accumulator, actionName) => {
-        const row = latestByAction.get(actionName);
-        accumulator[actionName] = row
-          ? {
-              id: row.id,
-              actionName: row.actionName,
-              status: row.status,
-              conclusion: row.conclusion,
-              htmlUrl: row.htmlUrl,
-              workflowRunId: row.workflowRunId,
-              createdAt: row.createdAt?.toISOString() ?? null,
-              updatedAt: row.updatedAt?.toISOString() ?? null,
-              completedAt: row.completedAt?.toISOString() ?? null,
-              failure: row.failure as any,
-            }
-          : null;
+      data: actionNames.reduce<Record<string, any[]>>((accumulator, actionName) => {
+        accumulator[actionName] = (syncedTopRowsByAction[actionName] || [])
+          .map((row) => ({
+            id: row.id,
+            actionName: row.actionName,
+            status: row.status,
+            conclusion: row.conclusion,
+            htmlUrl: row.htmlUrl,
+            workflowRunId: row.workflowRunId,
+            triggeredByName: (row.triggeredBy as { name?: string | null } | null)?.name ?? null,
+            createdAt: row.createdAt?.toISOString() ?? null,
+            updatedAt: row.updatedAt?.toISOString() ?? null,
+            completedAt: row.completedAt?.toISOString() ?? null,
+          }));
         return accumulator;
       }, {}),
     });
@@ -353,17 +370,31 @@ export async function POST(
       action.workflow,
       workflowRef,
       timestamp.toISOString(),
+      await getClaimedWorkflowRunIds(
+        params.owner,
+        params.repo,
+        action.workflow,
+        workflowRef,
+        createdRun.id,
+      ),
     );
 
     if (workflowRun) {
-      await db.update(actionRunTable).set({
-        workflowRunId: workflowRun.id,
-        status: workflowRun.status ?? "queued",
-        conclusion: workflowRun.conclusion,
-        htmlUrl: workflowRun.html_url,
-        updatedAt: new Date(),
-        completedAt: workflowRun.status === "completed" ? new Date(workflowRun.updated_at) : null,
-      }).where(eq(actionRunTable.id, createdRun.id));
+      try {
+        await db.update(actionRunTable).set({
+          workflowRunId: workflowRun.id,
+          status: workflowRun.status ?? "queued",
+          conclusion: workflowRun.conclusion,
+          htmlUrl: workflowRun.html_url,
+          updatedAt: new Date(),
+          completedAt: workflowRun.status === "completed" ? new Date(workflowRun.updated_at) : null,
+        }).where(eq(actionRunTable.id, createdRun.id));
+      } catch {
+        await db.update(actionRunTable).set({
+          status: "queued",
+          updatedAt: new Date(),
+        }).where(eq(actionRunTable.id, createdRun.id));
+      }
     } else {
       await db.update(actionRunTable).set({
         status: "queued",

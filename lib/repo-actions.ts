@@ -13,13 +13,10 @@ export type ActionRunSummary = {
   conclusion: string | null;
   htmlUrl: string | null;
   workflowRunId: number | null;
+  triggeredByName: string | null;
   createdAt: string | null;
   updatedAt: string | null;
   completedAt: string | null;
-  failure?: {
-    jobName?: string | null;
-    stepName?: string | null;
-  } | null;
 };
 
 export const resolveActionRef = (

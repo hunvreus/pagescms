@@ -87,9 +87,13 @@ export function EntryHistoryBlock({
 export function EntryHistoryDropdown({
   path,
   history,
+  triggerVariant = "ghost",
+  triggerSize = "icon",
 }: {
   path: string;
   history: EntryHistoryItem[];
+  triggerVariant?: React.ComponentProps<typeof Button>["variant"];
+  triggerSize?: React.ComponentProps<typeof Button>["size"];
 }) {
   const { config } = useConfig();
 
@@ -98,7 +102,7 @@ export function EntryHistoryDropdown({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button type="button" variant="ghost" size="icon">
+        <Button type="button" variant={triggerVariant} size={triggerSize}>
           <History />
         </Button>
       </DropdownMenuTrigger>

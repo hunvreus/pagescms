@@ -304,7 +304,7 @@ export function Collaborators({
               <Button
                 asChild
                 variant="ghost"
-                size="icon"
+                size="icon-sm"
                 className="text-muted-foreground hover:text-foreground"
               >
                 <Link
@@ -332,6 +332,7 @@ export function Collaborators({
             onValueChange={setEmails}
             disabled={isLoading}
             triggerVariant="default"
+            triggerSize="sm"
           />
         ) : null}
       </div>

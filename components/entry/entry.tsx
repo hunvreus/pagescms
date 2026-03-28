@@ -29,6 +29,7 @@ import { EmptyCreate } from "@/components/empty-create";
 import { FileOptions } from "@/components/file/file-options";
 import { RepoActionButtons } from "@/components/repo/repo-action-buttons";
 import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
 import {
   InputGroup,
   InputGroupAddon,
@@ -609,7 +610,7 @@ export function Entry({
   const headerNode = useMemo(() => (
     <div className="flex min-w-0 items-center gap-2">
       <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
-        <Breadcrumb className="min-w-0 flex-1 overflow-hidden">
+        <Breadcrumb className="min-w-0 overflow-hidden">
           <BreadcrumbList className="min-w-0 flex-nowrap font-semibold text-lg">
             {breadcrumbNode}
           </BreadcrumbList>
@@ -619,15 +620,10 @@ export function Entry({
       {showHeaderActions && (
         <div className="flex shrink-0 items-center gap-x-2">
           {headerActionsNode}
-          {path && (
-            historyData && historyData.length > 0 && !isLoading
-              ? <EntryHistoryDropdown history={historyData} path={path} />
-              : <Button variant="ghost" size="icon" className="shrink-0" disabled><History /></Button>
-          )}
           <Button
             type="submit"
             form="entry-form"
-            className="size-9 px-0 sm:h-9 sm:w-auto sm:px-4 sm:py-2"
+            size="sm"
             disabled={
               isBusy ||
               (showFilenameField && filenameValue.trim().length === 0) ||
@@ -651,22 +647,36 @@ export function Entry({
             <span className="hidden sm:inline">Save</span>
           </Button>
           {path && (
-            sha
-              ? (
-                <FileOptions
-                  path={path}
-                  sha={sha}
-                  type={path === ".pages.yml" ? "settings" : (schemaType ?? "content")}
-                  name={name}
-                  onDelete={handleDelete}
-                  onRename={handleRename}
-                >
-                  <Button variant="ghost" size="icon" disabled={isBusy}>
-                    <EllipsisVertical />
-                  </Button>
-                </FileOptions>
-              )
-              : <Button variant="ghost" size="icon" disabled><EllipsisVertical /></Button>
+            <ButtonGroup>
+              {historyData && historyData.length > 0 && !isLoading
+                ? (
+                  <EntryHistoryDropdown
+                    history={historyData}
+                    path={path}
+                    triggerVariant="outline"
+                    triggerSize="icon-sm"
+                  />
+                )
+                : <Button variant="outline" size="icon-sm" className="shrink-0" disabled><History /></Button>
+              }
+              {sha
+                ? (
+                  <FileOptions
+                    path={path}
+                    sha={sha}
+                    type={path === ".pages.yml" ? "settings" : (schemaType ?? "content")}
+                    name={name}
+                    onDelete={handleDelete}
+                    onRename={handleRename}
+                  >
+                    <Button variant="outline" size="icon-sm" disabled={isBusy}>
+                      <EllipsisVertical />
+                    </Button>
+                  </FileOptions>
+                )
+                : <Button variant="outline" size="icon-sm" disabled><EllipsisVertical /></Button>
+              }
+            </ButtonGroup>
           )}
         </div>
       )}

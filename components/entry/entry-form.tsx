@@ -76,6 +76,8 @@ import {
 } from "@dnd-kit/modifiers";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  Ban,
+  Asterisk,
   X,
   GripVertical,
   Plus,
@@ -463,11 +465,13 @@ const ListField = ({
               )}
               {field.required && (
                 <Badge variant="secondary" className="text-muted-foreground">
+                  <Asterisk className="-ml-1 -mr-0.5" />
                   Required
                 </Badge>
               )}
               {hasExplicitReadonly(field) && (
                 <Badge variant="secondary" className="text-muted-foreground">
+                  <Ban className="-ml-0.5" />
                   Readonly
                 </Badge>
               )}
@@ -907,11 +911,13 @@ const SingleField = ({
             )}
             {field.required && (
               <Badge variant="secondary" className="text-muted-foreground">
+                <Asterisk className="-ml-1 -mr-0.5" />
                 Required
               </Badge>
             )}
             {hasExplicitReadonly(field) && (
               <Badge variant="secondary" className="text-muted-foreground">
+                <Ban className="-ml-0.5" />
                 Readonly
               </Badge>
             )}
@@ -961,6 +967,7 @@ const SingleField = ({
                       variant="secondary"
                       className="text-muted-foreground"
                     >
+                      <Asterisk className="-ml-1 -mr-0.5" />
                       Required
                     </Badge>
                   )}
@@ -969,6 +976,7 @@ const SingleField = ({
                       variant="secondary"
                       className="text-muted-foreground"
                     >
+                      <Ban className="-ml-0.5" />
                       Readonly
                     </Badge>
                   )}
