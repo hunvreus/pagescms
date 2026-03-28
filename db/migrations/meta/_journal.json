@@ -50,6 +50,13 @@
       "when": 1773679499992,
       "tag": "0006_square_white_tiger",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1774665749945,
+      "tag": "0007_even_logan",
+      "breakpoints": true
     }
   ]
 }
