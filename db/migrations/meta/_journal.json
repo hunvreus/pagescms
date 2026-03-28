@@ -57,6 +57,13 @@
       "when": 1774665749945,
       "tag": "0007_even_logan",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1774698602316,
+      "tag": "0008_quiet_lady_mastermind",
+      "breakpoints": true
     }
   ]
 }
