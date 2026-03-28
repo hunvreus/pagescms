@@ -72,7 +72,7 @@ const githubInstallationTokenTable = pgTable("github_installation_token", {
   installationId: integer("installation_id").notNull(),
   expiresAt: timestamp("expires_at").notNull()
 }, table => ({
-  idx_github_installation_token_installationId: index("idx_github_installation_token_installationId").on(table.installationId)
+  uq_github_installation_token_installationId: uniqueIndex("uq_github_installation_token_installationId").on(table.installationId)
 }));
 
 const collaboratorTable = pgTable("collaborator", {
