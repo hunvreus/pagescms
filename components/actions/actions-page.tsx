@@ -374,6 +374,15 @@ export function ActionsPage({
     void loadRuns();
   }, [loadRuns]);
 
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      if (document.hidden) return;
+      void loadRuns();
+    }, 4000);
+
+    return () => window.clearInterval(interval);
+  }, [loadRuns]);
+
   const actionOptions = useMemo(
     () => Array.from(new Set((runs ?? []).map((run) => run.actionName))).sort(),
     [runs],
