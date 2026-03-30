@@ -138,7 +138,11 @@ export function ActionToastProvider({ children }: { children: React.ReactNode })
 
       if (expiredEntries.length > 0) {
         expiredEntries.forEach((trackedRun) => {
-          toast.error(`Stopped tracking "${trackedRun.actionLabel}" after 12 hours.`, { id: trackedRun.toastId });
+          toast.error(`Stopped tracking "${trackedRun.actionLabel}" after 12 hours.`, {
+            id: trackedRun.toastId,
+            action: undefined,
+            classNames: undefined,
+          });
         });
 
         setTrackedRuns((current) => {
@@ -194,9 +198,17 @@ export function ActionToastProvider({ children }: { children: React.ReactNode })
         }
 
         if (run.conclusion === "success") {
-          toast.success(getToastMessage(trackedRun.actionLabel, run), { id: trackedRun.toastId });
+          toast.success(getToastMessage(trackedRun.actionLabel, run), {
+            id: trackedRun.toastId,
+            action: undefined,
+            classNames: undefined,
+          });
         } else {
-          toast.error(getToastMessage(trackedRun.actionLabel, run), { id: trackedRun.toastId });
+          toast.error(getToastMessage(trackedRun.actionLabel, run), {
+            id: trackedRun.toastId,
+            action: undefined,
+            classNames: undefined,
+          });
         }
 
         completedIds.push(trackedRun.runId);

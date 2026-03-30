@@ -17,29 +17,33 @@ const parse = (content: string = "", options: { delimiters?: string, format?: Fo
   if (["yaml", "json", "toml"].includes(format)) return deserialize(content, format as SerialFormat);
   
   const delimiters = setDelimiter(options.delimiters, format as FrontmatterFormat);
-  const startDelimiter = delimiters[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const endDelimiter = delimiters[1].replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const isDefaultJsonFrontmatter = (
+    format === "json-frontmatter" &&
+    delimiters[0] === "{" &&
+    delimiters[1] === "}"
+  );
 
-  const frontmatterRegex = new RegExp(`^(${startDelimiter}(?:\\n|\\r)?([\\s\\S]+?)(?:\\n|\\r)?${endDelimiter})\\n*([\\s\\S]*)`);
-  const match = frontmatterRegex.exec(content);
+  const match = isDefaultJsonFrontmatter
+    ? content.match(/^(\{[\s\S]*\})\n*([\s\S]*)$/)
+    : (() => {
+        const startDelimiter = delimiters[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const endDelimiter = delimiters[1].replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const frontmatterRegex = new RegExp(`^${startDelimiter}\\r?\\n([\\s\\S]*?)\\r?\\n${endDelimiter}(?:\\r?\\n([\\s\\S]*))?$`);
+        return frontmatterRegex.exec(content);
+      })();
   
   let contentObject;
   
   if (!match) return { body: content };
 
-  // For json-frontmatter and default delimiters (curly braces), we need the
-  // with the delimiters included to be a valid JSON object.
-  const frontMatter = (
-    format === "json-frontmatter" &&
-    delimiters[0] === "{" &&
-    delimiters[1] === "}"
-  )
-    ? match[1]
-    : match[2]
+  // For json-frontmatter with default delimiters (curly braces), we need the
+  // delimiters included to be a valid JSON object.
+  const frontMatter = match[1];
+  const body = match[2];
   
   contentObject = deserialize(frontMatter, format.split("-")[0] as SerialFormat);
-  contentObject["body"] = match[3] || "";
-  contentObject["body"] = contentObject["body"].replace(/^\n/, "");
+  contentObject["body"] = body || "";
+  contentObject["body"] = contentObject["body"].replace(/^\r?\n/, "");
 
   return contentObject;
 };
