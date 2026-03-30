@@ -11,6 +11,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { requireApiSuccess } from "@/lib/api-client";
+import { buttonVariants } from "@/components/ui/button";
 import {
   formatActionRunState,
   isActionRunActive,
@@ -184,6 +185,9 @@ export function ActionToastProvider({ children }: { children: React.ReactNode })
               onClick: () => {
                 void cancelTrackedRun(trackedRun);
               },
+            } : undefined,
+            classNames: run.canCancel ? {
+              actionButton: buttonVariants({ variant: "outline", size: "sm" }),
             } : undefined,
           });
           return;
