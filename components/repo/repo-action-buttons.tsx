@@ -11,6 +11,7 @@ import {
   Loader,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useActionToasts } from "@/contexts/action-toast-context";
 import { useUser } from "@/contexts/user-context";
 import { hasGithubIdentity } from "@/lib/authz";
 import { Button } from "@/components/ui/button";
@@ -108,15 +109,6 @@ const formatRunLine = (run: ActionRunSummary) => {
   );
 };
 
-const getToastMessage = (actionLabel: string, run?: ActionRunSummary | null) => {
-  if (!run) return `Queued "${actionLabel}" on GitHub…`;
-  const state = formatActionRunState(run);
-  if (run.status !== "completed") {
-    return `"${actionLabel}" ${state.toLowerCase()} on GitHub…`;
-  }
-  return `"${actionLabel}" ${state.toLowerCase()}.`;
-};
-
 const getDefaultFieldValues = (fields: RepoActionField[] | undefined) => {
   return (fields ?? []).reduce<Record<string, string | number | boolean>>((accumulator, field) => {
     if (field.default != null) {
@@ -147,16 +139,12 @@ export function RepoActionButtons({
   layout = "header",
 }: RepoActionButtonsProps) {
   const { user } = useUser();
+  const { trackActionRun } = useActionToasts();
   const isGithubUser = hasGithubIdentity(user);
   const [runsByAction, setRunsByAction] = useState<Record<string, ActionRunSummary[]>>({});
   const [dispatching, setDispatching] = useState<Record<string, boolean>>({});
   const [dialogAction, setDialogAction] = useState<RepoActionConfig | null>(null);
   const [dialogValues, setDialogValues] = useState<Record<string, string | number | boolean>>({});
-  const trackedToastsRef = useRef<Record<number, {
-    actionLabel: string;
-    toastId: string | number;
-    state: string | null;
-  }>>({});
   const refreshErrorToastIdRef = useRef<string | number | null>(null);
 
   const actionNames = useMemo(() => actions.map((action) => action.name), [actions]);
@@ -196,35 +184,6 @@ export function RepoActionButtons({
           refreshErrorToastIdRef.current = null;
         }
 
-        const runsById = Object.values(latestRuns)
-          .flat()
-          .reduce<Record<number, ActionRunSummary>>((accumulator, run) => {
-            accumulator[run.id] = run;
-            return accumulator;
-          }, {});
-
-        Object.entries(trackedToastsRef.current).forEach(([runIdKey, trackedToast]) => {
-          const runId = Number(runIdKey);
-          const run = runsById[runId];
-          if (!run) return;
-
-          const nextToastState = `${run.status}:${run.conclusion ?? ""}:${run.workflowRunId ?? ""}`;
-          if (trackedToast.state === nextToastState) return;
-          trackedToast.state = nextToastState;
-
-          if (isActionRunActive(run)) {
-            toast.loading(getToastMessage(trackedToast.actionLabel, run), { id: trackedToast.toastId });
-            return;
-          }
-
-          if (run.conclusion === "success") {
-            toast.success(getToastMessage(trackedToast.actionLabel, run), { id: trackedToast.toastId });
-          } else {
-            toast.error(getToastMessage(trackedToast.actionLabel, run), { id: trackedToast.toastId });
-          }
-
-          delete trackedToastsRef.current[runId];
-        });
       } catch (error) {
         console.error(error);
         if (refreshErrorToastIdRef.current == null) {
@@ -240,7 +199,7 @@ export function RepoActionButtons({
     action: RepoActionConfig,
     inputValues: Record<string, string | number | boolean> = {},
   ) => {
-    const toastId = toast.loading(`Queueing "${action.label}"…`);
+    const toastId = toast.loading(`Starting "${action.label}"…`);
 
     setDispatching((current) => ({ ...current, [action.name]: true }));
 
@@ -263,25 +222,20 @@ export function RepoActionButtons({
         response,
         "Failed to dispatch action",
       );
-      trackedToastsRef.current[payload.data.id] = {
+      trackActionRun({
+        runId: payload.data.id,
+        owner,
+        repo,
+        refName,
         actionLabel: action.label,
         toastId,
-        state: null,
-      };
-      const latestRuns = await loadRuns();
-      const run = latestRuns?.[action.name]?.find((item) => item.id === payload.data.id);
-      if (run) {
-        trackedToastsRef.current[payload.data.id].state = `${run.status}:${run.conclusion ?? ""}:${run.workflowRunId ?? ""}`;
-        toast.loading(getToastMessage(action.label, run), { id: toastId });
-      } else {
-        toast.loading(`Queueing "${action.label}"…`, { id: toastId });
+      });
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Failed to dispatch action.", { id: toastId });
+      } finally {
+        setDispatching((current) => ({ ...current, [action.name]: false }));
       }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to dispatch action.", { id: toastId });
-    } finally {
-      setDispatching((current) => ({ ...current, [action.name]: false }));
-    }
-  }, [contextData, contextName, contextPath, contextType, loadRuns, owner, refName, repo]);
+  }, [contextData, contextName, contextPath, contextType, owner, refName, repo, trackActionRun]);
 
   const handleActionClick = useCallback((action: RepoActionConfig) => {
     const shouldConfirm = action.confirm !== false;
