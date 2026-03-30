@@ -6,6 +6,7 @@ import { getToken } from "@/lib/token";
 import { createHttpError, toErrorResponse } from "@/lib/api-error";
 import { requireApiUserSession } from "@/lib/session-server";
 import { resolveActionRef } from "@/lib/repo-actions";
+import { hasGithubIdentity } from "@/lib/authz";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -200,6 +201,7 @@ export async function GET(
     const sessionResult = await requireApiUserSession();
     if ("response" in sessionResult) return sessionResult.response;
     const user = sessionResult.user;
+    const isGithubUser = hasGithubIdentity(user);
     const { token } = await getToken(user, params.owner, params.repo, true);
     const octokit = createOctokitInstance(token);
 
@@ -264,6 +266,15 @@ export async function GET(
           createdAt: row.createdAt?.toISOString() ?? null,
           updatedAt: row.updatedAt?.toISOString() ?? null,
           completedAt: row.completedAt?.toISOString() ?? null,
+          canCancel: Boolean(
+            (isGithubUser
+              || (row.triggeredBy as { userId?: string | null } | null)?.userId === user.id)
+            && row.status !== "completed"
+            && row.workflowRunId
+            && ((row.payload as { action?: { cancelable?: boolean } } | null)?.action?.cancelable ?? true),
+          ),
+          canRerun: isGithubUser,
+          cancelable: (row.payload as { action?: { cancelable?: boolean } } | null)?.action?.cancelable ?? true,
         })),
       });
     }
@@ -310,6 +321,15 @@ export async function GET(
             createdAt: row.createdAt?.toISOString() ?? null,
             updatedAt: row.updatedAt?.toISOString() ?? null,
             completedAt: row.completedAt?.toISOString() ?? null,
+            canCancel: Boolean(
+              (isGithubUser
+                || (row.triggeredBy as { userId?: string | null } | null)?.userId === user.id)
+              && row.status !== "completed"
+              && row.workflowRunId
+              && ((row.payload as { action?: { cancelable?: boolean } } | null)?.action?.cancelable ?? true),
+            ),
+            canRerun: isGithubUser,
+            cancelable: (row.payload as { action?: { cancelable?: boolean } } | null)?.action?.cancelable ?? true,
           }));
         return accumulator;
       }, {}),
@@ -334,7 +354,7 @@ export async function POST(
     const octokit = createOctokitInstance(token);
 
     const body = (await request.json()) as {
-      action?: { name?: string; label?: string; workflow?: string; ref?: string };
+      action?: { name?: string; label?: string; workflow?: string; ref?: string; cancelable?: boolean };
       context?: {
         kind?: string;
         name?: string | null;
@@ -361,6 +381,7 @@ export async function POST(
       action: {
         name: action.name,
         label: action.label,
+        cancelable: action.cancelable !== false,
       },
       repository: {
         owner: params.owner,

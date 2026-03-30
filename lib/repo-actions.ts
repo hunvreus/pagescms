@@ -15,6 +15,7 @@ export type RepoActionConfig = {
   label: string;
   workflow: string;
   ref?: string;
+  cancelable?: boolean;
   scope?: "collection" | "entry";
   confirm?: boolean | {
     title?: string;
@@ -40,6 +41,9 @@ export type ActionRunSummary = {
   triggeredByEmail?: string | null;
   triggeredByGithubUsername?: string | null;
   triggeredByImage?: string | null;
+  canCancel?: boolean;
+  canRerun?: boolean;
+  cancelable?: boolean;
   createdAt: string | null;
   updatedAt: string | null;
   completedAt: string | null;

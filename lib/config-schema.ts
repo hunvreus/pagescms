@@ -30,6 +30,11 @@ const ActionSchema = z
         message: "'ref' must be a string.",
       })
       .optional(),
+    cancelable: z
+      .boolean({
+        message: "'cancelable' must be a boolean.",
+      })
+      .optional(),
     scope: z
       .enum(["collection", "entry"], {
         message: "'scope' must be either 'collection' or 'entry'.",

@@ -7,10 +7,13 @@ import {
   ArrowUpRight,
   CircleCheck,
   CircleX,
+  EllipsisVertical,
   Funnel,
   Loader,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useRepoHeader } from "@/components/repo/repo-header-context";
+import { useActionToasts } from "@/contexts/action-toast-context";
 import { getInitialsFromName } from "@/lib/utils/avatar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -28,6 +31,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   HoverCard,
   HoverCardContent,
@@ -265,7 +275,7 @@ function ActionsTableSkeleton() {
               </TableCell>
               <TableCell className="text-right">
                 <Button variant="outline" size="icon-sm" disabled>
-                  <ArrowUpRight className="size-4" />
+                  <EllipsisVertical className="size-4" />
                 </Button>
               </TableCell>
             </TableRow>
@@ -302,6 +312,7 @@ export function ActionsPage({
   actionLabels = {},
   contextLabels = {},
 }: ActionsPageProps) {
+  const { trackActionRun } = useActionToasts();
   const [runs, setRuns] = useState<ActionRunSummary[] | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -319,6 +330,45 @@ export function ActionsPage({
     );
     setRuns(payload.data);
   }, [branch, owner, repo]);
+
+  const handleRunAction = useCallback(async (
+    run: ActionRunSummary,
+    intent: "cancel" | "rerun",
+  ) => {
+    try {
+      const response = await fetch(
+        `/api/${owner}/${repo}/${encodeURIComponent(branch)}/actions/${run.id}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ intent }),
+        },
+      );
+      const payload = await requireApiSuccess<{ data?: ActionRunSummary | { id: number } }>(
+        response,
+        `Failed to ${intent === "cancel" ? "cancel" : "run"} action`,
+      );
+
+      if (intent === "rerun" && payload.data && "id" in payload.data) {
+        const actionLabel = actionLabels[run.actionName] ?? run.actionName;
+        const toastId = toast.loading(`Starting "${actionLabel}"…`);
+        trackActionRun({
+          runId: payload.data.id,
+          owner,
+          repo,
+          refName: branch,
+          actionLabel,
+          toastId,
+        });
+      } else if (intent === "cancel") {
+        toast.success("Run cancelled.");
+      }
+
+      await loadRuns();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Action failed.");
+    }
+  }, [actionLabels, branch, loadRuns, owner, repo, trackActionRun]);
 
   useEffect(() => {
     void loadRuns();
@@ -671,24 +721,41 @@ export function ActionsPage({
                     </span>
                   )}
                 </TableCell>
-                <TableCell className="text-right">
-                  {run.htmlUrl ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button asChild variant="outline" size="icon-sm">
-                          <Link
-                            href={run.htmlUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            <ArrowUpRight className="size-4" />
-                            <span className="sr-only">View on GitHub</span>
-                          </Link>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>View on GitHub</TooltipContent>
-                    </Tooltip>
-                  ) : null}
+              <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="icon-sm">
+                        <EllipsisVertical className="size-4" />
+                        <span className="sr-only">Run actions</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem asChild disabled={!run.htmlUrl}>
+                        <Link
+                          href={run.htmlUrl ?? "#"}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          View on GitHub
+                          <ArrowUpRight className="ml-auto size-3 text-muted-foreground" />
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        disabled={!run.canRerun}
+                        onClick={() => void handleRunAction(run, "rerun")}
+                      >
+                        Run again
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        variant="destructive"
+                        disabled={!run.canCancel}
+                        onClick={() => void handleRunAction(run, "cancel")}
+                      >
+                        Cancel run
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))

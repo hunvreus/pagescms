@@ -114,6 +114,23 @@ export function ActionToastProvider({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (Object.keys(trackedRuns).length === 0) return;
 
+    const cancelTrackedRun = async (trackedRun: TrackedActionToast) => {
+      try {
+        const response = await fetch(
+          `/api/${trackedRun.owner}/${trackedRun.repo}/${encodeURIComponent(trackedRun.refName)}/actions/${trackedRun.runId}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ intent: "cancel" }),
+          },
+        );
+        await requireApiSuccess(response, "Failed to cancel action run");
+        toast.success("Run cancelled.", { id: trackedRun.toastId });
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Failed to cancel action run.", { id: trackedRun.toastId });
+      }
+    };
+
     const syncTrackedRuns = async () => {
       const entries = Object.values(trackedRuns);
       const expiredEntries = entries.filter((trackedRun) => Date.now() - trackedRun.trackedAt > TRACKING_TIMEOUT_MS);
@@ -160,7 +177,15 @@ export function ActionToastProvider({ children }: { children: React.ReactNode })
         nextStateUpdates.push({ runId: trackedRun.runId, state: nextToastState });
 
         if (isActionRunActive(run)) {
-          toast.loading(getToastMessage(trackedRun.actionLabel, run), { id: trackedRun.toastId });
+          toast.loading(getToastMessage(trackedRun.actionLabel, run), {
+            id: trackedRun.toastId,
+            action: run.canCancel ? {
+              label: "Cancel",
+              onClick: () => {
+                void cancelTrackedRun(trackedRun);
+              },
+            } : undefined,
+          });
           return;
         }
 
