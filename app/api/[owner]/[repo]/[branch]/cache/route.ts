@@ -7,7 +7,7 @@ import {
   clearPermissionCache,
   ensureFileCacheFreshness,
 } from "@/lib/github-cache";
-import { deleteCacheFileMeta, getCacheFileMeta, upsertCacheFileMeta } from "@/lib/cache-file-meta";
+import { deleteCacheFileMeta, getCacheFileMeta, listCacheFileMeta, upsertCacheFileMeta } from "@/lib/cache-file-meta";
 import { getConfig } from "@/lib/utils/config";
 import { createHttpError, toErrorResponse } from "@/lib/api-error";
 import { isCacheEnabled } from "@/lib/config-settings";
@@ -46,6 +46,8 @@ export async function GET(
 
     // Keep DB access mostly sequential to avoid spiking pool usage on the cache dashboard.
     const meta = await getCacheFileMeta(params.owner, params.repo, params.branch);
+    const metaEntries = await listCacheFileMeta(params.owner, params.repo, params.branch);
+    const folderMeta = metaEntries.filter((entry) => entry.context !== "branch");
     const fileCountResult = await db
       .select({ count: sql<number>`count(*)` })
       .from(cacheFileTable)
@@ -78,6 +80,7 @@ export async function GET(
       status: "success",
       data: {
         fileMeta: meta ?? null,
+        folderMeta,
         fileCount: Number(fileCountResult[0]?.count || 0),
         permissionCount: Number(permissionCountResult[0]?.count || 0),
         config: cachedConfig

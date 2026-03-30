@@ -14,7 +14,7 @@ import {
 import { getInstallationToken } from "@/lib/token";
 import { configVersion, normalizeConfig, parseConfig } from "@/lib/config";
 import { saveConfig, updateConfig } from "@/lib/utils/config";
-import { deleteCacheFileMeta, upsertCacheFileMeta } from "@/lib/cache-file-meta";
+import { deleteCacheFileMeta, deleteCacheFileMetaByPaths, upsertCacheFileMeta } from "@/lib/cache-file-meta";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -105,6 +105,8 @@ const clearScopedFileCache = async (
       ),
     );
   }
+
+  await deleteCacheFileMetaByPaths(owner, repo, branch, affectedParentPaths);
 };
 
 const processWebhookEvent = async (event: string | null, data: any) => {
@@ -125,6 +127,7 @@ const processWebhookEvent = async (event: string | null, data: any) => {
             eq(githubInstallationTokenTable.installationId, data.installation.id),
           ),
           clearFileCache(accountLogin),
+          deleteCacheFileMeta(accountLogin),
         ]);
       }
       break;
@@ -142,7 +145,10 @@ const processWebhookEvent = async (event: string | null, data: any) => {
           (data.repositories_removed || []).map((repo: any) => {
             const [owner, repoName] = (repo.full_name || "").split("/");
             if (owner && repoName) {
-              return clearFileCache(owner, repoName);
+              return Promise.all([
+                clearFileCache(owner, repoName),
+                deleteCacheFileMeta(owner, repoName),
+              ]);
             }
             return Promise.resolve();
           }),
@@ -166,6 +172,7 @@ const processWebhookEvent = async (event: string | null, data: any) => {
             eq(collaboratorTable.repoId, repoId),
           ),
           clearFileCache(owner, repoName),
+          deleteCacheFileMeta(owner, repoName),
         ]);
       } else if (data.action === "transferred") {
         const oldOwner = data.changes?.owner?.from?.login || owner;
@@ -175,6 +182,7 @@ const processWebhookEvent = async (event: string | null, data: any) => {
             eq(collaboratorTable.repoId, repoId),
           ),
           clearFileCache(oldOwner, repoName),
+          deleteCacheFileMeta(oldOwner, repoName),
         ]);
       } else if (data.action === "renamed") {
         const oldName = data.changes?.repository?.name?.from;

@@ -65,8 +65,8 @@ export async function POST(
         if (!normalizedPath.startsWith(schema.path)) throw new Error(`Invalid path "${params.path}" for ${data.type} "${data.name}".`);
         if (!normalizedNewPath.startsWith(schema.path)) throw new Error(`Invalid path "${data.newPath}" for ${data.type} "${data.name}".`);
 
-        if (getFileExtension(normalizedPath) !== schema.extension) throw new Error(`Invalid extension "${getFileExtension(normalizedPath)}" for ${data.type} "${data.name}".`);
-        if (getFileExtension(normalizedNewPath) !== schema.extension) throw new Error(`Invalid extension "${getFileExtension(normalizedNewPath)}" for ${data.type} "${data.name}".`);
+        if (getFileExtension(normalizedPath) !== (schema.extension ?? "")) throw new Error(`Invalid extension "${getFileExtension(normalizedPath)}" for ${data.type} "${data.name}".`);
+        if (getFileExtension(normalizedNewPath) !== (schema.extension ?? "")) throw new Error(`Invalid extension "${getFileExtension(normalizedNewPath)}" for ${data.type} "${data.name}".`);
         break;
       case "media":
         if (!data.name) throw new Error(`"name" is required for media.`);

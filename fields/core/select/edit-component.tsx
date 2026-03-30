@@ -82,6 +82,10 @@ const EditComponent = (props: any) => {
     );
   }, [multiple, options, value]);
 
+  const placeholder = isReadonly
+    ? undefined
+    : field.options?.placeholder || "Select...";
+
   const handleValueChange = (nextValue: Option[] | Option | null) => {
     if (isReadonly) return;
     const toOutput = (option: Option) =>
@@ -122,7 +126,7 @@ const EditComponent = (props: any) => {
                     </ComboboxChip>
                   ))}
                   <ComboboxChipsInput
-                    placeholder={field.options?.placeholder || "Select..."}
+                    placeholder={placeholder}
                     readOnly={isReadonly}
                     className={cn(isReadonly && "cursor-default")}
                   />
@@ -144,7 +148,7 @@ const EditComponent = (props: any) => {
       ) : (
         <>
           <ComboboxInput
-            placeholder={field.options?.placeholder || "Select..."}
+            placeholder={placeholder}
             className={cn(isReadonly && "has-[[data-slot=input-group-control]:focus-visible]:border-input has-[[data-slot=input-group-control]:focus-visible]:ring-0")}
             showTrigger={!isReadonly}
             readOnly={isReadonly}

@@ -153,13 +153,14 @@ const parseContents = (
 } => {
   const serializedTypes = ["yaml-frontmatter", "json-frontmatter", "toml-frontmatter", "yaml", "json", "toml"];
   const excludedFiles = schema.exclude || [];
+  const extension = schema.extension ?? "";
 
   let parsedContents: Record<string, any>[] = [];
   let parsedErrors: string[] = [];
 
   parsedContents = contents.map((item: any) => {
     // If it's a file and it matches the schema extension
-    if (item.type === "file" && (item.path.endsWith(`.${schema.extension}`) || schema.extension === "") && !excludedFiles.includes(item.name)) {
+    if (item.type === "file" && (extension === "" || item.path.endsWith(`.${extension}`)) && !excludedFiles.includes(item.name)) {
       let contentObject: Record<string, any> = {};
       
       if (serializedTypes.includes(schema.format) && schema.fields) {

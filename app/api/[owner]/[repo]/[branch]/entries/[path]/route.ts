@@ -76,7 +76,8 @@ export async function GET(
 
       if (!normalizedPath.startsWith(schema.path)) throw createHttpError(`Invalid path "${params.path}" for ${schema.type} "${name}".`, 400);
 
-      if (getFileExtension(normalizedPath) !== schema.extension) {
+      const extension = schema.extension ?? "";
+      if (getFileExtension(normalizedPath) !== extension) {
         throw createHttpError(`Invalid extension "${getFileExtension(normalizedPath)}" for ${schema.type} "${name}".`, 400);
       }
     } else {

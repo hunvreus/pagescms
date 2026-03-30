@@ -43,6 +43,14 @@ type CacheStatusPayload = {
     updatedAt: string;
     lastCheckedAt: string;
   } | null;
+  folderMeta: Array<{
+    path: string;
+    context: string;
+    status: string;
+    commitSha: string | null;
+    targetCommitSha: string | null;
+    updatedAt: string;
+  }>;
   fileCount: number;
   permissionCount: number;
   config: {
@@ -290,6 +298,10 @@ export function CachePage({
                   <Skeleton className="h-4 w-10" />
                 </div>
                 <div className="flex items-center justify-between gap-3 px-3 py-2">
+                  <span className="text-muted-foreground">Folder caches</span>
+                  <Skeleton className="h-4 w-10" />
+                </div>
+                <div className="flex items-center justify-between gap-3 px-3 py-2">
                   <span className="text-muted-foreground">Cache SHA</span>
                   <Skeleton className="h-4 w-20" />
                 </div>
@@ -338,7 +350,8 @@ export function CachePage({
               <CardHeader>
                 <CardTitle className="text-base">Config</CardTitle>
                 <CardDescription>
-                  Cache of the configuration file (<code>.pages.yml</code>).
+                  Cache of the configuration file (
+                  <code className="text-[13px]">.pages.yml</code>).
                 </CardDescription>
               </CardHeader>
               <CardContent className="text-sm flex-1">
@@ -424,6 +437,10 @@ export function CachePage({
                   <span className="font-medium">{data.fileCount}</span>
                 </div>
                 <div className="flex items-center justify-between gap-3 px-3 py-2">
+                  <span className="text-muted-foreground">Folder caches</span>
+                  <span className="font-medium">{data.folderMeta.length}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 px-3 py-2">
                   <span className="text-muted-foreground">Cache SHA</span>
                   <span className="font-mono font-medium">
                     {shortSha(localSha)}
@@ -505,7 +522,8 @@ export function CachePage({
               <CardHeader>
                 <CardTitle className="text-base">Config</CardTitle>
                 <CardDescription>
-                  Cache of the configuration file (<code>.pages.yml</code>).
+                  Cache of the configuration file (
+                  <code className="text-[13px]">.pages.yml</code>).
                 </CardDescription>
               </CardHeader>
               <CardContent className="text-sm flex-1">

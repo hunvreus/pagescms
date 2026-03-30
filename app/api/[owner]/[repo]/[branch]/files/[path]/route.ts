@@ -70,7 +70,7 @@ export async function POST(
           // Folder creation
           contentBase64 = "";
         } else {
-          if (getFileExtension(normalizedPath) !== schema.extension) throw new Error(`Invalid extension "${getFileExtension(normalizedPath)}" for ${data.type} "${data.name}".`);
+          if (getFileExtension(normalizedPath) !== (schema.extension ?? "")) throw new Error(`Invalid extension "${getFileExtension(normalizedPath)}" for ${data.type} "${data.name}".`);
 
           if (serializedTypes.includes(schema.format) && schema.fields) {
             let contentFields;
@@ -472,7 +472,7 @@ export async function DELETE(
           throw new Error(`Subfolders are not allowed for collection "${name}".`);
         }
         
-        if (getFileExtension(normalizedPath) !== schema.extension) throw new Error(`Invalid extension "${getFileExtension(normalizedPath)}" for ${type} "${name}".`);
+        if (getFileExtension(normalizedPath) !== (schema.extension ?? "")) throw new Error(`Invalid extension "${getFileExtension(normalizedPath)}" for ${type} "${name}".`);
         break;
       case "media":
         if (!name) throw new Error(`"name" is required for media.`);

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { cacheFileMetaTable } from "@/db/schema";
 
@@ -87,15 +87,18 @@ const getCacheFileMeta = async (
 
 const deleteCacheFileMeta = async (
   owner: string,
-  repo: string,
+  repo?: string,
   branch?: string,
   scope?: CacheMetaScope,
 ) => {
   const normalizedScope = scope ? normalizeScope(scope) : null;
-  const baseWhere = and(
-    sql`lower(${cacheFileMetaTable.owner}) = lower(${owner})`,
-    sql`lower(${cacheFileMetaTable.repo}) = lower(${repo})`,
-  );
+  const conditions = [sql`lower(${cacheFileMetaTable.owner}) = lower(${owner})`];
+
+  if (repo) {
+    conditions.push(sql`lower(${cacheFileMetaTable.repo}) = lower(${repo})`);
+  }
+
+  const baseWhere = and(...conditions);
 
   if (branch) {
     const scopedWhere = normalizedScope
@@ -115,4 +118,44 @@ const deleteCacheFileMeta = async (
   await db.delete(cacheFileMetaTable).where(baseWhere);
 };
 
-export { deleteCacheFileMeta, getCacheFileMeta, upsertCacheFileMeta };
+const deleteCacheFileMetaByPaths = async (
+  owner: string,
+  repo: string,
+  branch: string,
+  paths: string[],
+) => {
+  const normalizedPaths = Array.from(new Set(paths));
+  if (normalizedPaths.length === 0) return;
+
+  await db.delete(cacheFileMetaTable).where(
+    and(
+      sql`lower(${cacheFileMetaTable.owner}) = lower(${owner})`,
+      sql`lower(${cacheFileMetaTable.repo}) = lower(${repo})`,
+      eq(cacheFileMetaTable.branch, branch),
+      inArray(cacheFileMetaTable.path, normalizedPaths),
+    ),
+  );
+};
+
+const listCacheFileMeta = async (
+  owner: string,
+  repo: string,
+  branch: string,
+) => {
+  return db.query.cacheFileMetaTable.findMany({
+    where: and(
+      sql`lower(${cacheFileMetaTable.owner}) = lower(${owner})`,
+      sql`lower(${cacheFileMetaTable.repo}) = lower(${repo})`,
+      eq(cacheFileMetaTable.branch, branch),
+    ),
+    orderBy: (table, { asc }) => [asc(table.context), asc(table.path)],
+  });
+};
+
+export {
+  deleteCacheFileMeta,
+  deleteCacheFileMetaByPaths,
+  getCacheFileMeta,
+  listCacheFileMeta,
+  upsertCacheFileMeta,
+};

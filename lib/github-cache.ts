@@ -3,11 +3,11 @@
  */
 
 import { db } from "@/db";
-import { eq, and, inArray, gt, count, min } from "drizzle-orm";
+import { eq, and, inArray, gt, count, min, sql } from "drizzle-orm";
 import { cacheFileTable, cachePermissionTable } from "@/db/schema";
 import { createOctokitInstance } from "@/lib/utils/octokit";
 import { getParentPath } from "@/lib/utils/file";
-import { deleteCacheFileMeta, getCacheFileMeta, upsertCacheFileMeta } from "@/lib/cache-file-meta";
+import { deleteCacheFileMeta, deleteCacheFileMetaByPaths, getCacheFileMeta, upsertCacheFileMeta } from "@/lib/cache-file-meta";
 import { Repo } from "@/types/repo";
 import path from "path";
 
@@ -265,9 +265,7 @@ const getFolderPathsForChanges = (changedPaths: string[]): string[] => {
   for (const changedPath of changedPaths) {
     if (!changedPath) continue;
     const directParent = getParentPath(changedPath);
-    if (directParent !== "") {
-      folders.add(directParent);
-    }
+    folders.add(directParent);
     for (const ancestor of getAncestorPaths(changedPath)) {
       folders.add(ancestor);
     }
@@ -276,20 +274,39 @@ const getFolderPathsForChanges = (changedPaths: string[]): string[] => {
   return Array.from(folders);
 };
 
-const clearFolderCacheRows = async (
+const invalidateFolderScopes = async (
   owner: string,
   repo: string,
   branch: string,
-  folderPath: string,
+  folderPaths: string[],
 ) => {
-  await db.delete(cacheFileTable).where(
-    and(
-      eq(cacheFileTable.owner, owner.toLowerCase()),
-      eq(cacheFileTable.repo, repo.toLowerCase()),
-      eq(cacheFileTable.branch, branch),
-      eq(cacheFileTable.parentPath, folderPath),
-    )
-  );
+  const normalizedPaths = Array.from(new Set(folderPaths));
+  if (normalizedPaths.length === 0) return;
+  await deleteCacheFileMetaByPaths(owner, repo, branch, normalizedPaths);
+};
+
+const withFolderCacheLock = async <T>(
+  owner: string,
+  repo: string,
+  branch: string,
+  scope: CacheScope,
+  callback: (tx: any) => Promise<T>,
+): Promise<{ acquired: boolean; value?: T }> => {
+  const primary = `${owner.toLowerCase()}::${repo.toLowerCase()}::${branch}`;
+  const secondary = `${scope.context}::${scope.path}`;
+
+  return db.transaction(async (tx) => {
+    const result = await tx.execute(sql`
+      select pg_try_advisory_xact_lock(hashtext(${primary}), hashtext(${secondary})) as locked
+    `);
+    const locked = Boolean((result as any)?.[0]?.locked);
+    if (!locked) return { acquired: false };
+
+    return {
+      acquired: true,
+      value: await callback(tx),
+    };
+  });
 };
 
 const markFolderScopesSyncing = async (
@@ -370,23 +387,33 @@ const reconcileFileCache = async (
 
   const job = (async () => {
     try {
-      await upsertCacheFileMeta(owner, repo, branch, {
-        path: BRANCH_CACHE_SCOPE.path,
-        context: BRANCH_CACHE_SCOPE.context,
-        status: "syncing",
-        error: null,
-      });
-
-      const headSha = await getBranchHeadSha(owner, repo, branch, token);
-
       const currentMeta = await getCacheFileMeta(owner, repo, branch, BRANCH_CACHE_SCOPE);
+      const headSha = await getBranchHeadSha(owner, repo, branch, token);
       const shouldClear =
         options?.forceClear ||
         !currentMeta?.commitSha ||
         currentMeta.commitSha !== headSha;
+
+      await upsertCacheFileMeta(owner, repo, branch, {
+        path: BRANCH_CACHE_SCOPE.path,
+        context: BRANCH_CACHE_SCOPE.context,
+        commitSha: currentMeta?.commitSha ?? null,
+        commitTimestamp: currentMeta?.commitTimestamp ?? null,
+        status: "syncing",
+        error: null,
+        targetCommitSha: headSha,
+      });
+
       if (shouldClear) {
         await clearFileCache(owner, repo, branch);
         await deleteCacheFileMeta(owner, repo, branch);
+        await upsertCacheFileMeta(owner, repo, branch, {
+          path: BRANCH_CACHE_SCOPE.path,
+          context: BRANCH_CACHE_SCOPE.context,
+          status: "syncing",
+          error: null,
+          targetCommitSha: headSha,
+        });
       }
 
       await upsertCacheFileMeta(owner, repo, branch, {
@@ -753,13 +780,15 @@ const updateMultipleFilesCache = async (
         inArray(cacheFileTable.path, removedPaths)
       )
     );
+    await invalidateFolderScopes(owner, repo, branch, affectedFolderPaths);
   }
 
-  // 2. Collect unique non-root parent paths for added/modified files
+  // 2. Collect unique non-root parent paths for changed files
   const parentPaths = Array.from(new Set([
+    ...removedPaths.map((filePath) => getParentPath(filePath)),
     ...modifiedFiles.map(f => getParentPath(f.path)),
     ...addedFiles.map(f => getParentPath(f.path))
-  ])).filter(p => p !== '');
+  ]));
 
   let pathContextMap = new Map<string, string>();
   if (parentPaths.length > 0) {
@@ -780,14 +809,14 @@ const updateMultipleFilesCache = async (
         pathContextMap.set(entry.parentPath, entry.context);
       }
     }
+  }
 
-    for (const folderPath of affectedFolderPaths) {
-      const context = pathContextMap.get(folderPath);
-      if (context === "media") {
-        mediaFolderPaths.add(folderPath);
-      } else {
-        collectionFolderPaths.add(folderPath);
-      }
+  for (const folderPath of affectedFolderPaths) {
+    const context = pathContextMap.get(folderPath);
+    if (context === "media") {
+      mediaFolderPaths.add(folderPath);
+    } else {
+      collectionFolderPaths.add(folderPath);
     }
   }
 
@@ -933,10 +962,10 @@ const updateFileCache = async (
   const parentPath = getParentPath(operation.path);
   const folderContext = context === "media" ? "media" : "collection";
   const affectedFolderPaths = new Set<string>();
-  if (parentPath !== "") affectedFolderPaths.add(parentPath);
+  affectedFolderPaths.add(parentPath);
   if (operation.type === "rename" && operation.newPath) {
     const renameParentPath = getParentPath(operation.newPath);
-    if (renameParentPath !== "") affectedFolderPaths.add(renameParentPath);
+    affectedFolderPaths.add(renameParentPath);
   }
 
   if (affectedFolderPaths.size > 0) {
@@ -1142,7 +1171,7 @@ const replaceFolderCache = async (
   entries: typeof cacheFileTable.$inferInsert[],
   commit?: { sha: string; timestamp: number },
 ) => {
-  await db.transaction(async (tx) => {
+  const locked = await withFolderCacheLock(owner, repo, branch, scope, async (tx) => {
     await tx.delete(cacheFileTable).where(
       and(
         eq(cacheFileTable.owner, owner.toLowerCase()),
@@ -1156,6 +1185,7 @@ const replaceFolderCache = async (
       await tx.insert(cacheFileTable).values(entries);
     }
   });
+  if (!locked.acquired) return false;
 
   await upsertScopedMeta(owner, repo, branch, scope, {
     status: "ok",
@@ -1165,6 +1195,7 @@ const replaceFolderCache = async (
     targetCommitSha: null,
     targetCommitTimestamp: null,
   });
+  return true;
 };
 
 // Attempt to get a collection from cache, if not found, fetch from GitHub.
@@ -1220,11 +1251,15 @@ const getCollectionCache = async (
     }));
   }
 
-  const hasTrustedEmptySnapshot = stableMeta?.status === "ok" && entries.length === 0;
+  const hasTrustedEmptySnapshot =
+    stableMeta?.status === "ok" &&
+    entries.length === 0 &&
+    !cacheExpired;
   const shouldRefetch =
     stableMeta?.status === "syncing" ||
     stableMeta?.status === "error" ||
     !stableMeta ||
+    (!hasTrustedEmptySnapshot && entries.length === 0) ||
     cacheExpired ||
     (entries.length > 0 && entries[0].context === 'media');
 
@@ -1417,8 +1452,18 @@ const getMediaCache = async (
     }));
   }
 
-  const hasTrustedEmptySnapshot = !nocache && stableMeta?.status === "ok" && entries.length === 0;
-  const shouldRefetch = nocache || stableMeta?.status === "syncing" || stableMeta?.status === "error" || !stableMeta || cacheExpired;
+  const hasTrustedEmptySnapshot =
+    !nocache &&
+    stableMeta?.status === "ok" &&
+    entries.length === 0 &&
+    !cacheExpired;
+  const shouldRefetch =
+    nocache ||
+    stableMeta?.status === "syncing" ||
+    stableMeta?.status === "error" ||
+    !stableMeta ||
+    (!hasTrustedEmptySnapshot && entries.length === 0) ||
+    cacheExpired;
 
   if ((nocache || stableMeta?.status !== "syncing") && !hasTrustedEmptySnapshot && shouldRefetch) {
     try {
