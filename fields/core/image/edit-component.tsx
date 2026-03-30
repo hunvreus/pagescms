@@ -2,9 +2,11 @@
 
 import { forwardRef, useCallback, useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MediaUpload } from "@/components/media/media-upload";
 import { MediaDialog } from "@/components/media/media-dialog";
-import { Upload, FolderOpen, ArrowUpRight, EllipsisVertical } from "lucide-react";
+import { Upload, FolderOpen, ArrowUpRight, Trash2 } from "lucide-react";
 import { useConfig } from "@/contexts/config-context";
 import { normalizeMediaPath, normalizePath } from "@/lib/utils/file";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
@@ -17,13 +19,6 @@ import { getAllowedExtensions } from "./index";
 import type { Config } from "@/types/config";
 import type { Field } from "@/types/field";
 import type { FileSaveData } from "@/types/api";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 const generateId = () => crypto.randomUUID().replace(/-/g, "").slice(0, 8);
 
@@ -58,41 +53,42 @@ const ImageTeaser = ({ file, config, onRemove }: {
   onRemove?: () => void;
 }) => {
   return (
-    <>
-      <div className="absolute bottom-1 right-1 bg-background rounded-md">
-        <DropdownMenu modal={false}>
-          <DropdownMenuTrigger asChild>
-            <Button type="button" variant="ghost" size="icon-xs" className="text-muted-foreground hover:text-foreground">
-              <EllipsisVertical />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem asChild>
+    <div className="absolute bottom-1 right-1 rounded-md bg-background/95 backdrop-blur-sm">
+      <ButtonGroup>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button type="button" variant="ghost" size="icon-xs" asChild className="text-muted-foreground hover:text-foreground">
               <a
                 href={`https://github.com/${config.owner}/${config.repo}/blob/${config.branch}/${file}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full"
+                aria-label="View image on GitHub"
               >
-                View on GitHub
-                <ArrowUpRight className="size-3 ml-auto" />
+                <ArrowUpRight />
               </a>
-            </DropdownMenuItem>
-            {onRemove && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  variant="destructive"
-                  onSelect={onRemove}
-                >
-                  Remove
-                </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>View on GitHub</TooltipContent>
+        </Tooltip>
+        {onRemove && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                className="text-muted-foreground hover:text-foreground"
+                onClick={onRemove}
+                aria-label="Remove image"
+              >
+                <Trash2 />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Remove</TooltipContent>
+          </Tooltip>
+        )}
+      </ButtonGroup>
+    </div>
   )
 };
 

@@ -488,11 +488,7 @@ const ListField = ({
                       className="ml-auto text-muted-foreground hover:text-foreground"
                       onClick={() => toggleAll(isAllExpanded)}
                     >
-                      {isAllExpanded ? (
-                        <ChevronsDownUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronsUpDown className="h-4 w-4" />
-                      )}
+                      {isAllExpanded ? <ChevronsDownUp /> : <ChevronsUpDown />}
                       {isAllExpanded ? "Collapse all" : "Expand all"}
                     </Button>
                   );
@@ -640,10 +636,10 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>(
             </div>
           </div>
         ) : (
-          <div>
+          <div className="border rounded-lg">
             <header
               className={cn(
-                "flex items-center gap-x-2 px-4 h-9 text-sm font-medium transition-colors rounded-t-lg border",
+                "flex items-center gap-x-2 px-4 h-8.5 text-sm font-medium transition-colors rounded-t-lg",
                 isOpen ? "" : "rounded-b-lg",
                 isCollapsible ? "cursor-pointer hover:bg-muted" : "",
               )}
@@ -723,10 +719,7 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>(
               </Badge>
             </header>
             <div
-              className={cn(
-                "p-4 grid gap-6 border border-t-0 rounded-b-lg",
-                isOpen ? "" : "hidden",
-              )}
+              className={cn("p-4 grid gap-6 border-t", isOpen ? "" : "hidden")}
             >
               {selectedBlockDefinition.type === "object" ? (
                 (() => {
@@ -815,18 +808,18 @@ const ObjectField = forwardRef<HTMLDivElement, NestedFieldProps>(
     );
 
     return (
-      <div>
+      <div className="border rounded-lg">
         {isCollapsible && (
           <header
             className={cn(
-              "flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-9 text-sm font-medium hover:bg-muted transition-colors cursor-pointer border",
+              "flex items-center gap-x-2 rounded-t-lg pl-4 pr-1 h-8.5 text-sm font-medium hover:bg-muted transition-colors cursor-pointer",
               isOpen ? "" : "rounded-b-lg",
             )}
             onClick={onToggleOpen}
           >
             <ChevronRight
               className={cn(
-                "h-4 w-4 transition-transform",
+                "size-4 transition-transform",
                 isOpen ? "rotate-90" : "",
               )}
             />
@@ -838,7 +831,7 @@ const ObjectField = forwardRef<HTMLDivElement, NestedFieldProps>(
         <div
           className={cn(
             "p-4 grid gap-6",
-            isCollapsible && "border-x border-b rounded-b-lg",
+            isCollapsible && "border-t",
             isOpen ? "" : "hidden",
           )}
         >

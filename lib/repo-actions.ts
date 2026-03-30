@@ -1,19 +1,45 @@
+export type RepoActionField = {
+  name: string;
+  label: string;
+  type: "text" | "textarea" | "select" | "checkbox" | "number";
+  required?: boolean;
+  default?: string | number | boolean;
+  options?: Array<{
+    label: string;
+    value: string;
+  }>;
+};
+
 export type RepoActionConfig = {
   name: string;
   label: string;
   workflow: string;
   ref?: string;
   scope?: "collection" | "entry";
+  confirm?: boolean | {
+    title?: string;
+    message?: string;
+    button?: string;
+  };
+  fields?: RepoActionField[];
 };
 
 export type ActionRunSummary = {
   id: number;
   actionName: string;
+  contextType: string | null;
+  contextName: string | null;
+  contextPath: string | null;
+  workflowRef: string | null;
+  sha: string | null;
   status: string | null;
   conclusion: string | null;
   htmlUrl: string | null;
   workflowRunId: number | null;
   triggeredByName: string | null;
+  triggeredByEmail?: string | null;
+  triggeredByGithubUsername?: string | null;
+  triggeredByImage?: string | null;
   createdAt: string | null;
   updatedAt: string | null;
   completedAt: string | null;

@@ -36,13 +36,13 @@ export default function Error({
       </EmptyHeader>
       <EmptyContent className="flex-row justify-center gap-2">
         <Link
-          className={buttonVariants({ variant: "default", size: "sm" })}
+          className={buttonVariants({ variant: "default" })}
           href="/"
         >
           Go home
         </Link>
         <button
-          className={buttonVariants({ variant: "outline", size: "sm" })}
+          className={buttonVariants({ variant: "outline" })}
           onClick={reset}
         >
           Try again

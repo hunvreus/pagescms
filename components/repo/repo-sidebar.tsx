@@ -65,6 +65,7 @@ import {
   FileStack,
   FileText,
   FolderOpen,
+  ListVideo,
   LogOut,
   Moon,
   Settings,
@@ -334,6 +335,13 @@ export function RepoSidebar() {
     }
 
     if (canManageRepo) {
+      items.push({
+        key: "admin-actions",
+        label: "Actions",
+        href: `/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/actions`,
+        icon: <ListVideo className="size-4" />,
+      });
+
       items.push({
         key: "admin-collaborators",
         label: "Collaborators",

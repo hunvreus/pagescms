@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, useMemo } from "react";
-import CodeMirror, { EditorView } from '@uiw/react-codemirror';
+import CodeMirror, { EditorView } from "@uiw/react-codemirror";
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
 import { StreamLanguage } from "@codemirror/language";
 import { languages } from "@codemirror/language-data";
@@ -44,7 +44,9 @@ const EditComponent = forwardRef((props: any, ref: any) => {
         exts.push(html());
         break;
       default:
-        exts.push(markdown({ base: markdownLanguage, codeLanguages: languages }));
+        exts.push(
+          markdown({ base: markdownLanguage, codeLanguages: languages }),
+        );
         break;
     }
 

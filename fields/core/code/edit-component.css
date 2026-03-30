@@ -5,7 +5,7 @@
 }
 
 .cm-editor .cm-content {
-  @apply min-h-[8rem];
+  @apply min-h-[8rem] font-mono;
 }
 
 .cm-editor.cm-focused {

@@ -35,6 +35,60 @@ const ActionSchema = z
         message: "'scope' must be either 'collection' or 'entry'.",
       })
       .optional(),
+    confirm: z
+      .union([
+        z.boolean({
+          message: "'confirm' must be a boolean or an object.",
+        }),
+        z.object({
+          title: z.string().optional(),
+          message: z.string().optional(),
+          button: z.string().optional(),
+        }).strict(),
+      ])
+      .optional(),
+    fields: z
+      .array(z.object({
+        name: z
+          .string({
+            required_error: "'fields[].name' is required.",
+            invalid_type_error: "'fields[].name' must be a string.",
+          })
+          .regex(/^[a-zA-Z0-9-_]+$/, {
+            message: "'fields[].name' must be alphanumeric with dashes and underscores.",
+          }),
+        label: z.string({
+          required_error: "'fields[].label' is required.",
+          invalid_type_error: "'fields[].label' must be a string.",
+        }),
+        type: z.enum(["text", "textarea", "select", "checkbox", "number"], {
+          message: "'fields[].type' must be 'text', 'textarea', 'select', 'checkbox', or 'number'.",
+        }),
+        required: z.boolean().optional(),
+        default: z.union([z.string(), z.number(), z.boolean()]).optional(),
+        options: z.array(z.object({
+          label: z.string(),
+          value: z.string(),
+        }).strict()).optional(),
+      }).strict().superRefine((field, ctx) => {
+        if (field.type === "select" && (!field.options || field.options.length === 0)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "'fields[].options' is required for select fields.",
+            path: ["options"],
+          });
+        }
+        if (field.type !== "select" && field.options) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "'fields[].options' is only allowed for select fields.",
+            path: ["options"],
+          });
+        }
+      }), {
+        message: "'fields' must be an array of action field definitions.",
+      })
+      .optional(),
   })
   .strict();
 

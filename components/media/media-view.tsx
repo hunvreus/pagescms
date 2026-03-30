@@ -69,17 +69,11 @@ function MediaHeaderActions({
   return (
     <div className="flex items-center gap-x-2 shrink-0">
       {actionNode}
-      <MediaUpload.Trigger>
-        <Button type="button" size="sm" className="gap-2">
-          <Upload />
-          Upload
-        </Button>
-      </MediaUpload.Trigger>
       <Tooltip>
         <TooltipTrigger asChild>
           <div>
             <FolderCreate path={path} name={mediaName} type="media" onCreate={onFolderCreate}>
-              <Button type="button" variant="outline" size="icon-sm">
+              <Button type="button" variant="outline" size="icon">
                 <FolderPlus />
               </Button>
             </FolderCreate>
@@ -87,6 +81,12 @@ function MediaHeaderActions({
         </TooltipTrigger>
         <TooltipContent>Create folder</TooltipContent>
       </Tooltip>
+      <MediaUpload.Trigger>
+        <Button type="button" className="gap-2">
+          <Upload />
+          Upload
+        </Button>
+      </MediaUpload.Trigger>
     </div>
   );
 }
@@ -623,7 +623,7 @@ const MediaView = ({
         </EmptyHeader>
         <EmptyContent>
           <Link
-            className={buttonVariants({ variant: "default", size: "sm" })}
+            className={buttonVariants({ variant: "default" })}
             href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/configuration`}
           >
             Open configuration
@@ -657,7 +657,7 @@ const MediaView = ({
             <EmptyDescription>{error}</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
-            <Button size="sm" onClick={() => handleNavigate(mediaConfig.input)}>Open media root</Button>
+            <Button onClick={() => handleNavigate(mediaConfig.input)}>Open media root</Button>
           </EmptyContent>
         </Empty>
       );

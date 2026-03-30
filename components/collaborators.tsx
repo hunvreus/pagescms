@@ -54,7 +54,7 @@ import {
 } from "@/components/ui/tooltip";
 import { requireApiSuccess } from "@/lib/api-client";
 import { toast } from "sonner";
-import { BookText, EllipsisVertical, Loader, Mail, Trash2 } from "lucide-react";
+import { BookText, EllipsisVertical, Loader } from "lucide-react";
 
 type Collaborator = {
   id: number;
@@ -304,7 +304,7 @@ export function Collaborators({
               <Button
                 asChild
                 variant="ghost"
-                size="icon-sm"
+                size="icon"
                 className="text-muted-foreground hover:text-foreground"
               >
                 <Link
@@ -332,7 +332,7 @@ export function Collaborators({
             onValueChange={setEmails}
             disabled={isLoading}
             triggerVariant="default"
-            triggerSize="sm"
+            triggerSize="default"
           />
         ) : null}
       </div>
@@ -367,7 +367,7 @@ export function Collaborators({
               className="ml-auto"
               disabled
             >
-              <EllipsisVertical className="h-4 w-4" />
+              <EllipsisVertical />
             </Button>
           </li>
         ))}
@@ -436,9 +436,9 @@ export function Collaborators({
                     >
                       {removing.includes(collaborator.id) ||
                       resending.includes(collaborator.id) ? (
-                        <Loader className="h-4 w-4 animate-spin" />
+                        <Loader className="animate-spin" />
                       ) : (
-                        <EllipsisVertical className="h-4 w-4" />
+                        <EllipsisVertical />
                       )}
                       <span className="sr-only">Collaborator actions</span>
                     </Button>
@@ -520,7 +520,7 @@ export function Collaborators({
                 disabled={isLoading}
                 triggerLabel="Invite a collaborator"
                 triggerVariant="default"
-                triggerSize="sm"
+                triggerSize="default"
               />
             </EmptyContent>
           </Empty>

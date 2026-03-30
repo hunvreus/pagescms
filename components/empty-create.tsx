@@ -102,7 +102,7 @@ const EmptyCreate = ({
   };
 
   return (
-    <Button type="button" size="sm" onClick={handleCreate} disabled={isCreating}>
+    <Button type="button" onClick={handleCreate} disabled={isCreating}>
       {isCreating ? (
         <span className="inline-flex items-center gap-x-2">
           Creating...

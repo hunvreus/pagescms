@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { Fragment, useEffect, useState, useMemo, useCallback, useRef } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -71,6 +71,11 @@ type LintView = {
       toString(): string;
     };
   };
+};
+
+type GroupTrailItem = {
+  name: string;
+  label?: string | null;
 };
 
 export function Entry({
@@ -465,8 +470,30 @@ export function Entry({
   }, [config.branch, config.owner, config.repo, entryApiUrl, mutate, name, router, schemaType]);
 
   const breadcrumbNode = useMemo(() => {
-    if (schemaType !== "collection" || !schema) {
+    if (!schema) {
       return <BreadcrumbPage className="font-semibold truncate">{displayTitle}</BreadcrumbPage>;
+    }
+
+    const groupTrail: GroupTrailItem[] = Array.isArray(schema.groupTrail)
+      ? schema.groupTrail
+      : [];
+
+    if (schemaType !== "collection") {
+      return (
+        <>
+          {groupTrail.map((group) => (
+            <Fragment key={`group-${group.name}`}>
+              <BreadcrumbItem>
+                <span>{group.label || group.name}</span>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+            </Fragment>
+          ))}
+          <BreadcrumbItem className="truncate">
+            <BreadcrumbPage className="font-semibold truncate">{displayTitle}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </>
+      );
     }
 
     const rootLabel = schema.label || schema.name || name;
@@ -474,6 +501,14 @@ export function Entry({
     if (!path) {
       return (
         <>
+          {groupTrail.map((group) => (
+            <Fragment key={`group-${group.name}`}>
+              <BreadcrumbItem>
+                <span>{group.label || group.name}</span>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+            </Fragment>
+          ))}
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
               <Link href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}`}>
@@ -504,6 +539,14 @@ export function Entry({
 
     return (
       <>
+        {groupTrail.map((group) => (
+          <Fragment key={`group-${group.name}`}>
+            <BreadcrumbItem>
+              <span>{group.label || group.name}</span>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+          </Fragment>
+        ))}
         <BreadcrumbItem>
           <BreadcrumbLink asChild>
             <Link href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}`}>
@@ -620,10 +663,21 @@ export function Entry({
       {showHeaderActions && (
         <div className="flex shrink-0 items-center gap-x-2">
           {headerActionsNode}
+          {path && (
+            historyData && historyData.length > 0 && !isLoading
+              ? (
+                <EntryHistoryDropdown
+                  history={historyData}
+                  path={path}
+                  triggerVariant="outline"
+                  triggerSize="icon"
+                />
+              )
+              : <Button variant="outline" size="icon" className="shrink-0" disabled><History /></Button>
+          )}
           <Button
             type="submit"
             form="entry-form"
-            size="sm"
             disabled={
               isBusy ||
               (showFilenameField && filenameValue.trim().length === 0) ||
@@ -648,17 +702,6 @@ export function Entry({
           </Button>
           {path && (
             <ButtonGroup>
-              {historyData && historyData.length > 0 && !isLoading
-                ? (
-                  <EntryHistoryDropdown
-                    history={historyData}
-                    path={path}
-                    triggerVariant="outline"
-                    triggerSize="icon-sm"
-                  />
-                )
-                : <Button variant="outline" size="icon-sm" className="shrink-0" disabled><History /></Button>
-              }
               {sha
                 ? (
                   <FileOptions
@@ -669,12 +712,12 @@ export function Entry({
                     onDelete={handleDelete}
                     onRename={handleRename}
                   >
-                    <Button variant="outline" size="icon-sm" disabled={isBusy}>
+                    <Button variant="outline" size="icon" disabled={isBusy}>
                       <EllipsisVertical />
                     </Button>
                   </FileOptions>
                 )
-                : <Button variant="outline" size="icon-sm" disabled><EllipsisVertical /></Button>
+                : <Button variant="outline" size="icon" disabled><EllipsisVertical /></Button>
               }
             </ButtonGroup>
           )}

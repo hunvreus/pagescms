@@ -55,6 +55,8 @@
     "@tiptap/starter-kit": "^3.20.0",
     "@tiptap/suggestion": "^3.20.0",
     "@uiw/codemirror-theme-github": "^4.22.1",
+    "@uiw/codemirror-theme-vscode": "^4.25.9",
+    "@uiw/codemirror-theme-xcode": "^4.25.9",
     "@uiw/react-codemirror": "^4.22.1",
     "better-auth": "^1.4.18",
     "class-variance-authority": "^0.7.1",

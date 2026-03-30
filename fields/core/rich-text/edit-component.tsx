@@ -107,7 +107,7 @@ const parseMarkdownTarget = (
   const restCandidate = trimmed.slice(firstWhitespace);
   const restTrimmed = restCandidate.trimStart();
   const isTitleTail =
-    restTrimmed.startsWith("\"") ||
+    restTrimmed.startsWith('"') ||
     restTrimmed.startsWith("'") ||
     restTrimmed.startsWith("(");
   if (!isTitleTail) {
@@ -564,7 +564,11 @@ const EditComponent = forwardRef(
 
         return new Promise<{ kind: "url"; src: string } | null>((resolve) => {
           context.editor.commands.blur();
-          pendingImageSelectionRef.current = { context, resolve, settled: false };
+          pendingImageSelectionRef.current = {
+            context,
+            resolve,
+            settled: false,
+          };
           requestAnimationFrame(() => {
             mediaDialogRef.current?.open();
           });
@@ -582,20 +586,21 @@ const EditComponent = forwardRef(
         imageSubmitInFlightRef.current = true;
         try {
           const pending = pendingImageSelectionRef.current;
-          const sources = await Promise.all(images.map((image) => toDisplayImageUrl(image)));
+          const sources = await Promise.all(
+            images.map((image) => toDisplayImageUrl(image)),
+          );
 
           if (images.length === 1 || !pending?.context) {
             resolvePendingImageSelection({ kind: "url", src: sources[0] });
             return;
           }
 
-          const content = sources.map((src) => ({ type: "image", attrs: { src } }));
+          const content = sources.map((src) => ({
+            type: "image",
+            attrs: { src },
+          }));
 
-          pending.context.editor
-            .chain()
-            .focus()
-            .insertContent(content)
-            .run();
+          pending.context.editor.chain().focus().insertContent(content).run();
           resolvePendingImageSelection(null);
         } finally {
           imageSubmitInFlightRef.current = false;
@@ -637,9 +642,10 @@ const EditComponent = forwardRef(
           reader.readAsDataURL(file);
         });
         const content = dataUrl.replace(/^(.+,)/, "");
-        const uploadFilename = (options.rename ?? mediaConfig.rename)
-          ? generateRandomUploadName(extension)
-          : file.name;
+        const uploadFilename =
+          (options.rename ?? mediaConfig.rename)
+            ? generateRandomUploadName(extension)
+            : file.name;
         const targetPath = joinPathSegments([
           rootPath ?? mediaConfig.input,
           uploadFilename,
@@ -686,7 +692,7 @@ const EditComponent = forwardRef(
     );
 
     const triggerClass = cn(
-      "relative inline-flex h-[calc(100%-1px)] items-center justify-center whitespace-nowrap border border-transparent px-2 text-[11px] text-foreground/60 transition-all",
+      "relative inline-flex h-[calc(100%-1px)] items-center justify-center whitespace-nowrap border border-transparent px-2 text-xs text-foreground/60 transition-all",
       "hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring",
       "disabled:pointer-events-none disabled:opacity-50",
       "dark:text-muted-foreground dark:hover:text-foreground",
@@ -728,9 +734,7 @@ const EditComponent = forwardRef(
     return (
       <div className="space-y-2">
         {showSwitcher && !labelSlotEl && (
-          <div className="flex items-center justify-end">
-            {switcherNode}
-          </div>
+          <div className="flex items-center justify-end">{switcherNode}</div>
         )}
         {showSwitcher &&
           labelSlotEl &&
@@ -743,32 +747,32 @@ const EditComponent = forwardRef(
           !hasHydratedEditor && isTransforming ? (
             <Skeleton className="h-40 w-full rounded-md" />
           ) : (
-          <Editor
-            value={editorValue}
-            onChange={(nextValue) => {
-              if (nextValue === syncedEditorValueRef.current) return;
-              if (!editorDirtyRef.current && name) {
-                // Mark field dirty immediately without running full source/editor transforms on every keystroke.
-                const currentValue = form.getValues(name);
-                form.setValue(name, currentValue, {
-                  shouldDirty: true,
-                  shouldTouch: true,
-                  shouldValidate: false,
-                });
-              }
-              editorDirtyRef.current = true;
-              syncedEditorValueRef.current = nextValue;
-              setEditorValue(nextValue);
-              onChangeRegistered?.();
-            }}
-            format={format}
-            className="cn-editor"
-            enableImagePasteDrop={Boolean(mediaConfig)}
-            onUploadImage={mediaConfig ? handleUploadImage : undefined}
-            onRequestImage={mediaConfig ? handleRequestImage : undefined}
-            onPendingUploadsChange={setPendingUploads}
-            disabled={isReadonly}
-          />
+            <Editor
+              value={editorValue}
+              onChange={(nextValue) => {
+                if (nextValue === syncedEditorValueRef.current) return;
+                if (!editorDirtyRef.current && name) {
+                  // Mark field dirty immediately without running full source/editor transforms on every keystroke.
+                  const currentValue = form.getValues(name);
+                  form.setValue(name, currentValue, {
+                    shouldDirty: true,
+                    shouldTouch: true,
+                    shouldValidate: false,
+                  });
+                }
+                editorDirtyRef.current = true;
+                syncedEditorValueRef.current = nextValue;
+                setEditorValue(nextValue);
+                onChangeRegistered?.();
+              }}
+              format={format}
+              className="cn-editor"
+              enableImagePasteDrop={Boolean(mediaConfig)}
+              onUploadImage={mediaConfig ? handleUploadImage : undefined}
+              onRequestImage={mediaConfig ? handleRequestImage : undefined}
+              onPendingUploadsChange={setPendingUploads}
+              disabled={isReadonly}
+            />
           )
         ) : (
           <Textarea

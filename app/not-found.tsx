@@ -10,7 +10,7 @@ export default function NotFound() {
         <EmptyDescription>The page or resource you requested could not be found.</EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
-        <Link className={buttonVariants({ variant: "default", size: "sm" })} href="/">
+        <Link className={buttonVariants({ variant: "default" })} href="/">
           Go home
         </Link>
       </EmptyContent>

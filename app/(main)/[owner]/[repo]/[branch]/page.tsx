@@ -38,7 +38,7 @@ export default function Page() {
             </EmptyHeader>
             <EmptyContent>
               <Link
-                className={buttonVariants({ variant: "default", size: "sm" })}
+                className={buttonVariants({ variant: "default" })}
                 href={`https://github.com/${config?.owner}/${config?.repo}/edit/${encodeURIComponent(config!.branch)}/.pages.yml`}
               >
                 Edit configuration on GitHub

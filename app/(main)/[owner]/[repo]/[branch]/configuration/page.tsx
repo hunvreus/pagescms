@@ -66,7 +66,7 @@ export default function Page() {
               <Button
                 asChild
                 variant="ghost"
-                size="icon-sm"
+                size="icon"
                 className="text-muted-foreground hover:text-foreground"
               >
                 <Link

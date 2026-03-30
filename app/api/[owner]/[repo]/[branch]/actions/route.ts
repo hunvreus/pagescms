@@ -212,21 +212,61 @@ export async function GET(
     const contextName = url.searchParams.get("contextName");
     const contextPath = url.searchParams.get("contextPath");
 
-    if (actionNames.length === 0 || !contextType) {
+    const listAll = url.searchParams.get("all") === "1";
+
+    if (!listAll && (actionNames.length === 0 || !contextType)) {
       throw createHttpError("actionNames and contextType are required.", 400);
     }
 
     const rows = await db.select().from(actionRunTable)
-      .where(buildContextWhere({
-        owner: params.owner,
-        repo: params.repo,
-        ref: params.branch,
-        actionNames,
-        contextType,
-        contextName,
-        contextPath,
-      }))
+      .where(
+        listAll
+          ? and(
+            eq(actionRunTable.owner, params.owner),
+            eq(actionRunTable.repo, params.repo),
+            eq(actionRunTable.ref, params.branch),
+          )
+          : buildContextWhere({
+            owner: params.owner,
+            repo: params.repo,
+            ref: params.branch,
+            actionNames,
+            contextType,
+            contextName,
+            contextPath,
+          }),
+      )
       .orderBy(desc(actionRunTable.createdAt));
+
+    if (listAll) {
+      const topRows = rows.slice(0, 100);
+      const syncedRows = await Promise.all(topRows.map((row) => syncActionRun(octokit, row)));
+
+      return Response.json({
+        status: "success",
+        message: "Action runs fetched successfully.",
+        data: syncedRows.map((row) => ({
+          id: row.id,
+          actionName: row.actionName,
+          contextType: row.contextType,
+          contextName: row.contextName,
+          contextPath: row.contextPath,
+          workflowRef: row.workflowRef,
+          sha: row.sha,
+          status: row.status,
+          conclusion: row.conclusion,
+          htmlUrl: row.htmlUrl,
+          workflowRunId: row.workflowRunId,
+          triggeredByName: (row.triggeredBy as { name?: string | null } | null)?.name ?? null,
+          triggeredByEmail: (row.triggeredBy as { email?: string | null } | null)?.email ?? null,
+          triggeredByGithubUsername: (row.triggeredBy as { githubUsername?: string | null } | null)?.githubUsername ?? null,
+          triggeredByImage: (row.triggeredBy as { image?: string | null } | null)?.image ?? null,
+          createdAt: row.createdAt?.toISOString() ?? null,
+          updatedAt: row.updatedAt?.toISOString() ?? null,
+          completedAt: row.completedAt?.toISOString() ?? null,
+        })),
+      });
+    }
 
     const topRowsByAction = actionNames.reduce<Record<string, typeof rows>>((accumulator, actionName) => {
       accumulator[actionName] = rows
@@ -254,11 +294,19 @@ export async function GET(
           .map((row) => ({
             id: row.id,
             actionName: row.actionName,
+            contextType: row.contextType,
+            contextName: row.contextName,
+            contextPath: row.contextPath,
+            workflowRef: row.workflowRef,
+            sha: row.sha,
             status: row.status,
             conclusion: row.conclusion,
             htmlUrl: row.htmlUrl,
             workflowRunId: row.workflowRunId,
             triggeredByName: (row.triggeredBy as { name?: string | null } | null)?.name ?? null,
+            triggeredByEmail: (row.triggeredBy as { email?: string | null } | null)?.email ?? null,
+            triggeredByGithubUsername: (row.triggeredBy as { githubUsername?: string | null } | null)?.githubUsername ?? null,
+            triggeredByImage: (row.triggeredBy as { image?: string | null } | null)?.image ?? null,
             createdAt: row.createdAt?.toISOString() ?? null,
             updatedAt: row.updatedAt?.toISOString() ?? null,
             completedAt: row.completedAt?.toISOString() ?? null,
@@ -293,6 +341,7 @@ export async function POST(
         path?: string | null;
         data?: Record<string, unknown>;
       };
+      inputs?: Record<string, string | number | boolean>;
     };
 
     const action = body.action;
@@ -326,6 +375,7 @@ export async function POST(
         name: user.name,
         email: user.email,
         githubUsername: user.githubUsername ?? null,
+        image: user.image ?? null,
       },
       context: {
         type: actionContext.kind,
@@ -333,6 +383,7 @@ export async function POST(
         path: actionContext.path ?? null,
         data: actionContext.data ?? {},
       },
+      inputs: body.inputs ?? {},
     };
 
     const [createdRun] = await db.insert(actionRunTable).values({

@@ -2,9 +2,11 @@
 
 import { forwardRef, useCallback, useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MediaUpload } from "@/components/media/media-upload";
 import { MediaDialog } from "@/components/media/media-dialog";
-import { Upload, File, FileText, FileVideo, FileImage, FileAudio, FileArchive, FileCode, FileType, FileSpreadsheet, GripVertical, FolderOpen, ArrowUpRight, EllipsisVertical } from "lucide-react";
+import { Upload, File, FileText, FileVideo, FileImage, FileAudio, FileArchive, FileCode, FileType, FileSpreadsheet, GripVertical, FolderOpen, ArrowUpRight, Trash2 } from "lucide-react";
 import { useConfig } from "@/contexts/config-context";
 import { getFileExtension, getFileName, extensionCategories, normalizeMediaPath, normalizePath } from "@/lib/utils/file";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
@@ -15,13 +17,6 @@ import { getSchemaByName } from "@/lib/schema";
 import type { Config } from "@/types/config";
 import type { Field } from "@/types/field";
 import type { FileSaveData } from "@/types/api";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 const generateId = () => crypto.randomUUID().replace(/-/g, "").slice(0, 8);
 
@@ -65,37 +60,40 @@ const FileTeaser = ({ file, config, onRemove, getFileIcon }: {
         {getFileName(file)}
       </div>
 
-      <DropdownMenu modal={false}>
-        <DropdownMenuTrigger asChild>
-          <Button type="button" variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-            <EllipsisVertical />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem asChild>
-            <a
-              href={`https://github.com/${config.owner}/${config.repo}/blob/${config.branch}/${file}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full"
-            >
-              View on GitHub
-              <ArrowUpRight className="size-3 ml-auto" />
-            </a>
-          </DropdownMenuItem>
-          {onRemove && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                variant="destructive"
-                onSelect={onRemove}
+      <ButtonGroup>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button type="button" variant="ghost" size="icon" asChild className="text-muted-foreground hover:text-foreground">
+              <a
+                href={`https://github.com/${config.owner}/${config.repo}/blob/${config.branch}/${file}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`View ${getFileName(file)} on GitHub`}
               >
-                Remove
-              </DropdownMenuItem>
-            </>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+                <ArrowUpRight />
+              </a>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>View on GitHub</TooltipContent>
+        </Tooltip>
+        {onRemove && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-foreground"
+                onClick={onRemove}
+                aria-label={`Remove ${getFileName(file)}`}
+              >
+                <Trash2 />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Remove</TooltipContent>
+          </Tooltip>
+        )}
+      </ButtonGroup>
     </>
   )
 };

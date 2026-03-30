@@ -221,7 +221,7 @@ export function RepoSelect({
                     href={selectedAccountInstallationUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className={buttonVariants({ variant: "outline", size: "sm" })}
+                    className={buttonVariants({ variant: "outline" })}
                   >
                     Manage GitHub App
                   </a>
