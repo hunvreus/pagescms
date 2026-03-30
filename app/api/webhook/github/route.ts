@@ -301,8 +301,9 @@ const processWebhookEvent = async (event: string | null, data: any) => {
         });
 
         await clearFileCache(pushOwner, pushRepo, pushBranch);
+        await deleteCacheFileMeta(pushOwner, pushRepo, pushBranch);
         await upsertCacheFileMeta(pushOwner, pushRepo, pushBranch, {
-          sha: commit.sha,
+          commitSha: commit.sha,
           status: "ok",
           error: null,
         });
@@ -323,8 +324,9 @@ const processWebhookEvent = async (event: string | null, data: any) => {
         });
 
         await clearScopedFileCache(pushOwner, pushRepo, pushBranch, uniqueChangedPaths);
+        await deleteCacheFileMeta(pushOwner, pushRepo, pushBranch);
         await upsertCacheFileMeta(pushOwner, pushRepo, pushBranch, {
-          sha: commit.sha,
+          commitSha: commit.sha,
           status: "ok",
           error: null,
         });
@@ -354,7 +356,7 @@ const processWebhookEvent = async (event: string | null, data: any) => {
       );
 
       await upsertCacheFileMeta(pushOwner, pushRepo, pushBranch, {
-        sha: commit.sha,
+        commitSha: commit.sha,
         status: "ok",
         error: null,
       });

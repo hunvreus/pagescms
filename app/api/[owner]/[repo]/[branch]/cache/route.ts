@@ -7,7 +7,7 @@ import {
   clearPermissionCache,
   ensureFileCacheFreshness,
 } from "@/lib/github-cache";
-import { getCacheFileMeta, upsertCacheFileMeta } from "@/lib/cache-file-meta";
+import { deleteCacheFileMeta, getCacheFileMeta, upsertCacheFileMeta } from "@/lib/cache-file-meta";
 import { getConfig } from "@/lib/utils/config";
 import { createHttpError, toErrorResponse } from "@/lib/api-error";
 import { isCacheEnabled } from "@/lib/config-settings";
@@ -140,8 +140,9 @@ export async function POST(
         });
       case "clear-file-cache":
         await clearFileCache(params.owner, params.repo, params.branch);
+        await deleteCacheFileMeta(params.owner, params.repo, params.branch);
         await upsertCacheFileMeta(params.owner, params.repo, params.branch, {
-          sha: null,
+          commitSha: null,
           status: "ok",
           error: null,
         });
@@ -186,8 +187,9 @@ export async function POST(
         });
       case "clear-all-cache":
         await clearFileCache(params.owner, params.repo, params.branch);
+        await deleteCacheFileMeta(params.owner, params.repo, params.branch);
         await upsertCacheFileMeta(params.owner, params.repo, params.branch, {
-          sha: null,
+          commitSha: null,
           status: "ok",
           error: null,
         });

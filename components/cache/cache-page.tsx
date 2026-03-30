@@ -37,7 +37,7 @@ import { requireApiSuccess } from "@/lib/api-client";
 
 type CacheStatusPayload = {
   fileMeta: {
-    sha: string | null;
+    commitSha: string | null;
     status: string;
     error: string | null;
     updatedAt: string;
@@ -266,7 +266,7 @@ export function CachePage({
   useRepoHeader({ header: headerNode });
 
   const remoteSha = data?.branchHeadSha ?? null;
-  const localSha = data?.fileMeta?.sha ?? null;
+  const localSha = data?.fileMeta?.commitSha ?? null;
   const isOutOfSync = !!remoteSha && !!localSha && remoteSha !== localSha;
   const canReconcile = !!data && isOutOfSync;
   const shortSha = (sha: string | null | undefined) =>

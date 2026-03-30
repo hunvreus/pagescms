@@ -122,6 +122,10 @@ const CommitTemplatesSchema = z
   })
   .strict();
 
+const CommitIdentitySchema = z.enum(["app", "user"], {
+  message: "'identity' must be either 'app' or 'user'.",
+});
+
 // Media configuration object schema (for single object)
 const MediaConfigObject = z
   .object({
@@ -184,6 +188,7 @@ const MediaConfigObject = z
       .object(
         {
           templates: CommitTemplatesSchema.optional(),
+          identity: CommitIdentitySchema.optional(),
         },
         {
           message: "'commit' must be an object.",
@@ -678,6 +683,7 @@ const ContentLeafSchema = z
       .object(
         {
           templates: CommitTemplatesSchema.optional(),
+          identity: CommitIdentitySchema.optional(),
         },
         {
           message: "'commit' must be an object.",
@@ -791,6 +797,7 @@ const ConfigSchema = z
                 .object(
                   {
                     templates: CommitTemplatesSchema.optional(),
+                    identity: CommitIdentitySchema.optional(),
                   },
                   {
                     message: "'commit' must be an object.",

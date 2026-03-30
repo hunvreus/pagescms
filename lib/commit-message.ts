@@ -2,6 +2,7 @@ import { getFileName, normalizePath } from "@/lib/utils/file";
 
 type CommitAction = "create" | "update" | "delete" | "rename";
 type CommitTemplates = Partial<Record<CommitAction, string>>;
+type CommitIdentity = "app" | "user";
 
 const defaultCommitTemplates: Record<CommitAction, string> = {
   create: "Create {path} (via Pages CMS)",
@@ -13,6 +14,19 @@ const defaultCommitTemplates: Record<CommitAction, string> = {
 const getCommitTemplates = (configObject?: Record<string, any>): CommitTemplates => {
   const templates = configObject?.settings?.commit?.templates;
   return templates && typeof templates === "object" ? templates : {};
+};
+
+const resolveCommitIdentity = ({
+  configObject,
+  identityOverride,
+}: {
+  configObject?: Record<string, any>;
+  identityOverride?: CommitIdentity;
+}): CommitIdentity => {
+  if (identityOverride === "app" || identityOverride === "user") return identityOverride;
+
+  const identity = configObject?.settings?.commit?.identity;
+  return identity === "user" ? "user" : "app";
 };
 
 const renderCommitTemplate = (
@@ -93,4 +107,4 @@ const resolveCommitMessage = ({
   return renderCommitTemplate(template, tokens).replace(/\s+/g, " ").trim().slice(0, 200);
 };
 
-export { buildCommitTokens, resolveCommitMessage };
+export { buildCommitTokens, resolveCommitIdentity, resolveCommitMessage };

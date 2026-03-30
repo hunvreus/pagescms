@@ -121,7 +121,7 @@ const cacheFileTable = pgTable("cache_file", {
   downloadUrl: text("download_url"),
   commitSha: text('commit_sha'),
   commitTimestamp: timestamp('commit_timestamp'),
-  lastUpdated: timestamp("last_updated").notNull()
+  updatedAt: timestamp("updated_at").notNull()
 }, table => ({
   idx_cache_file_owner_repo_branch_parentPath: index("idx_cache_file_owner_repo_branch_parentPath").on(table.owner, table.repo, table.branch, table.parentPath),
   idx_cache_file_owner_repo_branch_path: uniqueIndex("idx_cache_file_owner_repo_branch_path").on(table.owner, table.repo, table.branch, table.path)
@@ -132,13 +132,18 @@ const cacheFileMetaTable = pgTable("cache_file_meta", {
   owner: text("owner").notNull(),
   repo: text("repo").notNull(),
   branch: text("branch").notNull(),
-  sha: text("sha"),
+  path: text("path").notNull().default(""),
+  context: text("context").notNull().default("branch"),
+  commitSha: text("commit_sha"),
+  commitTimestamp: timestamp("commit_timestamp"),
+  targetCommitSha: text("target_commit_sha"),
+  targetCommitTimestamp: timestamp("target_commit_timestamp"),
   status: text("status").notNull().default("ok"),
   error: text("error"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   lastCheckedAt: timestamp("last_checked_at").notNull().defaultNow(),
 }, table => ({
-  idx_cache_file_meta_owner_repo_branch: uniqueIndex("idx_cache_file_meta_owner_repo_branch").on(table.owner, table.repo, table.branch)
+  idx_cache_file_meta_owner_repo_branch_path_context: uniqueIndex("idx_cache_file_meta_owner_repo_branch_path_context").on(table.owner, table.repo, table.branch, table.path, table.context)
 }));
 
 const cachePermissionTable = pgTable("cache_permission", {

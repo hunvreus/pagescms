@@ -6,7 +6,7 @@ import { getToken } from "@/lib/token";
 import { updateFileCache } from "@/lib/github-cache";
 import { toErrorResponse } from "@/lib/api-error";
 import { getBranchHeadSha, setBranchHeadSha } from "@/lib/github-cache";
-import { buildCommitTokens, resolveCommitMessage } from "@/lib/commit-message";
+import { buildCommitTokens, resolveCommitIdentity, resolveCommitMessage } from "@/lib/commit-message";
 import { requireApiUserSession } from "@/lib/session-server";
 
 /**
@@ -27,14 +27,8 @@ export async function POST(
     if ("response" in sessionResult) return sessionResult.response;
     const user = sessionResult.user;
 
-    const { token, source } = await getToken(user, params.owner, params.repo, true);
+    const { token } = await getToken(user, params.owner, params.repo, true);
     if (!token) throw new Error("Token not found");
-    const committer = source === "installation"
-      ? {
-          name: user.name?.trim() || user.email,
-          email: user.email,
-        }
-      : undefined;
 
     if (params.path === ".pages.yml") throw new Error(`Renaming the settings file isn't allowed.`);
 
@@ -55,6 +49,7 @@ export async function POST(
 
     let schema;
     let schemaCommitTemplates: Record<string, string> | undefined;
+    let schemaCommitIdentity: "app" | "user" | undefined;
 
     switch (data.type) {
       case "content":
@@ -63,6 +58,7 @@ export async function POST(
         schema = getSchemaByName(config.object, data.name);
         if (!schema) throw new Error(`Content schema not found for ${data.name}.`);
         schemaCommitTemplates = schema?.commit?.templates;
+        schemaCommitIdentity = schema?.commit?.identity;
 
         if (schema.type === "file") throw new Error(`Renaming content of type "file" isn't allowed.`);
         
@@ -78,6 +74,7 @@ export async function POST(
         schema = getSchemaByName(config.object, data.name, "media");
         if (!schema) throw new Error(`Media schema not found for ${data.name}.`);
         schemaCommitTemplates = schema?.commit?.templates;
+        schemaCommitIdentity = schema?.commit?.identity;
         
         if (!normalizedPath.startsWith(schema.input)) throw new Error(`Invalid path "${params.path}" for media.`);
         if (!normalizedNewPath.startsWith(schema.input)) throw new Error(`Invalid path "${data.newPath}" for media.`);
@@ -92,6 +89,20 @@ export async function POST(
         ) throw new Error(`Invalid extension "${getFileExtension(normalizedNewPath)}" for media.`);
         break;
     }
+
+    const commitIdentity = resolveCommitIdentity({
+      configObject: config.object,
+      identityOverride: schemaCommitIdentity,
+    });
+    const committer = (
+      commitIdentity === "user" &&
+      user.email
+    )
+      ? {
+          name: user.name?.trim() || user.email,
+          email: user.email,
+        }
+      : undefined;
     
     const response = await githubRenameFile(
       token,
