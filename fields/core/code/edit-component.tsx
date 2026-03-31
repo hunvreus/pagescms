@@ -28,6 +28,11 @@ const EditComponent = forwardRef((props: any, ref: any) => {
       case "yml":
         exts.push(StreamLanguage.define(yaml));
         break;
+      case "mdx":
+        exts.push(
+          markdown({ base: markdownLanguage, codeLanguages: languages }),
+        );
+        break;
       case "javascript":
       case "js":
       case "jsx":
