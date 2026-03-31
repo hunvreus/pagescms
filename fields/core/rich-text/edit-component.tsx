@@ -32,8 +32,8 @@ import {
 import {
   decodePathSafely,
   extensionCategories,
-  generateRandomUploadName,
   getFileExtension,
+  getUploadFileName,
   joinPathSegments,
   normalizeMediaPath,
   normalizePath,
@@ -47,7 +47,7 @@ type MediaSchema = {
   input: string;
   output: string;
   extensions?: string[];
-  rename?: boolean;
+  rename?: boolean | "safe" | "random";
 };
 
 type FieldOptions = {
@@ -57,7 +57,7 @@ type FieldOptions = {
   path?: string;
   extensions?: string[];
   categories?: string[];
-  rename?: boolean;
+  rename?: boolean | "safe" | "random";
 };
 
 type EditProps = {
@@ -83,6 +83,34 @@ const isExternalUrl = (value: string) =>
 const isDataUrl = (value: string) => value.startsWith("data:");
 const isAbsolutePath = (value: string) => value.startsWith("/");
 
+const isValidMarkdownTitle = (value: string) => {
+  if (!value) return false;
+
+  const first = value[0];
+  const last = value[value.length - 1];
+  if (first === '"' && last === '"') return true;
+  if (first === "'" && last === "'") return true;
+  if (first !== "(" || last !== ")") return false;
+
+  let depth = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    const char = value[i];
+
+    if (char === "\\") {
+      i += 1;
+      continue;
+    }
+
+    if (char === "(") depth += 1;
+    if (char === ")") depth -= 1;
+
+    if (depth === 0 && i < value.length - 1) return false;
+    if (depth < 0) return false;
+  }
+
+  return depth === 0;
+};
+
 const parseMarkdownTarget = (
   target: string,
 ): { url: string; rest: string; wrapped: boolean } => {
@@ -98,27 +126,21 @@ const parseMarkdownTarget = (
     }
   }
 
-  const firstWhitespace = trimmed.search(/\s/);
-  if (firstWhitespace < 0) return { url: trimmed, rest: "", wrapped: false };
+  for (let i = trimmed.length - 1; i >= 0; i -= 1) {
+    if (!/\s/.test(trimmed[i])) continue;
 
-  // Markdown allows optional image/link titles after the destination, but
-  // only when the tail starts with a title delimiter. Otherwise whitespace
-  // belongs to the URL (e.g. filenames with spaces).
-  const restCandidate = trimmed.slice(firstWhitespace);
-  const restTrimmed = restCandidate.trimStart();
-  const isTitleTail =
-    restTrimmed.startsWith('"') ||
-    restTrimmed.startsWith("'") ||
-    restTrimmed.startsWith("(");
-  if (!isTitleTail) {
-    return { url: trimmed, rest: "", wrapped: false };
+    const restCandidate = trimmed.slice(i);
+    const restTrimmed = restCandidate.trimStart();
+    if (!isValidMarkdownTitle(restTrimmed)) continue;
+
+    return {
+      url: trimmed.slice(0, i),
+      rest: restCandidate,
+      wrapped: false,
+    };
   }
 
-  return {
-    url: trimmed.slice(0, firstWhitespace),
-    rest: restCandidate,
-    wrapped: false,
-  };
+  return { url: trimmed, rest: "", wrapped: false };
 };
 
 const formatMarkdownTarget = (url: string, rest: string, wrapped: boolean) => {
@@ -444,12 +466,17 @@ const EditComponent = forwardRef(
       (url: string) => {
         if (!config || !mediaConfig) return url;
         if (!url) return url;
+        if (isExternalUrl(url) && !url.startsWith("https://raw.githubusercontent.com/")) {
+          return url;
+        }
 
-        const relativePath = url.startsWith(
-          "https://raw.githubusercontent.com/",
-        )
-          ? getRelativeUrl(config.owner, config.repo, config.branch, url, false)
-          : url;
+        const relativePath = getRelativeUrl(
+          config.owner,
+          config.repo,
+          config.branch,
+          url,
+          false,
+        );
         const normalizedRelativePath = normalizeMediaPath(
           decodePathSafely(relativePath),
         );
@@ -753,10 +780,10 @@ const EditComponent = forwardRef(
           reader.readAsDataURL(file);
         });
         const content = dataUrl.replace(/^(.+,)/, "");
-        const uploadFilename =
-          (options.rename ?? mediaConfig.rename)
-            ? generateRandomUploadName(extension)
-            : file.name;
+        const uploadFilename = getUploadFileName(
+          file.name,
+          options.rename ?? mediaConfig.rename,
+        );
         const targetPath = joinPathSegments([
           rootPath ?? mediaConfig.input,
           uploadFilename,

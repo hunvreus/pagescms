@@ -184,6 +184,16 @@ const MediaConfigObject = z
         },
       )
       .optional(),
+    rename: z
+      .union([
+        z.boolean({
+          message: "'rename' must be a boolean, 'safe', or 'random'.",
+        }),
+        z.enum(["safe", "random"], {
+          message: "'rename' must be a boolean, 'safe', or 'random'.",
+        }),
+      ])
+      .optional(),
     commit: z
       .object(
         {

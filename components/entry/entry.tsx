@@ -365,22 +365,7 @@ export function Entry({
         
         if (data.data.sha !== sha) setSha(data.data.sha);
         if (submitStartChangeVersion === changeVersionRef.current) {
-          const savedContentObject = schema?.list === true
-            ? contentObject.listWrapper
-            : contentObject;
-          const savedContentSnapshot = JSON.parse(JSON.stringify(savedContentObject));
-          setEntry((prevEntry) => (
-            prevEntry
-              ? { ...prevEntry, contentObject: savedContentSnapshot }
-              : prevEntry
-          ));
           setHasRegisteredChanges(false);
-          if (entryApiUrl) {
-            void mutate(entryApiUrl, {
-              ...data.data,
-              contentObject: savedContentSnapshot,
-            }, { revalidate: false });
-          }
         }
 
         if (!path && schemaType === "collection") router.push(`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}/edit/${encodeURIComponent(data.data.path)}`);

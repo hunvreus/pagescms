@@ -29,7 +29,7 @@ type MediaSchema = {
   name: string;
   input: string;
   extensions?: string[];
-  rename?: boolean;
+  rename?: boolean | "safe" | "random";
 };
 
 type EditorProps = {
@@ -44,7 +44,7 @@ type FieldOptions = {
   multiple?: boolean | { max?: number };
   extensions?: string[];
   categories?: string[];
-  rename?: boolean;
+  rename?: boolean | "safe" | "random";
 };
 
 const FileTeaser = ({ file, config, onRemove, getFileIcon }: { 

@@ -2,7 +2,7 @@
 
 import { useRef, cloneElement, useMemo, useCallback, createContext, useContext, useState } from "react";
 import { useConfig } from "@/contexts/config-context";
-import { getFileExtension, generateRandomUploadName, joinPathSegments } from "@/lib/utils/file";
+import { getUploadFileName, joinPathSegments } from "@/lib/utils/file";
 import { toast } from "sonner";
 import { getSchemaByName } from "@/lib/schema";
 import { cn } from "@/lib/utils";
@@ -25,7 +25,7 @@ interface MediaUploadProps {
   media?: string;
   extensions?: string[];
   multiple?: boolean;
-  rename?: boolean;
+  rename?: boolean | "safe" | "random";
   disabled?: boolean;
 }
 
@@ -66,11 +66,10 @@ function MediaUploadRoot({ children, path, onUpload, media, extensions, multiple
   const handleFiles = useCallback(async (files: File[]) => {
     try {
       for (const file of files) {
-        const effectiveRename = rename ?? Boolean(configMedia?.rename);
-        const extension = getFileExtension(file.name);
-        const uploadFilename = effectiveRename
-          ? generateRandomUploadName(extension)
-          : file.name;
+        const uploadFilename = getUploadFileName(
+          file.name,
+          rename ?? configMedia?.rename,
+        );
 
         const uploadPromise = (async () => {
           const content = await new Promise<string>((resolve, reject) => {

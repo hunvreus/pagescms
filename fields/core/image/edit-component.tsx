@@ -31,7 +31,7 @@ type MediaSchema = {
   name: string;
   input: string;
   extensions?: string[];
-  rename?: boolean;
+  rename?: boolean | "safe" | "random";
 };
 
 type EditorProps = {
@@ -44,7 +44,7 @@ type FieldOptions = {
   media?: false | string;
   path?: string;
   multiple?: boolean | { max?: number };
-  rename?: boolean;
+  rename?: boolean | "safe" | "random";
 };
 
 const ImageTeaser = ({ file, config, onRemove }: { 

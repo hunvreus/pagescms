@@ -82,6 +82,7 @@ const clearScopedFileCache = async (
 ) => {
   const uniqueChangedPaths = Array.from(new Set(changedPaths.filter(Boolean)));
   const affectedParentPaths = getAffectedParentPaths(uniqueChangedPaths);
+  await deleteCacheFileMetaByPaths(owner, repo, branch, affectedParentPaths);
   const whereBase = and(
     eq(cacheFileTable.owner, owner.toLowerCase()),
     eq(cacheFileTable.repo, repo.toLowerCase()),
@@ -105,8 +106,6 @@ const clearScopedFileCache = async (
       ),
     );
   }
-
-  await deleteCacheFileMetaByPaths(owner, repo, branch, affectedParentPaths);
 };
 
 const processWebhookEvent = async (event: string | null, data: any) => {

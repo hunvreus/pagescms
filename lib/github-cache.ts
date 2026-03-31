@@ -7,7 +7,7 @@ import { eq, and, inArray, gt, count, min, sql } from "drizzle-orm";
 import { cacheFileTable, cachePermissionTable } from "@/db/schema";
 import { createOctokitInstance } from "@/lib/utils/octokit";
 import { getParentPath } from "@/lib/utils/file";
-import { deleteCacheFileMeta, deleteCacheFileMetaByPaths, getCacheFileMeta, upsertCacheFileMeta } from "@/lib/cache-file-meta";
+import { deleteCacheFileMeta, deleteCacheFileMetaByPaths, getCacheFileMeta, tryClaimCacheFileMeta, upsertCacheFileMeta } from "@/lib/cache-file-meta";
 import { Repo } from "@/types/repo";
 import path from "path";
 
@@ -371,6 +371,41 @@ const markFolderScopeError = async (
     targetCommitSha: null,
     targetCommitTimestamp: null,
   });
+};
+
+const claimFolderScopes = async (
+  owner: string,
+  repo: string,
+  branch: string,
+  context: Exclude<CacheScopeContext, "branch">,
+  folderPaths: string[],
+  commit?: { sha: string; timestamp: number },
+) => {
+  const claimed: string[] = [];
+  const targetCommitTimestamp = commit?.timestamp
+    ? new Date(commit.timestamp)
+    : null;
+
+  for (const folderPath of [...new Set(folderPaths)].sort()) {
+    const acquired = await tryClaimCacheFileMeta(owner, repo, branch, {
+      path: folderPath,
+      context,
+      targetCommitSha: commit?.sha ?? null,
+      targetCommitTimestamp,
+      error: null,
+    });
+
+    if (!acquired) {
+      if (claimed.length > 0) {
+        await invalidateFolderScopes(owner, repo, branch, claimed);
+      }
+      return false;
+    }
+
+    claimed.push(folderPath);
+  }
+
+  return true;
 };
 
 const reconcileFileCache = async (
@@ -821,14 +856,19 @@ const updateMultipleFilesCache = async (
   }
 
   if (affectedFolderPaths.length > 0) {
-    await Promise.all([
+    const [claimedCollection, claimedMedia] = await Promise.all([
       collectionFolderPaths.size > 0
-        ? markFolderScopesSyncing(owner, repo, branch, "collection", Array.from(collectionFolderPaths), commit)
-        : Promise.resolve(),
+        ? claimFolderScopes(owner, repo, branch, "collection", Array.from(collectionFolderPaths), commit)
+        : Promise.resolve(true),
       mediaFolderPaths.size > 0
-        ? markFolderScopesSyncing(owner, repo, branch, "media", Array.from(mediaFolderPaths), commit)
-        : Promise.resolve(),
+        ? claimFolderScopes(owner, repo, branch, "media", Array.from(mediaFolderPaths), commit)
+        : Promise.resolve(true),
     ]);
+
+    if (!claimedCollection || !claimedMedia) {
+      await invalidateFolderScopes(owner, repo, branch, affectedFolderPaths);
+      return;
+    }
   }
 
   // 5. Query existing entries for modified/added files if commit info is available
@@ -959,29 +999,27 @@ const updateFileCache = async (
 ) => {
   const lowerOwner = owner.toLowerCase();
   const lowerRepo = repo.toLowerCase();
-  const parentPath = getParentPath(operation.path);
   const folderContext = context === "media" ? "media" : "collection";
-  const affectedFolderPaths = new Set<string>();
-  affectedFolderPaths.add(parentPath);
-  if (operation.type === "rename" && operation.newPath) {
-    const renameParentPath = getParentPath(operation.newPath);
-    affectedFolderPaths.add(renameParentPath);
-  }
+  const changedPaths = operation.type === "rename" && operation.newPath
+    ? [operation.path, operation.newPath]
+    : [operation.path];
+  const affectedFolderPaths = getFolderPathsForChanges(changedPaths);
+  const parentPath = getParentPath(operation.path);
 
-  if (affectedFolderPaths.size > 0) {
-    await Promise.all(Array.from(affectedFolderPaths).map((folderPath) =>
-      waitForScopeReady(owner, repo, branch, getFolderScope(folderContext, folderPath))
-    ));
+  if (affectedFolderPaths.length > 0) {
+    const claimed = await claimFolderScopes(
+      owner,
+      repo,
+      branch,
+      folderContext,
+      affectedFolderPaths,
+      operation.commit,
+    );
+    if (!claimed) {
+      await invalidateFolderScopes(owner, repo, branch, affectedFolderPaths);
+      return;
+    }
   }
-
-  await markFolderScopesSyncing(
-    owner,
-    repo,
-    branch,
-    folderContext,
-    Array.from(affectedFolderPaths),
-    operation.commit,
-  );
 
   try {
     switch (operation.type) {
@@ -1075,7 +1113,7 @@ const updateFileCache = async (
     repo,
     branch,
     folderContext,
-    Array.from(affectedFolderPaths),
+    affectedFolderPaths,
     operation.commit,
   );
 };

@@ -35,8 +35,10 @@ const getRelativeUrl = (
   if (path.startsWith("https://raw.githubusercontent.com/")) {
     const pattern = new RegExp(`^https://raw\\.githubusercontent\\.com/${owner}/${repo}/${encodeURIComponent(branch)}/`, "i");
     relativePath = path.replace(pattern, "");
-    relativePath = relativePath.split("?")[0];
   }
+
+  relativePath = relativePath.split("#")[0]?.split("?")[0] || relativePath;
+  relativePath = decodePathSafely(relativePath);
 
   return encode ? encodePath(relativePath) : relativePath;
 }

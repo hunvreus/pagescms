@@ -19,19 +19,26 @@ import { createHttpError } from "@/lib/api-error";
 const installationTokenRefreshInFlight = new Map<number, Promise<string>>();
 
 // Get a token for a user (including collagborators who need to provide an owner/repo scope).
-const getToken = cache(async (user: User, owner: string, repo: string, verifyGithubAccess: boolean = false) => {
+const getToken = cache(async (
+  user: User,
+  owner: string,
+  repo: string,
+  verifyGithubAccess: boolean = false,
+) => {
   const githubAccount = await getGithubAccount(user.id);
   if (githubAccount?.accessToken) {
-    if (!verifyGithubAccess) return {
-      token: githubAccount.accessToken,
-      source: "user" as const,
-    };
-
     const hasGithubAccess = await canAccessRepoWithToken(githubAccount.accessToken, owner, repo);
     if (hasGithubAccess) return {
       token: githubAccount.accessToken,
       source: "user" as const,
     };
+
+    if (verifyGithubAccess) {
+      throw createHttpError(
+        `You do not have permission to access "${owner}/${repo}".`,
+        403,
+      );
+    }
   }
 
   const permission = await db.query.collaboratorTable.findFirst({
