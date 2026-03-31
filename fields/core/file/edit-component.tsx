@@ -148,9 +148,13 @@ const EditComponent = forwardRef((props: EditorProps, ref: React.Ref<HTMLInputEl
   
   const [files, setFiles] = useState<FileEntry[]>(() => 
     typeof value === "string"
-      ? [{ id: generateId(), path: normalizeMediaPath(value) }]
+      ? (value.trim()
+        ? [{ id: generateId(), path: normalizeMediaPath(value) }]
+        : [])
       : Array.isArray(value)
-        ? value.filter((path): path is string => typeof path === "string").map((path) => ({ id: generateId(), path: normalizeMediaPath(path) }))
+        ? value
+            .filter((path): path is string => typeof path === "string" && path.trim().length > 0)
+            .map((path) => ({ id: generateId(), path: normalizeMediaPath(path) }))
         : []
   );
 
