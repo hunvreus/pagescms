@@ -32,8 +32,8 @@ import {
 import {
   decodePathSafely,
   extensionCategories,
-  generateRandomUploadName,
   getFileExtension,
+  getUploadFileName,
   joinPathSegments,
   normalizeMediaPath,
   normalizePath,
@@ -47,7 +47,7 @@ type MediaSchema = {
   input: string;
   output: string;
   extensions?: string[];
-  rename?: boolean;
+  rename?: boolean | "safe" | "random";
 };
 
 type FieldOptions = {
@@ -57,7 +57,7 @@ type FieldOptions = {
   path?: string;
   extensions?: string[];
   categories?: string[];
-  rename?: boolean;
+  rename?: boolean | "safe" | "random";
 };
 
 type EditProps = {
@@ -780,10 +780,10 @@ const EditComponent = forwardRef(
           reader.readAsDataURL(file);
         });
         const content = dataUrl.replace(/^(.+,)/, "");
-        const uploadFilename =
-          (options.rename ?? mediaConfig.rename)
-            ? generateRandomUploadName(extension)
-            : file.name;
+        const uploadFilename = getUploadFileName(
+          file.name,
+          options.rename ?? mediaConfig.rename,
+        );
         const targetPath = joinPathSegments([
           rootPath ?? mediaConfig.input,
           uploadFilename,

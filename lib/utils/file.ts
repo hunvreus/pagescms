@@ -2,6 +2,8 @@
  * Define file types and provide Helper functions (get file info, get parent path, normalize paths...)
  */
 
+import slugify from "slugify";
+
 const serializedTypes = ["yaml-frontmatter", "json-frontmatter", "toml-frontmatter", "yaml", "json", "toml"];
 
 const extensionCategories: Record<string, string[]> = {
@@ -123,6 +125,34 @@ const generateRandomUploadName = (extension?: string): string => {
   return `${stamp}-${rand}${ext}`;
 };
 
+type UploadRenameMode = boolean | "safe" | "random" | undefined;
+
+const getSafeUploadName = (filename: string): string => {
+  const normalizedName = decodePathSafely(getFileName(filename || ""));
+  const extension = getFileExtension(normalizedName);
+  const baseName = extension
+    ? normalizedName.slice(0, -(extension.length + 1))
+    : normalizedName;
+
+  const safeBaseName = slugify(baseName, {
+    lower: true,
+    strict: true,
+    trim: true,
+  }) || "file";
+
+  const safeExtension = extension ? `.${extension.toLowerCase()}` : "";
+  return `${safeBaseName}${safeExtension}`;
+};
+
+const getUploadFileName = (
+  filename: string,
+  rename: UploadRenameMode,
+): string => {
+  if (rename === false || rename == null) return filename;
+  if (rename === "random") return generateRandomUploadName(getFileExtension(filename));
+  return getSafeUploadName(filename);
+};
+
 const sortFiles = (data: Record<string, any>[]): Record<string, any>[] => {
   return data.sort((a, b) => {
     if (a.type === b.type) {
@@ -143,6 +173,8 @@ export {
   joinPathSegments,
   decodePathSafely,
   generateRandomUploadName,
+  getSafeUploadName,
+  getUploadFileName,
   sortFiles,
   extensionCategories,
   serializedTypes

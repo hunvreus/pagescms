@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, lt, ne, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { cacheFileMetaTable } from "@/db/schema";
 
@@ -13,6 +13,11 @@ const normalizeScope = (scope?: CacheMetaScope) => ({
   path: scope?.path ?? "",
   context: scope?.context ?? "branch",
 });
+
+const CACHE_META_SYNC_STALE_MS = parseInt(
+  process.env.CACHE_META_SYNC_STALE_MS || "15000",
+  10,
+);
 
 const upsertCacheFileMeta = async (
   owner: string,
@@ -83,6 +88,81 @@ const getCacheFileMeta = async (
       eq(cacheFileMetaTable.context, normalizedScope.context),
     ),
   });
+};
+
+const tryClaimCacheFileMeta = async (
+  owner: string,
+  repo: string,
+  branch: string,
+  values: {
+    path?: string;
+    context?: string;
+    commitSha?: string | null;
+    commitTimestamp?: Date | null;
+    targetCommitSha?: string | null;
+    targetCommitTimestamp?: Date | null;
+    error?: string | null;
+    lastCheckedAt?: Date;
+  } = {},
+) => {
+  const now = new Date();
+  const staleBefore = new Date(now.getTime() - CACHE_META_SYNC_STALE_MS);
+  const scope = normalizeScope(values);
+  const row = {
+    owner: owner.toLowerCase(),
+    repo: repo.toLowerCase(),
+    branch,
+    path: scope.path,
+    context: scope.context,
+    commitSha: values.commitSha ?? null,
+    commitTimestamp: values.commitTimestamp ?? null,
+    targetCommitSha: values.targetCommitSha ?? null,
+    targetCommitTimestamp: values.targetCommitTimestamp ?? null,
+    status: "syncing",
+    error: values.error ?? null,
+    updatedAt: now,
+    lastCheckedAt: values.lastCheckedAt ?? now,
+  };
+
+  const scopeWhere = and(
+    sql`lower(${cacheFileMetaTable.owner}) = lower(${owner})`,
+    sql`lower(${cacheFileMetaTable.repo}) = lower(${repo})`,
+    eq(cacheFileMetaTable.branch, branch),
+    eq(cacheFileMetaTable.path, scope.path),
+    eq(cacheFileMetaTable.context, scope.context),
+  );
+
+  const updated = await db
+    .update(cacheFileMetaTable)
+    .set(row)
+    .where(
+      and(
+        scopeWhere,
+        or(
+          ne(cacheFileMetaTable.status, "syncing"),
+          lt(cacheFileMetaTable.updatedAt, staleBefore),
+        ),
+      ),
+    )
+    .returning({ id: cacheFileMetaTable.id });
+
+  if (updated.length > 0) return true;
+
+  const inserted = await db
+    .insert(cacheFileMetaTable)
+    .values(row)
+    .onConflictDoNothing({
+      target: [
+        cacheFileMetaTable.owner,
+        cacheFileMetaTable.repo,
+        cacheFileMetaTable.branch,
+        cacheFileMetaTable.path,
+        cacheFileMetaTable.context,
+      ],
+    })
+    .returning({ id: cacheFileMetaTable.id });
+
+  return inserted.length > 0;
 };
 
 const deleteCacheFileMeta = async (
@@ -157,5 +237,6 @@ export {
   deleteCacheFileMetaByPaths,
   getCacheFileMeta,
   listCacheFileMeta,
+  tryClaimCacheFileMeta,
   upsertCacheFileMeta,
 };

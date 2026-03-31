@@ -103,7 +103,9 @@ type RenderFields = (
   fields: FieldWithReadonlyMeta[],
   parentName?: string,
   registerBeforeSubmitHook?: RegisterBeforeSubmitHook,
+  runBeforeSubmitHooks?: () => Promise<void>,
   inheritedReadonly?: boolean,
+  keyPrefix?: string,
 ) => React.ReactNode[];
 
 type NestedFieldProps = {
@@ -114,6 +116,7 @@ type NestedFieldProps = {
   isOpen?: boolean;
   onToggleOpen?: () => void;
   index?: number;
+  keyPrefix?: string;
 };
 
 const hasFieldPathError = (errors: unknown, fieldName: string): boolean => {
@@ -246,6 +249,7 @@ const ListItemRow = memo(function ListItemRow({
         <SingleField
           field={field}
           fieldName={`${fieldName}.${index}`}
+          keyPrefix={id}
           renderFields={renderFields}
           registerBeforeSubmitHook={registerBeforeSubmitHook}
           showLabel={false}
@@ -300,11 +304,13 @@ const ListField = ({
   fieldName,
   renderFields,
   registerBeforeSubmitHook,
+  runBeforeSubmitHooks,
 }: {
   field: FieldWithReadonlyMeta;
   fieldName: string;
   renderFields: RenderFields;
   registerBeforeSubmitHook?: RegisterBeforeSubmitHook;
+  runBeforeSubmitHooks?: () => Promise<void>;
 }) => {
   const supportsItemCollapse =
     field.type === "object" || field.type === "block";
@@ -364,7 +370,7 @@ const ListField = ({
     );
   }, []);
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     if (isReadonly) return;
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -374,12 +380,14 @@ const ListField = ({
 
     if (oldIndex < 0 || newIndex < 0) return;
 
+    await runBeforeSubmitHooks?.();
     setOpenStates((prev) => arrayMove(prev, oldIndex, newIndex));
     move(oldIndex, newIndex);
   };
 
-  const addItem = () => {
+  const addItem = async () => {
     if (isReadonly) return;
+    await runBeforeSubmitHooks?.();
     append(
       field.type === "object"
         ? initializeState(field.fields, {})
@@ -389,14 +397,15 @@ const ListField = ({
   };
 
   const removeItem = useCallback(
-    (index: number) => {
+    async (index: number) => {
       if (isReadonly) return;
+      await runBeforeSubmitHooks?.();
       remove(index);
       setOpenStates((prev) =>
         prev.filter((_, currentIndex) => currentIndex !== index),
       );
     },
-    [isReadonly, remove],
+    [isReadonly, remove, runBeforeSubmitHooks],
   );
   const [pendingRemoveIndex, setPendingRemoveIndex] = useState<number | null>(
     null,
@@ -559,6 +568,7 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>(
       isOpen,
       onToggleOpen,
       index,
+      keyPrefix,
     } = props;
 
     const isCollapsible = !!(
@@ -727,7 +737,9 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>(
                     selectedBlockDefinition.fields || [],
                     fieldName,
                     registerBeforeSubmitHook,
+                    undefined,
                     isReadonly,
+                    keyPrefix,
                   );
                   return renderedElements;
                 })()
@@ -743,6 +755,7 @@ const BlocksField = forwardRef<HTMLDivElement, NestedFieldProps>(
                       : selectedBlockDefinition
                   }
                   fieldName={fieldName}
+                  keyPrefix={keyPrefix}
                   renderFields={renderFields}
                   registerBeforeSubmitHook={registerBeforeSubmitHook}
                   showLabel={false}
@@ -782,6 +795,7 @@ const ObjectField = forwardRef<HTMLDivElement, NestedFieldProps>(
       isOpen = true,
       onToggleOpen = () => {},
       index,
+      keyPrefix,
     } = props;
 
     const isCollapsible = !!(
@@ -839,7 +853,9 @@ const ObjectField = forwardRef<HTMLDivElement, NestedFieldProps>(
             field.fields || [],
             fieldName,
             registerBeforeSubmitHook,
+            undefined,
             Boolean(field.readonly),
+            keyPrefix,
           )}
         </div>
       </div>
@@ -859,6 +875,7 @@ const SingleField = ({
   isOpen = true,
   toggleOpen = () => {},
   index = 0,
+  keyPrefix,
 }: {
   field: FieldWithReadonlyMeta;
   fieldName: string;
@@ -869,6 +886,7 @@ const SingleField = ({
   isOpen?: boolean;
   toggleOpen?: () => void;
   index?: number;
+  keyPrefix?: string;
 }) => {
   const {
     control,
@@ -919,6 +937,7 @@ const SingleField = ({
         <NestedComponent
           field={field}
           fieldName={fieldName}
+          keyPrefix={keyPrefix}
           renderFields={renderFields}
           registerBeforeSubmitHook={registerBeforeSubmitHook}
           isOpen={isOpen}
@@ -945,7 +964,6 @@ const SingleField = ({
     return (
       <FormField
         name={fieldName}
-        key={fieldName}
         control={control}
         render={({ field: rhfManagedFieldProps }) => (
           <FormItem>
@@ -1063,7 +1081,9 @@ const EntryForm = ({
       fields: FieldWithReadonlyMeta[],
       parentName?: string,
       registerBeforeSubmitHook?: RegisterBeforeSubmitHook,
+      runBeforeSubmitHooks?: () => Promise<void>,
       inheritedReadonly = false,
+      keyPrefix?: string,
     ): React.ReactNode[] => {
       return fields.map((field) => {
         if (!field || field.hidden) return null;
@@ -1074,6 +1094,9 @@ const EntryForm = ({
         const currentFieldName = parentName
           ? `${parentName}.${effectiveField.name}`
           : effectiveField.name;
+        const currentFieldKey = keyPrefix
+          ? `${keyPrefix}.${effectiveField.name}`
+          : currentFieldName;
 
         if (
           effectiveField.list === true ||
@@ -1082,19 +1105,21 @@ const EntryForm = ({
         ) {
           return (
             <ListField
-              key={currentFieldName}
+              key={currentFieldKey}
               field={effectiveField}
               fieldName={currentFieldName}
               renderFields={renderFields}
               registerBeforeSubmitHook={registerBeforeSubmitHook}
+              runBeforeSubmitHooks={runBeforeSubmitHooks}
             />
           );
         }
         return (
           <SingleField
-            key={currentFieldName}
+            key={currentFieldKey}
             field={effectiveField}
             fieldName={currentFieldName}
+            keyPrefix={currentFieldKey}
             renderFields={renderFields}
             registerBeforeSubmitHook={registerBeforeSubmitHook}
             onChangeRegistered={onChangeRegistered}
@@ -1146,7 +1171,7 @@ const EntryForm = ({
             {filePath}
           </div>
         )}
-        {renderFields(fields, undefined, registerBeforeSubmitHook)}
+        {renderFields(fields, undefined, registerBeforeSubmitHook, runBeforeValidationHooks)}
       </form>
     </Form>
   );
