@@ -126,45 +126,156 @@ const formatMarkdownTarget = (url: string, rest: string, wrapped: boolean) => {
   return mustWrap ? `<${url}>${rest}` : `${url}${rest}`;
 };
 
+type MarkdownImageTargetMatch = {
+  targetStart: number;
+  targetEnd: number;
+  target: string;
+};
+
+const findMatchingMarkdownBracket = (
+  input: string,
+  start: number,
+  open: string,
+  close: string,
+) => {
+  let depth = 1;
+
+  for (let i = start; i < input.length; i += 1) {
+    const char = input[i];
+
+    if (char === "\\") {
+      i += 1;
+      continue;
+    }
+
+    if (char === open) {
+      depth += 1;
+      continue;
+    }
+
+    if (char === close) {
+      depth -= 1;
+      if (depth === 0) return i;
+    }
+  }
+
+  return -1;
+};
+
+const findMatchingMarkdownParen = (input: string, start: number) => {
+  let depth = 1;
+  let quote: '"' | "'" | null = null;
+  let angleDepth = 0;
+
+  for (let i = start; i < input.length; i += 1) {
+    const char = input[i];
+
+    if (char === "\\") {
+      i += 1;
+      continue;
+    }
+
+    if (quote) {
+      if (char === quote) quote = null;
+      continue;
+    }
+
+    if (char === '"' || char === "'") {
+      quote = char;
+      continue;
+    }
+
+    if (char === "<") {
+      angleDepth += 1;
+      continue;
+    }
+
+    if (char === ">" && angleDepth > 0) {
+      angleDepth -= 1;
+      continue;
+    }
+
+    if (angleDepth > 0) continue;
+
+    if (char === "(") {
+      depth += 1;
+      continue;
+    }
+
+    if (char === ")") {
+      depth -= 1;
+      if (depth === 0) return i;
+    }
+  }
+
+  return -1;
+};
+
+const findMarkdownImageTargets = (markdown: string): MarkdownImageTargetMatch[] => {
+  const matches: MarkdownImageTargetMatch[] = [];
+
+  for (let i = 0; i < markdown.length; i += 1) {
+    if (markdown[i] !== "!" || markdown[i + 1] !== "[") continue;
+
+    const altEnd = findMatchingMarkdownBracket(markdown, i + 2, "[", "]");
+    if (altEnd < 0 || markdown[altEnd + 1] !== "(") continue;
+
+    const targetStart = altEnd + 2;
+    const targetEnd = findMatchingMarkdownParen(markdown, targetStart);
+    if (targetEnd < 0) continue;
+
+    matches.push({
+      targetStart,
+      targetEnd,
+      target: markdown.slice(targetStart, targetEnd),
+    });
+
+    i = targetEnd;
+  }
+
+  return matches;
+};
+
 const rewriteMarkdownImagesSync = (
   markdown: string,
   transformUrl: (url: string) => string,
 ) => {
-  const imagePattern = /(!\[[^\]]*]\()([^)\n]*)(\))/g;
-  return markdown.replace(
-    imagePattern,
-    (_full, prefix: string, target: string, suffix: string) => {
-      const parsed = parseMarkdownTarget(target);
-      const nextUrl = transformUrl(parsed.url);
-      const nextTarget = formatMarkdownTarget(
-        nextUrl,
-        parsed.rest,
-        parsed.wrapped,
-      );
-      return `${prefix}${nextTarget}${suffix}`;
-    },
-  );
-};
-
-const rewriteMarkdownImagesAsync = async (
-  markdown: string,
-  transformUrl: (url: string) => Promise<string>,
-) => {
-  const imagePattern = /(!\[[^\]]*]\()([^)\n]*)(\))/g;
-  const matches = Array.from(markdown.matchAll(imagePattern));
+  const matches = findMarkdownImageTargets(markdown);
   if (!matches.length) return markdown;
 
   let rebuilt = "";
   let cursor = 0;
 
   for (const match of matches) {
-    const full = match[0];
-    const prefix = match[1] ?? "";
-    const target = match[2] ?? "";
-    const suffix = match[3] ?? "";
-    const start = match.index ?? 0;
-    const end = start + full.length;
-    const parsed = parseMarkdownTarget(target);
+    const parsed = parseMarkdownTarget(match.target);
+    const nextUrl = transformUrl(parsed.url);
+    const nextTarget = formatMarkdownTarget(
+      nextUrl,
+      parsed.rest,
+      parsed.wrapped,
+    );
+
+    rebuilt += markdown.slice(cursor, match.targetStart);
+    rebuilt += nextTarget;
+    cursor = match.targetEnd;
+  }
+
+  rebuilt += markdown.slice(cursor);
+  return rebuilt;
+};
+
+const rewriteMarkdownImagesAsync = async (
+  markdown: string,
+  transformUrl: (url: string) => Promise<string>,
+) => {
+  const matches = findMarkdownImageTargets(markdown);
+  if (!matches.length) return markdown;
+
+  let rebuilt = "";
+  let cursor = 0;
+
+  for (const match of matches) {
+    const parsed = parseMarkdownTarget(match.target);
     const nextUrl = await transformUrl(parsed.url);
     const nextTarget = formatMarkdownTarget(
       nextUrl,
@@ -172,9 +283,9 @@ const rewriteMarkdownImagesAsync = async (
       parsed.wrapped,
     );
 
-    rebuilt += markdown.slice(cursor, start);
-    rebuilt += `${prefix}${nextTarget}${suffix}`;
-    cursor = end;
+    rebuilt += markdown.slice(cursor, match.targetStart);
+    rebuilt += nextTarget;
+    cursor = match.targetEnd;
   }
 
   rebuilt += markdown.slice(cursor);
