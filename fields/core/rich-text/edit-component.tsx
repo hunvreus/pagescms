@@ -767,6 +767,7 @@ const EditComponent = forwardRef(
               }}
               format={format}
               className="cn-editor"
+              enableImages={Boolean(mediaConfig)}
               enableImagePasteDrop={Boolean(mediaConfig)}
               onUploadImage={mediaConfig ? handleUploadImage : undefined}
               onRequestImage={mediaConfig ? handleRequestImage : undefined}
