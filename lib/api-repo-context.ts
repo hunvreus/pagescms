@@ -22,7 +22,7 @@ type RepoReadContext = {
 const getRepoReadContext = async ({ owner, repo, branch }: RepoRef): Promise<RepoReadContext> => {
   const sessionResult = await requireApiUserSession();
   if ("response" in sessionResult) {
-    throw createHttpError("Not signed in.", sessionResult.response.status);
+    throw createHttpError("Not signed in.", sessionResult.response?.status ?? 401);
   }
 
   const user = sessionResult.user as User;
