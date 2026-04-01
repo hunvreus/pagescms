@@ -13,6 +13,7 @@ import {
   getCacheFileMetaKey,
   claimFolderScopes,
   fetchCollectionDirectoryEntries,
+  fetchMediaDirectoryEntries,
   getFolderPathsForChanges,
   getFolderScope,
   invalidateFolderScopes,
@@ -1031,15 +1032,8 @@ const getMediaCache = async (
   }
 
   if (!nocache && stableMeta?.status === "syncing") {
-    const octokit = createOctokitInstance(token);
-    const response = await octokit.rest.repos.getContent({
-      owner,
-      repo,
-      path,
-      ref: branch,
-    });
-    if (!Array.isArray(response.data)) throw new Error("Expected a directory but found a file.");
-    entries = response.data.map((entry) => ({
+    const githubEntries = await fetchMediaDirectoryEntries(owner, repo, branch, path, token);
+    entries = githubEntries.map((entry) => ({
       context: 'media',
       owner: owner.toLowerCase(),
       repo: repo.toLowerCase(),
@@ -1070,17 +1064,7 @@ const getMediaCache = async (
   if ((nocache || stableMeta?.status !== "syncing") && shouldRefetch) {
     try {
       const head = await getBranchHeadInfo(owner, repo, branch, token);
-      const octokit = createOctokitInstance(token);
-      const response = await octokit.rest.repos.getContent({
-        owner: owner,
-        repo: repo,
-        path: path,
-        ref: branch,
-      });
-
-      if (!Array.isArray(response.data)) throw new Error("Expected a directory but found a file.");
-
-      const githubEntries = response.data;
+      const githubEntries = await fetchMediaDirectoryEntries(owner, repo, branch, path, token);
 
       const mappedEntries = githubEntries.map(entry => ({
         context: 'media',

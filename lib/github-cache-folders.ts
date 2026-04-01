@@ -237,10 +237,16 @@ const fetchCollectionDirectoryEntries = async (
     expression: `${branch}:${dirPath}`,
   });
 
-  const tree = responseEntries.repository?.object;
+  if (!responseEntries.repository) {
+    throw new Error(`Repository "${owner}/${repo}" was not found.`);
+  }
+
+  const tree = responseEntries.repository.object;
 
   if (!tree) {
-    throw new Error(`Expected directory "${dirPath}" but GitHub returned no tree object.`);
+    // Git does not track empty directories. Treat a missing tree object as an empty folder
+    // result so configured-but-empty collection paths do not 500.
+    return [];
   }
 
   if (!Array.isArray(tree.entries)) {
@@ -248,6 +254,37 @@ const fetchCollectionDirectoryEntries = async (
   }
 
   return tree.entries;
+};
+
+const fetchMediaDirectoryEntries = async (
+  owner: string,
+  repo: string,
+  branch: string,
+  dirPath: string,
+  token: string,
+) => {
+  const octokit = createOctokitInstance(token);
+
+  try {
+    const response = await octokit.rest.repos.getContent({
+      owner,
+      repo,
+      path: dirPath,
+      ref: branch,
+    });
+
+    if (!Array.isArray(response.data)) {
+      throw new Error("Expected a directory but found a file.");
+    }
+
+    return response.data;
+  } catch (error: any) {
+    if (error?.status === 404 && error?.response?.data?.message === "Not Found") {
+      return [];
+    }
+
+    throw error;
+  }
 };
 
 const replaceFolderCache = async (
@@ -324,6 +361,7 @@ export {
   BRANCH_CACHE_SCOPE,
   claimFolderScopes,
   fetchCollectionDirectoryEntries,
+  fetchMediaDirectoryEntries,
   getCacheFileMetaKey,
   getFolderPathsForChanges,
   getFolderScope,
