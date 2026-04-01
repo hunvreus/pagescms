@@ -71,6 +71,13 @@
       "when": 1774871590033,
       "tag": "0009_cultured_odin",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1775037118543,
+      "tag": "0010_bitter_proemial_gods",
+      "breakpoints": true
     }
   ]
 }

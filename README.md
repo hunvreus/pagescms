@@ -14,9 +14,9 @@ Full documentation lives at [pagescms.org/docs](https://pagescms.org/docs).
 
 Useful starting points:
 
-- [Install locally](https://pagescms.org/docs/guides/install-local/)
-- [Create the GitHub App](https://pagescms.org/docs/guides/creating-github-app/)
-- [Environment variables](https://pagescms.org/docs/guides/environment-variables/)
+- [Install locally](https://pagescms.org/docs/guides/installing/)
+- [Create the GitHub App](https://pagescms.org/docs/guides/installing/github-app/)
+- [Environment variables](https://pagescms.org/docs/development/environment-variables/)
 - [Upgrading to 2.x](https://pagescms.org/docs/guides/upgrading-to-2/)
 
 ## Use online
@@ -93,6 +93,12 @@ Useful options:
 npm run db:migrate
 ```
 
+If cache state is known stale or corrupted, clear it with:
+
+```bash
+npm run db:clear-cache
+```
+
 7. Start the app:
 
 ```bash
@@ -103,9 +109,10 @@ If you need GitHub webhooks to reach your local app, use a public tunnel URL as 
 
 For more detail, see:
 
-- [Install locally](https://pagescms.org/docs/guides/install-local/)
-- [Create the GitHub App](https://pagescms.org/docs/guides/creating-github-app/)
-- [Environment variables](https://pagescms.org/docs/guides/environment-variables/)
+- [Install locally](https://pagescms.org/docs/guides/installing/)
+- [Create the GitHub App](https://pagescms.org/docs/guides/installing/github-app/)
+- [Environment variables](https://pagescms.org/docs/development/environment-variables/)
+- [Caching](https://pagescms.org/docs/development/caching/)
 
 ## Support the project
 

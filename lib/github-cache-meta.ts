@@ -28,8 +28,6 @@ const upsertCacheFileMeta = async (
     context?: string;
     commitSha?: string | null;
     commitTimestamp?: Date | null;
-    targetCommitSha?: string | null;
-    targetCommitTimestamp?: Date | null;
     status?: string;
     error?: string | null;
     lastCheckedAt?: Date;
@@ -45,8 +43,6 @@ const upsertCacheFileMeta = async (
     context: scope.context,
     commitSha: values.commitSha ?? null,
     commitTimestamp: values.commitTimestamp ?? null,
-    targetCommitSha: values.targetCommitSha ?? null,
-    targetCommitTimestamp: values.targetCommitTimestamp ?? null,
     status: values.status ?? "ok",
     error: values.error ?? null,
     updatedAt: now,
@@ -99,8 +95,6 @@ const tryClaimCacheFileMeta = async (
     context?: string;
     commitSha?: string | null;
     commitTimestamp?: Date | null;
-    targetCommitSha?: string | null;
-    targetCommitTimestamp?: Date | null;
     error?: string | null;
     lastCheckedAt?: Date;
   } = {},
@@ -116,8 +110,6 @@ const tryClaimCacheFileMeta = async (
     context: scope.context,
     commitSha: values.commitSha ?? null,
     commitTimestamp: values.commitTimestamp ?? null,
-    targetCommitSha: values.targetCommitSha ?? null,
-    targetCommitTimestamp: values.targetCommitTimestamp ?? null,
     status: "syncing",
     error: values.error ?? null,
     updatedAt: now,

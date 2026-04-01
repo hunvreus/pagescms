@@ -136,8 +136,6 @@ const cacheFileMetaTable = pgTable("cache_file_meta", {
   context: text("context").notNull().default("branch"),
   commitSha: text("commit_sha"),
   commitTimestamp: timestamp("commit_timestamp"),
-  targetCommitSha: text("target_commit_sha"),
-  targetCommitTimestamp: timestamp("target_commit_timestamp"),
   status: text("status").notNull().default("ok"),
   error: text("error"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

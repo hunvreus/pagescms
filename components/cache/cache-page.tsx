@@ -48,7 +48,6 @@ type CacheStatusPayload = {
     context: string;
     status: string;
     commitSha: string | null;
-    targetCommitSha: string | null;
     updatedAt: string;
   }>;
   fileCount: number;

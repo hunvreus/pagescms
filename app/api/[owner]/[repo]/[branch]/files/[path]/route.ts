@@ -555,7 +555,15 @@ export async function DELETE(
       params.branch,
       {
         type: 'delete',
-        path: normalizedPath
+        path: normalizedPath,
+        commit: response?.data.commit?.sha
+          ? {
+              sha: response.data.commit.sha,
+              timestamp: new Date(
+                response.data.commit.committer?.date ?? new Date().toISOString(),
+              ).getTime(),
+            }
+          : undefined,
       }
     );
 
