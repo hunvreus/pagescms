@@ -414,7 +414,7 @@ const updateMultipleFilesCache = async (
   const lowerOwner = owner.toLowerCase();
   const lowerRepo = repo.toLowerCase();
   const removedPaths = removedFiles.map(f => f.path);
-  const addedPaths = addedFiles.map(f => f.path); // Keep track for parent update
+  const addedPaths = addedFiles.map(f => f.path);
   const changedPaths = [
     ...removedPaths,
     ...modifiedFiles.map((file) => file.path),
@@ -437,10 +437,10 @@ const updateMultipleFilesCache = async (
   if (verifiedDirectFolderPaths.length > 0) {
     const [claimedCollection, claimedMedia] = await Promise.all([
       collectionFolderPaths.length > 0
-        ? claimFolderScopes(owner, repo, branch, "collection", collectionFolderPaths, commit)
+        ? claimFolderScopes(owner, repo, branch, "collection", collectionFolderPaths)
         : Promise.resolve(true),
       mediaFolderPaths.length > 0
-        ? claimFolderScopes(owner, repo, branch, "media", mediaFolderPaths, commit)
+        ? claimFolderScopes(owner, repo, branch, "media", mediaFolderPaths)
         : Promise.resolve(true),
     ]);
 
@@ -639,7 +639,6 @@ const updateFileCache = async (
       branch,
       folderContext,
       foldersToClaim,
-      operation.commit,
     );
     if (!claimed) {
       await invalidateFolderScopes(owner, repo, branch, affectedFolderPaths);

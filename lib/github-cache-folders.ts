@@ -177,7 +177,6 @@ const claimFolderScopes = async (
   branch: string,
   context: Exclude<CacheScopeContext, "branch">,
   folderPaths: string[],
-  commit?: { sha: string; timestamp: number },
 ) => {
   const claimed: string[] = [];
 
