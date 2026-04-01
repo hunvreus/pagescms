@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { and, sql } from "drizzle-orm";
 import { collaboratorTable } from "@/db/schema";
 import { getGithubAccount } from "@/lib/github-account";
-import { hasGithubIdentity } from "@/lib/authz";
+import { hasGithubIdentity } from "@/lib/authz-shared";
 import { toErrorResponse } from "@/lib/api-error";
 import { requireApiUserSession } from "@/lib/session-server";
 

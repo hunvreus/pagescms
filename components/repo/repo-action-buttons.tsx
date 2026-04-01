@@ -13,7 +13,7 @@ import {
 import { toast } from "sonner";
 import { useActionToasts } from "@/contexts/action-toast-context";
 import { useUser } from "@/contexts/user-context";
-import { hasGithubIdentity } from "@/lib/authz";
+import { hasGithubIdentity } from "@/lib/authz-shared";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { requireApiSuccess } from "@/lib/api-client";
@@ -30,7 +30,7 @@ import {
   type RepoActionField,
   type ActionRunSummary,
   type RepoActionConfig,
-} from "@/lib/repo-actions";
+} from "@/lib/actions";
 import {
   SidebarMenu,
   SidebarMenuAction,

@@ -4,14 +4,14 @@ import { cacheFileTable, cachePermissionTable, configTable } from "@/db/schema";
 import { requireGithubRepoWriteAccess } from "@/lib/authz-server";
 import {
   clearFileCache,
-  clearPermissionCache,
   ensureFileCacheFreshness,
-} from "@/lib/github-cache";
-import { deleteCacheFileMeta, getCacheFileMeta, listCacheFileMeta, upsertCacheFileMeta } from "@/lib/cache-file-meta";
-import { getConfig } from "@/lib/utils/config";
+} from "@/lib/github-cache-file";
+import { clearPermissionCache } from "@/lib/github-cache-permissions";
+import { deleteCacheFileMeta, getCacheFileMeta, listCacheFileMeta, upsertCacheFileMeta } from "@/lib/github-cache-meta";
+import { getConfig } from "@/lib/config-store";
 import { createHttpError, toErrorResponse } from "@/lib/api-error";
-import { isCacheEnabled } from "@/lib/config-settings";
-import { getBranchHeadSha } from "@/lib/github-cache";
+import { isCacheEnabled } from "@/lib/config";
+import { getBranchHeadSha } from "@/lib/github-cache-file";
 import { requireApiUserSession } from "@/lib/session-server";
 
 export async function GET(

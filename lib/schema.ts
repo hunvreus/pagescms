@@ -278,32 +278,6 @@ const sanitizeObject = (object: any): any => {
   return object;
 };
 
-// Retrieve the deepest matching content schema in the config for a file
-const getSchemaByPath = (config: Record<string, any>, path: string) => {
-  if (!config || !config.content) return null;
-  
-  const normalizedPath = `/${path}/`.replace(/\/\/+/g, "/");
-  
-  // Sort the entries by the depth of their path, and normalize them
-  const matches = config.content
-    .map((item: Record<string, any>) => {
-      const normalizedConfigPath = `/${item.path}/`.replace(/\/\/+/g, "/");
-      return { ...item, path: normalizedConfigPath };
-    })
-    .filter((item: Record<string, any>)  => normalizedPath.startsWith(item.path))
-    .sort((a:  Record<string, any>, b:  Record<string, any>) => b.path.length - a.path.length);
-  
-    // Return the first item in the sorted array which will be the deepest match, or undefined if no match.
-  const schema = matches[0];
-
-  // We deep clone the object to avoid mutating config if schema is modified.
-  if (!schema) return null;
-
-  const clonedSchema = JSON.parse(JSON.stringify(schema));
-  clonedSchema.groupTrail = getSchemaGroupTrail(config, schema.name);
-  return clonedSchema;
-};
-
 const getSchemaGroupTrail = (
   config: Record<string, any> | null | undefined,
   name: string,
@@ -484,7 +458,6 @@ export {
   initializeState,
   getDefaultValue,
   sanitizeObject,
-  getSchemaByPath,
   getSchemaByName,
   getFieldByPath,
   getPrimaryField,

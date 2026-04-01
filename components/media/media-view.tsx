@@ -40,7 +40,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { requireApiSuccess } from "@/lib/api-client";
-import { getSchemaActions } from "@/lib/repo-actions";
+import { getSchemaActions } from "@/lib/actions";
 import type { FileSaveData, MediaItem } from "@/types/api";
 import useSWR, { useSWRConfig } from "swr";
 import {

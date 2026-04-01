@@ -1,8 +1,7 @@
 /**
- * Functions to parse, normalize and validate the configuration file.
+ * Parse, normalize, validate, and inspect repository configuration documents.
  *
- * Look at the `lib/utils/config.ts` file to understand how the config is
- * retrieved, saved and updated in the DB.
+ * Persistence and GitHub sync live in `lib/config-store.ts`.
  */
 
 import YAML from "yaml";
@@ -18,6 +17,29 @@ type NavigationNode = {
   name: string;
   label?: string;
   items?: NavigationNode[];
+};
+
+const resolveSettingsObject = (configObject?: Record<string, any>) => {
+  if (!configObject || typeof configObject !== "object") return {};
+  return (configObject.settings && typeof configObject.settings === "object")
+    ? configObject.settings
+    : {};
+};
+
+const isConfigEnabled = (configObject?: Record<string, any>) => {
+  const settings = resolveSettingsObject(configObject);
+
+  if (typeof settings.config === "boolean") return settings.config;
+  if (typeof settings.hide === "boolean") return !settings.hide;
+  return true;
+};
+
+const isCacheEnabled = (configObject?: Record<string, any>) => {
+  const settings = resolveSettingsObject(configObject);
+
+  if (typeof settings.cache === "boolean") return settings.cache;
+  if (typeof (configObject as any)?.cache === "boolean") return Boolean((configObject as any).cache);
+  return false;
 };
 
 // Parse the config file (YAML to JSON)
@@ -534,8 +556,9 @@ const parseAndValidateConfig = (content: string) => {
 
 export {
   configVersion,
+  isCacheEnabled,
+  isConfigEnabled,
   parseConfig,
   normalizeConfig,
-  validateConfig,
   parseAndValidateConfig,
 };

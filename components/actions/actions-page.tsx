@@ -25,7 +25,7 @@ import {
   formatActionRunState,
   isActionRunActive,
   type ActionRunSummary,
-} from "@/lib/repo-actions";
+} from "@/lib/actions";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,

@@ -1,9 +1,15 @@
 
 /**
- * Helper functions to get GitHub Appinstallations info.
+ * Fetch GitHub App installations, installation repositories, and settings URLs.
  */
 
 import { createOctokitInstance } from "@/lib/utils/octokit";
+
+type InstallationAccount = {
+  type?: string;
+  login: string;
+  installationId?: number | null;
+};
 
 // Get all GitHub App installations for the authenticated user.
 const getInstallations = async (
@@ -107,4 +113,12 @@ const getInstallationRepos = async (
   return matchedRepos.length ? matchedRepos : allRepos;
 };
 
-export { getInstallations, getInstallationRepos };
+const getGithubInstallationUrl = (account: InstallationAccount) => {
+  if (account.type === "org") {
+    return `https://github.com/organizations/${account.login}/settings/installations/${account.installationId ?? ""}`;
+  }
+
+  return `https://github.com/settings/installations/${account.installationId ?? ""}`;
+};
+
+export { getGithubInstallationUrl, getInstallations, getInstallationRepos };

@@ -5,8 +5,8 @@ import { createOctokitInstance } from "@/lib/utils/octokit";
 import { getToken } from "@/lib/token";
 import { createHttpError, toErrorResponse } from "@/lib/api-error";
 import { requireApiUserSession } from "@/lib/session-server";
-import { resolveActionRef } from "@/lib/repo-actions";
-import { hasGithubIdentity } from "@/lib/authz";
+import { resolveActionRef } from "@/lib/actions";
+import { hasGithubIdentity } from "@/lib/authz-shared";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 

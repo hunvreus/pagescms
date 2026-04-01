@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { getInstallations } from "@/lib/github-app";
 import { requireGithubUserToken } from "@/lib/authz-server";
-import templates from "@/lib/utils/templates";
+import templates from "@/lib/templates";
 import { z } from "zod";
 
 // Copy a template repository.

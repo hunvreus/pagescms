@@ -22,7 +22,7 @@ import {
   sortFiles,
 } from "@/lib/utils/file";
 import { viewComponents } from "@/fields/registry";
-import { getSchemaActions } from "@/lib/repo-actions";
+import { getSchemaActions } from "@/lib/actions";
 import {
   getSchemaByName,
   getPrimaryField,
@@ -137,6 +137,7 @@ const CollectionHeaderActions = memo(function CollectionHeaderActions({
                   type="button"
                   variant="outline"
                   className="shrink-0"
+                  size="icon"
                 >
                   <FolderPlus />
                 </Button>
@@ -153,10 +154,7 @@ const CollectionHeaderActions = memo(function CollectionHeaderActions({
         Add an entry
       </Link>
       <Link
-        className={cn(
-          buttonVariants({ size: "icon" }),
-          "sm:hidden shrink-0",
-        )}
+        className={cn(buttonVariants({ size: "icon" }), "sm:hidden shrink-0")}
         href={addEntryHref}
       >
         <Plus className="size-4" />

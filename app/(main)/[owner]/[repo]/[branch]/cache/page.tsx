@@ -4,8 +4,8 @@ import { CachePage } from "@/components/cache/cache-page";
 import { DocumentTitle, formatRepoBranchTitle } from "@/components/document-title";
 import { useConfig } from "@/contexts/config-context";
 import { useUser } from "@/contexts/user-context";
-import { hasGithubIdentity } from "@/lib/authz";
-import { isCacheEnabled } from "@/lib/config-settings";
+import { hasGithubIdentity } from "@/lib/authz-shared";
+import { isCacheEnabled } from "@/lib/config";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 export default function Page() {

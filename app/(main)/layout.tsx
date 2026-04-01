@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { getAccounts } from "@/lib/utils/accounts";
+import { getAccounts } from "@/lib/accounts";
 import { UserProvider } from "@/contexts/user-context";
 import { User } from "@/types/user";
 import { getServerSession } from "@/lib/session-server";

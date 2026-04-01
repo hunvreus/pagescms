@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { getToken } from "@/lib/token";
 import { RepoProvider } from "@/contexts/repo-context";
 import { getServerSession } from "@/lib/session-server";
-import { getRepoSnapshot } from "@/lib/github-cache";
+import { getRepoSnapshot } from "@/lib/github-cache-file";
 import { GithubAuthExpired } from "@/components/github-auth-expired";
 import { isGithubAuthError } from "@/lib/github-auth";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";

@@ -1,9 +1,5 @@
 /**
- * Utility functions to create, retrieve and update a repository configuration
- * from the DB.
- * 
- * Look at the `lib/config.ts` file to understand how the config is parsed,
- * normalized and validated.
+ * Persist and synchronize repository configuration between GitHub and the DB.
  */
 
 import { Config } from "@/types/config";

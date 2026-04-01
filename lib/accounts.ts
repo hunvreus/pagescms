@@ -9,7 +9,7 @@ import { getInstallations } from "@/lib/github-app";
 import { User } from "@/types/user";
 import { getGithubAccount } from "@/lib/github-account";
 import { requireGithubUserToken } from "@/lib/authz-server";
-import { hasGithubIdentity } from "@/lib/authz";
+import { hasGithubIdentity } from "@/lib/authz-shared";
 
 const getAccounts = async (user: User) => {
 	let accounts: Array<{

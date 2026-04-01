@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { getConfig } from "@/lib/utils/config";
+import { getConfig } from "@/lib/config-store";
 import { ConfigProvider } from "@/contexts/config-context";
 import { RepoLayout } from "@/components/repo/repo-layout";
 import { getServerSession } from "@/lib/session-server";

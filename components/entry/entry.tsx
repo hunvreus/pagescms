@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useConfig } from "@/contexts/config-context";
 import { parseAndValidateConfig } from "@/lib/config";
 import { requireApiSuccess } from "@/lib/api-client";
-import { getSchemaActions } from "@/lib/repo-actions";
+import { getSchemaActions } from "@/lib/actions";
 import {
   generateFilename,
   getPrimaryField,

@@ -6,7 +6,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { collaboratorTable, verificationTable } from "@/db/schema";
 import { SignInFromInvite } from "@/components/sign-in-from-invite";
-import { hasGithubIdentity } from "@/lib/authz";
+import { hasGithubIdentity } from "@/lib/authz-shared";
 import { getBaseUrl } from "@/lib/base-url";
 import { buttonVariants } from "@/components/ui/button";
 import {

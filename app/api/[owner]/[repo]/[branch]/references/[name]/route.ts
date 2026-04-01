@@ -11,13 +11,10 @@ import {
   interpolate,
   safeAccess,
 } from "@/lib/schema";
-import { getConfig } from "@/lib/utils/config";
+import { getRepoReadContext } from "@/lib/api-repo-context";
 import { normalizePath } from "@/lib/utils/file";
-import { getToken } from "@/lib/token";
-import { checkRepoAccess, getCollectionCache } from "@/lib/github-cache";
-import { getGithubId } from "@/lib/github-account";
+import { getCollectionCache } from "@/lib/github-cache-file";
 import { createHttpError, toErrorResponse } from "@/lib/api-error";
-import { requireApiUserSession } from "@/lib/session-server";
 
 type ParsedReferenceItem = {
   name: string;
@@ -37,23 +34,7 @@ export async function GET(
 ) {
   try {
     const params = await context.params;
-    const sessionResult = await requireApiUserSession();
-    if ("response" in sessionResult) return sessionResult.response;
-    const user = sessionResult.user;
-
-    const { token } = await getToken(user, params.owner, params.repo);
-    if (!token) throw createHttpError("Token not found", 401);
-
-    const githubId = await getGithubId(user.id);
-    if (githubId) {
-      const hasAccess = await checkRepoAccess(token, params.owner, params.repo, githubId);
-      if (!hasAccess) throw createHttpError(`No access to repository ${params.owner}/${params.repo}.`, 403);
-    }
-
-    const config = await getConfig(params.owner, params.repo, params.branch, {
-      getToken: async () => token,
-    });
-    if (!config) throw createHttpError(`Configuration not found for ${params.owner}/${params.repo}/${params.branch}.`, 404);
+    const { token, config } = await getRepoReadContext(params);
 
     const schema = getSchemaByName(config.object, params.name);
     if (!schema) throw createHttpError(`Schema not found for ${params.name}.`, 404);

@@ -5,8 +5,9 @@ import { magicLink } from "better-auth/plugins";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { getBaseUrl } from "@/lib/base-url";
+import { repairLegacyGithubStubOnLogin } from "@/lib/github-legacy-stub-repair";
 import { sendEmail } from "@/lib/mailer";
-import { repairLegacyGithubStubOnLogin } from "@/lib/legacy-github-stub-repair";
+import { syncGithubProfileOnLogin } from "@/lib/github-account";
 import { LoginEmailTemplate } from "@/components/email/login";
 import { render } from "@react-email/render";
 
@@ -61,6 +62,16 @@ export const auth = betterAuth({
             await repairLegacyGithubStubOnLogin(session.id, session.userId);
           } catch (error) {
             console.warn("[auth] legacy github stub repair failed", {
+              sessionId: session.id,
+              userId: session.userId,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+
+          try {
+            await syncGithubProfileOnLogin(session.userId);
+          } catch (error) {
+            console.warn("[auth] github profile sync failed", {
               sessionId: session.id,
               userId: session.userId,
               error: error instanceof Error ? error.message : String(error),

@@ -5,8 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useConfig } from "@/contexts/config-context";
 import { useUser } from "@/contexts/user-context";
-import { hasGithubIdentity } from "@/lib/authz";
-import { isConfigEnabled } from "@/lib/config-settings";
+import { hasGithubIdentity } from "@/lib/authz-shared";
+import { isConfigEnabled } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import { FileStack, FileText, FolderOpen, Settings, Users } from "lucide-react";
 

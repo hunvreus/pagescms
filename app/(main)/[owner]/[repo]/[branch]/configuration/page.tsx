@@ -8,7 +8,7 @@ import {
 } from "@/components/document-title";
 import { useConfig } from "@/contexts/config-context";
 import { useUser } from "@/contexts/user-context";
-import { hasGithubIdentity } from "@/lib/authz";
+import { hasGithubIdentity } from "@/lib/authz-shared";
 import { Button } from "@/components/ui/button";
 import {
   Empty,

@@ -2,7 +2,7 @@
 
 import { useUser } from "@/contexts/user-context";
 import { Button } from "@/components/ui/button";
-import { getGithubInstallationUrl } from "@/lib/github-installation-url";
+import { getGithubInstallationUrl } from "@/lib/github-app";
 import {
   DropdownMenu,
   DropdownMenuContent,

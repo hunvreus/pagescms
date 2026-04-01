@@ -4,9 +4,9 @@ import { ActionsPage } from "@/components/actions/actions-page";
 import { DocumentTitle, formatRepoBranchTitle } from "@/components/document-title";
 import { useConfig } from "@/contexts/config-context";
 import { useUser } from "@/contexts/user-context";
-import { hasGithubIdentity } from "@/lib/authz";
+import { hasGithubIdentity } from "@/lib/authz-shared";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
-import { getRootActions, getSchemaActions } from "@/lib/repo-actions";
+import { getRootActions, getSchemaActions } from "@/lib/actions";
 
 export default function Page() {
   const { config } = useConfig();

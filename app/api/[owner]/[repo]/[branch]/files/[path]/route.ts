@@ -4,11 +4,11 @@ import { writeFns } from "@/fields/registry";
 import { configVersion, parseConfig, normalizeConfig } from "@/lib/config";
 import { stringify, parse } from "@/lib/serialization";
 import { deepMap, generateZodSchema, getSchemaByName, sanitizeObject } from "@/lib/schema";
-import { getConfig, updateConfig } from "@/lib/utils/config";
+import { getConfig, updateConfig } from "@/lib/config-store";
 import { getFileExtension, getFileName, normalizePath, serializedTypes, getParentPath } from "@/lib/utils/file";
-import { assertGithubIdentity } from "@/lib/authz";
+import { assertGithubIdentity } from "@/lib/authz-shared";
 import { getToken } from "@/lib/token";
-import { updateFileCache } from "@/lib/github-cache";
+import { updateFileCache } from "@/lib/github-cache-file";
 import { createHttpError, toErrorResponse } from "@/lib/api-error";
 import mergeWith from "lodash.mergewith";
 import { buildCommitTokens, resolveCommitIdentity, resolveCommitMessage } from "@/lib/commit-message";
@@ -338,8 +338,24 @@ const githubSaveFile = async (
     }
     throw new Error("Invalid response structure");
   } catch (error: any) {
+    const githubMessage = typeof error?.response?.data?.message === "string"
+      ? error.response.data.message
+      : undefined;
+
     if (error.status === 409) {
-      error.message = "File has changed since you last loaded it. Please refresh the page and try again.";
+      if (githubMessage?.includes("Repository rule violations found")) {
+        throw createHttpError(
+          "This repository requires changes through a pull request. Save to a different branch or fork, or ask a maintainer to relax the repository rule for direct edits.",
+          409,
+        );
+      }
+
+      if (sha) {
+        throw createHttpError(
+          "File has changed since you last loaded it. Please refresh the page and try again.",
+          409,
+        );
+      }
     }
 
     // Only handle 422 errors for new files (no sha)

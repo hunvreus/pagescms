@@ -1,11 +1,11 @@
 import { createOctokitInstance } from "@/lib/utils/octokit";
 import { getSchemaByName } from "@/lib/schema";
-import { getConfig } from "@/lib/utils/config";
+import { getConfig } from "@/lib/config-store";
 import { getFileExtension, normalizePath } from "@/lib/utils/file";
 import { getToken } from "@/lib/token";
-import { updateFileCache } from "@/lib/github-cache";
+import { updateFileCache } from "@/lib/github-cache-file";
 import { toErrorResponse } from "@/lib/api-error";
-import { getBranchHeadSha, setBranchHeadSha } from "@/lib/github-cache";
+import { getBranchHeadSha, setBranchHeadSha } from "@/lib/github-cache-file";
 import { buildCommitTokens, resolveCommitIdentity, resolveCommitMessage } from "@/lib/commit-message";
 import { requireApiUserSession } from "@/lib/session-server";
 

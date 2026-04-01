@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/contexts/user-context";
 import { handleCopyTemplate } from "@/lib/actions/template";
-import templates from "@/lib/utils/templates";
+import templates from "@/lib/templates";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/submit-button";
 import {

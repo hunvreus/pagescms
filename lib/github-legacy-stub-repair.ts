@@ -1,11 +1,12 @@
 import { and, eq, like, ne } from "drizzle-orm";
-import { db } from "../db";
-import { accountTable, collaboratorTable, sessionTable, userTable } from "../db/schema";
+import { db } from "@/db";
+import { accountTable, collaboratorTable, sessionTable, userTable } from "@/db/schema";
 
 const isLegacyEmail = (email: string | null | undefined) => {
   return typeof email === "string" && email.toLowerCase().endsWith("@local.invalid");
 };
 
+// Merge a legacy collaborator stub user into a real signed-in account.
 const mergeUsers = async (
   fromUserId: string,
   toUserId: string,
@@ -96,6 +97,7 @@ const mergeUsers = async (
   });
 };
 
+// Repair old collaborator-invite stub accounts created before the current auth flow.
 const repairLegacyGithubStubOnGithubSignIn = async (userId: string) => {
   const signedInUser = await db.query.userTable.findFirst({
     where: eq(userTable.id, userId),

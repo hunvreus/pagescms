@@ -1,13 +1,7 @@
-import { createOctokitInstance } from "@/lib/utils/octokit";
-import { getConfig } from "@/lib/utils/config";
+import { getRepoReadContext } from "@/lib/api-repo-context";
 import { getFileExtension, normalizePath } from "@/lib/utils/file";
-import { getToken } from "@/lib/token";
-import { getMediaCache, checkRepoAccess } from "@/lib/github-cache";
-import { getGithubId } from "@/lib/github-account";
+import { getMediaCache } from "@/lib/github-cache-file";
 import { createHttpError, toErrorResponse } from "@/lib/api-error";
-import { requireApiUserSession } from "@/lib/session-server";
-
-// Add docs
 
 /**
  * Get the list of media files in a directory.
@@ -23,23 +17,7 @@ export async function GET(
 ) {
   try {
     const params = await context.params;
-    const sessionResult = await requireApiUserSession();
-    if ("response" in sessionResult) return sessionResult.response;
-    const user = sessionResult.user;
-
-    const { token } = await getToken(user, params.owner, params.repo);
-    if (!token) throw createHttpError("Token not found", 401);
-
-    const githubId = await getGithubId(user.id);
-    if (githubId) {
-      const hasAccess = await checkRepoAccess(token, params.owner, params.repo, githubId);
-      if (!hasAccess) throw createHttpError(`No access to repository ${params.owner}/${params.repo}.`, 403);
-    }
-
-    const config = await getConfig(params.owner, params.repo, params.branch, {
-      getToken: async () => token,
-    });
-    if (!config) throw createHttpError(`Configuration not found for ${params.owner}/${params.repo}/${params.branch}.`, 404);
+    const { token, config } = await getRepoReadContext(params);
     
     const mediaConfig = config.object.media.find((item: any) => item.name === params.name) || config.object.media[0];
 

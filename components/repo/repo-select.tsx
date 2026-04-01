@@ -5,8 +5,7 @@ import { useDebounce } from "use-debounce";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { useUser } from "@/contexts/user-context";
-import { handleAppInstall } from "@/lib/actions/app";
-import { getGithubInstallationUrl } from "@/lib/github-installation-url";
+import { getGithubInstallationUrl } from "@/lib/github-app";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
@@ -22,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronsUpDown, LockKeyhole, Search, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { hasGithubIdentity } from "@/lib/authz";
+import { hasGithubIdentity } from "@/lib/authz-shared";
 import { requireApiSuccess } from "@/lib/api-client";
 
 export function RepoSelect({
@@ -151,7 +150,9 @@ export function RepoSelect({
               {isGithubUser &&
                 <>
                   <DropdownMenuSeparator/>
-                  <DropdownMenuItem onClick={() => handleAppInstall()}>Manage GitHub accounts</DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/api/github-app/install">Manage GitHub accounts</Link>
+                  </DropdownMenuItem>
                 </>
               }
             </DropdownMenuContent>
