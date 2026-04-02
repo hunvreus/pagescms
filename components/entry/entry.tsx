@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useConfig } from "@/contexts/config-context";
 import { parseAndValidateConfig } from "@/lib/config";
+import { resolveContentOperations } from "@/lib/operations";
 import { requireApiSuccess } from "@/lib/api-client";
 import { getSchemaActions } from "@/lib/actions";
 import {
@@ -121,6 +122,20 @@ export function Entry({
     return getSchemaByName(config?.object, name)
   }, [config, name]);
   const schemaType = schema?.type;
+  const operations = useMemo(
+    () =>
+      resolveContentOperations({
+        schema,
+        scope:
+          path === ".pages.yml" || initialPath === ".pages.yml"
+            ? "settings"
+            : undefined,
+      }),
+    [initialPath, path, schema],
+  );
+  const canCreate = operations.create;
+  const canRename = operations.rename;
+  const canDelete = operations.delete;
   const isFileEditorMode = !schema?.fields || schema.fields.length === 0;
   const filenameFieldMode = useMemo(() => {
     if (!schema || schema.type !== "collection") return "hidden";
@@ -310,12 +325,15 @@ export function Entry({
 
         if (!savePath) {
           if (!schema) throw new Error("Cannot create entry without schema.");
+          if (!canCreate) throw new Error("Creating entries in this content item isn't allowed.");
           const basePath = parent ?? schema.path;
           if (basePath == null) throw new Error("Cannot create entry without a target path.");
           const generatedFilename = showFilenameField
             ? normalizedFilename
             : generateFilename(schema.filename, schema, contentObject);
           savePath = joinPathSegments([basePath, generatedFilename]);
+        } else if (filenameChanged && !canRename && schemaType === "collection") {
+          throw new Error("Renaming this entry isn't allowed.");
         } else if (
           showFilenameField
           && filenameFieldMode === "enabled"
@@ -583,7 +601,8 @@ export function Entry({
       </>
     );
   }, [config.branch, config.owner, config.repo, displayTitle, name, path, schema, schemaType]);
-  const showHeaderActions = error !== "Not found";
+  const isCreationBlocked = !path && schemaType === "collection" && !canCreate;
+  const showHeaderActions = error !== "Not found" && !isCreationBlocked;
   const headerActionsNode = useMemo(() => {
     if (!schema || !path) return null;
 
@@ -694,6 +713,8 @@ export function Entry({
                     sha={sha}
                     type={path === ".pages.yml" ? "settings" : (schemaType ?? "content")}
                     name={name}
+                    canDelete={canDelete}
+                    canRename={canRename}
                     onDelete={handleDelete}
                     onRename={handleRename}
                   >
@@ -709,7 +730,7 @@ export function Entry({
         </div>
       )}
     </div>
-  ), [breadcrumbNode, filenameChanged, filenameFieldMode, filenameValue, handleDelete, handleRename, hasRegisteredChanges, headerActionsNode, headerMeta, historyData, isBusy, isFilenameUnlocked, isFormDirty, isLoading, name, path, schemaType, sha, showFilenameField, showHeaderActions]);
+  ), [breadcrumbNode, canDelete, canRename, filenameChanged, filenameFieldMode, filenameValue, handleDelete, handleRename, hasRegisteredChanges, headerActionsNode, headerMeta, historyData, isBusy, isFilenameUnlocked, isFormDirty, isLoading, name, path, schemaType, sha, showFilenameField, showHeaderActions]);
 
   useRepoHeader({ header: headerNode });
 
@@ -764,9 +785,9 @@ export function Entry({
             <EmptyContent>
               {isSettingsPage ? (
                 <EmptyCreate type="settings">Create configuration file</EmptyCreate>
-              ) : (
+              ) : canCreate ? (
                 <EmptyCreate type="content" name={schema?.name ?? name}>Create file</EmptyCreate>
-              )}
+              ) : null}
             </EmptyContent>
           </Empty>
         </div>
@@ -792,6 +813,29 @@ export function Entry({
       );
     }
   }
+
+  if (!path && schemaType === "collection" && !canCreate) {
+    return (
+      <div className="absolute inset-0 p-4 md:p-6 flex items-center justify-center">
+        <Empty className="max-w-[420px] flex-none">
+          <EmptyHeader>
+            <EmptyTitle>Creating entries is disabled</EmptyTitle>
+            <EmptyDescription>
+              New entries are not allowed for this collection.
+            </EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Link
+              className="inline-flex items-center justify-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90"
+              href={`/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collection/${encodeURIComponent(name)}`}
+            >
+              Back to collection
+            </Link>
+          </EmptyContent>
+        </Empty>
+      </div>
+    );
+  }
   
   return (
     isLoading
@@ -810,7 +854,7 @@ export function Entry({
                   disabled={path ? !isFilenameUnlocked : false}
                   aria-label="Filename"
                 />
-                {path && filenameFieldMode === "enabled" && (
+                {path && filenameFieldMode === "enabled" && canRename && (
                   <InputGroupAddon align="inline-end">
                     <Tooltip>
                       <TooltipTrigger asChild>

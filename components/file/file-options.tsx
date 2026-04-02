@@ -32,6 +32,8 @@ export function FileOptions({
   sha,
   type,
   name,
+  canDelete,
+  canRename,
   portalProps,
   onDelete,
   onRename,
@@ -41,6 +43,8 @@ export function FileOptions({
   sha: string;
   type: "collection" | "file" | "media" | "settings";
   name?: string;
+  canDelete?: boolean;
+  canRename?: boolean;
   portalProps?: any;
   onDelete?: (path: string) => void;
   onRename?: (path: string, newPath: string) => void;
@@ -62,6 +66,8 @@ export function FileOptions({
     return getParentPath(path);
   }, [type, name, config.object, path]);
   const relativePath = useMemo(() => getRelativePath(normalizedPath, rootPath), [normalizedPath, rootPath]);
+  const showRename = type !== "settings" && type !== "file" && canRename !== false;
+  const showDelete = type !== "settings" && canDelete !== false;
 
   const [newPath, setNewPath] = useState(relativePath);
   const [isRenameOpen, setIsRenameOpen] = useState(false);
@@ -115,19 +121,21 @@ export function FileOptions({
                 <ArrowUpRight className="size-3 text-muted-foreground ml-auto" />
               </a>
             </DropdownMenuItem>
-            {type !== "settings"
+            {(showRename || showDelete)
               ? <>
                   <DropdownMenuSeparator />
-                  {type !== "file" &&
+                  {showRename &&
                     <DropdownMenuItem onSelect={() => setIsRenameOpen(true)}>
                       Rename
                     </DropdownMenuItem>
                   }
-                  <AlertDialogTrigger asChild>
-                    <DropdownMenuItem variant="destructive">
-                      Delete
-                    </DropdownMenuItem>
-                  </AlertDialogTrigger>
+                  {showDelete && (
+                    <AlertDialogTrigger asChild>
+                      <DropdownMenuItem variant="destructive">
+                        Delete
+                      </DropdownMenuItem>
+                    </AlertDialogTrigger>
+                  )}
                 </>
               : null
             }
@@ -145,7 +153,7 @@ export function FileOptions({
         </DropdownMenu>
       </AlertDialog>
 
-      {type !== "settings" &&
+      {showRename &&
         <FileRename
           isOpen={isRenameOpen}
           onOpenChange={setIsRenameOpen}

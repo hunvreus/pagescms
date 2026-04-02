@@ -1,5 +1,6 @@
 import { type NextRequest } from "next/server";
 import { createOctokitInstance } from "@/lib/utils/octokit";
+import { isContentOperationAllowed } from "@/lib/operations";
 import { writeFns } from "@/fields/registry";
 import { configVersion, parseConfig, normalizeConfig } from "@/lib/config";
 import { stringify, parse } from "@/lib/serialization";
@@ -57,6 +58,9 @@ export async function POST(
 
         schema = getSchemaByName(config?.object, data.name);
         if (!schema) throw new Error(`Content schema not found for ${data.name}.`);
+        if (!data.sha && !isContentOperationAllowed("create", { schema })) {
+          throw createHttpError(`Creating entries isn't allowed for "${data.name}".`, 403);
+        }
         schemaCommitTemplates = schema?.commit?.templates;
         schemaCommitIdentity = schema?.commit?.identity;
 
@@ -181,6 +185,9 @@ export async function POST(
       case "settings":
         assertGithubIdentity(user, "Only GitHub users can manage settings.");
         if (normalizedPath !== ".pages.yml") throw new Error(`Invalid path "${params.path}" for settings.`);
+        if (!data.sha && !isContentOperationAllowed("create", { scope: "settings" })) {
+          throw createHttpError(`Creating the settings file isn't allowed.`, 403);
+        }
 
         contentBase64 = Buffer.from(data.content.body ?? "").toString("base64");
         break;
@@ -452,7 +459,9 @@ export async function DELETE(
     const { token } = await getToken(user, params.owner, params.repo, true);
     if (!token) throw new Error("Token not found");
 
-    if (params.path === ".pages.yml") throw new Error(`Deleting the settings file isn't allowed.`);
+    if (!isContentOperationAllowed("delete", { scope: "settings" }) && params.path === ".pages.yml") {
+      throw createHttpError(`Deleting the settings file isn't allowed.`, 403);
+    }
 
     const searchParams = request.nextUrl.searchParams;
     const sha = searchParams.get("sha");
@@ -479,6 +488,9 @@ export async function DELETE(
 
         schema = getSchemaByName(config.object, name);
         if (!schema) throw new Error(`Content schema not found for ${name}.`);
+        if (!isContentOperationAllowed("delete", { schema })) {
+          throw createHttpError(`Deleting entries isn't allowed for "${name}".`, 403);
+        }
         schemaCommitTemplates = schema?.commit?.templates;
         schemaCommitIdentity = schema?.commit?.identity;
         

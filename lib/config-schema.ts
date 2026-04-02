@@ -303,6 +303,26 @@ const FilenameConfigSchema = z.union([
     .strict(),
 ]);
 
+const ContentOperationsSchema = z
+  .object({
+    create: z
+      .boolean({
+        message: "'operations.create' must be a boolean.",
+      })
+      .optional(),
+    rename: z
+      .boolean({
+        message: "'operations.rename' must be a boolean.",
+      })
+      .optional(),
+    delete: z
+      .boolean({
+        message: "'operations.delete' must be a boolean.",
+      })
+      .optional(),
+  })
+  .strict();
+
 // Generator for Field Object Schema (components do not have a `name` field)
 const generateFieldObjectSchema = (
   isComponent?: boolean,
@@ -517,6 +537,7 @@ const ContentLeafSchema = z
         message:
           "'path' must be a valid relative path (no leading or trailing slash).",
       }),
+    operations: ContentOperationsSchema.optional(),
     filename: FilenameConfigSchema.optional().nullable(),
     exclude: z
       .array(

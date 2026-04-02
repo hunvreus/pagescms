@@ -1,10 +1,11 @@
 import { createOctokitInstance } from "@/lib/utils/octokit";
+import { isContentOperationAllowed } from "@/lib/operations";
 import { getSchemaByName } from "@/lib/schema";
 import { getConfig } from "@/lib/config-store";
 import { getFileExtension, normalizePath } from "@/lib/utils/file";
 import { getToken } from "@/lib/token";
 import { updateFileCache } from "@/lib/github-cache-file";
-import { toErrorResponse } from "@/lib/api-error";
+import { createHttpError, toErrorResponse } from "@/lib/api-error";
 import { getBranchHeadSha, setBranchHeadSha } from "@/lib/github-cache-file";
 import { buildCommitTokens, resolveCommitIdentity, resolveCommitMessage } from "@/lib/commit-message";
 import { requireApiUserSession } from "@/lib/session-server";
@@ -30,7 +31,9 @@ export async function POST(
     const { token } = await getToken(user, params.owner, params.repo, true);
     if (!token) throw new Error("Token not found");
 
-    if (params.path === ".pages.yml") throw new Error(`Renaming the settings file isn't allowed.`);
+    if (!isContentOperationAllowed("rename", { scope: "settings" }) && params.path === ".pages.yml") {
+      throw createHttpError(`Renaming the settings file isn't allowed.`, 403);
+    }
 
     const config = await getConfig(params.owner, params.repo, params.branch, {
       getToken: async () => token,
@@ -57,6 +60,9 @@ export async function POST(
 
         schema = getSchemaByName(config.object, data.name);
         if (!schema) throw new Error(`Content schema not found for ${data.name}.`);
+        if (!isContentOperationAllowed("rename", { schema })) {
+          throw createHttpError(`Renaming entries isn't allowed for "${data.name}".`, 403);
+        }
         schemaCommitTemplates = schema?.commit?.templates;
         schemaCommitIdentity = schema?.commit?.identity;
 
