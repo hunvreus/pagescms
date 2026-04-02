@@ -323,6 +323,90 @@ const ContentOperationsSchema = z
   })
   .strict();
 
+const PreviewTransformSchema = z.union([
+  z.object({
+    join: z.string({
+      required_error: "'join' is required.",
+      invalid_type_error: "'join' must be a string.",
+    }),
+  }).strict(),
+  z.object({
+    date: z.string({
+      required_error: "'date' is required.",
+      invalid_type_error: "'date' must be a string.",
+    }),
+  }).strict(),
+  z.object({
+    text: z.enum(["uppercase", "lowercase", "capitalize"], {
+      message: "'text' must be 'uppercase', 'lowercase', or 'capitalize'.",
+    }),
+  }).strict(),
+  z.object({
+    fallback: z.string({
+      required_error: "'fallback' is required.",
+      invalid_type_error: "'fallback' must be a string.",
+    }),
+  }).strict(),
+  z.object({
+    prefix: z.string({
+      required_error: "'prefix' is required.",
+      invalid_type_error: "'prefix' must be a string.",
+    }),
+  }).strict(),
+  z.object({
+    suffix: z.string({
+      required_error: "'suffix' is required.",
+      invalid_type_error: "'suffix' must be a string.",
+    }),
+  }).strict(),
+]);
+
+const PreviewBindSchema = z.enum(
+  ["text", "html", "value", "src", "href", "checked", "content"],
+  {
+    message:
+      "'bind' must be 'text', 'html', 'value', 'src', 'href', 'checked', or 'content'.",
+  },
+);
+
+const FieldPreviewRuleSchema = z
+  .object({
+    target: z
+      .string({
+        required_error: "'target' is required.",
+        invalid_type_error: "'target' must be a string.",
+      })
+      .min(1, {
+        message: "'target' cannot be empty.",
+      }),
+    bind: PreviewBindSchema,
+    transform: z
+      .array(PreviewTransformSchema, {
+        message: "'transform' must be an array of transform definitions.",
+      })
+      .optional(),
+  })
+  .strict();
+
+const FieldPreviewSchema = z.union([
+  FieldPreviewRuleSchema,
+  z.array(FieldPreviewRuleSchema, {
+    message: "'preview' must be an object or array of objects.",
+  }).min(1, {
+    message: "'preview' array cannot be empty.",
+  }),
+]);
+
+const PublicSitePathSchema = z
+  .string({
+    required_error: "'path' is required.",
+    invalid_type_error: "'path' must be a string.",
+  })
+  .regex(/^\/(?:.*[^/])?$/, {
+    message:
+      "'path' must start with '/' and must not have a trailing slash unless it is '/'.",
+  });
+
 // Generator for Field Object Schema (components do not have a `name` field)
 const generateFieldObjectSchema = (
   isComponent?: boolean,
@@ -440,6 +524,7 @@ const generateFieldObjectSchema = (
             { message: "'blocks' must be an array of field definitions." },
           )
           .optional(),
+        preview: FieldPreviewSchema.optional(),
         blockKey: z
           .string({
             message: "'blockKey' must be a string.",
@@ -721,6 +806,17 @@ const ContentLeafSchema = z
         },
       )
       .optional(),
+    site: z
+      .object(
+        {
+          path: PublicSitePathSchema.optional(),
+        },
+        {
+          message: "'site' must be an object.",
+        },
+      )
+      .strict()
+      .optional(),
     actions: z
       .array(ActionSchema, {
         message: "'actions' must be an array of action definitions.",
@@ -834,6 +930,39 @@ const ConfigSchema = z
                     message: "'commit' must be an object.",
                   },
                 )
+                .optional(),
+              site: z
+                .object(
+                  {
+                    url: z
+                      .string({
+                        message: "'url' must be a string.",
+                      })
+                      .url({
+                        message: "'url' must be a valid absolute URL.",
+                      })
+                      .optional(),
+                    preview: z
+                      .object(
+                        {
+                          defaultOpen: z
+                            .boolean({
+                              message: "'defaultOpen' must be a boolean.",
+                            })
+                            .optional(),
+                        },
+                        {
+                          message: "'preview' must be an object.",
+                        },
+                      )
+                      .strict()
+                      .optional(),
+                  },
+                  {
+                    message: "'site' must be an object.",
+                  },
+                )
+                .strict()
                 .optional(),
             },
             {

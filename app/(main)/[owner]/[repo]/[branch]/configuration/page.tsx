@@ -10,6 +10,7 @@ import { useConfig } from "@/contexts/config-context";
 import { useUser } from "@/contexts/user-context";
 import { hasGithubIdentity } from "@/lib/authz-shared";
 import { Button } from "@/components/ui/button";
+import { SiteEmbedPanel } from "@/components/site/site-embed-panel";
 import {
   Empty,
   EmptyDescription,
@@ -56,33 +57,36 @@ export default function Page() {
           )}
         />
       )}
-      <Entry
-        path=".pages.yml"
-        onSave={handleSave}
-        title="Configuration"
-        headerMeta={
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                asChild
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <Link
-                  href="https://pagescms.org/docs/configuration/"
-                  target="_blank"
-                  rel="noreferrer"
+      <div className="grid gap-6">
+        <SiteEmbedPanel />
+        <Entry
+          path=".pages.yml"
+          onSave={handleSave}
+          title="Configuration"
+          headerMeta={
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground hover:text-foreground"
                 >
-                  <BookText />
-                  <span className="sr-only">Configuration docs</span>
-                </Link>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>View docs</TooltipContent>
-          </Tooltip>
-        }
-      />
+                  <Link
+                    href="https://pagescms.org/docs/configuration/"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <BookText />
+                    <span className="sr-only">Configuration docs</span>
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>View docs</TooltipContent>
+            </Tooltip>
+          }
+        />
+      </div>
     </>
   );
 }

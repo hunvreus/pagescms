@@ -1034,6 +1034,7 @@ const EntryForm = ({
   filePath,
   onDirtyChange,
   onChangeRegistered,
+  onValuesChange,
 }: {
   fields: Field[];
   contentObject?: Record<string, unknown>;
@@ -1041,6 +1042,7 @@ const EntryForm = ({
   filePath?: React.ReactNode;
   onDirtyChange?: (isDirty: boolean) => void;
   onChangeRegistered?: () => void;
+  onValuesChange?: (values: Record<string, unknown>) => void;
 }) => {
   const zodSchema = useMemo(() => {
     return generateZodSchema(fields);
@@ -1063,6 +1065,12 @@ const EntryForm = ({
   useEffect(() => {
     onDirtyChange?.(form.formState.isDirty);
   }, [form.formState.isDirty, onDirtyChange]);
+
+  const watchedValues = useWatch({ control: form.control });
+
+  useEffect(() => {
+    onValuesChange?.((watchedValues || {}) as Record<string, unknown>);
+  }, [onValuesChange, watchedValues]);
 
   const beforeSubmitHooksRef = useRef<Map<string, BeforeSubmitHook>>(new Map());
 

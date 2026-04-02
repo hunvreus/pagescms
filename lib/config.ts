@@ -42,6 +42,12 @@ const isCacheEnabled = (configObject?: Record<string, any>) => {
   return false;
 };
 
+const normalizeSitePath = (path: string) => {
+  const trimmed = path.trim();
+  if (!trimmed || trimmed === "/") return "/";
+  return `/${trimmed.replace(/^\/+/, "").replace(/\/+$/, "")}`;
+};
+
 // Parse the config file (YAML to JSON)
 const parseConfig = (content: string) => {
   const document = YAML.parseDocument(content, {
@@ -221,6 +227,16 @@ const normalizeConfig = (configObject: any) => {
       }
       delete commit.message;
     }
+
+    if (
+      configObjectCopy.settings.site &&
+      typeof configObjectCopy.settings.site === "object"
+    ) {
+      const site = configObjectCopy.settings.site;
+      if (typeof site.url === "string") {
+        site.url = site.url.replace(/\/+$/, "");
+      }
+    }
   }
 
   if (
@@ -333,6 +349,12 @@ const normalizeContentEntry = (
       item.commit.templates = item.commit.message;
     }
     delete item.commit.message;
+  }
+
+  if (item.site && typeof item.site === "object") {
+    if (typeof item.site.path === "string") {
+      item.site.path = normalizeSitePath(item.site.path);
+    }
   }
 
   if (Array.isArray(item.fields)) {

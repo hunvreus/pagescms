@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useConfig } from "@/contexts/config-context";
 import { parseAndValidateConfig } from "@/lib/config";
 import { resolveContentOperations } from "@/lib/operations";
+import { getPreviewDefaultOpen, getSiteSettings } from "@/lib/site";
 import { requireApiSuccess } from "@/lib/api-client";
 import { getSchemaActions } from "@/lib/actions";
 import {
@@ -26,6 +27,7 @@ import {
 import type { ApiSuccess, EntryData, EntryHistoryItem } from "@/types/api";
 import { EntryForm } from "./entry-form";
 import { EntryHistoryDropdown } from "./entry-history";
+import { EntryPreview } from "./entry-preview";
 import { EmptyCreate } from "@/components/empty-create";
 import { FileOptions } from "@/components/file/file-options";
 import { RepoActionButtons } from "@/components/repo/repo-action-buttons";
@@ -62,8 +64,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { EllipsisVertical, History, Lock, LockOpen, Save } from "lucide-react";
+import { EllipsisVertical, Eye, EyeOff, History, Lock, LockOpen, Save } from "lucide-react";
 import useSWR, { useSWRConfig } from "swr";
 
 type LintView = {
@@ -109,6 +112,8 @@ export function Entry({
   const [isFormDirty, setIsFormDirty] = useState(false);
   const [hasRegisteredChanges, setHasRegisteredChanges] = useState(false);
   const [error, setError] = useState<string | undefined | null>(null);
+  const [previewValues, setPreviewValues] = useState<Record<string, unknown>>({});
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const changeVersionRef = useRef(0);
   const { mutate } = useSWRConfig();
 
@@ -189,6 +194,24 @@ export function Entry({
         ? { listWrapper: [] }
         : {};
   }, [schema, entry, path]);
+
+  const isPreviewAvailable = useMemo(() => {
+    if (!schema || path === ".pages.yml") return false;
+    const siteSettings = getSiteSettings(config.object);
+    return Boolean(siteSettings?.url && schema?.site?.path);
+  }, [config.object, path, schema]);
+
+  const previewStateKey = `${name}:${path ?? "__new__"}`;
+
+  useEffect(() => {
+    setPreviewValues(entryContentObject as Record<string, unknown>);
+  }, [entryContentObject]);
+
+  useEffect(() => {
+    setIsPreviewOpen(
+      isPreviewAvailable && getPreviewDefaultOpen(config.object),
+    );
+  }, [config.object, isPreviewAvailable, previewStateKey]);
 
   useEffect(() => {
     if (!showFilenameField || schemaType !== "collection" || !schema) return;
@@ -667,6 +690,18 @@ export function Entry({
       {showHeaderActions && (
         <div className="flex shrink-0 items-center gap-x-2">
           {headerActionsNode}
+          {isPreviewAvailable && (
+            <Button
+              type="button"
+              variant={isPreviewOpen ? "secondary" : "outline"}
+              size="sm"
+              className="shrink-0"
+              onClick={() => setIsPreviewOpen((currentValue) => !currentValue)}
+            >
+              {isPreviewOpen ? <EyeOff /> : <Eye />}
+              <span className="hidden sm:inline">Preview</span>
+            </Button>
+          )}
           {path && (
             historyData && historyData.length > 0 && !isLoading
               ? (
@@ -730,7 +765,7 @@ export function Entry({
         </div>
       )}
     </div>
-  ), [breadcrumbNode, canDelete, canRename, filenameChanged, filenameFieldMode, filenameValue, handleDelete, handleRename, hasRegisteredChanges, headerActionsNode, headerMeta, historyData, isBusy, isFilenameUnlocked, isFormDirty, isLoading, name, path, schemaType, sha, showFilenameField, showHeaderActions]);
+  ), [breadcrumbNode, canDelete, canRename, filenameChanged, filenameFieldMode, filenameValue, handleDelete, handleRename, hasRegisteredChanges, headerActionsNode, headerMeta, historyData, isBusy, isFilenameUnlocked, isFormDirty, isLoading, isPreviewAvailable, isPreviewOpen, name, path, schemaType, sha, showFilenameField, showHeaderActions]);
 
   useRepoHeader({ header: headerNode });
 
@@ -840,50 +875,72 @@ export function Entry({
   return (
     isLoading
       ? loadingSkeleton
-      : <EntryForm
-        fields={entryFields}
-        contentObject={entryContentObject}
-        onSubmit={onSubmit}
-        filePath={
-          showFilenameField
-            ? <InputGroup data-disabled={path ? !isFilenameUnlocked : false}>
-                <InputGroupInput
-                  value={filenameValue}
-                  onChange={(event) => setFilenameValue(event.target.value)}
-                  placeholder="Filename"
-                  disabled={path ? !isFilenameUnlocked : false}
-                  aria-label="Filename"
-                />
-                {path && filenameFieldMode === "enabled" && canRename && (
-                  <InputGroupAddon align="inline-end">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <InputGroupButton
-                          type="button"
-                          variant="ghost"
-                          size="icon-xs"
-                          onClick={() => setIsFilenameUnlocked((prev) => !prev)}
-                          aria-label={isFilenameUnlocked ? "Lock filename" : "Unlock filename"}
-                        >
-                          {isFilenameUnlocked
-                            ? <LockOpen className="size-3.5" />
-                            : <Lock className="size-3.5" />}
-                        </InputGroupButton>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {isFilenameUnlocked ? "Lock filename" : "Unlock to edit"}
-                      </TooltipContent>
-                    </Tooltip>
-                  </InputGroupAddon>
-                )}
-              </InputGroup>
-            : undefined
-        }
-        onDirtyChange={setIsFormDirty}
-        onChangeRegistered={() => {
-          changeVersionRef.current += 1;
-          setHasRegisteredChanges(true);
-        }}
-      />
+      : <div
+        className={cn(
+          "grid items-start gap-6",
+          isPreviewOpen && isPreviewAvailable
+            ? "lg:grid-cols-[minmax(0,1fr)_minmax(360px,42vw)]"
+            : "",
+        )}
+      >
+        <div className="min-w-0">
+          <EntryForm
+            fields={entryFields}
+            contentObject={entryContentObject}
+            onSubmit={onSubmit}
+            filePath={
+              showFilenameField
+                ? <InputGroup data-disabled={path ? !isFilenameUnlocked : false}>
+                    <InputGroupInput
+                      value={filenameValue}
+                      onChange={(event) => setFilenameValue(event.target.value)}
+                      placeholder="Filename"
+                      disabled={path ? !isFilenameUnlocked : false}
+                      aria-label="Filename"
+                    />
+                    {path && filenameFieldMode === "enabled" && canRename && (
+                      <InputGroupAddon align="inline-end">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <InputGroupButton
+                              type="button"
+                              variant="ghost"
+                              size="icon-xs"
+                              onClick={() => setIsFilenameUnlocked((prev) => !prev)}
+                              aria-label={isFilenameUnlocked ? "Lock filename" : "Unlock filename"}
+                            >
+                              {isFilenameUnlocked
+                                ? <LockOpen className="size-3.5" />
+                                : <Lock className="size-3.5" />}
+                            </InputGroupButton>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {isFilenameUnlocked ? "Lock filename" : "Unlock to edit"}
+                          </TooltipContent>
+                        </Tooltip>
+                      </InputGroupAddon>
+                    )}
+                  </InputGroup>
+                : undefined
+            }
+            onDirtyChange={setIsFormDirty}
+            onChangeRegistered={() => {
+              changeVersionRef.current += 1;
+              setHasRegisteredChanges(true);
+            }}
+            onValuesChange={setPreviewValues}
+          />
+        </div>
+        {isPreviewOpen && isPreviewAvailable && (
+          <div className="min-w-0 lg:sticky lg:top-20">
+            <EntryPreview
+              fields={entryFields}
+              path={path}
+              schema={schema}
+              values={previewValues}
+            />
+          </div>
+        )}
+      </div>
   );
 };

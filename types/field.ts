@@ -1,3 +1,28 @@
+export type PreviewBind =
+  | "text"
+  | "html"
+  | "value"
+  | "src"
+  | "href"
+  | "checked"
+  | "content";
+
+export type PreviewTextTransform = "uppercase" | "lowercase" | "capitalize";
+
+export type PreviewTransform =
+  | { join: string }
+  | { date: string }
+  | { text: PreviewTextTransform }
+  | { fallback: string }
+  | { prefix: string }
+  | { suffix: string };
+
+export type PreviewRule = {
+  target: string;
+  bind: PreviewBind;
+  transform?: PreviewTransform[];
+};
+
 export type Field = {
   name: string;
   label?: string | false;
@@ -14,4 +39,5 @@ export type Field = {
   fields?: Field[];
   blocks?: Field[];
   blockKey?: string;
+  preview?: PreviewRule | PreviewRule[];
 };

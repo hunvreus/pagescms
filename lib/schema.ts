@@ -408,33 +408,59 @@ const getPrimaryField = (schema: Record<string, any>) => {
     )
 }
 
+const resolveSchemaTemplate = (
+  pattern: string,
+  schema: Record<string, any>,
+  state: Record<string, any>,
+  options?: {
+    aliases?: Record<string, unknown>;
+    slugifyValues?: boolean;
+  },
+) => {
+  const aliases = options?.aliases ?? {};
+  const slugifyValues = options?.slugifyValues ?? true;
+
+  const formatTemplateValue = (value: unknown) => {
+    if (value == null) return "";
+    const stringValue = String(value);
+    return slugifyValues
+      ? slugify(stringValue, { lower: true, strict: true })
+      : stringValue;
+  };
+
+  const now = new Date();
+  const primaryField = getPrimaryField(schema);
+  const resolvedPattern = pattern
+    .replace(/\{year\}/g, format(now, "yyyy"))
+    .replace(/\{month\}/g, format(now, "MM"))
+    .replace(/\{day\}/g, format(now, "dd"))
+    .replace(/\{hour\}/g, format(now, "HH"))
+    .replace(/\{minute\}/g, format(now, "mm"))
+    .replace(/\{second\}/g, format(now, "ss"));
+
+  return resolvedPattern.replace(/\{(?:fields\.)?([^}]+)\}/g, (_, token) => {
+    if (Object.prototype.hasOwnProperty.call(aliases, token)) {
+      return formatTemplateValue(aliases[token]);
+    }
+
+    if (token === "primary" || token === "slug") {
+      const primaryValue = primaryField
+        ? safeAccess(state, primaryField)
+        : "untitled";
+      return formatTemplateValue(primaryValue);
+    }
+
+    return formatTemplateValue(safeAccess(state, token));
+  });
+};
+
 // Generate a filename for an entry
 const generateFilename = (
   pattern: string,
   schema: Record<string, any>,
   state: Record<string, any>
 ) => {
-  // Replace date placeholders
-  const now = new Date();
-  pattern = pattern.replace(/\{year\}/g, format(now, 'yyyy'))
-    .replace(/\{month\}/g, format(now, 'MM'))
-    .replace(/\{day\}/g, format(now, 'dd'))
-    .replace(/\{hour\}/g, format(now, 'HH'))
-    .replace(/\{minute\}/g, format(now, 'mm'))
-    .replace(/\{second\}/g, format(now, 'ss'));
-
-  // Replace `{primary}` and `{slug}` with the actual name of the primary field.
-  // `{slug}` is kept as an alias for compatibility with existing configs.
-  const primaryField = getPrimaryField(schema);
-  pattern = pattern
-    .replace(/\{primary\}/g, primaryField ? `{fields.${primaryField}}` : "untitled")
-    .replace(/\{slug\}/g, primaryField ? `{fields.${primaryField}}` : "untitled");
-  
-  // Replace field placeholders, accepting both `{fields.title}` and `{title}`.
-  return pattern.replace(/\{(?:fields\.)?([^}]+)\}/g, (_, fieldName) => {
-    const value = safeAccess(state, fieldName);
-    return value ? slugify(String(value), { lower: true, strict: true }) : "";
-  });
+  return resolveSchemaTemplate(pattern, schema, state, { slugifyValues: true });
 };
 
 // Extract a date from a filename when possible
@@ -461,6 +487,7 @@ export {
   getSchemaByName,
   getFieldByPath,
   getPrimaryField,
+  resolveSchemaTemplate,
   generateFilename,
   getDateFromFilename,
   generateZodSchema,
