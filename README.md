@@ -67,6 +67,19 @@ BETTER_AUTH_SECRET=your-random-secret
 CRYPTO_KEY=your-random-secret
 ```
 
+Optional but useful:
+
+```bash
+BASE_URL=https://cms.example.com
+ADMIN_EMAILS=admin@example.com
+```
+
+Notes:
+
+- In production, `BASE_URL` should be the single canonical URL for the app.
+- Do not mix a custom domain and a `*.netlify.app` URL for the same install.
+- `ADMIN_EMAILS` is a comma-separated allowlist for access to the admin panel.
+
 Generate secrets with:
 
 ```bash

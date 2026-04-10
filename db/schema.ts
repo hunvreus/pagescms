@@ -10,6 +10,7 @@ import {
   uniqueIndex,
   jsonb,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 const userTable = pgTable("user", {
   id: text("id").notNull().primaryKey(),
@@ -89,7 +90,12 @@ const collaboratorTable = pgTable("collaborator", {
   invitedBy: text("invited_by").references(() => userTable.id)
 }, table => ({
   idx_collaborator_owner_repo_email: index("idx_collaborator_owner_repo_email").on(table.owner, table.repo, table.email),
-  idx_collaborator_userId: index("idx_collaborator_userId").on(table.userId)
+  idx_collaborator_userId: index("idx_collaborator_userId").on(table.userId),
+  uq_collaborator_owner_repo_email_ci: uniqueIndex("uq_collaborator_owner_repo_email_ci").on(
+    sql`lower(${table.owner})`,
+    sql`lower(${table.repo})`,
+    sql`lower(${table.email})`,
+  ),
 }));
 
 const configTable = pgTable("config", {

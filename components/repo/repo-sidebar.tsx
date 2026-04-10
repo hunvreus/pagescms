@@ -21,6 +21,7 @@ import { RepoActionButtons } from "@/components/repo/repo-action-buttons";
 import { RepoBranches } from "@/components/repo/repo-branches";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User } from "@/components/user";
+import { AdminButton } from "@/components/admin-button";
 import { About } from "@/components/about";
 import {
   DropdownMenu,
@@ -607,7 +608,10 @@ export function RepoSidebar() {
       </SidebarContent>
       <SidebarFooter className="border-t">
         <div className="flex items-center justify-between gap-2">
-          <User align="start" />
+          <div className="flex items-center gap-2">
+            <User align="start" />
+            <AdminButton />
+          </div>
           <About />
         </div>
       </SidebarFooter>

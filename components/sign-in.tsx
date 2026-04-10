@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { signIn } from "@/lib/auth-client";
+import { getAuthCallbackURL, getSafeRedirect } from "@/lib/auth-redirect";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -18,11 +19,12 @@ export function SignIn() {
   const searchParams = useSearchParams();
   const error = searchParams.get("error") || "";
   const redirectParam = searchParams.get("redirect") || "";
-  const callbackURL = redirectParam.startsWith("/") ? redirectParam : "/";
+  const safeRedirect = getSafeRedirect(redirectParam);
+  const callbackURL = getAuthCallbackURL(safeRedirect);
   const errorCallbackURL =
-    callbackURL === "/"
+    safeRedirect === "/"
       ? "/sign-in"
-      : `/sign-in?redirect=${encodeURIComponent(callbackURL)}`;
+      : `/sign-in?redirect=${encodeURIComponent(safeRedirect)}`;
 
   useEffect(() => {
     if (error) toast.error(error);

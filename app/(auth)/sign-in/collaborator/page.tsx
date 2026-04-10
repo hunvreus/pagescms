@@ -8,6 +8,7 @@ import { collaboratorTable, verificationTable } from "@/db/schema";
 import { SignInFromInvite } from "@/components/sign-in-from-invite";
 import { hasGithubIdentity } from "@/lib/authz-shared";
 import { getBaseUrl } from "@/lib/base-url";
+import { getAuthCallbackURL, getSafeRedirect } from "@/lib/auth-redirect";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Empty,
@@ -16,13 +17,6 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
-
-const getSafeRedirect = (redirectTo?: string) => {
-  if (!redirectTo) return "/";
-  return redirectTo.startsWith("/") && !redirectTo.startsWith("//")
-    ? redirectTo
-    : "/";
-};
 
 const isInviteEmailMatch = (signedInEmail?: string, inviteEmail?: string) => {
   if (!signedInEmail || !inviteEmail) return false;
@@ -163,7 +157,7 @@ export default async function Page({
     const baseUrl = getBaseUrl();
     const verifyUrl = new URL("/api/auth/magic-link/verify", baseUrl);
     verifyUrl.searchParams.set("token", inviteToken);
-    verifyUrl.searchParams.set("callbackURL", redirectTo);
+    verifyUrl.searchParams.set("callbackURL", getAuthCallbackURL(redirectTo));
     verifyUrl.searchParams.set(
       "errorCallbackURL",
       `/sign-in/collaborator?email=${encodeURIComponent(inviteEmail)}&owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&redirect=${encodeURIComponent(redirectTo)}`,

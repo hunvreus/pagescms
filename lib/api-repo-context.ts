@@ -26,11 +26,11 @@ const getRepoReadContext = async ({ owner, repo, branch }: RepoRef): Promise<Rep
   }
 
   const user = sessionResult.user as User;
-  const { token } = await getToken(user, owner, repo);
+  const { token, source } = await getToken(user, owner, repo);
   if (!token) throw createHttpError("Token not found", 401);
 
   const githubId = await getGithubId(user.id);
-  if (githubId) {
+  if (githubId && source === "user") {
     const hasAccess = await checkRepoAccess(token, owner, repo, githubId);
     if (!hasAccess) throw createHttpError(`No access to repository ${owner}/${repo}.`, 403);
   }

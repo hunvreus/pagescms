@@ -4,12 +4,12 @@
 
 import { db } from "@/db";
 import { collaboratorTable } from "@/db/schema";
-import { sql } from "drizzle-orm";
 import { getInstallations } from "@/lib/github-app";
 import { User } from "@/types/user";
 import { getGithubAccount } from "@/lib/github-account";
 import { requireGithubUserToken } from "@/lib/authz-server";
 import { hasGithubIdentity } from "@/lib/authz-shared";
+import { collaboratorMatchesUser } from "@/lib/collaborator-access";
 
 const getAccounts = async (user: User) => {
 	let accounts: Array<{
@@ -42,7 +42,7 @@ const getAccounts = async (user: User) => {
       installationId: collaboratorTable.installationId
     })
     .from(collaboratorTable)
-    .where(sql`lower(${collaboratorTable.email}) = lower(${user.email})`);
+    .where(collaboratorMatchesUser(user));
 
   const collaboratorAccounts = groupedRepos.map(collaborator => ({
     login: collaborator.owner,

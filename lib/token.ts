@@ -8,13 +8,13 @@ import { decrypt, encrypt } from "@/lib/crypto";
 import { createOctokitInstance } from "@/lib/utils/octokit";
 import { db } from "@/db";
 import {
-  collaboratorTable,
   githubInstallationTokenTable
 } from "@/db/schema";
-import { and, eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { User } from "@/types/user";
 import { getGithubAccount } from "@/lib/github-account";
 import { createHttpError } from "@/lib/api-error";
+import { collaboratorMatchesUserForRepo } from "@/lib/collaborator-access";
 
 const installationTokenRefreshInFlight = new Map<number, Promise<string>>();
 
@@ -42,11 +42,7 @@ const getToken = cache(async (
   }
 
   const permission = await db.query.collaboratorTable.findFirst({
-    where: and(
-      sql`lower(${collaboratorTable.email}) = lower(${user.email})`,
-      sql`lower(${collaboratorTable.owner}) = lower(${owner})`,
-      sql`lower(${collaboratorTable.repo}) = lower(${repo})`
-    )
+    where: collaboratorMatchesUserForRepo(user, owner, repo),
   });
   if (!permission) {
     throw createHttpError(

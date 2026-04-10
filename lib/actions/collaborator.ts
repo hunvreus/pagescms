@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { getInstallationRepos, getInstallations } from "@/lib/github-app";
 import { requireGithubRepoWriteAccess } from "@/lib/authz-server";
 import { InviteEmailTemplate } from "@/components/email/invite";
+import { CollaboratorAddedEmailTemplate } from "@/components/email/collaborator-added";
 import { render } from "@react-email/render";
 import { sendEmail } from "@/lib/mailer";
 import { getBaseUrl } from "@/lib/base-url";
@@ -13,6 +14,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { collaboratorTable, verificationTable } from "@/db/schema";
 import { z } from "zod";
 import { randomBytes, randomUUID } from "crypto";
+import { findVerifiedUserByEmail, normalizeEmail } from "@/lib/collaborator-access";
 
 const parseInviteEmails = (raw: FormDataEntryValue | null) => {
   const value = typeof raw === "string" ? raw : "";
@@ -141,47 +143,84 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
     const { repoAccess, installation } = await assertRepoInInstallation(user, owner, repo);
 
 		const baseUrl = getBaseUrl();
+    const repoUrl = new URL(`/${owner}/${repo}`, baseUrl).toString();
     const createdCollaborators: (typeof collaboratorTable.$inferSelect)[] = [];
     const errors: string[] = [];
+    let immediateAccessCount = 0;
+    let pendingInviteCount = 0;
 
     for (const email of emails) {
+      const normalizedEmail = normalizeEmail(email);
+      const existingUser = await findVerifiedUserByEmail(normalizedEmail);
       const collaborator = await db.query.collaboratorTable.findFirst({
 				where: and(
         eq(collaboratorTable.ownerId, repoAccess.ownerId),
         eq(collaboratorTable.repoId, repoAccess.repoId),
-					sql`lower(${collaboratorTable.email}) = lower(${email})`
+					sql`lower(${collaboratorTable.email}) = lower(${normalizedEmail})`
       ),
 			});
       if (collaborator) {
-        errors.push(`${email} is already invited to "${owner}/${repo}".`);
+        if (existingUser && collaborator.userId !== existingUser.id) {
+          const updated = await db.update(collaboratorTable)
+            .set({ userId: existingUser.id })
+            .where(eq(collaboratorTable.id, collaborator.id))
+            .returning();
+          if (updated.length > 0) {
+            createdCollaborators.push(...updated);
+            immediateAccessCount += 1;
+          }
+        }
+        errors.push(`${normalizedEmail} is already invited to "${owner}/${repo}".`);
         continue;
       }
 
-      const inviteUrl = await createCollaboratorInviteMagicLink({
-        email,
-        owner,
-        repo,
-        baseUrl,
-      });
-      try {
-        const html = await render(
-          InviteEmailTemplate({
-            inviteUrl,
-            repoName: `${formData.get("owner")}/${formData.get("repo")}`,
-            email,
-            invitedByName: user.name || user.githubUsername || user.email,
-            invitedByUrl: `https://github.com/${user.githubUsername}`,
-          }),
-        );
-        await sendEmail({
-          to: email,
-          subject: `Join "${owner}/${repo}" on Pages CMS`,
-          html,
+      if (!existingUser) {
+        const inviteUrl = await createCollaboratorInviteMagicLink({
+          email: normalizedEmail,
+          owner,
+          repo,
+          baseUrl,
         });
-      } catch (error: any) {
-        console.error(`Failed to send invitation email to ${email}:`, error.message);
-        errors.push(`${email}: ${error.message}`);
-        continue;
+        try {
+          const html = await render(
+            InviteEmailTemplate({
+              inviteUrl,
+              repoName: `${formData.get("owner")}/${formData.get("repo")}`,
+              email: normalizedEmail,
+              invitedByName: user.name || user.githubUsername || user.email,
+              invitedByUrl: `https://github.com/${user.githubUsername}`,
+            }),
+          );
+          await sendEmail({
+            to: normalizedEmail,
+            subject: `Join "${owner}/${repo}" on Pages CMS`,
+            html,
+          });
+        } catch (error: any) {
+          console.error(`Failed to send invitation email to ${normalizedEmail}:`, error.message);
+          errors.push(`${normalizedEmail}: ${error.message}`);
+          continue;
+        }
+      } else {
+        try {
+          const html = await render(
+            CollaboratorAddedEmailTemplate({
+              email: normalizedEmail,
+              repoName: `${formData.get("owner")}/${formData.get("repo")}`,
+              repoUrl,
+              invitedByName: user.name || user.githubUsername || user.email,
+              invitedByUrl: `https://github.com/${user.githubUsername}`,
+            }),
+          );
+          await sendEmail({
+            to: normalizedEmail,
+            subject: `You were added to "${owner}/${repo}" on Pages CMS`,
+            html,
+          });
+        } catch (error: any) {
+          console.error(`Failed to send collaborator notification email to ${normalizedEmail}:`, error.message);
+          errors.push(`${normalizedEmail}: ${error.message}`);
+        }
       }
 
       const inserted = await db.insert(collaboratorTable).values({
@@ -191,11 +230,19 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
         repoId: repoAccess.repoId,
         owner: repoAccess.ownerLogin,
         repo: repoAccess.repoName,
-        email,
+        email: normalizedEmail,
+        userId: existingUser?.id ?? null,
         invitedBy: user.id
       }).returning();
 
-      if (inserted.length > 0) createdCollaborators.push(...inserted);
+      if (inserted.length > 0) {
+        createdCollaborators.push(...inserted);
+        if (existingUser) {
+          immediateAccessCount += 1;
+        } else {
+          pendingInviteCount += 1;
+        }
+      }
     }
 
     if (createdCollaborators.length === 0) {
@@ -204,9 +251,13 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
 
 		return {
       message:
-        createdCollaborators.length === 1
-          ? `${createdCollaborators[0].email} invited to "${owner}/${repo}".`
-          : `${createdCollaborators.length} collaborators invited to "${owner}/${repo}".`,
+        immediateAccessCount > 0 && pendingInviteCount > 0
+          ? `${immediateAccessCount} collaborator${immediateAccessCount === 1 ? "" : "s"} added immediately and ${pendingInviteCount} invite${pendingInviteCount === 1 ? "" : "s"} sent for "${owner}/${repo}".`
+          : immediateAccessCount > 0
+            ? `${immediateAccessCount} collaborator${immediateAccessCount === 1 ? "" : "s"} added to "${owner}/${repo}".`
+            : pendingInviteCount === 1
+              ? `${createdCollaborators[0].email} invited to "${owner}/${repo}".`
+              : `${pendingInviteCount} collaborators invited to "${owner}/${repo}".`,
 			data: createdCollaborators,
       errors
 		};

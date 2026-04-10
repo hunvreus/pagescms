@@ -4,6 +4,7 @@ export interface User {
   name: string;
   image?: string | null;
   emailVerified: boolean;
+  isAdmin?: boolean;
   githubUsername?: string | null;
   accounts?: any[];
 }

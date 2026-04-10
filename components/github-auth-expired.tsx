@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { signOut } from "@/lib/auth-client";
+import { getSafeRedirect } from "@/lib/auth-redirect";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 const GithubAuthExpired = () => {
@@ -13,7 +14,7 @@ const GithubAuthExpired = () => {
         await signOut();
       } finally {
         if (!cancelled) {
-          const returnTo = `${window.location.pathname}${window.location.search}`;
+          const returnTo = getSafeRedirect(`${window.location.pathname}${window.location.search}`);
           const signInUrl =
             returnTo && returnTo !== "/sign-in"
               ? `/sign-in?redirect=${encodeURIComponent(returnTo)}`

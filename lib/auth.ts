@@ -8,6 +8,7 @@ import { getBaseUrl } from "@/lib/base-url";
 import { repairLegacyGithubStubOnLogin } from "@/lib/github-legacy-stub-repair";
 import { sendEmail } from "@/lib/mailer";
 import { syncGithubProfileOnLogin } from "@/lib/github-account";
+import { bindCollaboratorInvitesToUser } from "@/lib/collaborator-access";
 import { LoginEmailTemplate } from "@/components/email/login";
 import { render } from "@react-email/render";
 
@@ -77,6 +78,22 @@ export const auth = betterAuth({
               error: error instanceof Error ? error.message : String(error),
             });
           }
+
+          try {
+            const user = await db.query.userTable.findFirst({
+              where: (table, { eq }) => eq(table.id, session.userId),
+            });
+            if (user) {
+              await bindCollaboratorInvitesToUser(user);
+            }
+          } catch (error) {
+            console.warn("[auth] collaborator invite binding failed", {
+              sessionId: session.id,
+              userId: session.userId,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+
         },
       },
     },

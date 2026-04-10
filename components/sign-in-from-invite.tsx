@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { signIn, signOut } from "@/lib/auth-client";
+import { getAuthCallbackURL } from "@/lib/auth-redirect";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Empty,
@@ -77,7 +78,7 @@ export function SignInFromInvite({
       const result = await signIn.magicLink({
         email: email as string,
         name: getNameFromEmail(email as string),
-        callbackURL: redirectTo || "/",
+        callbackURL: getAuthCallbackURL(redirectTo),
         errorCallbackURL: "/sign-in",
       });
       if (result.error?.message) throw new Error(result.error.message);
