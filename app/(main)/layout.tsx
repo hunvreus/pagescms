@@ -6,6 +6,7 @@ import { User } from "@/types/user";
 import { getServerSession } from "@/lib/session-server";
 import { GithubAuthExpired } from "@/components/github-auth-expired";
 import { isGithubAuthError } from "@/lib/github-auth";
+import { invalidateSessionForGithubAuthError } from "@/lib/github-auth-server";
 import { hasAdminAccess } from "@/lib/admin";
 
 export default async function Layout({
@@ -27,6 +28,7 @@ export default async function Layout({
     accounts = await getAccounts(session.user as User);
   } catch (error) {
     if (isGithubAuthError(error)) {
+      await invalidateSessionForGithubAuthError(session);
       return <GithubAuthExpired />;
     }
     throw error;
