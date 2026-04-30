@@ -1,9 +1,28 @@
 import { and, eq, like, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { accountTable, collaboratorTable, sessionTable, userTable } from "@/db/schema";
+import { createOctokitInstance } from "@/lib/utils/octokit";
 
 const isLegacyEmail = (email: string | null | undefined) => {
   return typeof email === "string" && email.toLowerCase().endsWith("@local.invalid");
+};
+
+const getVerifiedGithubProfile = async (accessToken: string) => {
+  const octokit = createOctokitInstance(accessToken);
+  const [{ data: profile }, { data: emails }] = await Promise.all([
+    octokit.rest.users.getAuthenticated(),
+    octokit.rest.users.listEmailsForAuthenticatedUser(),
+  ]);
+
+  const primaryEmail = emails.find((entry) => entry.primary) ?? emails[0];
+  if (!primaryEmail?.email || !primaryEmail.verified) return null;
+
+  return {
+    email: primaryEmail.email.toLowerCase(),
+    emailVerified: primaryEmail.verified,
+    githubId: String(profile.id),
+    githubUsername: profile.login,
+  };
 };
 
 // Merge a legacy collaborator stub user into a real signed-in account.
@@ -102,8 +121,7 @@ const repairLegacyGithubStubOnGithubSignIn = async (userId: string) => {
   const signedInUser = await db.query.userTable.findFirst({
     where: eq(userTable.id, userId),
   });
-  if (!signedInUser?.githubUsername) return;
-  if (isLegacyEmail(signedInUser.email)) return;
+  if (!signedInUser) return;
 
   const signedInGithubAccount = await db.query.accountTable.findFirst({
     where: and(
@@ -112,6 +130,45 @@ const repairLegacyGithubStubOnGithubSignIn = async (userId: string) => {
     ),
   });
   if (!signedInGithubAccount) return;
+
+  if (isLegacyEmail(signedInUser.email)) {
+    if (!signedInGithubAccount.accessToken) return;
+
+    const githubProfile = await getVerifiedGithubProfile(signedInGithubAccount.accessToken);
+    if (!githubProfile) return;
+    if (signedInGithubAccount.accountId !== githubProfile.githubId) {
+      console.warn("[auth] legacy github stub repair skipped due to mismatched github profile", {
+        signedInUserId: userId,
+        signedInGithubAccountId: signedInGithubAccount.accountId,
+        authenticatedGithubAccountId: githubProfile.githubId,
+      });
+      return;
+    }
+
+    const existingUser = await db.query.userTable.findFirst({
+      where: eq(userTable.email, githubProfile.email),
+    });
+
+    if (existingUser) {
+      await mergeUsers(userId, existingUser.id, {
+        preferredEmail: existingUser.email,
+        emailVerified: existingUser.emailVerified || githubProfile.emailVerified,
+      });
+      return;
+    }
+
+    await db
+      .update(userTable)
+      .set({
+        email: githubProfile.email,
+        emailVerified: githubProfile.emailVerified,
+        githubUsername: githubProfile.githubUsername,
+        updatedAt: new Date(),
+      })
+      .where(eq(userTable.id, userId));
+    return;
+  }
+  if (!signedInUser.githubUsername) return;
 
   const legacyStub = await db.query.userTable.findFirst({
     where: and(

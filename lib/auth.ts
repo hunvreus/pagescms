@@ -37,7 +37,7 @@ export const auth = betterAuth({
     github: {
       clientId: process.env.GITHUB_APP_CLIENT_ID as string,
       clientSecret: process.env.GITHUB_APP_CLIENT_SECRET as string,
-      overrideUserInfoOnSignIn: true,
+      overrideUserInfoOnSignIn: false,
       mapProfileToUser: (profile) => ({
         name: profile.name ?? profile.login,
         image: profile.avatar_url ?? null,
