@@ -98,6 +98,25 @@ const collaboratorTable = pgTable("collaborator", {
   ),
 }));
 
+const collaboratorInviteTable = pgTable("collaborator_invite", {
+  id: serial("id").primaryKey(),
+  token: text("token").notNull(),
+  email: text("email").notNull(),
+  owner: text("owner").notNull(),
+  repo: text("repo").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+}, table => ({
+  uq_collaborator_invite_token: uniqueIndex("uq_collaborator_invite_token").on(table.token),
+  idx_collaborator_invite_owner_repo_email: index("idx_collaborator_invite_owner_repo_email").on(table.owner, table.repo, table.email),
+  uq_collaborator_invite_owner_repo_email_ci: uniqueIndex("uq_collaborator_invite_owner_repo_email_ci").on(
+    sql`lower(${table.owner})`,
+    sql`lower(${table.repo})`,
+    sql`lower(${table.email})`,
+  ),
+}));
+
 const configTable = pgTable("config", {
   id: serial("id").primaryKey(),
   owner: text("owner").notNull(),
@@ -197,6 +216,7 @@ export {
   verificationTable,
   githubInstallationTokenTable,
   collaboratorTable,
+  collaboratorInviteTable,
   configTable,
   cacheFileTable,
   cacheFileMetaTable,

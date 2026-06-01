@@ -11,9 +11,9 @@ import { sendEmail } from "@/lib/mailer";
 import { getBaseUrl } from "@/lib/base-url";
 import { db } from "@/db";
 import { and, eq, sql } from "drizzle-orm";
-import { collaboratorTable, verificationTable } from "@/db/schema";
+import { collaboratorInviteTable, collaboratorTable } from "@/db/schema";
 import { z } from "zod";
-import { randomBytes, randomUUID } from "crypto";
+import { randomBytes } from "crypto";
 import { findVerifiedUserByEmail, normalizeEmail } from "@/lib/collaborator-access";
 
 const parseInviteEmails = (raw: FormDataEntryValue | null) => {
@@ -56,12 +56,7 @@ const assertRepoInInstallation = async (
   };
 };
 
-const getDisplayNameFromEmail = (email: string) => {
-  const localPart = email.split("@")[0]?.trim();
-  return localPart || email;
-};
-
-const generateMagicLinkToken = () => {
+const generateInviteToken = () => {
   const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
   const bytes = randomBytes(32);
   let token = "";
@@ -73,7 +68,7 @@ const generateMagicLinkToken = () => {
   return token;
 };
 
-const createCollaboratorInviteMagicLink = async ({
+const createCollaboratorInviteUrl = async ({
   email,
   owner,
   repo,
@@ -84,31 +79,31 @@ const createCollaboratorInviteMagicLink = async ({
   repo: string;
   baseUrl: string;
 }) => {
-  const token = generateMagicLinkToken();
-  const redirectPath = `/${owner}/${repo}`;
+  const token = generateInviteToken();
   const expiresAt = new Date(
     Date.now() + ((Number(process.env.COLLABORATOR_INVITE_LINK_EXPIRES_IN) || 86400) * 1000),
   );
 
-  await db.insert(verificationTable).values({
-    id: randomUUID(),
-    identifier: token,
-    value: JSON.stringify({
-      email,
-      name: getDisplayNameFromEmail(email),
-      owner,
-      repo,
-      source: "collaborator-invite",
-    }),
+  await db
+    .delete(collaboratorInviteTable)
+    .where(
+      and(
+        sql`lower(${collaboratorInviteTable.email}) = lower(${email})`,
+        sql`lower(${collaboratorInviteTable.owner}) = lower(${owner})`,
+        sql`lower(${collaboratorInviteTable.repo}) = lower(${repo})`,
+      ),
+    );
+
+  await db.insert(collaboratorInviteTable).values({
+    token,
+    email,
+    owner,
+    repo,
     expiresAt,
   });
 
   const inviteUrl = new URL("/sign-in/collaborator", baseUrl);
   inviteUrl.searchParams.set("token", token);
-  inviteUrl.searchParams.set("email", email);
-  inviteUrl.searchParams.set("owner", owner);
-  inviteUrl.searchParams.set("repo", repo);
-  inviteUrl.searchParams.set("redirect", redirectPath);
 
   return inviteUrl.toString();
 };
@@ -175,7 +170,7 @@ const handleAddCollaborator = async (prevState: any, formData: FormData) => {
       }
 
       if (!existingUser) {
-        const inviteUrl = await createCollaboratorInviteMagicLink({
+        const inviteUrl = await createCollaboratorInviteUrl({
           email: normalizedEmail,
           owner,
           repo,
@@ -290,6 +285,16 @@ const handleRemoveCollaborator = async (collaboratorId: number, owner: string, r
 
 		if (!deletedCollaborator || deletedCollaborator.length === 0) throw new Error("Failed to delete collaborator");
 
+    await db
+      .delete(collaboratorInviteTable)
+      .where(
+        and(
+          sql`lower(${collaboratorInviteTable.email}) = lower(${collaborator.email})`,
+          sql`lower(${collaboratorInviteTable.owner}) = lower(${owner})`,
+          sql`lower(${collaboratorInviteTable.repo}) = lower(${repo})`,
+        ),
+      );
+
 		return { message: `Invitation to ${collaborator.email} for "${owner}/${repo}" successfully removed.` };
 	} catch (error: any) {
 		console.error(error);
@@ -314,7 +319,7 @@ const handleResendCollaboratorInvite = async (collaboratorId: number, owner: str
     }
 
     const baseUrl = getBaseUrl();
-    const inviteUrl = await createCollaboratorInviteMagicLink({
+    const inviteUrl = await createCollaboratorInviteUrl({
       email: collaborator.email,
       owner,
       repo,

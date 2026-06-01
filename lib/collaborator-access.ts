@@ -1,6 +1,6 @@
 import { and, eq, isNull, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { collaboratorTable, userTable } from "@/db/schema";
+import { collaboratorInviteTable, collaboratorTable, userTable } from "@/db/schema";
 import type { User } from "@/types/user";
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
@@ -56,6 +56,10 @@ const bindCollaboratorInvitesToUser = async (user: Pick<User, "id" | "email" | "
         sql`lower(${collaboratorTable.email}) = lower(${normalizeEmail(user.email)})`,
       ),
     );
+
+  await db
+    .delete(collaboratorInviteTable)
+    .where(sql`lower(${collaboratorInviteTable.email}) = lower(${normalizeEmail(user.email)})`);
 };
 
 export {

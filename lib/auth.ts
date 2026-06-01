@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
-import { magicLink } from "better-auth/plugins";
+import { emailOTP } from "better-auth/plugins";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { getBaseUrl } from "@/lib/base-url";
@@ -155,18 +155,27 @@ export const auth = betterAuth({
   },
   plugins: [
     nextCookies(),
-    magicLink({
-      sendMagicLink: async ({ email, url }) => {
+    emailOTP({
+      expiresIn: 300,
+      otpLength: 6,
+      allowedAttempts: 5,
+      storeOTP: "encrypted",
+      resendStrategy: "reuse",
+      sendVerificationOTP: async ({ email, otp, type }) => {
+        if (type !== "sign-in") return;
+
+        const subject = `Your Pages CMS temporary code is ${otp}`;
         const html = await render(
           LoginEmailTemplate({
-            url,
             email,
+            otp,
+            preview: subject,
           }),
         );
 
         await sendEmail({
           to: email,
-          subject: "Sign in link for Pages CMS",
+          subject,
           html,
         });
       },

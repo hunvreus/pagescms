@@ -1,7 +1,6 @@
 import * as React from "react";
 import {
   Body,
-  Button,
   Container,
   Head,
   Heading,
@@ -16,11 +15,13 @@ import {
 import { emailTheme } from "@/components/email/theme";
 
 export const LoginEmailTemplate = ({
-  url,
   email,
+  otp,
+  preview = "Sign in to Pages CMS",
 }: {
-  url: string;
   email: string;
+  otp: string;
+  preview?: string;
 }) => {
   const baseUrl = process.env.BASE_URL
     ? process.env.BASE_URL
@@ -31,7 +32,7 @@ export const LoginEmailTemplate = ({
   return (
     <Html>
       <Head />
-      <Preview>Sign in to Pages CMS</Preview>
+      <Preview>{preview}</Preview>
       <Tailwind>
         <Body
           className="my-auto mx-auto font-sans px-2 antialiased"
@@ -60,38 +61,31 @@ export const LoginEmailTemplate = ({
               className="text-[16px] leading-[24px]"
               style={{ color: emailTheme.foreground }}
             >
-              Click the button below to sign in to Pages CMS:
+              Enter this temporary verification code to continue:
             </Text>
             <Section className="text-center mt-[24px] mb-[24px]">
-              <Button
-                className="rounded-lg text-[14px] font-medium no-underline text-center px-5 py-3"
-                href={url}
+              <pre
+                className="inline-block rounded-lg border-0 text-[28px] font-medium"
                 style={{
-                  backgroundColor: emailTheme.buttonBackground,
-                  border: `1px solid ${emailTheme.buttonBorder}`,
-                  color: emailTheme.buttonForeground,
+                  backgroundColor: emailTheme.muted,
+                  color: emailTheme.foreground,
+                  fontFamily:
+                    'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                  letterSpacing: "8px",
+                  lineHeight: 1,
+                  marginBottom: 0,
+                  marginTop: 0,
+                  padding: "12px 4px 12px 12px",
                 }}
               >
-                Sign in
-              </Button>
+                {otp}
+              </pre>
             </Section>
             <Text
               className="text-[16px] leading-[24px]"
               style={{ color: emailTheme.foreground }}
             >
-              or copy and paste this URL into your browser:{" "}
-            </Text>
-            <Text
-              className="text-[16px] leading-[24px]"
-              style={{ color: emailTheme.foreground }}
-            >
-              <Link
-                href={url}
-                className="underline rounded-md"
-                style={{ color: emailTheme.link }}
-              >
-                {url}
-              </Link>
+              This code will expire in 5 minutes.
             </Text>
             <Text
               className="text-[14px] leading-[24px] mt-[36px]"
