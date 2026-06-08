@@ -32,31 +32,31 @@ const getToken = cache(async (
       token: githubAccount.accessToken,
       source: "user" as const,
     };
-
-    if (verifyGithubAccess) {
-      throw createHttpError(
-        `You do not have permission to access "${owner}/${repo}".`,
-        403,
-      );
-    }
   }
 
   const permission = await db.query.collaboratorTable.findFirst({
     where: collaboratorMatchesUserForRepo(user, owner, repo),
   });
-  if (!permission) {
+  if (permission) {
+    const installationToken = await getInstallationToken(owner, repo);
+
+    return {
+      token: installationToken,
+      source: "installation" as const,
+    };
+  }
+
+  if (githubAccount?.accessToken && verifyGithubAccess) {
     throw createHttpError(
       `You do not have permission to access "${owner}/${repo}".`,
       403,
     );
   }
 
-  const installationToken = await getInstallationToken(owner, repo);
-
-  return {
-    token: installationToken,
-    source: "installation" as const,
-  };
+  throw createHttpError(
+    `You do not have permission to access "${owner}/${repo}".`,
+    403,
+  );
 });
 
 // Get the GitHub App installation token for a specific repository.
