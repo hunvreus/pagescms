@@ -1,42 +1,28 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-.yarn/install-state.gz
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
+# Root ignores for the TanStack Start rewrite.
+node_modules/
+.output/
+.wrangler/
+.dev.vars*
+dist/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
 .DS_Store
-*.pem
-.docs
-.codex
 
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# env files
+# Environment files remain local. Commit explicit examples only.
 .env*
+!.env.example
 !.env.local.example
 
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# Database
-local.db
+# The legacy tree is source-controlled, but its local dependencies, caches,
+# generated builds, secrets, and previous Vinext experiment outputs are not.
+_legacy/node_modules/
+_legacy/.next/
+_legacy/.tmp/
+_legacy/.vinext/
+_legacy/dist/
+_legacy/coverage/
+_legacy/*.tsbuildinfo
+_legacy/.env*
+!_legacy/.env.local.example
