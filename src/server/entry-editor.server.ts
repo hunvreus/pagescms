@@ -15,13 +15,17 @@ import {
   isContentOperationAllowed,
   resolveContentOperations,
 } from '#/lib/content-operations'
-import { validateStructuredContent } from '#/lib/field-values'
+import {
+  initializeStructuredContent,
+  validateStructuredContent,
+} from '#/lib/field-values'
 import { getFileExtension } from '#/lib/file-types'
 import { normalizeGitPath } from '#/lib/git-path'
 import { toJsonObject, toJsonValue } from '#/lib/json'
 
 import { createConfigurationStore } from './configuration-store.server'
 import { invalidateDirectoryCacheAfterMutation } from './directory-cache.server'
+import { GitHubApiError } from './github-api.server'
 
 import type { CommitIdentity, CommitTemplates } from '#/lib/commit-message'
 import type {
@@ -234,7 +238,42 @@ export async function loadFixedFile(
   if (!schema || schema.type !== 'file') {
     throw new Error(`File ${input.name} was not found`)
   }
-  return loadRawEntry({ ...input, path: schema.path })
+  try {
+    return await loadRawEntry({ ...input, path: schema.path })
+  } catch (error) {
+    if (!(error instanceof GitHubApiError) || error.status !== 404) throw error
+  }
+  if (!isContentOperationAllowed('create', { schema })) {
+    throw new Error('This file does not exist and creating it is disabled')
+  }
+  const fields = Array.isArray(schema.fields) ? schema.fields : []
+  const format =
+    typeof schema.format === 'string' &&
+    formats.has(schema.format as ContentFormat)
+      ? (schema.format as ContentFormat)
+      : undefined
+  const shared = {
+    source: '',
+    sha: null,
+    path: normalizeGitPath(schema.path),
+    label:
+      typeof schema.label === 'string' && schema.label
+        ? schema.label
+        : schema.name,
+    operations: resolveContentOperations({ schema }),
+    actionContextType: 'file' as const,
+    actions: schemaActions(schema),
+    media: configuredMediaSchemas(configuration.object),
+  }
+  if (fields.length && format) {
+    return {
+      ...shared,
+      mode: 'structured' as const,
+      fields: toJsonValue(fields),
+      content: initializeStructuredContent(fields),
+    }
+  }
+  return { ...shared, mode: 'raw' as const }
 }
 
 export async function saveStructuredEntry(

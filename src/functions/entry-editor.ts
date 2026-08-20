@@ -24,10 +24,13 @@ function parseEntryRequest(input: unknown) {
   }
 }
 
-function parseEntryUpdate(input: unknown) {
+export function parseEntryUpdate(input: unknown) {
   const entry = parseEntryRequest(input)
   const value = input as Record<string, unknown>
-  if (typeof value.source !== 'string' || typeof value.sha !== 'string') {
+  if (
+    typeof value.source !== 'string' ||
+    (value.sha !== null && typeof value.sha !== 'string')
+  ) {
     throw new Error('Invalid entry update')
   }
   return { ...entry, source: value.source, sha: value.sha }
@@ -51,11 +54,11 @@ function parseEntryRename(input: unknown) {
   return { ...entry, filename: value.filename }
 }
 
-function parseStructuredEntryUpdate(input: unknown) {
+export function parseStructuredEntryUpdate(input: unknown) {
   const entry = parseEntryRequest(input)
   const value = input as Record<string, unknown>
   if (
-    typeof value.sha !== 'string' ||
+    (value.sha !== null && typeof value.sha !== 'string') ||
     typeof value.content !== 'object' ||
     value.content === null ||
     Array.isArray(value.content)
@@ -249,7 +252,7 @@ export const updateRawEntry = createServerFn({ method: 'POST' })
     }
     return services.access.execute(
       {
-        operation: 'entry.update',
+        operation: data.sha ? 'entry.update' : 'entry.create',
         principal: { type: 'user', id: user.id },
         tenant: {
           type: 'repository',
@@ -270,6 +273,7 @@ export const updateRawEntry = createServerFn({ method: 'POST' })
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,
+          sha: data.sha ?? undefined,
         })
       },
     )
@@ -289,7 +293,7 @@ export const updateStructuredEntry = createServerFn({ method: 'POST' })
     }
     return services.access.execute(
       {
-        operation: 'entry.update',
+        operation: data.sha ? 'entry.update' : 'entry.create',
         principal: { type: 'user', id: user.id },
         tenant: {
           type: 'repository',
@@ -311,6 +315,7 @@ export const updateStructuredEntry = createServerFn({ method: 'POST' })
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,
+          sha: data.sha ?? undefined,
         })
       },
     )
