@@ -3,9 +3,12 @@ import { describe, expect, it } from 'vitest'
 import {
   collectionDirectoryPath,
   findContentSchema,
+  findMediaSchema,
+  mediaDirectoryPath,
 } from './configuration-content'
 
 const configuration = {
+  media: [{ name: 'images', input: 'public/images', output: '/images' }],
   content: [
     {
       type: 'group',
@@ -28,6 +31,19 @@ describe('findContentSchema', () => {
       type: 'collection',
       path: 'content/posts',
     })
+  })
+})
+
+describe('media schemas', () => {
+  it('finds media and confines directories to its input root', () => {
+    const schema = findMediaSchema(configuration, 'images')!
+    expect(mediaDirectoryPath(schema)).toBe('public/images')
+    expect(mediaDirectoryPath(schema, 'public/images/posts')).toBe(
+      'public/images/posts',
+    )
+    expect(() => mediaDirectoryPath(schema, 'public/private')).toThrow(
+      'outside',
+    )
   })
 })
 
