@@ -9,13 +9,14 @@ import { normalizeConfiguration } from '#/lib/configuration'
 import { parseConfigurationSource } from '#/lib/configuration-source'
 
 import { createConfigurationStore } from './configuration-store.server'
-import { GitHubApiError, createGitHubApi } from './github-api.server'
+import { GitHubApiError } from './github-api.server'
 
 import type { Database } from './database/client.server'
 import type { BackgroundExecutor } from './runtime-ports.server'
 import type { ProjectUser } from './projects.server'
+import type { RepositoryAccessService } from './repository-access.server'
 
-import { accountTable, configTable } from './database/schema'
+import { configTable } from './database/schema'
 
 function decodeBase64Utf8(value: string) {
   const binary = atob(value.replace(/\s/g, ''))
@@ -31,34 +32,20 @@ function encodeBase64Utf8(value: string) {
   return btoa(binary)
 }
 
-async function githubApiForUser(database: Database, user: ProjectUser) {
-  const account = await database.query.accountTable.findFirst({
-    columns: { accessToken: true },
-    where: and(
-      eq(accountTable.userId, user.id),
-      eq(accountTable.providerId, 'github'),
-    ),
-  })
-  if (!account?.accessToken || !user.githubUsername) {
-    throw new Error('Only GitHub users can manage repository configuration')
-  }
-  return createGitHubApi(account.accessToken)
-}
-
 export async function loadConfigurationSource({
-  database,
+  repositoryAccess,
   user,
   owner,
   repo,
   branch,
 }: {
-  database: Database
+  repositoryAccess: RepositoryAccessService
   user: ProjectUser
   owner: string
   repo: string
   branch: string
 }) {
-  const api = await githubApiForUser(database, user)
+  const { api } = await repositoryAccess.resolve(user, owner, repo, branch)
   try {
     const file = await api.getFile(owner, repo, '.pages.yml', branch)
     return { source: decodeBase64Utf8(file.content), sha: file.sha }
@@ -73,6 +60,7 @@ export async function loadConfigurationSource({
 export async function saveConfigurationSource({
   database,
   background,
+  repositoryAccess,
   user,
   owner,
   repo,
@@ -82,6 +70,7 @@ export async function saveConfigurationSource({
 }: {
   database: Database
   background: BackgroundExecutor
+  repositoryAccess: RepositoryAccessService
   user: ProjectUser & { name: string }
   owner: string
   repo: string
@@ -100,7 +89,7 @@ export async function saveConfigurationSource({
   ConfigurationSchema.parse(parsed.configuration)
   normalizeConfiguration(parsed.configuration)
 
-  const api = await githubApiForUser(database, user)
+  const { api } = await repositoryAccess.resolve(user, owner, repo, branch)
   const cached = await createConfigurationStore({
     database,
     background,

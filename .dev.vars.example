@@ -6,5 +6,11 @@ DATABASE_URL="postgres://user:password@localhost:5432/pagescms"
 GITHUB_APP_CLIENT_ID=""
 GITHUB_APP_CLIENT_SECRET=""
 
+# Optional, but required for email-only collaborator access. Generate
+# CRYPTO_KEY with: openssl rand -base64 32
+GITHUB_APP_ID=""
+GITHUB_APP_PRIVATE_KEY=""
+CRYPTO_KEY=""
+
 # hosted deployments must provide an access-policy plugin
 DEPLOYMENT_MODE="self-hosted"

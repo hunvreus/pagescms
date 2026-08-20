@@ -11,6 +11,11 @@ export type RuntimeConfiguration = Readonly<{
   auth: AuthRuntimeConfiguration
   databaseConnectionString: string
   deployment: 'self-hosted' | 'hosted'
+  githubApp?: Readonly<{
+    appId: string
+    privateKey: string
+    cryptoKey: string
+  }>
 }>
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -35,6 +40,18 @@ function parseBaseUrl(value: unknown) {
     throw new Error('BETTER_AUTH_URL must be a valid HTTP URL')
   }
   return url.toString().replace(/\/$/, '')
+}
+
+function parseCryptoKey(value: string) {
+  try {
+    const bytes = Uint8Array.from(atob(value), (character) =>
+      character.charCodeAt(0),
+    )
+    if (bytes.byteLength !== 32) throw new Error()
+  } catch {
+    throw new Error('CRYPTO_KEY must be a base64-encoded 32-byte key')
+  }
+  return value
 }
 
 export function parseRuntimeConfiguration(
@@ -70,6 +87,24 @@ export function parseRuntimeConfiguration(
     throw new Error('DEPLOYMENT_MODE must be self-hosted or hosted')
   }
 
+  const appId = optionalString(environment.GITHUB_APP_ID)
+  const privateKey = optionalString(
+    environment.GITHUB_APP_PRIVATE_KEY,
+  )?.replace(/\\n/g, '\n')
+  const cryptoKey = optionalString(environment.CRYPTO_KEY)
+  const githubAppValues = [appId, privateKey, cryptoKey]
+  if (githubAppValues.some(Boolean) && !githubAppValues.every(Boolean)) {
+    throw new Error(
+      'GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY, and CRYPTO_KEY must be provided together',
+    )
+  }
+  if (appId && (!/^\d+$/.test(appId) || appId === '0')) {
+    throw new Error('GITHUB_APP_ID must be a positive integer')
+  }
+  if (privateKey && !privateKey.includes('PRIVATE KEY-----')) {
+    throw new Error('GITHUB_APP_PRIVATE_KEY must be a PEM private key')
+  }
+
   return {
     auth: {
       baseUrl: parseBaseUrl(environment.BETTER_AUTH_URL),
@@ -80,5 +115,14 @@ export function parseRuntimeConfiguration(
     },
     databaseConnectionString,
     deployment: deploymentValue,
+    ...(appId && privateKey && cryptoKey
+      ? {
+          githubApp: {
+            appId,
+            privateKey,
+            cryptoKey: parseCryptoKey(cryptoKey),
+          },
+        }
+      : {}),
   }
 }

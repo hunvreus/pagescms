@@ -1,5 +1,3 @@
-import { and, eq } from 'drizzle-orm'
-
 import {
   collectionDirectoryPath,
   findContentSchema,
@@ -8,7 +6,6 @@ import { parseContent } from '#/lib/content-serialization'
 import { toJsonValue } from '#/lib/json'
 
 import { createConfigurationStore } from './configuration-store.server'
-import { createGitHubApi } from './github-api.server'
 
 import type {
   ContentFormat,
@@ -18,8 +15,7 @@ import type { JsonValue } from '#/lib/json'
 import type { Database } from './database/client.server'
 import type { BackgroundExecutor } from './runtime-ports.server'
 import type { ProjectUser } from './projects.server'
-
-import { accountTable } from './database/schema'
+import type { RepositoryAccessService } from './repository-access.server'
 
 const serializedFormats = new Set<ContentFormat>([
   'yaml-frontmatter',
@@ -71,6 +67,7 @@ function dateFromFilename(value: string) {
 export async function loadCollection({
   database,
   background,
+  repositoryAccess,
   user,
   owner,
   repo,
@@ -80,6 +77,7 @@ export async function loadCollection({
 }: {
   database: Database
   background: BackgroundExecutor
+  repositoryAccess: RepositoryAccessService
   user: ProjectUser
   owner: string
   repo: string
@@ -87,17 +85,7 @@ export async function loadCollection({
   name: string
   path?: string
 }) {
-  const account = await database.query.accountTable.findFirst({
-    columns: { accessToken: true },
-    where: and(
-      eq(accountTable.userId, user.id),
-      eq(accountTable.providerId, 'github'),
-    ),
-  })
-  if (!account?.accessToken || !user.githubUsername) {
-    throw new Error('A GitHub user token is currently required')
-  }
-  const api = createGitHubApi(account.accessToken)
+  const { api } = await repositoryAccess.resolve(user, owner, repo, branch)
   const configuration = await createConfigurationStore({
     database,
     background,

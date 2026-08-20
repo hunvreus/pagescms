@@ -64,6 +64,7 @@ export const getRawEntry = createServerFn({ method: 'GET' })
         return loadRawEntry({
           database: services.database,
           background: services.background,
+          repositoryAccess: services.repositoryAccess,
           user,
           ...data,
         })
@@ -103,6 +104,7 @@ export const updateRawEntry = createServerFn({ method: 'POST' })
         return saveRawEntry({
           database: services.database,
           background: services.background,
+          repositoryAccess: services.repositoryAccess,
           user,
           ...data,
         })
