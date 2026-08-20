@@ -95,6 +95,14 @@ function swapPrefix(path: string, from: string, to: string, relative = false) {
   return result
 }
 
+export function mediaInputPath(path: string, media: FieldMediaSchema) {
+  return swapPrefix(path, media.output, media.input, true)
+}
+
+export function mediaOutputPath(path: string, media: FieldMediaSchema) {
+  return swapPrefix(path, media.input, media.output)
+}
+
 function transformMediaValue(
   value: JsonValue | undefined,
   field: Field,
@@ -106,8 +114,8 @@ function transformMediaValue(
   const transform = (item: JsonValue): JsonValue =>
     typeof item === 'string'
       ? direction === 'read'
-        ? swapPrefix(item, schema.output, schema.input, true)
-        : swapPrefix(item, schema.input, schema.output)
+        ? mediaInputPath(item, schema)
+        : mediaOutputPath(item, schema)
       : item
   return Array.isArray(value)
     ? value.map(transform)

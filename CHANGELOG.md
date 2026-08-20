@@ -8,6 +8,7 @@
 - Legacy-compatible configuration, serialization, GitHub/database adapters, authentication, repository navigation, editors, media, actions, collaborators, cache controls, settings, administration, and signed webhook invalidation.
 - Trusted build-time plugins for hosted access policy, email delivery, and custom client fields without maintaining a fork.
 - Typed paid-plan, quota, permission, and policy-unavailable errors with safe plugin-provided upgrade links.
+- Lazy rich-text Markdown/HTML editing with embedded media browsing, upload, private previews, and repository/public path round-tripping.
 - Vitest coverage and Playwright guest/health smoke coverage.
 
 ### Changed
