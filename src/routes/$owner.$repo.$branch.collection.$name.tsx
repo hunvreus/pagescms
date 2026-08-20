@@ -30,6 +30,7 @@ import {
   createCollectionFolder,
   createRawCollectionEntry,
   createStructuredCollectionEntry,
+  moveEntry,
 } from '#/functions/entry-editor'
 import { getSignInUrl } from '#/lib/auth-redirect'
 import { initializeStructuredContent } from '#/lib/field-values'
@@ -118,6 +119,7 @@ function CollectionPage() {
   const [expanded, setExpanded] = useState<
     Partial<Record<string, ExpandedCollection>>
   >({})
+  const [promoting, setPromoting] = useState<string | null>(null)
   const view =
     data.collection.view &&
     typeof data.collection.view === 'object' &&
@@ -146,6 +148,12 @@ function CollectionPage() {
   )
   const primaryField = typeof view.primary === 'string' ? view.primary : 'title'
   const treeLayout = view.layout === 'tree'
+  const nodeView =
+    view.node && typeof view.node === 'object' && !Array.isArray(view.node)
+      ? view.node
+      : undefined
+  const nodeFilename =
+    typeof nodeView?.filename === 'string' ? nodeView.filename : undefined
 
   useEffect(() => {
     setExpanded({})
@@ -253,10 +261,52 @@ function CollectionPage() {
     }
   }
 
+  async function promoteToNode(
+    entry: Extract<CollectionItem, { type: 'file' }>,
+  ) {
+    if (!nodeFilename || !entry.sha) return
+    const extension = data.collection.extension
+      ? `.${data.collection.extension}`
+      : ''
+    const basePath =
+      extension && entry.path.endsWith(extension)
+        ? entry.path.slice(0, -extension.length)
+        : entry.path
+    const newPath = `${basePath}/${nodeFilename}`
+    if (
+      !window.confirm(
+        `Move ${entry.path} to ${newPath} before adding child entries?`,
+      )
+    ) {
+      return
+    }
+    setPromoting(entry.path)
+    setCreateError(null)
+    try {
+      await moveEntry({
+        data: { ...params, path: entry.path, newPath, sha: entry.sha },
+      })
+      await router.invalidate()
+      openCreator(basePath)
+    } catch (cause) {
+      setCreateError(
+        cause instanceof Error ? cause.message : 'Could not create node',
+      )
+    } finally {
+      setPromoting(null)
+    }
+  }
+
   function treeRows(entries: CollectionItem[], depth = 0): React.ReactNode {
     return entries.map((entry) => {
       const state = expanded[entry.path]
       const expandable = entry.type === 'dir' || entry.isNode
+      const promotable =
+        entry.type === 'file' &&
+        !entry.isNode &&
+        Boolean(nodeFilename) &&
+        data.collection.operations.create &&
+        data.collection.operations.rename
       const title =
         entry.type === 'file'
           ? (() => {
@@ -303,15 +353,24 @@ function CollectionPage() {
                 {entry.path}
               </p>
             </div>
-            {data.collection.operations.create && expandable ? (
+            {data.collection.operations.create && (expandable || promotable) ? (
               <Button
                 aria-label={`Add child to ${title}`}
+                disabled={promoting === entry.path}
                 size="icon"
                 type="button"
                 variant="outline"
-                onClick={() => openCreator(childParent)}
+                onClick={() =>
+                  entry.type === 'file' && promotable
+                    ? void promoteToNode(entry)
+                    : openCreator(childParent)
+                }
               >
-                <Plus />
+                {promoting === entry.path ? (
+                  <LoaderCircle className="animate-spin" />
+                ) : (
+                  <Plus />
+                )}
               </Button>
             ) : null}
             {entry.type === 'file' ? (

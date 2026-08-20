@@ -737,6 +737,20 @@ export async function deleteContentEntry(input: {
 export async function renameContentEntry(
   input: Parameters<typeof deleteContentEntry>[0] & { filename: string },
 ) {
+  const filename = normalizeGitPath(input.filename.trim())
+  if (!filename || filename.includes('/')) {
+    throw new Error('Filename must be a non-empty file name')
+  }
+  const path = normalizeGitPath(input.path)
+  const separator = path.lastIndexOf('/')
+  const parent = separator === -1 ? '' : path.slice(0, separator)
+  const newPath = normalizeGitPath(parent ? `${parent}/${filename}` : filename)
+  return moveContentEntry({ ...input, newPath })
+}
+
+export async function moveContentEntry(
+  input: Parameters<typeof deleteContentEntry>[0] & { newPath: string },
+) {
   const context = await loadContext(
     input.database,
     input.background,
@@ -748,16 +762,13 @@ export async function renameContentEntry(
     input.name,
     input.path,
   )
-  if (!isContentOperationAllowed('rename', { schema: context.schema })) {
+  if (
+    context.schema.type !== 'collection' ||
+    !isContentOperationAllowed('rename', { schema: context.schema })
+  ) {
     throw new Error('Renaming this content is disabled')
   }
-  const filename = normalizeGitPath(input.filename.trim())
-  if (!filename || filename.includes('/')) {
-    throw new Error('Filename must be a non-empty file name')
-  }
-  const separator = context.path.lastIndexOf('/')
-  const parent = separator === -1 ? '' : context.path.slice(0, separator)
-  const newPath = normalizeGitPath(parent ? `${parent}/${filename}` : filename)
+  const newPath = normalizeGitPath(input.newPath)
   await loadContext(
     input.database,
     input.background,
@@ -769,7 +780,13 @@ export async function renameContentEntry(
     input.name,
     newPath,
   )
-  if (newPath === context.path) throw new Error('The filename has not changed')
+  if (newPath === context.path) throw new Error('The path has not changed')
+  try {
+    await context.api.getFile(input.owner, input.repo, newPath, input.branch)
+    throw new Error(`An entry already exists at ${newPath}`)
+  } catch (error) {
+    if (!(error instanceof GitHubApiError) || error.status !== 404) throw error
+  }
   const commit = schemaCommitOptions(context.schema)
   const identity = resolveCommitIdentity({
     configuration: context.configuration.object,
