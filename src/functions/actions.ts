@@ -2,6 +2,19 @@ import { createServerFn } from '@tanstack/react-start'
 
 import { repositoryRef } from '#/lib/repository'
 
+type ActionContextType =
+  'repository' | 'collection' | 'entry' | 'file' | 'media'
+
+function isActionContextType(value: unknown): value is ActionContextType {
+  return (
+    value === 'repository' ||
+    value === 'collection' ||
+    value === 'entry' ||
+    value === 'file' ||
+    value === 'media'
+  )
+}
+
 function coordinates(input: unknown) {
   if (typeof input !== 'object' || input === null)
     throw new Error('Invalid action request')
@@ -32,10 +45,49 @@ function dispatchRequest(input: unknown) {
   ) {
     throw new Error('Invalid action dispatch')
   }
+  const contextValue = value.context
+  let actionContext: {
+    type: ActionContextType
+    name: string | null
+    path: string | null
+    data: Record<string, unknown>
+  } = {
+    type: 'repository',
+    name: null,
+    path: null,
+    data: {},
+  }
+  if (contextValue !== undefined) {
+    if (
+      typeof contextValue !== 'object' ||
+      contextValue === null ||
+      Array.isArray(contextValue)
+    ) {
+      throw new Error('Invalid action context')
+    }
+    const context = contextValue as Record<string, unknown>
+    if (
+      !isActionContextType(context.type) ||
+      (context.name !== null && typeof context.name !== 'string') ||
+      (context.path !== null && typeof context.path !== 'string') ||
+      typeof context.data !== 'object' ||
+      context.data === null ||
+      Array.isArray(context.data)
+    ) {
+      throw new Error('Invalid action context')
+    }
+    actionContext = {
+      type: context.type,
+      name: context.name,
+      path: context.path,
+      data: context.data as Record<string, unknown>,
+    }
+  }
   return {
     ...repository,
     actionName: value.actionName,
     inputs: value.inputs as Record<string, unknown>,
+    context: actionContext,
   }
 }
 

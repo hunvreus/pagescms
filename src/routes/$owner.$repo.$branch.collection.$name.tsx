@@ -11,6 +11,7 @@ import {
   StructuredContentField,
   isContentField,
 } from '#/components/structured-content-field'
+import { RepositoryActionButtons } from '#/components/repository-action-buttons'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { getCollection } from '#/functions/collection'
@@ -118,17 +119,33 @@ function CollectionPage() {
             {data.collection.label}
           </h1>
         </div>
-        <Button
-          disabled={!data.collection.operations.create || fields.length === 0}
-          title={
-            fields.length === 0
-              ? 'Raw entry creation is not ported yet'
-              : undefined
-          }
-          onClick={openCreator}
-        >
-          <Plus /> New entry
-        </Button>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <RepositoryActionButtons
+            actions={data.collection.actions}
+            context={{
+              type: 'collection',
+              name: data.collection.name,
+              path: data.collection.path,
+              data: {
+                label: data.collection.label,
+                rootPath: data.collection.rootPath,
+                format: data.collection.format,
+              },
+            }}
+            coordinates={params}
+          />
+          <Button
+            disabled={!data.collection.operations.create || fields.length === 0}
+            title={
+              fields.length === 0
+                ? 'Raw entry creation is not ported yet'
+                : undefined
+            }
+            onClick={openCreator}
+          >
+            <Plus /> New entry
+          </Button>
+        </div>
       </header>
 
       {creating ? (

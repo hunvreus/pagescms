@@ -12,6 +12,7 @@ export interface RepositoryAction {
   label: string
   workflow: string
   ref?: string
+  scope?: 'collection' | 'entry'
   cancelable?: boolean
   confirm?: boolean | { title?: string; message?: string; button?: string }
   fields?: ActionField[]
@@ -30,6 +31,24 @@ export function repositoryActions(configuration: Record<string, unknown>) {
       typeof value.label === 'string' &&
       typeof value.workflow === 'string',
   )
+}
+
+export function schemaActions(
+  schema: Record<string, unknown>,
+  scope?: 'collection' | 'entry',
+) {
+  if (!Array.isArray(schema.actions)) return []
+  return schema.actions
+    .filter(
+      (value): value is RepositoryAction =>
+        isRecord(value) &&
+        typeof value.name === 'string' &&
+        typeof value.label === 'string' &&
+        typeof value.workflow === 'string',
+    )
+    .filter((action) =>
+      scope === undefined ? action.scope === undefined : action.scope === scope,
+    )
 }
 
 export function resolveActionRef(ref: string | undefined, branch: string) {

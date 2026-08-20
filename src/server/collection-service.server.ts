@@ -2,6 +2,7 @@ import {
   collectionDirectoryPath,
   findContentSchema,
 } from '#/lib/configuration-content'
+import { schemaActions } from '#/lib/actions'
 import { parseContent } from '#/lib/content-serialization'
 import { resolveContentOperations } from '#/lib/content-operations'
 import { toJsonValue } from '#/lib/json'
@@ -173,11 +174,13 @@ export async function loadCollection({
           : schema.name,
       path: directory,
       rootPath: schema.path,
+      format: typeof schema.format === 'string' ? schema.format : null,
       subfolders: schema.subfolders !== false,
       fields: toJsonValue(Array.isArray(schema.fields) ? schema.fields : []),
       filenameField:
         schema.filenameField === true || schema.filenameField === 'create',
       operations: resolveContentOperations({ schema }),
+      actions: schemaActions(schema, 'collection'),
     },
     contents,
     errors,

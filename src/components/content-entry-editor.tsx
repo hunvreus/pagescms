@@ -6,6 +6,7 @@ import {
   StructuredContentField,
   isContentField,
 } from '#/components/structured-content-field'
+import { RepositoryActionButtons } from '#/components/repository-action-buttons'
 import { Button } from '#/components/ui/button'
 import { Textarea } from '#/components/ui/textarea'
 import {
@@ -181,6 +182,12 @@ function RawEntryEditor({
   return (
     <div className="mx-auto max-w-5xl space-y-5">
       <EditorHeader
+        actionData={{
+          label: initial.label,
+          sha,
+          content: savedSource,
+        }}
+        coordinates={coordinates}
         dirty={dirty}
         canDelete={initial.operations.delete}
         initial={initial}
@@ -257,6 +264,12 @@ function StructuredEntryEditor({
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       <EditorHeader
+        actionData={{
+          label: initial.label,
+          sha,
+          content: savedContent,
+        }}
+        coordinates={coordinates}
         dirty={dirty}
         canDelete={initial.operations.delete}
         initial={initial}
@@ -297,6 +310,8 @@ function StructuredEntryEditor({
 
 function EditorHeader({
   initial,
+  coordinates,
+  actionData,
   saving,
   saved,
   dirty,
@@ -309,6 +324,8 @@ function EditorHeader({
   onSave,
 }: {
   initial: EntryData
+  coordinates: ContentEntryCoordinates
+  actionData: Record<string, unknown>
   saving: boolean
   saved: boolean
   dirty: boolean
@@ -329,6 +346,16 @@ function EditorHeader({
         </h1>
       </div>
       <div className="flex gap-2">
+        <RepositoryActionButtons
+          actions={initial.actions}
+          context={{
+            type: initial.actionContextType,
+            name: coordinates.name,
+            path: coordinates.path,
+            data: actionData,
+          }}
+          coordinates={coordinates}
+        />
         {canRename ? (
           <Button
             disabled={saving || deleting || renaming}
