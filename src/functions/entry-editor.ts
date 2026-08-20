@@ -60,8 +60,7 @@ export function parseStructuredEntryUpdate(input: unknown) {
   if (
     (value.sha !== null && typeof value.sha !== 'string') ||
     typeof value.content !== 'object' ||
-    value.content === null ||
-    Array.isArray(value.content)
+    value.content === null
   ) {
     throw new Error('Invalid structured entry update')
   }
@@ -83,7 +82,6 @@ export function parseStructuredEntryCreate(input: unknown) {
     value.name.includes('/') ||
     typeof value.content !== 'object' ||
     value.content === null ||
-    Array.isArray(value.content) ||
     (value.parent !== undefined && typeof value.parent !== 'string') ||
     (value.filename !== undefined && typeof value.filename !== 'string')
   ) {

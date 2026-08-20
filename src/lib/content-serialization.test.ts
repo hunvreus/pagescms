@@ -53,6 +53,34 @@ describe('parseContent', () => {
 })
 
 describe('serializeContent', () => {
+  it.each(['yaml', 'json'] as const)(
+    'round-trips root lists in %s documents',
+    (format) => {
+      const value = [{ title: 'First' }, { title: 'Second' }]
+      expect(
+        parseContent(serializeContent(value, { format }), { format }),
+      ).toEqual(value)
+    },
+  )
+
+  it.each(['yaml', 'json'] as const)(
+    'preserves an empty root list in %s documents',
+    (format) => {
+      expect(
+        parseContent(serializeContent([], { format }), { format }),
+      ).toEqual([])
+    },
+  )
+
+  it('rejects root lists in formats that cannot represent them', () => {
+    expect(() => serializeContent([], { format: 'toml' })).toThrow(
+      'cannot contain a list',
+    )
+    expect(() => serializeContent([], { format: 'yaml-frontmatter' })).toThrow(
+      'must contain an object',
+    )
+  })
+
   it.each(['yaml', 'json', 'toml'] as const)(
     'round-trips %s documents',
     (format) => {

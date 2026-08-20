@@ -53,7 +53,7 @@ export function ContentEntryEditor({
   afterDeleteHref: string
   renameBaseHref?: string
 }) {
-  return initial.mode === 'structured' ? (
+  return initial.mode === 'structured' || initial.mode === 'structured-list' ? (
     <StructuredEntryEditor
       afterDeleteHref={afterDeleteHref}
       coordinates={coordinates}
@@ -240,7 +240,9 @@ function StructuredEntryEditor({
   afterDeleteHref,
   renameBaseHref,
 }: {
-  initial: Extract<EntryData, { mode: 'structured' }>
+  initial:
+    | Extract<EntryData, { mode: 'structured' }>
+    | Extract<EntryData, { mode: 'structured-list' }>
   coordinates: ContentEntryCoordinates
   afterDeleteHref: string
   renameBaseHref?: string
@@ -304,26 +306,44 @@ function StructuredEntryEditor({
       />
       <EditorError error={error ?? deletion.error ?? rename.error} />
       <div className="space-y-5 rounded-xl border bg-card p-5 shadow-xs">
-        {fields.map((field) => {
-          const name = String(field.name)
-          return (
-            <StructuredContentField
-              field={field}
-              key={name}
-              referenceContext={{ ...coordinates, media: initial.media }}
-              value={content[name]}
-              onChange={(value) => {
-                setSaved(false)
-                setContent((current) => {
-                  const next = { ...current }
-                  if (value === undefined) delete next[name]
-                  else next[name] = value
-                  return next
-                })
-              }}
-            />
-          )
-        })}
+        {initial.mode === 'structured-list' ? (
+          <StructuredContentField
+            field={{
+              name: 'items',
+              label: false,
+              type: 'object',
+              fields,
+              list: initial.list ?? true,
+            }}
+            referenceContext={{ ...coordinates, media: initial.media }}
+            value={content}
+            onChange={(value) => {
+              setSaved(false)
+              setContent(Array.isArray(value) ? value : [])
+            }}
+          />
+        ) : (
+          fields.map((field) => {
+            const name = String(field.name)
+            return (
+              <StructuredContentField
+                field={field}
+                key={name}
+                referenceContext={{ ...coordinates, media: initial.media }}
+                value={Array.isArray(content) ? undefined : content[name]}
+                onChange={(value) => {
+                  setSaved(false)
+                  setContent((current) => {
+                    const next = Array.isArray(current) ? {} : { ...current }
+                    if (value === undefined) delete next[name]
+                    else next[name] = value
+                    return next
+                  })
+                }}
+              />
+            )
+          })
+        )}
       </div>
     </div>
   )

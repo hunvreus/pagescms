@@ -3,9 +3,20 @@ import { describe, expect, it } from 'vitest'
 import {
   initializeStructuredContent,
   validateStructuredContent,
+  validateStructuredList,
 } from './field-values'
 
 describe('structured field values', () => {
+  it('validates root list items and limits', () => {
+    expect(
+      validateStructuredList(
+        [{ name: 'title', type: 'string', required: true }],
+        [{ title: 'First' }, {}],
+        { min: 3 },
+      ),
+    ).toEqual(['Content requires at least 3 items', 'Item 2.title is required'])
+  })
+
   it('validates required, typed, patterned, nested, and list fields', () => {
     const fields = [
       { name: 'title', type: 'string', required: true, pattern: '^Page' },

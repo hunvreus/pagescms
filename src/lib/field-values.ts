@@ -177,6 +177,29 @@ export function validateStructuredContent(
   return errors
 }
 
+export function validateStructuredList(
+  fields: unknown[],
+  content: JsonValue[],
+  list: unknown = true,
+) {
+  const errors: string[] = []
+  const limits = listLimits(list)
+  if (limits.min !== undefined && content.length < limits.min) {
+    errors.push(`Content requires at least ${limits.min} items`)
+  }
+  if (limits.max !== undefined && content.length > limits.max) {
+    errors.push(`Content allows at most ${limits.max} items`)
+  }
+  content.forEach((item, index) => {
+    if (!isRecord(item)) {
+      errors.push(`Item ${index + 1} must be an object`)
+      return
+    }
+    errors.push(...validateStructuredContent(fields, item, `Item ${index + 1}`))
+  })
+  return errors
+}
+
 export function initializeStructuredContent(fields: unknown[]) {
   const content: JsonObject = {}
   for (const candidate of fields) {
