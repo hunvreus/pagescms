@@ -1,6 +1,6 @@
 # Database development
 
-Pages CMS preserves the existing PostgreSQL tables and Drizzle migration history. Runtime code creates a typed Drizzle/Postgres.js client from a request-scoped connection string; it does not read `process.env` or retain a module-global pool. Cloudflare deployments will pass the Hyperdrive `connectionString` after that binding is configured.
+Pages CMS preserves the existing PostgreSQL tables and Drizzle migration history. Runtime code creates a typed Drizzle/Postgres.js client from `DATABASE_URL` and does not retain a module-global pool. The hosted application uses Supabase PostgreSQL; local and other deployments may provide any compatible PostgreSQL connection string.
 
 ## Schema changes
 

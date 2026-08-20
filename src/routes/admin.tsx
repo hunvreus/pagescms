@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import {
   Link,
   createFileRoute,
@@ -16,7 +17,9 @@ import {
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { OperationError } from '#/components/operation-error'
-import { getAdminDashboard, runAdminAction } from '#/functions/admin'
+import { runAdminAction } from '#/functions/admin'
+import { adminDashboardQueryOptions } from '#/queries/admin'
+import { queryKeys } from '#/queries/keys'
 
 interface AdminSearch {
   query?: string
@@ -40,9 +43,11 @@ export const Route = createFileRoute('/admin')({
     query: search.query ?? '',
     page: search.page ?? 1,
   }),
-  loader: async ({ deps }) => {
+  loader: async ({ context, deps }) => {
     try {
-      return await getAdminDashboard({ data: deps })
+      await context.queryClient.ensureQueryData(
+        adminDashboardQueryOptions(deps),
+      )
     } catch (error) {
       if (
         error instanceof Error &&
@@ -53,14 +58,15 @@ export const Route = createFileRoute('/admin')({
       throw error
     }
   },
-  staleTime: 5_000,
   pendingMs: 100,
   component: AdminPage,
 })
 
 function AdminPage() {
-  const data = Route.useLoaderData()
+  const deps = Route.useLoaderDeps()
+  const { data } = useSuspenseQuery(adminDashboardQueryOptions(deps))
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [query, setQuery] = useState(data.query)
   const [running, setRunning] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -88,7 +94,7 @@ function AdminPage() {
         return
       }
       setMessage(result.message)
-      await router.invalidate()
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin() })
     } catch (cause) {
       setError(cause)
     } finally {

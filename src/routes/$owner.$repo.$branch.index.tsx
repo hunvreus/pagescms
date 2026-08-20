@@ -1,4 +1,7 @@
 import { createFileRoute, getRouteApi } from '@tanstack/react-router'
+import { useSuspenseQuery } from '@tanstack/react-query'
+
+import { repositoryWorkspaceQueryOptions } from '#/queries/repository'
 
 const workspaceRoute = getRouteApi('/$owner/$repo/$branch')
 
@@ -7,7 +10,10 @@ export const Route = createFileRoute('/$owner/$repo/$branch/')({
 })
 
 function RepositoryOverview() {
-  const workspace = workspaceRoute.useLoaderData()
+  const params = workspaceRoute.useParams()
+  const { data: workspace, isFetching } = useSuspenseQuery(
+    repositoryWorkspaceQueryOptions(params),
+  )
 
   return (
     <div className="flex min-h-[calc(100vh-3rem)] items-center justify-center">
@@ -20,8 +26,8 @@ function RepositoryOverview() {
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               Select a collection, file, or media library from the repository
               navigation.
-              {workspace.configuration.stale
-                ? ' Cached configuration is visible while Pages CMS checks GitHub for changes.'
+              {isFetching
+                ? ' Cached data is visible while Pages CMS checks for updates.'
                 : ''}
             </p>
           </>

@@ -14,13 +14,11 @@ import { createConfigurationStore } from './configuration-store.server'
 import type { Database } from './database/client.server'
 import type { ProjectUser } from './projects.server'
 import type { RepositoryAccessService } from './repository-access.server'
-import type { BackgroundExecutor } from './runtime-ports.server'
 
 import { actionRunTable } from './database/schema'
 
 type ActionInput = {
   database: Database
-  background: BackgroundExecutor
   repositoryAccess: RepositoryAccessService
   user: ProjectUser & { name: string; image?: string | null }
   owner: string
@@ -88,7 +86,6 @@ async function actionContext(
   )
   const configuration = await createConfigurationStore({
     database: input.database,
-    background: input.background,
   }).get(api, input.owner, input.repo, input.branch)
   if (!configuration) throw new Error('Repository configuration not found')
   return {

@@ -1,10 +1,6 @@
 import { useState } from 'react'
-import {
-  Link,
-  createFileRoute,
-  redirect,
-  useRouter,
-} from '@tanstack/react-router'
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { Link, createFileRoute, redirect } from '@tanstack/react-router'
 import {
   ArrowLeft,
   ExternalLink,
@@ -18,13 +14,15 @@ import { Button } from '#/components/ui/button'
 import { GitHubIcon } from '#/components/github-icon'
 import { Input } from '#/components/ui/input'
 import { OperationError } from '#/components/operation-error'
-import { getAccountSettings, updateProfile } from '#/functions/account'
+import { updateProfile } from '#/functions/account'
 import { authClient, signIn } from '#/lib/auth-client'
+import { queryKeys } from '#/queries/keys'
+import { accountSettingsQueryOptions } from '#/queries/session'
 
 export const Route = createFileRoute('/settings')({
-  loader: async () => {
+  loader: async ({ context }) => {
     try {
-      return await getAccountSettings()
+      await context.queryClient.ensureQueryData(accountSettingsQueryOptions())
     } catch (error) {
       if (
         error instanceof Error &&
@@ -35,14 +33,13 @@ export const Route = createFileRoute('/settings')({
       throw error
     }
   },
-  staleTime: 15_000,
   pendingMs: 100,
   component: SettingsPage,
 })
 
 function SettingsPage() {
-  const data = Route.useLoaderData()
-  const router = useRouter()
+  const { data } = useSuspenseQuery(accountSettingsQueryOptions())
+  const queryClient = useQueryClient()
   const [name, setName] = useState(data.user.name)
   const [saving, setSaving] = useState(false)
   const [connecting, setConnecting] = useState(false)
@@ -57,7 +54,8 @@ function SettingsPage() {
     try {
       await updateProfile({ data: { name } })
       setMessage('Profile updated')
-      await router.invalidate()
+      await queryClient.invalidateQueries({ queryKey: queryKeys.settings() })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() })
     } catch (cause) {
       setError(cause)
     } finally {
@@ -99,7 +97,8 @@ function SettingsPage() {
       })
       if (result.error?.message) throw new Error(result.error.message)
       setMessage('GitHub account disconnected')
-      await router.invalidate()
+      await queryClient.invalidateQueries({ queryKey: queryKeys.settings() })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() })
     } catch (cause) {
       setError(cause)
     } finally {

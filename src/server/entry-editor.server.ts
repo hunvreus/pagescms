@@ -38,7 +38,6 @@ import type {
   FrontmatterDelimiters,
 } from '#/lib/content-serialization'
 import type { Database } from './database/client.server'
-import type { BackgroundExecutor } from './runtime-ports.server'
 import type { ProjectUser } from './projects.server'
 import type { RepositoryAccessService } from './repository-access.server'
 
@@ -67,7 +66,6 @@ function encodeBase64(value: string) {
 
 async function loadContext(
   database: Database,
-  background: BackgroundExecutor,
   repositoryAccess: RepositoryAccessService,
   user: ProjectUser,
   owner: string,
@@ -79,7 +77,6 @@ async function loadContext(
   const { api } = await repositoryAccess.resolve(user, owner, repo, branch)
   const configuration = await createConfigurationStore({
     database,
-    background,
   }).get(api, owner, repo, branch)
   if (!configuration) throw new Error('Repository configuration not found')
   const schema = findContentSchema(configuration.object, name)
@@ -121,7 +118,6 @@ function schemaCommitOptions(schema: Record<string, unknown>): {
 
 export async function loadRawEntry(input: {
   database: Database
-  background: BackgroundExecutor
   repositoryAccess: RepositoryAccessService
   user: ProjectUser
   owner: string
@@ -132,7 +128,6 @@ export async function loadRawEntry(input: {
 }) {
   const context = await loadContext(
     input.database,
-    input.background,
     input.repositoryAccess,
     input.user,
     input.owner,
@@ -229,7 +224,6 @@ function structuredContent(
 
 export async function loadEntryHistory(input: {
   database: Database
-  background: BackgroundExecutor
   repositoryAccess: RepositoryAccessService
   user: ProjectUser
   owner: string
@@ -240,7 +234,6 @@ export async function loadEntryHistory(input: {
 }) {
   const context = await loadContext(
     input.database,
-    input.background,
     input.repositoryAccess,
     input.user,
     input.owner,
@@ -268,7 +261,6 @@ export async function loadFixedFile(
   )
   const configuration = await createConfigurationStore({
     database: input.database,
-    background: input.background,
   }).get(api, input.owner, input.repo, input.branch)
   if (!configuration) throw new Error('Repository configuration not found')
   const schema = findContentSchema(configuration.object, input.name)
@@ -330,7 +322,6 @@ export async function saveStructuredEntry(
   const value = toJsonValue(input.content)
   const context = await loadContext(
     input.database,
-    input.background,
     input.repositoryAccess,
     input.user,
     input.owner,
@@ -388,7 +379,6 @@ export async function saveStructuredEntry(
 
 export async function saveRawEntry(input: {
   database: Database
-  background: BackgroundExecutor
   repositoryAccess: RepositoryAccessService
   user: ProjectUser & { name: string }
   owner: string
@@ -403,7 +393,6 @@ export async function saveRawEntry(input: {
     throw new Error('Entry exceeds the 5 MB limit')
   const context = await loadContext(
     input.database,
-    input.background,
     input.repositoryAccess,
     input.user,
     input.owner,
@@ -485,7 +474,6 @@ export async function createStructuredEntry(
   )
   const configuration = await createConfigurationStore({
     database: input.database,
-    background: input.background,
   }).get(api, input.owner, input.repo, input.branch)
   if (!configuration) throw new Error('Repository configuration not found')
   const schema = findContentSchema(configuration.object, input.name)
@@ -524,7 +512,6 @@ export async function createStructuredEntry(
 
 async function loadCollectionCreationContext(input: {
   database: Database
-  background: BackgroundExecutor
   repositoryAccess: RepositoryAccessService
   user: ProjectUser
   owner: string
@@ -541,7 +528,6 @@ async function loadCollectionCreationContext(input: {
   )
   const configuration = await createConfigurationStore({
     database: input.database,
-    background: input.background,
   }).get(api, input.owner, input.repo, input.branch)
   if (!configuration) throw new Error('Repository configuration not found')
   const schema = findContentSchema(configuration.object, input.name)
@@ -664,7 +650,6 @@ export async function createContentFolder(
 
 export async function deleteContentEntry(input: {
   database: Database
-  background: BackgroundExecutor
   repositoryAccess: RepositoryAccessService
   user: ProjectUser & { name: string }
   owner: string
@@ -676,7 +661,6 @@ export async function deleteContentEntry(input: {
 }) {
   const context = await loadContext(
     input.database,
-    input.background,
     input.repositoryAccess,
     input.user,
     input.owner,
@@ -753,7 +737,6 @@ export async function moveContentEntry(
 ) {
   const context = await loadContext(
     input.database,
-    input.background,
     input.repositoryAccess,
     input.user,
     input.owner,
@@ -771,7 +754,6 @@ export async function moveContentEntry(
   const newPath = normalizeGitPath(input.newPath)
   await loadContext(
     input.database,
-    input.background,
     input.repositoryAccess,
     input.user,
     input.owner,

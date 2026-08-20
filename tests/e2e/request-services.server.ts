@@ -15,19 +15,14 @@ function testEnvironment() {
   }
 }
 
-export function createRuntimeRequestServices(request: Request) {
-  return createRequestServices(
-    testEnvironment(),
-    { defer: (task) => void task.catch(() => undefined) },
-    request.headers,
-    {
-      githubApiFactory: (token) => createGitHubApi(token, githubFixtureFetch),
-    },
-  )
+export function createRequestServicesForRequest(request: Request) {
+  return createRequestServices(testEnvironment(), request.headers, {
+    githubApiFactory: (token) => createGitHubApi(token, githubFixtureFetch),
+  })
 }
 
-export function createRuntimeRequestServicesAccessor(request: Request) {
+export function createRequestServicesAccessorForRequest(request: Request) {
   return createRequestServicesAccessor(() =>
-    createRuntimeRequestServices(request),
+    createRequestServicesForRequest(request),
   )
 }

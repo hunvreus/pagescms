@@ -12,7 +12,7 @@ pnpm db:migrate
 pnpm dev
 ```
 
-`BETTER_AUTH_SECRET` must contain at least 32 characters. `BETTER_AUTH_URL` must match the local origin. `DATABASE_URL` is used locally; Workers deployments should use the `HYPERDRIVE` binding instead. The Node development adapter and `db:*` package scripts load `.env.local` automatically. Confirm that the URL points to a disposable or development database before applying migrations.
+`BETTER_AUTH_SECRET` must contain at least 32 characters. `BETTER_AUTH_URL` must match the local origin. `DATABASE_URL` supplies the PostgreSQL connection in every environment. Local development and `db:*` package scripts load `.env.local` automatically. Confirm that the URL points to a disposable or development database before applying migrations.
 
 GitHub sign-in is enabled when both `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIENT_SECRET` are present. Configure the GitHub callback URL as:
 

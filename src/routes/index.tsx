@@ -1,20 +1,16 @@
 import { useState } from 'react'
-import {
-  Link,
-  createFileRoute,
-  redirect,
-  useRouter,
-} from '@tanstack/react-router'
+import { Link, createFileRoute, redirect } from '@tanstack/react-router'
 import { LoaderCircle, LogOut, Settings, Shield } from 'lucide-react'
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 
 import { Button } from '#/components/ui/button'
 import { ProjectSelector } from '#/components/project-selector'
-import { getDashboardData } from '#/functions/projects'
+import { dashboardQueryOptions } from '#/queries/session'
 
 export const Route = createFileRoute('/')({
-  loader: async () => {
+  loader: async ({ context }) => {
     try {
-      return await getDashboardData()
+      await context.queryClient.ensureQueryData(dashboardQueryOptions())
     } catch (error) {
       if (
         error instanceof Error &&
@@ -25,7 +21,6 @@ export const Route = createFileRoute('/')({
       throw error
     }
   },
-  staleTime: 10_000,
   pendingMs: 120,
   pendingComponent: DashboardSkeleton,
   component: Dashboard,
@@ -33,7 +28,7 @@ export const Route = createFileRoute('/')({
 
 function Dashboard() {
   const { user, accounts, isAdmin, githubAppInstallAvailable } =
-    Route.useLoaderData()
+    useSuspenseQuery(dashboardQueryOptions()).data
 
   return (
     <div className="min-h-screen bg-muted/20">
@@ -66,7 +61,7 @@ function AppHeader({
   user: { email: string }
   isAdmin: boolean
 }) {
-  const router = useRouter()
+  const queryClient = useQueryClient()
   const [signingOut, setSigningOut] = useState(false)
 
   async function handleSignOut() {
@@ -76,7 +71,7 @@ function AppHeader({
       headers: { 'content-type': 'application/json' },
       body: '{}',
     })
-    await router.invalidate()
+    queryClient.clear()
     window.location.assign('/sign-in')
   }
 

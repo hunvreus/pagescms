@@ -48,17 +48,8 @@ export const Route = createFileRoute('/api/webhook/github')({
         } catch {
           return Response.json({ error: 'Invalid JSON' }, { status: 400 })
         }
-        services.background.defer(
-          handleGitHubWebhook(services.database, event, payload).catch(
-            (error: unknown) => {
-              console.error('Could not process GitHub webhook', {
-                event,
-                error,
-              })
-            },
-          ),
-        )
-        return Response.json({ accepted: true }, { status: 202 })
+        await handleGitHubWebhook(services.database, event, payload)
+        return Response.json({ accepted: true })
       },
     },
   },

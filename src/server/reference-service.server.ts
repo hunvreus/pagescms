@@ -15,7 +15,6 @@ import type {
 import type { Database } from './database/client.server'
 import type { ProjectUser } from './projects.server'
 import type { RepositoryAccessService } from './repository-access.server'
-import type { BackgroundExecutor } from './runtime-ports.server'
 
 const formats = new Set<ContentFormat>([
   'yaml-frontmatter',
@@ -81,7 +80,6 @@ function interpolate(
 
 export async function loadReferenceOptions(input: {
   database: Database
-  background: BackgroundExecutor
   repositoryAccess: RepositoryAccessService
   user: ProjectUser
   owner: string
@@ -102,7 +100,6 @@ export async function loadReferenceOptions(input: {
   )
   const configuration = await createConfigurationStore({
     database: input.database,
-    background: input.background,
   }).get(api, input.owner, input.repo, input.branch)
   if (!configuration) throw new Error('Repository configuration not found')
   const schema = findContentSchema(configuration.object, input.collection)
@@ -112,7 +109,6 @@ export async function loadReferenceOptions(input: {
   const root = collectionDirectoryPath(schema)
   const cache = createDirectoryCache({
     database: input.database,
-    background: input.background,
   })
   const directories = [root]
   const entries: Awaited<ReturnType<typeof api.getDirectory>> = []

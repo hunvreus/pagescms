@@ -1,16 +1,17 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
+import { useSuspenseQuery } from '@tanstack/react-query'
 
 import {
   ContentEntryEditor,
   ContentEntrySkeleton,
 } from '#/components/content-entry-editor'
-import { getFixedFile } from '#/functions/file-editor'
 import { getSignInUrl } from '#/lib/auth-redirect'
+import { fixedFileQueryOptions } from '#/queries/content'
 
 export const Route = createFileRoute('/$owner/$repo/$branch/file/$name')({
-  loader: async ({ params }) => {
+  loader: async ({ context, params }) => {
     try {
-      return await getFixedFile({ data: params })
+      await context.queryClient.ensureQueryData(fixedFileQueryOptions(params))
     } catch (error) {
       if (
         error instanceof Error &&
@@ -25,15 +26,14 @@ export const Route = createFileRoute('/$owner/$repo/$branch/file/$name')({
       throw error
     }
   },
-  staleTime: 10_000,
   pendingMs: 100,
   pendingComponent: ContentEntrySkeleton,
   component: FixedFileEditor,
 })
 
 function FixedFileEditor() {
-  const initial = Route.useLoaderData()
   const params = Route.useParams()
+  const { data: initial } = useSuspenseQuery(fixedFileQueryOptions(params))
   return (
     <ContentEntryEditor
       afterDeleteHref={`/${encodeURIComponent(params.owner)}/${encodeURIComponent(params.repo)}/${encodeURIComponent(params.branch)}`}

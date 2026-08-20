@@ -26,7 +26,6 @@ describe('createPagesCmsAuth', () => {
         secret: 'a-secure-auth-secret-with-32-characters',
         github: { clientId: 'client-id', clientSecret: 'client-secret' },
       },
-      background: { defer: vi.fn() },
       emailProvider: { send: vi.fn(async () => undefined) },
     })
 

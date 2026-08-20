@@ -3,7 +3,6 @@ import { betterAuth } from 'better-auth/minimal'
 import { emailOTP } from 'better-auth/plugins'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
 
-import type { BackgroundExecutor } from './runtime-ports.server'
 import type { AuthRuntimeConfiguration } from './runtime-config.server'
 import type { Database } from './database/client.server'
 import type { EmailMessage, EmailProvider } from './email.server'
@@ -37,12 +36,10 @@ export function createLoginCodeEmail(email: string, otp: string): EmailMessage {
 export function createPagesCmsAuth({
   database,
   configuration,
-  background,
   emailProvider,
 }: {
   database: Database
   configuration: AuthRuntimeConfiguration
-  background: BackgroundExecutor
   emailProvider?: EmailProvider
 }) {
   return betterAuth({
@@ -99,7 +96,7 @@ export function createPagesCmsAuth({
         sendVerificationOTP: async ({ email, otp, type }) => {
           if (type !== 'sign-in') return
           if (!emailProvider) throw new Error('Email provider is unavailable')
-          background.defer(emailProvider.send(createLoginCodeEmail(email, otp)))
+          await emailProvider.send(createLoginCodeEmail(email, otp))
         },
       }),
       tanstackStartCookies(),

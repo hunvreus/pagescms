@@ -14,7 +14,6 @@ describe('createRequestServices', () => {
         BETTER_AUTH_URL: 'https://app.pagescms.org',
         DATABASE_URL: 'postgres://user:password@example.com/pagescms',
       },
-      { defer: () => undefined },
       new Headers(),
     )
 
@@ -31,7 +30,6 @@ describe('createRequestServices', () => {
           BETTER_AUTH_URL: 'https://app.pagescms.org',
           DATABASE_URL: 'postgres://user:password@example.com/pagescms',
         },
-        { defer: () => undefined },
         new Headers(),
       ),
     )

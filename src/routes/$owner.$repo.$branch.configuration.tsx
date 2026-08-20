@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import {
   Check,
   ExternalLink,
@@ -13,16 +14,19 @@ import { Button } from '#/components/ui/button'
 import { OperationError } from '#/components/operation-error'
 import { Textarea } from '#/components/ui/textarea'
 import {
-  getConfigurationEditor,
   getConfigurationHistory,
   updateConfiguration,
 } from '#/functions/configuration-editor'
 import { getSignInUrl } from '#/lib/auth-redirect'
+import { configurationEditorQueryOptions } from '#/queries/content'
+import { queryKeys } from '#/queries/keys'
 
 export const Route = createFileRoute('/$owner/$repo/$branch/configuration')({
-  loader: async ({ params }) => {
+  loader: async ({ context, params }) => {
     try {
-      return await getConfigurationEditor({ data: params })
+      await context.queryClient.ensureQueryData(
+        configurationEditorQueryOptions(params),
+      )
     } catch (error) {
       if (
         error instanceof Error &&
@@ -37,16 +41,17 @@ export const Route = createFileRoute('/$owner/$repo/$branch/configuration')({
       throw error
     }
   },
-  staleTime: 10_000,
   pendingMs: 100,
   pendingComponent: ConfigurationSkeleton,
   component: ConfigurationEditor,
 })
 
 function ConfigurationEditor() {
-  const initial = Route.useLoaderData()
   const params = Route.useParams()
-  const router = useRouter()
+  const { data: initial } = useSuspenseQuery(
+    configurationEditorQueryOptions(params),
+  )
+  const queryClient = useQueryClient()
   const [source, setSource] = useState(initial.source)
   const [savedSource, setSavedSource] = useState(initial.source)
   const [sha, setSha] = useState<string | null>(initial.sha)
@@ -77,7 +82,9 @@ function ConfigurationEditor() {
       setSha(result.sha)
       setSavedSource(source)
       setSaved(true)
-      void router.invalidate()
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.branch(params),
+      })
     } catch (cause) {
       setError(cause)
     } finally {

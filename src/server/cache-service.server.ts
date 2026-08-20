@@ -11,7 +11,6 @@ import {
 import type { Database } from './database/client.server'
 import type { ProjectUser } from './projects.server'
 import type { RepositoryAccessService } from './repository-access.server'
-import type { BackgroundExecutor } from './runtime-ports.server'
 
 import {
   cacheFileMetaTable,
@@ -22,7 +21,6 @@ import {
 
 type CacheInput = {
   database: Database
-  background: BackgroundExecutor
   repositoryAccess: RepositoryAccessService
   user: ProjectUser
   owner: string
@@ -48,7 +46,6 @@ async function cacheContext(input: CacheInput) {
     throw new Error('Repository write access is required')
   const configurationStore = createConfigurationStore({
     database: input.database,
-    background: input.background,
   })
   const configuration = await configurationStore.get(
     api,
@@ -71,7 +68,7 @@ function branchConditions(input: CacheInput) {
 }
 
 export async function loadCacheStatus(input: CacheInput) {
-  const { configuration } = await cacheContext(input)
+  await cacheContext(input)
   const normalizedOwner = input.owner.toLowerCase()
   const normalizedRepo = input.repo.toLowerCase()
   const [fileCountRows, permissionCountRows, metaRows, config] =
@@ -115,7 +112,6 @@ export async function loadCacheStatus(input: CacheInput) {
           sha: config.sha,
           version: config.version,
           lastCheckedAt: config.lastCheckedAt.toISOString(),
-          stale: configuration.stale,
         }
       : null,
     directories: metaRows.map((row) => ({
@@ -156,7 +152,6 @@ export async function manageCache(input: CacheInput & { action: CacheAction }) {
       )
     const cache = createDirectoryCache({
       database: input.database,
-      background: input.background,
     })
     for (const directory of directories) {
       if (directory.context !== 'collection' && directory.context !== 'media')

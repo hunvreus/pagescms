@@ -7,12 +7,10 @@ import { createProjectService } from './projects.server'
 import { createRepositoryAccessService } from './repository-access.server'
 import { parseRuntimeConfiguration } from './runtime-config.server'
 
-import type { BackgroundExecutor } from './runtime-ports.server'
 import type { GitHubApiFactory } from './github-api.server'
 
 export function createRequestServices(
   environment: unknown,
-  background: BackgroundExecutor,
   requestHeaders: Headers,
   dependencies: { githubApiFactory?: GitHubApiFactory } = {},
 ) {
@@ -31,14 +29,12 @@ export function createRequestServices(
   )
   const projects = createProjectService(
     database,
-    background,
     repositoryAccess,
     dependencies.githubApiFactory,
   )
   const auth = createPagesCmsAuth({
     database,
     configuration: configuration.auth,
-    background,
     emailProvider: serverPluginRegistry.emailProvider,
   })
   const getSession = createSessionReader(() =>
@@ -53,7 +49,6 @@ export function createRequestServices(
     access,
     auth,
     authenticationMethods,
-    background,
     configuration,
     database,
     emailProvider,

@@ -8,7 +8,6 @@ import type {
   GitHubInstallation,
   GitHubRepository,
 } from './github-api.server'
-import type { BackgroundExecutor } from './runtime-ports.server'
 import type { RepositoryAccessService } from './repository-access.server'
 
 import { accountTable, collaboratorTable } from './database/schema'
@@ -115,7 +114,6 @@ async function findGitHubToken(database: Database, userId: string) {
 
 export function createProjectService(
   database: Database,
-  background: BackgroundExecutor,
   repositoryAccess: RepositoryAccessService,
   githubApiFactory: GitHubApiFactory = createGitHubApi,
 ) {
@@ -206,7 +204,7 @@ export function createProjectService(
       const configurationPromise = branch
         ? import('./configuration-store.server').then(
             ({ createConfigurationStore }) =>
-              createConfigurationStore({ database, background }).get(
+              createConfigurationStore({ database }).get(
                 api,
                 owner,
                 repo,

@@ -1,19 +1,20 @@
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
+import { useSuspenseQuery } from '@tanstack/react-query'
 
 import { RepositoryWorkspace } from '#/components/repository-workspace'
-import { getRepositoryWorkspace } from '#/functions/repository'
 import { getSignInUrl } from '#/lib/auth-redirect'
+import { repositoryWorkspaceQueryOptions } from '#/queries/repository'
 
 export const Route = createFileRoute('/$owner/$repo/$branch')({
-  loader: async ({ params }) => {
+  loader: async ({ context, params }) => {
     try {
-      return await getRepositoryWorkspace({
-        data: {
+      await context.queryClient.ensureQueryData(
+        repositoryWorkspaceQueryOptions({
           owner: params.owner,
           repo: params.repo,
           branch: params.branch,
-        },
-      })
+        }),
+      )
     } catch (error) {
       if (
         error instanceof Error &&
@@ -28,15 +29,16 @@ export const Route = createFileRoute('/$owner/$repo/$branch')({
       throw error
     }
   },
-  staleTime: 15_000,
-  gcTime: 10 * 60_000,
   pendingMs: 120,
   pendingComponent: WorkspaceLoading,
   component: BranchWorkspace,
 })
 
 function BranchWorkspace() {
-  const workspace = Route.useLoaderData()
+  const params = Route.useParams()
+  const { data: workspace } = useSuspenseQuery(
+    repositoryWorkspaceQueryOptions(params),
+  )
   if (!workspace.branchExists) {
     return (
       <main className="flex min-h-screen items-center justify-center p-6 text-center">
