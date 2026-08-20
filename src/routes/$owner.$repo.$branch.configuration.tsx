@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
+import { OperationError } from '#/components/operation-error'
 import { Textarea } from '#/components/ui/textarea'
 import {
   getConfigurationEditor,
@@ -51,7 +52,7 @@ function ConfigurationEditor() {
   const [sha, setSha] = useState<string | null>(initial.sha)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
   const [history, setHistory] = useState<Awaited<
     ReturnType<typeof getConfigurationHistory>
   > | null>(null)
@@ -78,9 +79,7 @@ function ConfigurationEditor() {
       setSaved(true)
       void router.invalidate()
     } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : 'Could not save configuration',
-      )
+      setError(cause)
     } finally {
       setSaving(false)
     }
@@ -96,9 +95,7 @@ function ConfigurationEditor() {
     try {
       setHistory(await getConfigurationHistory({ data: params }))
     } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : 'Could not load history',
-      )
+      setError(cause)
     } finally {
       setLoadingHistory(false)
     }
@@ -141,11 +138,10 @@ function ConfigurationEditor() {
         </div>
       </header>
 
-      {error ? (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-          {error}
-        </div>
-      ) : null}
+      <OperationError
+        error={error}
+        fallback="Could not update configuration."
+      />
 
       {history ? (
         <section className="space-y-3 rounded-xl border bg-card p-4 shadow-xs">

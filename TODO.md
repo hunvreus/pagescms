@@ -5,7 +5,6 @@
 - Decide whether the legacy `/api/:owner/:repo/...` JSON endpoints have external consumers. Either add a tested compatibility facade or explicitly approve the TanStack server-function transport as the replacement.
 - Add the rich-text editor's embedded media browser/upload workflow and preserve repository-relative image URLs in both Markdown and HTML visual modes.
 - Decide whether syntax highlighting and lint integration are required for code-field parity; the current editor is a validated monospaced textarea to avoid shipping CodeMirror and its language catalog.
-- Add typed upgrade, plan-required, quota-exceeded, and policy-unavailable UI for hosted access-policy denials.
 - Add authenticated browser fixtures for repository navigation and all critical read/mutation journeys.
 - Add isolated PostgreSQL integration tests for persistence, invitations, cache invalidation, and migration compatibility.
 

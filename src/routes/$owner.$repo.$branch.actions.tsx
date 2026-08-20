@@ -3,6 +3,7 @@ import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
 import { ExternalLink, LoaderCircle, Play, RotateCcw, X } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
+import { OperationError } from '#/components/operation-error'
 import { Input } from '#/components/ui/input'
 import { Textarea } from '#/components/ui/textarea'
 import { getActions, manageAction, runAction } from '#/functions/actions'
@@ -40,7 +41,7 @@ function ActionsPage() {
   >({})
   const [running, setRunning] = useState<string | null>(null)
   const [managing, setManaging] = useState<number | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
 
   const hasActiveRuns = data.runs.some(
     (actionRun) => actionRun.status !== 'completed',
@@ -80,7 +81,7 @@ function ActionsPage() {
       })
       await router.invalidate()
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not run action')
+      setError(cause)
     } finally {
       setRunning(null)
     }
@@ -95,9 +96,7 @@ function ActionsPage() {
       await manageAction({ data: { ...params, runId, intent } })
       await router.invalidate()
     } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : 'Could not update action run',
-      )
+      setError(cause)
     } finally {
       setManaging(null)
     }
@@ -109,11 +108,7 @@ function ActionsPage() {
         <p className="text-sm text-muted-foreground">{params.branch}</p>
         <h1 className="text-2xl font-semibold tracking-tight">Actions</h1>
       </header>
-      {error ? (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-          {error}
-        </div>
-      ) : null}
+      <OperationError error={error} fallback="Could not update the action." />
       <div className="grid gap-4 md:grid-cols-2">
         {data.actions.map((action) => (
           <section

@@ -8,6 +8,7 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
+import { OperationError } from '#/components/operation-error'
 
 import appCss from '../styles.css?url'
 
@@ -83,11 +84,7 @@ function RootError({ error, reset }: ErrorComponentProps) {
       <h1 className="text-2xl font-semibold tracking-tight">
         Pages CMS could not load this page.
       </h1>
-      <p className="text-sm text-muted-foreground">
-        {error instanceof Error
-          ? error.message
-          : 'An unexpected error occurred.'}
-      </p>
+      <OperationError error={error} fallback="An unexpected error occurred." />
       <div className="flex gap-3">
         <button
           className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"

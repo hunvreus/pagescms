@@ -16,6 +16,7 @@ import {
   isContentField,
 } from '#/components/structured-content-field'
 import { RepositoryActionButtons } from '#/components/repository-action-buttons'
+import { OperationError } from '#/components/operation-error'
 import { Button } from '#/components/ui/button'
 import { Textarea } from '#/components/ui/textarea'
 import {
@@ -86,7 +87,7 @@ function useEntryDeletion(
 ) {
   const router = useRouter()
   const [deleting, setDeleting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
 
   return {
     deleting,
@@ -105,9 +106,7 @@ function useEntryDeletion(
         await router.navigate({ href: afterDeleteHref })
         void router.invalidate()
       } catch (cause) {
-        setError(
-          cause instanceof Error ? cause.message : 'Could not delete entry',
-        )
+        setError(cause)
       } finally {
         setDeleting(false)
       }
@@ -122,7 +121,7 @@ function useEntryRename(
 ) {
   const router = useRouter()
   const [renaming, setRenaming] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
 
   return {
     renaming,
@@ -143,9 +142,7 @@ function useEntryRename(
         })
         void router.invalidate()
       } catch (cause) {
-        setError(
-          cause instanceof Error ? cause.message : 'Could not rename entry',
-        )
+        setError(cause)
       } finally {
         setRenaming(false)
       }
@@ -170,7 +167,7 @@ function RawEntryEditor({
   const [sha, setSha] = useState(initial.sha)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
   const dirty = source !== savedSource
   const deletion = useEntryDeletion(coordinates, sha, afterDeleteHref)
   const rename = useEntryRename(coordinates, sha, renameBaseHref)
@@ -189,7 +186,7 @@ function RawEntryEditor({
       setSaved(true)
       void router.invalidate()
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not save entry')
+      setError(cause)
     } finally {
       setSaving(false)
     }
@@ -253,7 +250,7 @@ function StructuredEntryEditor({
   const [sha, setSha] = useState(initial.sha)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
   const dirty = JSON.stringify(content) !== JSON.stringify(savedContent)
   const fields = Array.isArray(initial.fields)
     ? initial.fields.filter(isContentField)
@@ -275,7 +272,7 @@ function StructuredEntryEditor({
       setSaved(true)
       void router.invalidate()
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not save entry')
+      setError(cause)
     } finally {
       setSaving(false)
     }
@@ -446,7 +443,7 @@ function EntryHistoryButton({
   const [history, setHistory] = useState<
     Awaited<ReturnType<typeof getEntryHistory>> | undefined
   >()
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
 
   async function toggle() {
     if (open) {
@@ -460,9 +457,7 @@ function EntryHistoryButton({
     try {
       setHistory(await getEntryHistory({ data: coordinates }))
     } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : 'Could not load history',
-      )
+      setError(cause)
     } finally {
       setLoading(false)
     }
@@ -493,7 +488,7 @@ function EntryHistoryButton({
               <X />
             </Button>
           </div>
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          <OperationError error={error} fallback="Could not load history." />
           {loading ? (
             <p className="text-sm text-muted-foreground">Loading history…</p>
           ) : history?.length ? (
@@ -540,12 +535,8 @@ function EntryHistoryButton({
   )
 }
 
-function EditorError({ error }: { error: string | null }) {
-  return error ? (
-    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-      {error}
-    </div>
-  ) : null
+function EditorError({ error }: { error: unknown }) {
+  return <OperationError error={error} fallback="Could not update entry." />
 }
 
 export function ContentEntrySkeleton() {

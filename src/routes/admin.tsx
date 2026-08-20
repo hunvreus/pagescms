@@ -15,6 +15,7 @@ import {
 
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
+import { OperationError } from '#/components/operation-error'
 import { getAdminDashboard, runAdminAction } from '#/functions/admin'
 
 interface AdminSearch {
@@ -63,6 +64,7 @@ function AdminPage() {
   const [query, setQuery] = useState(data.query)
   const [running, setRunning] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
 
   async function run(
     action: 'revoke-user' | 'revoke-all' | 'reset-cache',
@@ -78,6 +80,7 @@ function AdminPage() {
     const key = userId ?? action
     setRunning(key)
     setMessage(null)
+    setError(null)
     try {
       const result = await runAdminAction({ data: { action, userId } })
       if (result.signedOut) {
@@ -87,7 +90,7 @@ function AdminPage() {
       setMessage(result.message)
       await router.invalidate()
     } catch (cause) {
-      setMessage(cause instanceof Error ? cause.message : 'Admin action failed')
+      setError(cause)
     } finally {
       setRunning(null)
     }
@@ -106,6 +109,7 @@ function AdminPage() {
       {message ? (
         <div className="rounded-lg border bg-card p-3 text-sm">{message}</div>
       ) : null}
+      <OperationError error={error} fallback="Admin action failed." />
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Metric label="Users" value={data.metrics.users} />
         <Metric label="Installations" value={data.metrics.installations} />

@@ -5,6 +5,7 @@ import { ExternalLink, FolderGit2, LockKeyhole, Search } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
+import { OperationError } from '#/components/operation-error'
 import { getProjectRepositories } from '#/functions/projects'
 
 import type { ProjectAccount } from '#/server/projects.server'
@@ -136,15 +137,14 @@ export function ProjectSelector({
       {repositories.isPending ? (
         <ProjectListSkeleton />
       ) : repositories.isError ? (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5 text-sm text-destructive">
-          Could not load repositories.{' '}
-          <button
-            className="font-medium underline"
-            onClick={() => void repositories.refetch()}
-            type="button"
-          >
+        <div className="space-y-2">
+          <OperationError
+            error={repositories.error}
+            fallback="Could not load repositories."
+          />
+          <Button variant="outline" onClick={() => void repositories.refetch()}>
             Try again
-          </button>
+          </Button>
         </div>
       ) : visibleRepositories.length ? (
         <ul className="overflow-hidden rounded-xl border bg-card shadow-xs">

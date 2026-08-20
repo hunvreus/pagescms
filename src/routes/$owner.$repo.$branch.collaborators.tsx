@@ -3,6 +3,7 @@ import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
 import { LoaderCircle, Trash2, UserPlus } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
+import { OperationError } from '#/components/operation-error'
 import { Textarea } from '#/components/ui/textarea'
 import {
   addCollaborators,
@@ -42,7 +43,7 @@ function CollaboratorsPage() {
   const [emails, setEmails] = useState('')
   const [inviting, setInviting] = useState(false)
   const [removing, setRemoving] = useState<number | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
 
   async function invite() {
     const values = [
@@ -61,11 +62,7 @@ function CollaboratorsPage() {
       setEmails('')
       await router.invalidate()
     } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : 'Could not invite collaborators',
-      )
+      setError(cause)
     } finally {
       setInviting(false)
     }
@@ -79,11 +76,7 @@ function CollaboratorsPage() {
       await deleteCollaborator({ data: { ...params, id } })
       await router.invalidate()
     } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : 'Could not remove collaborator',
-      )
+      setError(cause)
     } finally {
       setRemoving(null)
     }
@@ -122,11 +115,10 @@ function CollaboratorsPage() {
           {inviting ? 'Inviting' : 'Invite'}
         </Button>
       </form>
-      {error ? (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-          {error}
-        </div>
-      ) : null}
+      <OperationError
+        error={error}
+        fallback="Could not update collaborators."
+      />
       {collaborators.length ? (
         <ul className="overflow-hidden rounded-xl border bg-card shadow-xs">
           {collaborators.map((collaborator) => (
