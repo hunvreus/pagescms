@@ -49,6 +49,8 @@ Plugins are trusted build-time modules discovered from `plugins/*/plugin.ts`. Th
 
 The first server capability is the access-policy provider. Core application services authorize stable operation identifiers against principal, tenant, repository, branch, collection, media, and path targets before protected work. Hosted startup fails without a provider; self-hosted deployments select an explicit versioned allow-all policy. Quota-consuming mutations reserve atomically before their side effect and settle the reservation afterward. Billing and role logic therefore remains replaceable proprietary plugin code without becoming a client-side authority or a fork.
 
+Email is a second isolated server capability with one small provider contract and no default SMTP dependency. Runtime time, identifiers, and background execution also use injectable ports. Production adapters use `Date`, Web Crypto, and the Workers execution context; tests can supply deterministic implementations without mutable module-level request state.
+
 The public core must build with an empty plugin directory. Hosted and proprietary packages depend on public contracts, never the reverse.
 
 ## Cloudflare invariants

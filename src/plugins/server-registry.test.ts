@@ -7,9 +7,13 @@ import {
 } from './server-registry.server'
 
 import type { AccessPolicy } from '#/server/access-policy.server'
+import type { EmailProvider } from '#/server/email.server'
 
 const policy: AccessPolicy = {
   authorize: async () => ({ allowed: true }),
+}
+const emailProvider: EmailProvider = {
+  send: async () => undefined,
 }
 
 describe('server plugin registry', () => {
@@ -29,6 +33,24 @@ describe('server plugin registry', () => {
 
     expect(registry.accessPolicy).toBe(policy)
     expect(registry.contributions).toHaveLength(1)
+  })
+
+  it('registers one custom email provider without coupling it to policy', () => {
+    const registry = createServerPluginRegistry(
+      {
+        '/plugins/email/server.ts': {
+          default: {
+            apiVersion: PLUGIN_API_VERSION,
+            pluginId: 'custom-email',
+            emailProvider,
+          },
+        },
+      },
+      new Set(['custom-email']),
+    )
+
+    expect(registry.emailProvider).toBe(emailProvider)
+    expect(registry.accessPolicy).toBeUndefined()
   })
 
   it('rejects server contributions without a matching manifest', () => {
@@ -85,6 +107,30 @@ describe('server plugin registry', () => {
         new Set(['one', 'two']),
       ),
     ).toThrow('Multiple access-policy providers')
+  })
+
+  it('rejects multiple email providers', () => {
+    expect(() =>
+      createServerPluginRegistry(
+        {
+          '/plugins/one/server.ts': {
+            default: {
+              apiVersion: PLUGIN_API_VERSION,
+              pluginId: 'one',
+              emailProvider,
+            },
+          },
+          '/plugins/two/server.ts': {
+            default: {
+              apiVersion: PLUGIN_API_VERSION,
+              pluginId: 'two',
+              emailProvider,
+            },
+          },
+        },
+        new Set(['one', 'two']),
+      ),
+    ).toThrow('Multiple email providers')
   })
 
   it('rejects malformed access-policy capabilities', () => {
