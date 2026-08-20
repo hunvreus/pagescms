@@ -142,4 +142,71 @@ describe('createGitHubApi', () => {
     const fileUrl = new URL(String(fetcher.mock.calls[2]?.[0]))
     expect(fileUrl.searchParams.get('ref')).toBe('feature/a')
   })
+
+  it('loads collection text and directories in one GraphQL request', async () => {
+    const fetcher = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        const body = JSON.parse(String(init?.body)) as {
+          variables: Record<string, string>
+        }
+        expect(body.variables).toEqual({
+          owner: 'PagesCMS',
+          repo: 'pages-cms',
+          expression: 'main:content/posts',
+        })
+        return jsonResponse({
+          data: {
+            repository: {
+              object: {
+                entries: [
+                  {
+                    type: 'blob',
+                    name: 'hello.md',
+                    path: 'content/posts/hello.md',
+                    object: {
+                      text: '---\ntitle: Hello\n---',
+                      oid: 'abc',
+                      byteSize: 24,
+                    },
+                  },
+                  {
+                    type: 'tree',
+                    name: 'archive',
+                    path: 'content/posts/archive',
+                    object: {},
+                  },
+                ],
+              },
+            },
+          },
+        })
+      },
+    )
+
+    await expect(
+      createGitHubApi('token', fetcher).getDirectory(
+        'PagesCMS',
+        'pages-cms',
+        'main',
+        'content/posts',
+      ),
+    ).resolves.toEqual([
+      {
+        type: 'file',
+        name: 'hello.md',
+        path: 'content/posts/hello.md',
+        sha: 'abc',
+        content: '---\ntitle: Hello\n---',
+        size: 24,
+      },
+      {
+        type: 'dir',
+        name: 'archive',
+        path: 'content/posts/archive',
+        sha: null,
+        content: null,
+        size: null,
+      },
+    ])
+  })
 })

@@ -33,6 +33,15 @@ export interface GitHubFile {
   content: string
 }
 
+export interface GitHubDirectoryEntry {
+  type: 'file' | 'dir'
+  name: string
+  path: string
+  sha: string | null
+  content: string | null
+  size: number | null
+}
+
 export class GitHubApiError extends Error {
   constructor(
     message: string,
@@ -280,6 +289,85 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
         sha: requiredString(body.sha, 'file sha'),
         content: requiredString(body.content, 'file content'),
       }
+    },
+
+    async getDirectory(
+      owner: string,
+      repo: string,
+      branch: string,
+      path: string,
+    ): Promise<GitHubDirectoryEntry[]> {
+      const response = await fetcher(`${GITHUB_API_URL}/graphql`, {
+        method: 'POST',
+        headers: {
+          accept: 'application/vnd.github+json',
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json',
+          'user-agent': 'pagescms',
+        },
+        body: JSON.stringify({
+          query: `query PagesCmsDirectory($owner: String!, $repo: String!, $expression: String!) {
+            repository(owner: $owner, name: $repo) {
+              object(expression: $expression) {
+                ... on Tree {
+                  entries {
+                    name
+                    path
+                    type
+                    object {
+                      ... on Blob { text oid byteSize }
+                    }
+                  }
+                }
+              }
+            }
+          }`,
+          variables: { owner, repo, expression: `${branch}:${path}` },
+        }),
+      })
+      const payload: unknown = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new GitHubApiError(
+          `GitHub GraphQL request failed with status ${response.status}`,
+          response.status,
+        )
+      }
+      const root = requiredRecord(payload, 'GraphQL response')
+      if (Array.isArray(root.errors) && root.errors.length) {
+        const first = requiredRecord(root.errors[0], 'GraphQL error')
+        throw new GitHubApiError(
+          typeof first.message === 'string'
+            ? first.message
+            : 'GitHub GraphQL request failed',
+          400,
+        )
+      }
+      const data = requiredRecord(root.data, 'GraphQL data')
+      const repository = requiredRecord(data.repository, 'GraphQL repository')
+      if (repository.object === null) return []
+      const tree = requiredRecord(repository.object, 'GraphQL tree')
+      if (!Array.isArray(tree.entries)) {
+        throw new Error('GitHub returned invalid directory entries')
+      }
+      return tree.entries.map((value): GitHubDirectoryEntry => {
+        const entry = requiredRecord(value, 'directory entry')
+        const type = entry.type === 'blob' ? 'file' : 'dir'
+        const object = isRecord(entry.object) ? entry.object : null
+        return {
+          type,
+          name: requiredString(entry.name, 'entry name'),
+          path: requiredString(entry.path, 'entry path'),
+          sha: type === 'file' ? requiredString(object?.oid, 'blob sha') : null,
+          content:
+            type === 'file' && typeof object?.text === 'string'
+              ? object.text
+              : null,
+          size:
+            type === 'file' && typeof object?.byteSize === 'number'
+              ? object.byteSize
+              : null,
+        }
+      })
     },
   }
 }
