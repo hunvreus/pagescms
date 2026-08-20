@@ -33,6 +33,20 @@ function parseEntryUpdate(input: unknown) {
   return { ...entry, source: value.source, sha: value.sha }
 }
 
+function parseStructuredEntryUpdate(input: unknown) {
+  const entry = parseEntryRequest(input)
+  const value = input as Record<string, unknown>
+  if (
+    typeof value.sha !== 'string' ||
+    typeof value.content !== 'object' ||
+    value.content === null ||
+    Array.isArray(value.content)
+  ) {
+    throw new Error('Invalid structured entry update')
+  }
+  return { ...entry, content: value.content, sha: value.sha }
+}
+
 export const getRawEntry = createServerFn({ method: 'GET' })
   .validator(parseEntryRequest)
   .handler(async ({ context, data }) => {
@@ -102,6 +116,47 @@ export const updateRawEntry = createServerFn({ method: 'POST' })
       async () => {
         const { saveRawEntry } = await import('#/server/entry-editor.server')
         return saveRawEntry({
+          database: services.database,
+          background: services.background,
+          repositoryAccess: services.repositoryAccess,
+          user,
+          ...data,
+        })
+      },
+    )
+  })
+
+export const updateStructuredEntry = createServerFn({ method: 'POST' })
+  .validator(parseStructuredEntryUpdate)
+  .handler(async ({ context, data }) => {
+    const services = context.getServices()
+    const session = await services.getSession()
+    if (!session?.user) throw new Error('Authentication required')
+    const user = {
+      id: session.user.id,
+      name: session.user.name,
+      email: session.user.email,
+      githubUsername: session.user.githubUsername ?? null,
+    }
+    return services.access.execute(
+      {
+        operation: 'entry.update',
+        principal: { type: 'user', id: user.id },
+        tenant: {
+          type: 'repository',
+          id: `${data.owner}/${data.repo}`.toLowerCase(),
+        },
+        target: {
+          repository: data,
+          branch: data.branch,
+          collection: data.name,
+          path: data.path,
+        },
+      },
+      async () => {
+        const { saveStructuredEntry } =
+          await import('#/server/entry-editor.server')
+        return saveStructuredEntry({
           database: services.database,
           background: services.background,
           repositoryAccess: services.repositoryAccess,

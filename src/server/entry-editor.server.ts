@@ -4,9 +4,11 @@ import {
   resolveCommitMessage,
 } from '#/lib/commit-message'
 import { findContentSchema } from '#/lib/configuration-content'
-import { parseContent } from '#/lib/content-serialization'
+import { parseContent, serializeContent } from '#/lib/content-serialization'
+import { validateStructuredContent } from '#/lib/field-values'
 import { getFileExtension } from '#/lib/file-types'
 import { normalizeGitPath } from '#/lib/git-path'
+import { toJsonObject, toJsonValue } from '#/lib/json'
 
 import { createConfigurationStore } from './configuration-store.server'
 
@@ -125,8 +127,17 @@ export async function loadRawEntry(input: {
     context.path,
     input.branch,
   )
-  return {
-    source: decodeBase64(file.content),
+  const source = decodeBase64(file.content)
+  const fields = Array.isArray(context.schema.fields)
+    ? context.schema.fields
+    : []
+  const format =
+    typeof context.schema.format === 'string' &&
+    formats.has(context.schema.format as ContentFormat)
+      ? (context.schema.format as ContentFormat)
+      : undefined
+  const shared = {
+    source,
     sha: file.sha,
     path: context.path,
     label:
@@ -134,6 +145,59 @@ export async function loadRawEntry(input: {
         ? context.schema.label
         : context.schema.name,
   }
+  if (fields.length && format) {
+    return {
+      ...shared,
+      mode: 'structured' as const,
+      fields: toJsonValue(fields),
+      content: toJsonObject(
+        parseContent(source, {
+          format,
+          delimiters: context.schema.delimiters as
+            FrontmatterDelimiters | undefined,
+        }),
+      ),
+    }
+  }
+  return {
+    ...shared,
+    mode: 'raw' as const,
+  }
+}
+
+export async function saveStructuredEntry(
+  input: Omit<Parameters<typeof saveRawEntry>[0], 'source'> & {
+    content: unknown
+  },
+) {
+  const content = toJsonObject(input.content)
+  const context = await loadContext(
+    input.database,
+    input.background,
+    input.repositoryAccess,
+    input.user,
+    input.owner,
+    input.repo,
+    input.branch,
+    input.name,
+    input.path,
+  )
+  const fields = Array.isArray(context.schema.fields)
+    ? context.schema.fields
+    : []
+  const errors = validateStructuredContent(fields, content)
+  if (errors.length) throw new Error(errors[0])
+  if (
+    typeof context.schema.format !== 'string' ||
+    !formats.has(context.schema.format as ContentFormat)
+  ) {
+    throw new Error('This content schema does not use a structured format')
+  }
+  const source = serializeContent(content, {
+    format: context.schema.format as ContentFormat,
+    delimiters: context.schema.delimiters as FrontmatterDelimiters | undefined,
+  })
+  return saveRawEntry({ ...input, source })
 }
 
 export async function saveRawEntry(input: {
