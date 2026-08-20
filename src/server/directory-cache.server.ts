@@ -101,8 +101,15 @@ export function createDirectoryCache({
     branch: string,
     path: string,
     context: DirectoryContext,
+    nodeFilename?: string,
   ) {
-    const entries = await api.getDirectory(owner, repo, branch, path)
+    const entries = await api.getDirectory(
+      owner,
+      repo,
+      branch,
+      path,
+      nodeFilename,
+    )
     const checkedAt = clock.now()
     const normalizedOwner = owner.toLowerCase()
     const normalizedRepo = repo.toLowerCase()
@@ -169,6 +176,7 @@ export function createDirectoryCache({
       path: string
       context: DirectoryContext
       enabled: boolean
+      nodeFilename?: string
     }) {
       if (!input.enabled) {
         return {
@@ -177,6 +185,7 @@ export function createDirectoryCache({
             input.repo,
             input.branch,
             input.path,
+            input.nodeFilename,
           ),
           stale: false,
         }
@@ -203,6 +212,7 @@ export function createDirectoryCache({
             input.branch,
             input.path,
             input.context,
+            input.nodeFilename,
           ).catch((error: unknown) => {
             console.error('Could not refresh cached directory', error)
           }),
@@ -216,6 +226,7 @@ export function createDirectoryCache({
         input.branch,
         input.path,
         input.context,
+        input.nodeFilename,
       )
     },
     refresh(input: {
@@ -225,6 +236,7 @@ export function createDirectoryCache({
       branch: string
       path: string
       context: DirectoryContext
+      nodeFilename?: string
     }) {
       return refresh(
         input.api,
@@ -233,6 +245,7 @@ export function createDirectoryCache({
         input.branch,
         input.path,
         input.context,
+        input.nodeFilename,
       )
     },
   }

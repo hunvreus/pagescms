@@ -392,6 +392,7 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
       repo: string,
       branch: string,
       path: string,
+      nodeFilename?: string,
     ): Promise<GitHubDirectoryEntry[]> {
       const response = await fetcher(`${GITHUB_API_URL}/graphql`, {
         method: 'POST',
@@ -445,7 +446,7 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
       if (!Array.isArray(tree.entries)) {
         throw new Error('GitHub returned invalid directory entries')
       }
-      return tree.entries.map((value): GitHubDirectoryEntry => {
+      const entries = tree.entries.map((value): GitHubDirectoryEntry => {
         const entry = requiredRecord(value, 'directory entry')
         const type = entry.type === 'blob' ? 'file' : 'dir'
         const object = isRecord(entry.object) ? entry.object : null
@@ -464,6 +465,70 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
               : null,
         }
       })
+      const directories = entries.filter((entry) => entry.type === 'dir')
+      if (!nodeFilename || directories.length === 0) return entries
+
+      const variables: Record<string, string> = { owner, repo }
+      const declarations: string[] = []
+      const selections: string[] = []
+      directories.forEach((directory, index) => {
+        const variable = `node${index}`
+        declarations.push(`$${variable}: String!`)
+        selections.push(`${variable}: object(expression: $${variable}) {
+          ... on Blob { text oid byteSize }
+        }`)
+        variables[variable] = `${branch}:${directory.path}/${nodeFilename}`
+      })
+      const nodeResponse = await fetcher(`${GITHUB_API_URL}/graphql`, {
+        method: 'POST',
+        headers: {
+          accept: 'application/vnd.github+json',
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json',
+          'user-agent': 'pagescms',
+        },
+        body: JSON.stringify({
+          query: `query PagesCmsDirectoryNodes($owner: String!, $repo: String!, ${declarations.join(', ')}) {
+            repository(owner: $owner, name: $repo) { ${selections.join('\n')} }
+          }`,
+          variables,
+        }),
+      })
+      const nodePayload: unknown = await nodeResponse.json().catch(() => ({}))
+      if (!nodeResponse.ok) {
+        throw new GitHubApiError(
+          `GitHub GraphQL request failed with status ${nodeResponse.status}`,
+          nodeResponse.status,
+        )
+      }
+      const nodeRoot = requiredRecord(nodePayload, 'GraphQL response')
+      if (Array.isArray(nodeRoot.errors) && nodeRoot.errors.length) {
+        const first = requiredRecord(nodeRoot.errors[0], 'GraphQL error')
+        throw new GitHubApiError(
+          typeof first.message === 'string'
+            ? first.message
+            : 'GitHub GraphQL request failed',
+          400,
+        )
+      }
+      const nodeData = requiredRecord(nodeRoot.data, 'GraphQL data')
+      const nodeRepository = requiredRecord(
+        nodeData.repository,
+        'GraphQL repository',
+      )
+      directories.forEach((directory, index) => {
+        const object = nodeRepository[`node${index}`]
+        if (!isRecord(object)) return
+        entries.push({
+          type: 'file',
+          name: nodeFilename,
+          path: `${directory.path}/${nodeFilename}`,
+          sha: requiredString(object.oid, 'blob sha'),
+          content: typeof object.text === 'string' ? object.text : null,
+          size: typeof object.byteSize === 'number' ? object.byteSize : null,
+        })
+      })
+      return entries
     },
 
     async putFile(input: {

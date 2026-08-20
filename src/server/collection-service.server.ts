@@ -44,6 +44,7 @@ type CollectionEntry =
       name: string
       path: string
       parentPath: string
+      isNode: boolean
       fields: JsonValue
     }
 
@@ -62,6 +63,10 @@ function delimiters(value: unknown): FrontmatterDelimiters | undefined {
   ) {
     return value
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function dateFromFilename(value: string) {
@@ -100,6 +105,12 @@ export async function loadCollection({
   if (!schema || schema.type !== 'collection') {
     throw new Error(`Collection ${name} was not found`)
   }
+  const view = isRecord(schema.view) ? schema.view : {}
+  const node = isRecord(view.node) ? view.node : undefined
+  const nodeFilename =
+    typeof node?.filename === 'string' && node.filename
+      ? node.filename
+      : undefined
   const directory = collectionDirectoryPath(schema, path)
   const directoryResult = await createDirectoryCache({
     database,
@@ -112,8 +123,43 @@ export async function loadCollection({
     path: directory,
     context: 'collection',
     enabled: isCacheEnabled(configuration.object),
+    nodeFilename,
   })
-  const entries = directoryResult.entries
+  let entries = directoryResult.entries.map((entry) => {
+    const separator = entry.path.lastIndexOf('/')
+    const parentPath = separator === -1 ? '' : entry.path.slice(0, separator)
+    return {
+      ...entry,
+      parentPath,
+      isNode:
+        entry.type === 'file' &&
+        entry.name === nodeFilename &&
+        parentPath !== directory,
+    }
+  })
+  if (nodeFilename) {
+    entries = entries.filter(
+      (entry) =>
+        entry.isNode ||
+        entry.parentPath === schema.path ||
+        entry.name !== nodeFilename,
+    )
+    const nodeParents = new Set(
+      entries.filter((entry) => entry.isNode).map((entry) => entry.parentPath),
+    )
+    const hideDirs = node?.hideDirs
+    if (hideDirs === 'all') {
+      entries = entries.filter((entry) => entry.type !== 'dir')
+    } else if (hideDirs === 'nodes') {
+      entries = entries.filter(
+        (entry) => entry.type !== 'dir' || !nodeParents.has(entry.path),
+      )
+    } else if (hideDirs === 'others') {
+      entries = entries.filter(
+        (entry) => entry.type !== 'dir' || nodeParents.has(entry.path),
+      )
+    }
+  }
   const extension =
     typeof schema.extension === 'string' && schema.extension
       ? `.${schema.extension}`
@@ -139,7 +185,7 @@ export async function loadCollection({
           type: 'dir',
           name: entry.name,
           path: entry.path,
-          parentPath: directory,
+          parentPath: entry.parentPath,
         })
       }
       continue
@@ -176,7 +222,8 @@ export async function loadCollection({
       sha: entry.sha,
       name: entry.name,
       path: entry.path,
-      parentPath: directory,
+      parentPath: entry.parentPath,
+      isNode: entry.isNode,
       fields,
     })
   }
