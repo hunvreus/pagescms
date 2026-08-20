@@ -49,6 +49,7 @@ interface ExpandedCollection {
 
 interface CollectionSearch {
   path?: string
+  create?: boolean
 }
 
 function jsonValueAt(value: JsonValue, path: string): JsonValue | undefined {
@@ -66,6 +67,7 @@ export const Route = createFileRoute('/$owner/$repo/$branch/collection/$name')({
   validateSearch: (search: Record<string, unknown>): CollectionSearch => ({
     path:
       typeof search.path === 'string' && search.path ? search.path : undefined,
+    create: search.create === true ? true : undefined,
   }),
   loaderDeps: ({ search }) => ({ path: search.path }),
   loader: async ({ params, deps }) => {
@@ -103,15 +105,16 @@ export const Route = createFileRoute('/$owner/$repo/$branch/collection/$name')({
 function CollectionPage() {
   const data = Route.useLoaderData()
   const params = Route.useParams()
+  const search = Route.useSearch()
   const router = useRouter()
   const fields = Array.isArray(data.collection.fields)
     ? data.collection.fields.filter(isContentField)
     : []
-  const [creating, setCreating] = useState(false)
+  const [creating, setCreating] = useState(search.create === true)
   const [creationParent, setCreationParent] = useState(data.collection.path)
   const [creatingFolder, setCreatingFolder] = useState(false)
   const [content, setContent] = useState<JsonObject | JsonValue[]>(
-    data.collection.list ? [] : {},
+    data.collection.list ? [] : initializeStructuredContent(fields),
   )
   const [source, setSource] = useState('')
   const [filename, setFilename] = useState('')
