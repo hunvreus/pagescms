@@ -1,8 +1,9 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
+import { useSuspenseQuery } from '@tanstack/react-query'
 
 import { SignInForm } from '#/components/sign-in-form'
-import { getAuthenticationState } from '#/functions/auth'
 import { getSafeRedirect } from '#/lib/auth-redirect'
+import { authenticationQueryOptions } from '#/queries/session'
 
 interface SignInSearch {
   redirect?: string
@@ -17,22 +18,24 @@ export const Route = createFileRoute('/sign-in')({
     error: typeof search.error === 'string' ? search.error : undefined,
   }),
   loaderDeps: ({ search }) => ({ redirect: search.redirect }),
-  loader: async ({ deps }) => {
-    const authentication = await getAuthenticationState()
+  loader: async ({ context, deps }) => {
+    const authentication = await context.queryClient.ensureQueryData(
+      authenticationQueryOptions(),
+    )
     const destination = getSafeRedirect(deps.redirect)
     if (authentication.user) {
       throw redirect({ href: destination === '/sign-in' ? '/' : destination })
     }
-    return authentication
   },
-  staleTime: 5_000,
   pendingMs: 150,
   pendingComponent: SignInSkeleton,
   component: SignInPage,
 })
 
 function SignInPage() {
-  const authentication = Route.useLoaderData()
+  const { data: authentication } = useSuspenseQuery(
+    authenticationQueryOptions(),
+  )
   const search = Route.useSearch()
   const callbackUrl = getSafeRedirect(search.redirect)
 

@@ -1,11 +1,14 @@
 import { useState } from 'react'
-import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { Database, LoaderCircle, RefreshCw, Trash2 } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
 import { OperationError } from '#/components/operation-error'
-import { getCacheStatus, updateCache } from '#/functions/cache'
+import { updateCache } from '#/functions/cache'
 import { getSignInUrl } from '#/lib/auth-redirect'
+import { queryKeys } from '#/queries/keys'
+import { cacheStatusQueryOptions } from '#/queries/repository'
 
 type CacheAction =
   | 'reconcile-content'
@@ -16,9 +19,9 @@ type CacheAction =
   | 'clear-all'
 
 export const Route = createFileRoute('/$owner/$repo/$branch/cache')({
-  loader: async ({ params }) => {
+  loader: async ({ context, params }) => {
     try {
-      return await getCacheStatus({ data: params })
+      await context.queryClient.ensureQueryData(cacheStatusQueryOptions(params))
     } catch (error) {
       if (
         error instanceof Error &&
@@ -33,16 +36,15 @@ export const Route = createFileRoute('/$owner/$repo/$branch/cache')({
       throw error
     }
   },
-  staleTime: 10_000,
   pendingMs: 100,
   pendingComponent: CacheSkeleton,
   component: CachePage,
 })
 
 function CachePage() {
-  const data = Route.useLoaderData()
   const params = Route.useParams()
-  const router = useRouter()
+  const { data } = useSuspenseQuery(cacheStatusQueryOptions(params))
+  const queryClient = useQueryClient()
   const [running, setRunning] = useState<CacheAction | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<unknown>(null)
@@ -55,7 +57,9 @@ function CachePage() {
     try {
       const result = await updateCache({ data: { ...params, action } })
       setMessage(result.message)
-      await router.invalidate()
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.branch(params),
+      })
     } catch (cause) {
       setError(cause)
     } finally {
@@ -85,7 +89,8 @@ function CachePage() {
         <div>
           <h2 className="font-semibold">Content cache</h2>
           <p className="text-sm text-muted-foreground">
-            Collection and media folders use stale-while-revalidate snapshots.
+            Collection and media folders are cached in PostgreSQL and refreshed
+            when their freshness window expires.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

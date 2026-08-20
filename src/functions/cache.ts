@@ -81,7 +81,6 @@ export const getCacheStatus = createServerFn({ method: 'GET' })
           await import('#/server/cache-service.server')
         return loadCacheStatus({
           database: services.database,
-          background: services.background,
           repositoryAccess: services.repositoryAccess,
           user: cacheUser(session.user),
           ...data,
@@ -102,7 +101,6 @@ export const updateCache = createServerFn({ method: 'POST' })
         const { manageCache } = await import('#/server/cache-service.server')
         return manageCache({
           database: services.database,
-          background: services.background,
           repositoryAccess: services.repositoryAccess,
           user: cacheUser(session.user),
           ...data,

@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { LoaderCircle, Play, X } from 'lucide-react'
 
 import { runAction } from '#/functions/actions'
 import { OperationError } from '#/components/operation-error'
 
 import type { RepositoryAction } from '#/lib/actions'
+import { actionsQueryOptions } from '#/queries/repository'
 
 import { Button } from './ui/button'
 import { Input } from './ui/input'
@@ -26,6 +28,7 @@ export function RepositoryActionButtons({
     data: Record<string, unknown>
   }
 }) {
+  const queryClient = useQueryClient()
   const [selected, setSelected] = useState<RepositoryAction | null>(null)
   const [values, setValues] = useState<Partial<Record<string, ActionValue>>>({})
   const [running, setRunning] = useState(false)
@@ -52,6 +55,9 @@ export function RepositoryActionButtons({
           inputs: values,
           context,
         },
+      })
+      await queryClient.invalidateQueries({
+        queryKey: actionsQueryOptions(coordinates).queryKey,
       })
       setSelected(null)
       setValues({})

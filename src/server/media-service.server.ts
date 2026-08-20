@@ -24,11 +24,9 @@ import type { MediaSchema } from '#/lib/configuration-content'
 import type { Database } from './database/client.server'
 import type { ProjectUser } from './projects.server'
 import type { RepositoryAccessService } from './repository-access.server'
-import type { BackgroundExecutor } from './runtime-ports.server'
 
 type MediaInput = {
   database: Database
-  background: BackgroundExecutor
   repositoryAccess: RepositoryAccessService
   user: ProjectUser
   owner: string
@@ -67,7 +65,6 @@ async function context(input: MediaInput) {
   )
   const configuration = await createConfigurationStore({
     database: input.database,
-    background: input.background,
   }).get(api, input.owner, input.repo, input.branch)
   if (!configuration) throw new Error('Repository configuration not found')
   const schema = findMediaSchema(configuration.object, input.name)
@@ -111,7 +108,6 @@ export async function loadMediaDirectory(
   const path = mediaDirectoryPath(schema, input.path)
   const directory = await createDirectoryCache({
     database: input.database,
-    background: input.background,
   }).get({
     api,
     owner: input.owner,
@@ -148,7 +144,6 @@ export async function loadMediaDirectory(
       actions: schemaActions(schema),
     },
     entries: entries.map(({ content: _content, ...entry }) => entry),
-    stale: directory.stale,
   }
 }
 

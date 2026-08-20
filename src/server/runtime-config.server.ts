@@ -60,7 +60,7 @@ function parseCryptoKey(value: string) {
 export function parseRuntimeConfiguration(
   environment: unknown,
 ): RuntimeConfiguration {
-  if (!isRecord(environment)) throw new Error('Worker environment is invalid')
+  if (!isRecord(environment)) throw new Error('Runtime environment is invalid')
 
   const secret = optionalString(
     environment.BETTER_AUTH_SECRET ?? environment.AUTH_SECRET,
@@ -69,11 +69,7 @@ export function parseRuntimeConfiguration(
     throw new Error('BETTER_AUTH_SECRET must contain at least 32 characters')
   }
 
-  const hyperdrive = isRecord(environment.HYPERDRIVE)
-    ? optionalString(environment.HYPERDRIVE.connectionString)
-    : undefined
-  const databaseConnectionString =
-    hyperdrive ?? optionalString(environment.DATABASE_URL)
+  const databaseConnectionString = optionalString(environment.DATABASE_URL)
   if (!databaseConnectionString) {
     throw new Error('A database connection is required')
   }

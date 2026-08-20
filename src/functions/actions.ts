@@ -157,7 +157,6 @@ export const getActions = createServerFn({ method: 'GET' })
           await import('#/server/action-service.server')
         return loadRepositoryActions({
           database: services.database,
-          background: services.background,
           repositoryAccess: services.repositoryAccess,
           user: actionUser(session.user),
           ...data,
@@ -179,7 +178,6 @@ export const runAction = createServerFn({ method: 'POST' })
           await import('#/server/action-service.server')
         return dispatchRepositoryAction({
           database: services.database,
-          background: services.background,
           repositoryAccess: services.repositoryAccess,
           user: actionUser(session.user),
           ...data,
@@ -201,7 +199,6 @@ export const manageAction = createServerFn({ method: 'POST' })
           await import('#/server/action-service.server')
         return manageRepositoryAction({
           database: services.database,
-          background: services.background,
           repositoryAccess: services.repositoryAccess,
           user: actionUser(session.user),
           ...data,

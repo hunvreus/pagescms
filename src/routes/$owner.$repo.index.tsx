@@ -1,15 +1,19 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
+import { useSuspenseQuery } from '@tanstack/react-query'
 
-import { getRepositoryWorkspace } from '#/functions/repository'
 import { getSignInUrl } from '#/lib/auth-redirect'
+import { repositoryWorkspaceQueryOptions } from '#/queries/repository'
 
 export const Route = createFileRoute('/$owner/$repo/')({
-  loader: async ({ params }) => {
+  loader: async ({ context, params }) => {
     try {
-      const workspace = await getRepositoryWorkspace({
-        data: { owner: params.owner, repo: params.repo },
-      })
-      if (!workspace.repository.defaultBranch) return workspace
+      const workspace = await context.queryClient.ensureQueryData(
+        repositoryWorkspaceQueryOptions({
+          owner: params.owner,
+          repo: params.repo,
+        }),
+      )
+      if (!workspace.repository.defaultBranch) return
       throw redirect({
         href: `/${encodeURIComponent(params.owner)}/${encodeURIComponent(params.repo)}/${encodeURIComponent(workspace.repository.defaultBranch)}`,
       })
@@ -25,13 +29,16 @@ export const Route = createFileRoute('/$owner/$repo/')({
       throw error
     }
   },
-  staleTime: 15_000,
   pendingMs: 120,
   pendingComponent: RepositoryLoading,
   component: EmptyRepository,
 })
 
 function EmptyRepository() {
+  const params = Route.useParams()
+  useSuspenseQuery(
+    repositoryWorkspaceQueryOptions({ owner: params.owner, repo: params.repo }),
+  )
   return (
     <main className="flex min-h-screen items-center justify-center p-6 text-center">
       <div>

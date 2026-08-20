@@ -6,19 +6,17 @@ describe('parseRuntimeConfiguration', () => {
   const base = {
     BETTER_AUTH_SECRET: 'a-secure-auth-secret-with-32-characters',
     BETTER_AUTH_URL: 'https://app.pagescms.org',
-    HYPERDRIVE: {
-      connectionString: 'postgres://hyperdrive.internal/pagescms',
-    },
+    DATABASE_URL: 'postgres://supabase.example/pagescms',
   }
 
-  it('prefers Hyperdrive and defaults ordinary deployments to self-hosted', () => {
+  it('uses DATABASE_URL and defaults deployments to self-hosted', () => {
     expect(parseRuntimeConfiguration(base)).toEqual({
       adminEmails: [],
       auth: {
         baseUrl: 'https://app.pagescms.org',
         secret: base.BETTER_AUTH_SECRET,
       },
-      databaseConnectionString: 'postgres://hyperdrive.internal/pagescms',
+      databaseConnectionString: 'postgres://supabase.example/pagescms',
       deployment: 'self-hosted',
     })
   })
@@ -48,11 +46,10 @@ describe('parseRuntimeConfiguration', () => {
     })
   })
 
-  it('allows a direct database secret for non-Cloudflare local runtimes', () => {
+  it('accepts a local PostgreSQL connection string', () => {
     expect(
       parseRuntimeConfiguration({
         ...base,
-        HYPERDRIVE: undefined,
         DATABASE_URL: 'postgres://localhost/pagescms',
       }).databaseConnectionString,
     ).toBe('postgres://localhost/pagescms')
@@ -97,7 +94,7 @@ describe('parseRuntimeConfiguration', () => {
   it.each([
     [{ ...base, BETTER_AUTH_SECRET: 'short' }, 'at least 32'],
     [{ ...base, BETTER_AUTH_URL: 'not-a-url' }, 'valid HTTP'],
-    [{ ...base, HYPERDRIVE: undefined }, 'database connection'],
+    [{ ...base, DATABASE_URL: undefined }, 'database connection'],
     [{ ...base, GITHUB_APP_CLIENT_ID: 'only-one' }, 'provided together'],
     [{ ...base, GITHUB_APP_ID: '123' }, 'must be provided together'],
     [

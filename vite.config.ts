@@ -8,15 +8,9 @@ import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { cloudflare } from '@cloudflare/vite-plugin'
 
-const cloudflareRuntime = process.env.PAGESCMS_RUNTIME === 'cloudflare'
+const cloudflareBuild = process.env.PAGESCMS_CLOUDFLARE === 'true'
 const e2eRequestServices = fileURLToPath(
   new URL('./tests/e2e/request-services.server.ts', import.meta.url),
-)
-const cloudflareRequestServices = fileURLToPath(
-  new URL(
-    './src/server/cloudflare-request-services.server.ts',
-    import.meta.url,
-  ),
 )
 
 const config = defineConfig({
@@ -26,20 +20,14 @@ const config = defineConfig({
     alias: {
       ...(process.env.PAGESCMS_E2E === 'true'
         ? {
-            '#/server/runtime-request-services.server': e2eRequestServices,
-          }
-        : {}),
-      ...(cloudflareRuntime
-        ? {
-            '#/server/runtime-request-services.server':
-              cloudflareRequestServices,
+            '#/server/request-services-bootstrap.server': e2eRequestServices,
           }
         : {}),
     },
   },
   plugins: [
     devtools(),
-    ...(cloudflareRuntime
+    ...(cloudflareBuild
       ? [cloudflare({ viteEnvironment: { name: 'ssr' } })]
       : []),
     tailwindcss(),

@@ -18,7 +18,6 @@ import type {
 } from '#/lib/content-serialization'
 import type { JsonValue } from '#/lib/json'
 import type { Database } from './database/client.server'
-import type { BackgroundExecutor } from './runtime-ports.server'
 import type { ProjectUser } from './projects.server'
 import type { RepositoryAccessService } from './repository-access.server'
 
@@ -76,7 +75,6 @@ function dateFromFilename(value: string) {
 
 export async function loadCollection({
   database,
-  background,
   repositoryAccess,
   user,
   owner,
@@ -86,7 +84,6 @@ export async function loadCollection({
   path,
 }: {
   database: Database
-  background: BackgroundExecutor
   repositoryAccess: RepositoryAccessService
   user: ProjectUser
   owner: string
@@ -98,7 +95,6 @@ export async function loadCollection({
   const { api } = await repositoryAccess.resolve(user, owner, repo, branch)
   const configuration = await createConfigurationStore({
     database,
-    background,
   }).get(api, owner, repo, branch)
   if (!configuration) throw new Error('Repository configuration not found')
   const schema = findContentSchema(configuration.object, name)
@@ -114,7 +110,6 @@ export async function loadCollection({
   const directory = collectionDirectoryPath(schema, path)
   const directoryResult = await createDirectoryCache({
     database,
-    background,
   }).get({
     api,
     owner,
@@ -255,6 +250,5 @@ export async function loadCollection({
     contents,
     errors,
     media: configuredMediaSchemas(configuration.object),
-    stale: directoryResult.stale,
   }
 }

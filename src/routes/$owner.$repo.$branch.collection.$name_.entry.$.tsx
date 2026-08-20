@@ -1,20 +1,23 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
+import { useSuspenseQuery } from '@tanstack/react-query'
 
 import {
   ContentEntryEditor,
   ContentEntrySkeleton,
 } from '#/components/content-entry-editor'
-import { getRawEntry } from '#/functions/entry-editor'
 import { getSignInUrl } from '#/lib/auth-redirect'
+import { entryQueryOptions } from '#/queries/content'
 
 export const Route = createFileRoute(
   '/$owner/$repo/$branch/collection/$name_/entry/$',
 )({
-  loader: async ({ params }) => {
+  loader: async ({ context, params }) => {
     const path = params._splat
     if (!path) throw new Error('Entry path is required')
     try {
-      return await getRawEntry({ data: { ...params, path } })
+      await context.queryClient.ensureQueryData(
+        entryQueryOptions({ ...params, path }),
+      )
     } catch (error) {
       if (
         error instanceof Error &&
@@ -29,20 +32,21 @@ export const Route = createFileRoute(
       throw error
     }
   },
-  staleTime: 10_000,
   pendingMs: 100,
   pendingComponent: ContentEntrySkeleton,
   component: CollectionEntryEditor,
 })
 
 function CollectionEntryEditor() {
-  const initial = Route.useLoaderData()
   const params = Route.useParams()
-  if (!params._splat) throw new Error('Entry path is required')
+  const path = params._splat!
+  const { data: initial } = useSuspenseQuery(
+    entryQueryOptions({ ...params, path }),
+  )
   return (
     <ContentEntryEditor
       afterDeleteHref={`/${encodeURIComponent(params.owner)}/${encodeURIComponent(params.repo)}/${encodeURIComponent(params.branch)}/collection/${encodeURIComponent(params.name)}`}
-      coordinates={{ ...params, path: params._splat }}
+      coordinates={{ ...params, path }}
       initial={initial}
       renameBaseHref={`/${encodeURIComponent(params.owner)}/${encodeURIComponent(params.repo)}/${encodeURIComponent(params.branch)}/collection/${encodeURIComponent(params.name)}/entry`}
     />

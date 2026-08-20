@@ -13,7 +13,6 @@ import { invalidateDirectoryCacheAfterMutation } from './directory-cache.server'
 import { GitHubApiError } from './github-api.server'
 
 import type { Database } from './database/client.server'
-import type { BackgroundExecutor } from './runtime-ports.server'
 import type { ProjectUser } from './projects.server'
 import type { RepositoryAccessService } from './repository-access.server'
 
@@ -77,7 +76,6 @@ export async function loadConfigurationHistory({
 
 export async function saveConfigurationSource({
   database,
-  background,
   repositoryAccess,
   user,
   owner,
@@ -87,7 +85,6 @@ export async function saveConfigurationSource({
   sha,
 }: {
   database: Database
-  background: BackgroundExecutor
   repositoryAccess: RepositoryAccessService
   user: ProjectUser & { name: string }
   owner: string
@@ -110,7 +107,6 @@ export async function saveConfigurationSource({
   const { api } = await repositoryAccess.resolve(user, owner, repo, branch)
   const cached = await createConfigurationStore({
     database,
-    background,
   }).get(api, owner, repo, branch)
   const action = sha ? 'update' : 'create'
   const identity = resolveCommitIdentity({ configuration: cached?.object })

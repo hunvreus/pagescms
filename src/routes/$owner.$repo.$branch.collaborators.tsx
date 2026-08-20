@@ -1,21 +1,21 @@
 import { useState } from 'react'
-import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { LoaderCircle, Trash2, UserPlus } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
 import { OperationError } from '#/components/operation-error'
 import { Textarea } from '#/components/ui/textarea'
-import {
-  addCollaborators,
-  deleteCollaborator,
-  getCollaborators,
-} from '#/functions/collaborators'
+import { addCollaborators, deleteCollaborator } from '#/functions/collaborators'
 import { getSignInUrl } from '#/lib/auth-redirect'
+import { collaboratorsQueryOptions } from '#/queries/repository'
 
 export const Route = createFileRoute('/$owner/$repo/$branch/collaborators')({
-  loader: async ({ params }) => {
+  loader: async ({ context, params }) => {
     try {
-      return await getCollaborators({ data: params })
+      await context.queryClient.ensureQueryData(
+        collaboratorsQueryOptions(params),
+      )
     } catch (error) {
       if (
         error instanceof Error &&
@@ -30,16 +30,17 @@ export const Route = createFileRoute('/$owner/$repo/$branch/collaborators')({
       throw error
     }
   },
-  staleTime: 15_000,
   pendingMs: 100,
   pendingComponent: CollaboratorSkeleton,
   component: CollaboratorsPage,
 })
 
 function CollaboratorsPage() {
-  const collaborators = Route.useLoaderData()
   const params = Route.useParams()
-  const router = useRouter()
+  const { data: collaborators } = useSuspenseQuery(
+    collaboratorsQueryOptions(params),
+  )
+  const queryClient = useQueryClient()
   const [emails, setEmails] = useState('')
   const [inviting, setInviting] = useState(false)
   const [removing, setRemoving] = useState<number | null>(null)
@@ -60,7 +61,9 @@ function CollaboratorsPage() {
     try {
       await addCollaborators({ data: { ...params, emails: values } })
       setEmails('')
-      await router.invalidate()
+      await queryClient.invalidateQueries({
+        queryKey: collaboratorsQueryOptions(params).queryKey,
+      })
     } catch (cause) {
       setError(cause)
     } finally {
@@ -74,7 +77,9 @@ function CollaboratorsPage() {
     setError(null)
     try {
       await deleteCollaborator({ data: { ...params, id } })
-      await router.invalidate()
+      await queryClient.invalidateQueries({
+        queryKey: collaboratorsQueryOptions(params).queryKey,
+      })
     } catch (cause) {
       setError(cause)
     } finally {

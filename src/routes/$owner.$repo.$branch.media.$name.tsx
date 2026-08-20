@@ -1,10 +1,6 @@
 import { useState } from 'react'
-import {
-  Link,
-  createFileRoute,
-  redirect,
-  useRouter,
-} from '@tanstack/react-router'
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { Link, createFileRoute, redirect } from '@tanstack/react-router'
 import {
   File,
   Folder,
@@ -24,11 +20,12 @@ import { OperationError } from '#/components/operation-error'
 import {
   createMedia,
   createMediaFolder,
-  getMedia,
   removeMedia,
   renameMedia,
 } from '#/functions/media'
 import { getSignInUrl } from '#/lib/auth-redirect'
+import { mediaQueryOptions } from '#/queries/content'
+import { queryKeys } from '#/queries/keys'
 
 interface MediaSearch {
   path?: string
@@ -40,9 +37,11 @@ export const Route = createFileRoute('/$owner/$repo/$branch/media/$name')({
       typeof search.path === 'string' && search.path ? search.path : undefined,
   }),
   loaderDeps: ({ search }) => ({ path: search.path }),
-  loader: async ({ params, deps }) => {
+  loader: async ({ context, params, deps }) => {
     try {
-      return await getMedia({ data: { ...params, path: deps.path } })
+      await context.queryClient.ensureQueryData(
+        mediaQueryOptions({ ...params, path: deps.path }),
+      )
     } catch (error) {
       if (
         error instanceof Error &&
@@ -57,8 +56,6 @@ export const Route = createFileRoute('/$owner/$repo/$branch/media/$name')({
       throw error
     }
   },
-  staleTime: 30_000,
-  gcTime: 10 * 60_000,
   pendingMs: 100,
   pendingComponent: MediaSkeleton,
   component: MediaPage,
@@ -84,9 +81,12 @@ function formatSize(value: number | null) {
 }
 
 function MediaPage() {
-  const data = Route.useLoaderData()
   const params = Route.useParams()
-  const router = useRouter()
+  const search = Route.useSearch()
+  const { data, isFetching } = useSuspenseQuery(
+    mediaQueryOptions({ ...params, path: search.path }),
+  )
+  const queryClient = useQueryClient()
   const [uploading, setUploading] = useState(false)
   const [creatingFolder, setCreatingFolder] = useState(false)
   const [folder, setFolder] = useState('')
@@ -112,7 +112,9 @@ function MediaPage() {
           },
         })
       }
-      await router.invalidate()
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.branch(params),
+      })
     } catch (cause) {
       setError(cause)
     } finally {
@@ -127,7 +129,9 @@ function MediaPage() {
     setError(null)
     try {
       await removeMedia({ data: { ...params, path, sha } })
-      await router.invalidate()
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.branch(params),
+      })
     } catch (cause) {
       setError(cause)
     } finally {
@@ -148,7 +152,9 @@ function MediaPage() {
       })
       setFolder('')
       setCreatingFolder(false)
-      await router.invalidate()
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.branch(params),
+      })
     } catch (cause) {
       setError(cause)
     } finally {
@@ -165,7 +171,9 @@ function MediaPage() {
     setError(null)
     try {
       await renameMedia({ data: { ...params, path, sha, filename } })
-      await router.invalidate()
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.branch(params),
+      })
     } catch (cause) {
       setError(cause)
     } finally {
@@ -185,7 +193,7 @@ function MediaPage() {
           <h1 className="text-2xl font-semibold tracking-tight">
             {data.media.label}
           </h1>
-          {data.stale ? (
+          {isFetching ? (
             <p className="text-xs text-muted-foreground">
               Refreshing cached media…
             </p>

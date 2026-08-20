@@ -88,7 +88,6 @@ integration('PostgreSQL integration', () => {
     ])
     const cache = createDirectoryCache({
       database: database!,
-      background: { defer: vi.fn() },
       clock: { now: () => new Date('2026-08-20T00:00:00Z') },
     })
     const input = {
@@ -101,8 +100,12 @@ integration('PostgreSQL integration', () => {
       enabled: true,
     }
 
-    await expect(cache.get(input)).resolves.toMatchObject({ stale: false })
-    await expect(cache.get(input)).resolves.toMatchObject({ stale: false })
+    await expect(cache.get(input)).resolves.toMatchObject({
+      entries: [{ path: 'content/hello.md', sha: 'file-sha' }],
+    })
+    await expect(cache.get(input)).resolves.toMatchObject({
+      entries: [{ path: 'content/hello.md', sha: 'file-sha' }],
+    })
     expect(getDirectory).toHaveBeenCalledTimes(1)
     await expect(
       database!

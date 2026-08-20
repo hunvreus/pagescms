@@ -1,18 +1,20 @@
 import { useEffect, useState } from 'react'
-import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { ExternalLink, LoaderCircle, Play, RotateCcw, X } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
 import { OperationError } from '#/components/operation-error'
 import { Input } from '#/components/ui/input'
 import { Textarea } from '#/components/ui/textarea'
-import { getActions, manageAction, runAction } from '#/functions/actions'
+import { manageAction, runAction } from '#/functions/actions'
 import { getSignInUrl } from '#/lib/auth-redirect'
+import { actionsQueryOptions } from '#/queries/repository'
 
 export const Route = createFileRoute('/$owner/$repo/$branch/actions')({
-  loader: async ({ params }) => {
+  loader: async ({ context, params }) => {
     try {
-      return await getActions({ data: params })
+      await context.queryClient.ensureQueryData(actionsQueryOptions(params))
     } catch (error) {
       if (
         error instanceof Error &&
@@ -27,15 +29,14 @@ export const Route = createFileRoute('/$owner/$repo/$branch/actions')({
       throw error
     }
   },
-  staleTime: 5_000,
   pendingMs: 100,
   component: ActionsPage,
 })
 
 function ActionsPage() {
-  const data = Route.useLoaderData()
   const params = Route.useParams()
-  const router = useRouter()
+  const { data } = useSuspenseQuery(actionsQueryOptions(params))
+  const queryClient = useQueryClient()
   const [values, setValues] = useState<
     Partial<Record<string, Record<string, string | number | boolean>>>
   >({})
@@ -51,14 +52,16 @@ function ActionsPage() {
     let cancelled = false
     let timer = window.setTimeout(refresh, 4_000)
     async function refresh() {
-      await router.invalidate()
+      await queryClient.invalidateQueries({
+        queryKey: actionsQueryOptions(params).queryKey,
+      })
       if (!cancelled) timer = window.setTimeout(refresh, 4_000)
     }
     return () => {
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [hasActiveRuns, router])
+  }, [hasActiveRuns, params, queryClient])
 
   async function run(action: (typeof data.actions)[number]) {
     const confirm = action.confirm
@@ -79,7 +82,9 @@ function ActionsPage() {
           inputs: values[action.name] ?? {},
         },
       })
-      await router.invalidate()
+      await queryClient.invalidateQueries({
+        queryKey: actionsQueryOptions(params).queryKey,
+      })
     } catch (cause) {
       setError(cause)
     } finally {
@@ -94,7 +99,9 @@ function ActionsPage() {
     setError(null)
     try {
       await manageAction({ data: { ...params, runId, intent } })
-      await router.invalidate()
+      await queryClient.invalidateQueries({
+        queryKey: actionsQueryOptions(params).queryKey,
+      })
     } catch (cause) {
       setError(cause)
     } finally {

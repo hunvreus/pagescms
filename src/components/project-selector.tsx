@@ -7,6 +7,7 @@ import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { OperationError } from '#/components/operation-error'
 import { getProjectRepositories } from '#/functions/projects'
+import { queryKeys } from '#/queries/keys'
 
 import type { ProjectAccount } from '#/server/projects.server'
 
@@ -53,7 +54,8 @@ export function ProjectSelector({
 
   const repositories = useQuery({
     queryKey: [
-      'project-repositories',
+      ...queryKeys.repositories(),
+      'project-list',
       selectedAccount?.login.toLowerCase(),
       selectedAccount?.installationId,
       remoteKeyword.toLowerCase(),

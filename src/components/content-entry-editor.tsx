@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from '@tanstack/react-router'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   Check,
   ExternalLink,
@@ -27,6 +28,7 @@ import {
   updateStructuredEntry,
 } from '#/functions/entry-editor'
 import type { getRawEntry } from '#/functions/entry-editor'
+import { queryKeys } from '#/queries/keys'
 
 type LoadedEntryData = Awaited<ReturnType<typeof getRawEntry>>
 type EntryData = LoadedEntryData extends infer Entry
@@ -86,6 +88,7 @@ function useEntryDeletion(
   afterDeleteHref: string,
 ) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<unknown>(null)
 
@@ -103,8 +106,10 @@ function useEntryDeletion(
       setError(null)
       try {
         await deleteEntry({ data: { ...coordinates, sha } })
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.branch(coordinates),
+        })
         await router.navigate({ href: afterDeleteHref })
-        void router.invalidate()
       } catch (cause) {
         setError(cause)
       } finally {
@@ -120,6 +125,7 @@ function useEntryRename(
   renameBaseHref?: string,
 ) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [renaming, setRenaming] = useState(false)
   const [error, setError] = useState<unknown>(null)
 
@@ -137,10 +143,12 @@ function useEntryRename(
         const result = await renameEntry({
           data: { ...coordinates, sha, filename },
         })
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.branch(coordinates),
+        })
         await router.navigate({
           href: `${renameBaseHref}/${result.newPath.split('/').map(encodeURIComponent).join('/')}`,
         })
-        void router.invalidate()
       } catch (cause) {
         setError(cause)
       } finally {
@@ -161,7 +169,7 @@ function RawEntryEditor({
   afterDeleteHref: string
   renameBaseHref?: string
 }) {
-  const router = useRouter()
+  const queryClient = useQueryClient()
   const [source, setSource] = useState(initial.source)
   const [savedSource, setSavedSource] = useState(initial.source)
   const [sha, setSha] = useState(initial.sha)
@@ -184,7 +192,9 @@ function RawEntryEditor({
       setSha(result.sha)
       setSavedSource(source)
       setSaved(true)
-      void router.invalidate()
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.branch(coordinates),
+      })
     } catch (cause) {
       setError(cause)
     } finally {
@@ -244,7 +254,7 @@ function StructuredEntryEditor({
   afterDeleteHref: string
   renameBaseHref?: string
 }) {
-  const router = useRouter()
+  const queryClient = useQueryClient()
   const [content, setContent] = useState(initial.content)
   const [savedContent, setSavedContent] = useState(initial.content)
   const [sha, setSha] = useState(initial.sha)
@@ -270,7 +280,9 @@ function StructuredEntryEditor({
       setSha(result.sha)
       setSavedContent(content)
       setSaved(true)
-      void router.invalidate()
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.branch(coordinates),
+      })
     } catch (cause) {
       setError(cause)
     } finally {

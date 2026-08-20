@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useRouter } from '@tanstack/react-router'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   File,
   FileStack,
@@ -18,6 +19,7 @@ import { Input } from '#/components/ui/input'
 import { OperationError } from '#/components/operation-error'
 import { createRepositoryBranch } from '#/functions/repository'
 import { getConfigurationNavigation } from '#/lib/configuration-navigation'
+import { queryKeys } from '#/queries/keys'
 
 interface WorkspaceProps {
   children: React.ReactNode
@@ -27,7 +29,6 @@ interface WorkspaceProps {
   branches: readonly string[]
   configuration: {
     object: Record<string, unknown>
-    stale: boolean
   } | null
 }
 
@@ -40,6 +41,7 @@ export function RepositoryWorkspace({
   configuration,
 }: WorkspaceProps) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const navigation = configuration
     ? getConfigurationNavigation(configuration.object)
     : []
@@ -54,6 +56,9 @@ export function RepositoryWorkspace({
     try {
       const result = await createRepositoryBranch({
         data: { owner, repo, branch: newBranch, source: branch },
+      })
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.repository({ owner, repo }),
       })
       await router.navigate({
         to: '/$owner/$repo/$branch',

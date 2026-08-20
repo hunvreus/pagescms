@@ -1,21 +1,24 @@
 import { Link, createFileRoute, redirect } from '@tanstack/react-router'
+import { useSuspenseQuery } from '@tanstack/react-query'
 
 import { Button } from '#/components/ui/button'
-import { getCollaboratorInvite } from '#/functions/collaborator-invite'
+import { collaboratorInviteQueryOptions } from '#/queries/invitations'
 
 export const Route = createFileRoute('/invite/$token')({
-  loader: async ({ params }) => {
-    const state = await getCollaboratorInvite({ data: params.token })
+  loader: async ({ context, params }) => {
+    const state = await context.queryClient.ensureQueryData(
+      collaboratorInviteQueryOptions(params.token),
+    )
     if (state.status === 'ready') throw redirect({ href: state.destination })
-    return state
   },
-  staleTime: 0,
   component: InvitePage,
 })
 
 function InvitePage() {
-  const state = Route.useLoaderData()
   const params = Route.useParams()
+  const { data: state } = useSuspenseQuery(
+    collaboratorInviteQueryOptions(params.token),
+  )
   return (
     <main className="flex min-h-screen items-center justify-center px-5 py-12">
       <div className="w-full max-w-md space-y-5 rounded-xl border bg-card p-6 text-center shadow-xs">

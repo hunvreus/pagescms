@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import {
   Link,
   createFileRoute,
@@ -26,7 +27,7 @@ import { OperationError } from '#/components/operation-error'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { Textarea } from '#/components/ui/textarea'
-import { getCollection } from '#/functions/collection'
+import type { getCollection } from '#/functions/collection'
 import {
   createCollectionFolder,
   createRawCollectionEntry,
@@ -35,6 +36,8 @@ import {
 } from '#/functions/entry-editor'
 import { getSignInUrl } from '#/lib/auth-redirect'
 import { initializeStructuredContent } from '#/lib/field-values'
+import { collectionQueryOptions } from '#/queries/content'
+import { queryKeys } from '#/queries/keys'
 
 import type { JsonObject, JsonValue } from '#/lib/json'
 
@@ -71,17 +74,17 @@ export const Route = createFileRoute('/$owner/$repo/$branch/collection/$name')({
     create: search.create === true ? true : undefined,
   }),
   loaderDeps: ({ search }) => ({ path: search.path }),
-  loader: async ({ params, deps }) => {
+  loader: async ({ context, params, deps }) => {
     try {
-      return await getCollection({
-        data: {
+      await context.queryClient.ensureQueryData(
+        collectionQueryOptions({
           owner: params.owner,
           repo: params.repo,
           branch: params.branch,
           name: params.name,
           path: deps.path,
-        },
-      })
+        }),
+      )
     } catch (error) {
       if (
         error instanceof Error &&
@@ -96,18 +99,19 @@ export const Route = createFileRoute('/$owner/$repo/$branch/collection/$name')({
       throw error
     }
   },
-  staleTime: 30_000,
-  gcTime: 10 * 60_000,
   pendingMs: 100,
   pendingComponent: CollectionSkeleton,
   component: CollectionPage,
 })
 
 function CollectionPage() {
-  const data = Route.useLoaderData()
   const params = Route.useParams()
   const search = Route.useSearch()
   const router = useRouter()
+  const queryClient = useQueryClient()
+  const { data, isFetching } = useSuspenseQuery(
+    collectionQueryOptions({ ...params, path: search.path }),
+  )
   const fields = Array.isArray(data.collection.fields)
     ? data.collection.fields.filter(isContentField)
     : []
@@ -308,12 +312,12 @@ function CollectionPage() {
       [key]: { open: true, loading: true },
     }))
     try {
-      const result = await getCollection({
-        data: {
+      const result = await queryClient.ensureQueryData(
+        collectionQueryOptions({
           ...params,
           path: entry.type === 'file' ? entry.parentPath : entry.path,
-        },
-      })
+        }),
+      )
       setExpanded((values) => ({
         ...values,
         [key]: { open: true, loading: false, contents: result.contents },
@@ -358,7 +362,9 @@ function CollectionPage() {
       await moveEntry({
         data: { ...params, path: entry.path, newPath, sha: entry.sha },
       })
-      await router.invalidate()
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.branch(params),
+      })
       openCreator(basePath)
     } catch (cause) {
       setCreateError(cause)
@@ -496,6 +502,9 @@ function CollectionPage() {
             data: { ...coordinates, source },
           })
       setCreating(false)
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.branch(params),
+      })
       await router.navigate({
         href: `/${encodeURIComponent(params.owner)}/${encodeURIComponent(params.repo)}/${encodeURIComponent(params.branch)}/collection/${encodeURIComponent(params.name)}/entry/${result.path.split('/').map(encodeURIComponent).join('/')}`,
       })
@@ -519,7 +528,9 @@ function CollectionPage() {
       })
       setCreatingFolder(false)
       setFolder('')
-      await router.invalidate()
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.branch(params),
+      })
     } catch (cause) {
       setCreateError(cause)
     } finally {
@@ -537,7 +548,7 @@ function CollectionPage() {
           <h1 className="text-2xl font-semibold tracking-tight">
             {data.collection.label}
           </h1>
-          {data.stale ? (
+          {isFetching ? (
             <p className="text-xs text-muted-foreground">
               Refreshing cached content…
             </p>

@@ -56,7 +56,7 @@ The checked-in `wrangler.jsonc` is the source of truth for Workers configuration
 pnpm cf:typegen
 ```
 
-Cloudflare is selected only by explicit production or compatibility commands: `pnpm build`, `pnpm preview`, `pnpm cf:dev`, and `pnpm deploy`. Normal local development does not run inside workerd. Production builds explicitly ignore `.env.local`; deployed secrets come from Cloudflare bindings and its secret store.
+`pnpm build` and `pnpm preview` use the ordinary TanStack Start/Vite build. Cloudflare is selected only by explicit target commands: `pnpm cf:dev`, `pnpm cf:build`, `pnpm cf:preview`, and `pnpm deploy`. The application code and request services are identical in either build. Cloudflare production builds explicitly ignore `.env.local`; deployed secrets come from Cloudflare environment variables and its secret store.
 
 No deployment occurs during `pnpm cf:dry-run`. See [`docs/development/cloudflare.md`](./docs/development/cloudflare.md) before configuring environments or secrets.
 

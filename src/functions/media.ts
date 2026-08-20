@@ -121,7 +121,6 @@ export const getMedia = createServerFn({ method: 'GET' })
           await import('#/server/media-service.server')
         return loadMediaDirectory({
           database: services.database,
-          background: services.background,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,
@@ -148,7 +147,6 @@ export const createMedia = createServerFn({ method: 'POST' })
         const { uploadMedia } = await import('#/server/media-service.server')
         return uploadMedia({
           database: services.database,
-          background: services.background,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,
@@ -176,7 +174,6 @@ export const createMediaFolder = createServerFn({ method: 'POST' })
           await import('#/server/media-service.server')
         return createMediaDirectory({
           database: services.database,
-          background: services.background,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,
@@ -203,7 +200,6 @@ export const removeMedia = createServerFn({ method: 'POST' })
         const { deleteMedia } = await import('#/server/media-service.server')
         return deleteMedia({
           database: services.database,
-          background: services.background,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,
@@ -231,7 +227,6 @@ export const renameMedia = createServerFn({ method: 'POST' })
           await import('#/server/media-service.server')
         return renameMediaFile({
           database: services.database,
-          background: services.background,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,

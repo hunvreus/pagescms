@@ -2,7 +2,7 @@ import { and, eq } from 'drizzle-orm'
 
 import type { Database } from './database/client.server'
 import type { GitHubApi, GitHubDirectoryEntry } from './github-api.server'
-import type { BackgroundExecutor, Clock } from './runtime-ports.server'
+import type { Clock } from './runtime-ports.server'
 
 import { cacheFileMetaTable, cacheFileTable } from './database/schema'
 import { systemClock } from './runtime-ports.server'
@@ -23,12 +23,10 @@ export function isDirectoryCacheFresh(
 
 export function createDirectoryCache({
   database,
-  background,
   clock = systemClock,
   ttlMs = DEFAULT_DIRECTORY_TTL_MS,
 }: {
   database: Database
-  background: BackgroundExecutor
   clock?: Clock
   ttlMs?: number
 }) {
@@ -164,7 +162,7 @@ export function createDirectoryCache({
           },
         })
     })
-    return { entries, stale: false }
+    return { entries }
   }
 
   return {
@@ -187,7 +185,6 @@ export function createDirectoryCache({
             input.path,
             input.nodeFilename,
           ),
-          stale: false,
         }
       }
       const cached = await cachedDirectory(
@@ -201,23 +198,18 @@ export function createDirectoryCache({
         cached &&
         isDirectoryCacheFresh(cached.lastCheckedAt, clock.now(), ttlMs)
       ) {
-        return { entries: cached.entries, stale: false }
+        return { entries: cached.entries }
       }
       if (cached) {
-        background.defer(
-          refresh(
-            input.api,
-            input.owner,
-            input.repo,
-            input.branch,
-            input.path,
-            input.context,
-            input.nodeFilename,
-          ).catch((error: unknown) => {
-            console.error('Could not refresh cached directory', error)
-          }),
+        return refresh(
+          input.api,
+          input.owner,
+          input.repo,
+          input.branch,
+          input.path,
+          input.context,
+          input.nodeFilename,
         )
-        return { entries: cached.entries, stale: true }
       }
       return refresh(
         input.api,

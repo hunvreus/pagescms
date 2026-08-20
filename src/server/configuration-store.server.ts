@@ -13,7 +13,7 @@ import { GitHubApiError } from './github-api.server'
 
 import type { Database } from './database/client.server'
 import type { GitHubApi } from './github-api.server'
-import type { BackgroundExecutor, Clock } from './runtime-ports.server'
+import type { Clock } from './runtime-ports.server'
 
 import { configTable } from './database/schema'
 import { systemClock } from './runtime-ports.server'
@@ -28,7 +28,6 @@ export interface StoredConfiguration {
   version: string
   object: JsonObject
   lastCheckedAt: Date
-  stale: boolean
 }
 
 function decodeBase64Utf8(value: string) {
@@ -58,18 +57,15 @@ function rowToConfiguration(
     version: row.version,
     object,
     lastCheckedAt: row.lastCheckedAt,
-    stale: false,
   }
 }
 
 export function createConfigurationStore({
   database,
-  background,
   clock = systemClock,
   ttlMs = DEFAULT_CONFIGURATION_TTL_MS,
 }: {
   database: Database
-  background: BackgroundExecutor
   clock?: Clock
   ttlMs?: number
 }) {
@@ -126,7 +122,7 @@ export function createConfigurationStore({
             eq(configTable.branch, branch),
           ),
         )
-      return { ...cached, lastCheckedAt: checkedAt, stale: false }
+      return { ...cached, lastCheckedAt: checkedAt }
     }
 
     const object = parseConfigurationFile(file.content)
@@ -160,7 +156,6 @@ export function createConfigurationStore({
       version: CONFIGURATION_VERSION,
       object,
       lastCheckedAt: checkedAt,
-      stale: false,
     }
   }
 
@@ -179,12 +174,7 @@ export function createConfigurationStore({
         return cached
       }
       if (cached?.version === CONFIGURATION_VERSION) {
-        background.defer(
-          refresh(api, owner, repo, branch, cached).catch((error: unknown) => {
-            console.error('Could not refresh cached .pages.yml', error)
-          }),
-        )
-        return { ...cached, stale: true }
+        return refresh(api, owner, repo, branch, cached)
       }
       return refresh(api, owner, repo, branch, cached)
     },

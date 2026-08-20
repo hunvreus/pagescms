@@ -10,11 +10,13 @@
     "#/*": "./src/*"
   },
   "scripts": {
-    "dev": "vite dev --port 3000",
-    "cf:dev": "PAGESCMS_RUNTIME=cloudflare vite dev --port 3000",
+    "dev": "node --env-file-if-exists=.env.local ./node_modules/vite/bin/vite.js dev --port 3000",
+    "cf:dev": "PAGESCMS_CLOUDFLARE=true vite dev --port 3000",
+    "cf:build": "CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false PAGESCMS_CLOUDFLARE=true vite build",
+    "cf:preview": "PAGESCMS_CLOUDFLARE=true vite preview",
     "generate-routes": "tsr generate",
-    "build": "CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false PAGESCMS_RUNTIME=cloudflare vite build",
-    "preview": "PAGESCMS_RUNTIME=cloudflare vite preview",
+    "build": "vite build",
+    "preview": "vite preview",
     "typecheck": "pnpm generate-routes && tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write . && eslint --fix",
@@ -28,9 +30,9 @@
     "db:migrate": "drizzle-kit migrate",
     "cf:typegen": "wrangler types --include-runtime false",
     "cf:typecheck": "wrangler types --include-runtime false --check",
-    "cf:dry-run": "pnpm build && wrangler deploy --dry-run --outdir .wrangler/dry-run --metafile",
+    "cf:dry-run": "pnpm cf:build && wrangler deploy --dry-run --outdir .wrangler/dry-run --metafile",
     "validate": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm cf:typecheck && pnpm cf:dry-run",
-    "deploy": "pnpm build && wrangler deploy"
+    "deploy": "pnpm cf:build && wrangler deploy"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
