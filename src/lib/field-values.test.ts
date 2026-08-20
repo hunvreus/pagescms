@@ -61,15 +61,47 @@ describe('structured field values', () => {
         type: 'object',
         fields: [{ name: 'description', type: 'text', default: 'Summary' }],
       },
+      {
+        name: 'hero',
+        type: 'block',
+        blocks: [
+          {
+            name: 'image',
+            fields: [{ name: 'alt', type: 'string', default: 'Hero' }],
+          },
+        ],
+      },
     ])
     expect(content).toMatchObject({
       title: 'Untitled',
       published: false,
       tags: [],
       seo: { description: 'Summary' },
+      hero: { _block: 'image', alt: 'Hero' },
     })
     expect(content.id).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     )
+  })
+
+  it('validates block discriminators and nested fields', () => {
+    const fields = [
+      {
+        name: 'hero',
+        type: 'block',
+        blocks: [
+          {
+            name: 'image',
+            fields: [{ name: 'src', type: 'image', required: true }],
+          },
+        ],
+      },
+    ]
+    expect(
+      validateStructuredContent(fields, { hero: { _block: 'video' } }),
+    ).toEqual(['hero uses an unknown block type'])
+    expect(
+      validateStructuredContent(fields, { hero: { _block: 'image' } }),
+    ).toEqual(['hero.src is required'])
   })
 })

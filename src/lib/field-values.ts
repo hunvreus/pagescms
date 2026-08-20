@@ -64,6 +64,26 @@ function validateScalar(field: Field, value: JsonValue, path: string) {
       path,
     )[0]
   }
+  if (field.type === 'block') {
+    if (!isRecord(value)) return `${path} must be an object`
+    const blockKey =
+      typeof field.blockKey === 'string' ? field.blockKey : '_block'
+    const blockName = value[blockKey]
+    if (typeof blockName !== 'string' || !blockName) {
+      return `${path} must select a block type`
+    }
+    const block = Array.isArray(field.blocks)
+      ? field.blocks.find(
+          (candidate) => isRecord(candidate) && candidate.name === blockName,
+        )
+      : undefined
+    if (!isRecord(block)) return `${path} uses an unknown block type`
+    return validateStructuredContent(
+      Array.isArray(block.fields) ? block.fields : [],
+      value,
+      path,
+    )[0]
+  }
   if (
     typeof field.type === 'string' &&
     !['number', 'boolean', 'object', 'block'].includes(field.type) &&
@@ -156,6 +176,20 @@ export function initializeStructuredContent(fields: unknown[]) {
         value = initializeStructuredContent(
           Array.isArray(candidate.fields) ? candidate.fields : [],
         )
+      } else if (candidate.type === 'block') {
+        const block = Array.isArray(candidate.blocks)
+          ? candidate.blocks.find(isRecord)
+          : undefined
+        const blockKey =
+          typeof candidate.blockKey === 'string' ? candidate.blockKey : '_block'
+        const blockName =
+          block && typeof block.name === 'string' ? block.name : ''
+        value = {
+          [blockKey]: blockName,
+          ...initializeStructuredContent(
+            block && Array.isArray(block.fields) ? block.fields : [],
+          ),
+        }
       }
     }
     if (
