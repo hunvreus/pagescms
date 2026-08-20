@@ -1,4 +1,5 @@
 import type { AccessPolicy } from '#/server/access-policy.server'
+import type { EmailProvider } from '#/server/email.server'
 
 import type { PLUGIN_API_VERSION } from './contract'
 
@@ -6,6 +7,7 @@ export interface PagesCmsServerPlugin {
   apiVersion: typeof PLUGIN_API_VERSION
   pluginId: string
   accessPolicy?: AccessPolicy
+  emailProvider?: EmailProvider
 }
 
 export interface ServerPluginModule {

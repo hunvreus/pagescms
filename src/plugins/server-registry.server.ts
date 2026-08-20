@@ -1,4 +1,5 @@
 import type { AccessPolicy } from '#/server/access-policy.server'
+import type { EmailProvider } from '#/server/email.server'
 
 import { PLUGIN_API_VERSION } from './contract'
 
@@ -17,6 +18,7 @@ export class ServerPluginConfigurationError extends Error {
 export interface ServerPluginRegistry {
   readonly contributions: readonly PagesCmsServerPlugin[]
   readonly accessPolicy?: AccessPolicy
+  readonly emailProvider?: EmailProvider
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -30,6 +32,10 @@ function isAccessPolicy(value: unknown): value is AccessPolicy {
     (value.reserve === undefined || typeof value.reserve === 'function') &&
     (value.settle === undefined || typeof value.settle === 'function')
   )
+}
+
+function isEmailProvider(value: unknown): value is EmailProvider {
+  return isRecord(value) && typeof value.send === 'function'
 }
 
 function parseServerPlugin(
@@ -57,11 +63,20 @@ function parseServerPlugin(
       `Server plugin ${value.pluginId} has an invalid access policy`,
     )
   }
+  if (
+    value.emailProvider !== undefined &&
+    !isEmailProvider(value.emailProvider)
+  ) {
+    throw new ServerPluginConfigurationError(
+      `Server plugin ${value.pluginId} has an invalid email provider`,
+    )
+  }
 
   return {
     apiVersion: PLUGIN_API_VERSION,
     pluginId: value.pluginId,
     accessPolicy: value.accessPolicy,
+    emailProvider: value.emailProvider,
   }
 }
 
@@ -77,15 +92,24 @@ export function createServerPluginRegistry(
   const accessPolicies = contributions.flatMap((contribution) =>
     contribution.accessPolicy ? [contribution.accessPolicy] : [],
   )
+  const emailProviders = contributions.flatMap((contribution) =>
+    contribution.emailProvider ? [contribution.emailProvider] : [],
+  )
 
   if (accessPolicies.length > 1) {
     throw new ServerPluginConfigurationError(
       'Multiple access-policy providers are configured',
     )
   }
+  if (emailProviders.length > 1) {
+    throw new ServerPluginConfigurationError(
+      'Multiple email providers are configured',
+    )
+  }
 
   return {
     contributions: Object.freeze(contributions),
     accessPolicy: accessPolicies[0],
+    emailProvider: emailProviders[0],
   }
 }
