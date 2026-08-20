@@ -33,6 +33,15 @@ function parseEntryUpdate(input: unknown) {
   return { ...entry, source: value.source, sha: value.sha }
 }
 
+function parseEntryDelete(input: unknown) {
+  const entry = parseEntryRequest(input)
+  const value = input as Record<string, unknown>
+  if (typeof value.sha !== 'string' || !value.sha) {
+    throw new Error('Invalid entry deletion')
+  }
+  return { ...entry, sha: value.sha }
+}
+
 function parseStructuredEntryUpdate(input: unknown) {
   const entry = parseEntryRequest(input)
   const value = input as Record<string, unknown>
@@ -231,6 +240,47 @@ export const createStructuredCollectionEntry = createServerFn({
         const { createStructuredEntry } =
           await import('#/server/entry-editor.server')
         return createStructuredEntry({
+          database: services.database,
+          background: services.background,
+          repositoryAccess: services.repositoryAccess,
+          user,
+          ...data,
+        })
+      },
+    )
+  })
+
+export const deleteEntry = createServerFn({ method: 'POST' })
+  .validator(parseEntryDelete)
+  .handler(async ({ context, data }) => {
+    const services = context.getServices()
+    const session = await services.getSession()
+    if (!session?.user) throw new Error('Authentication required')
+    const user = {
+      id: session.user.id,
+      name: session.user.name,
+      email: session.user.email,
+      githubUsername: session.user.githubUsername ?? null,
+    }
+    return services.access.execute(
+      {
+        operation: 'entry.delete',
+        principal: { type: 'user', id: user.id },
+        tenant: {
+          type: 'repository',
+          id: `${data.owner}/${data.repo}`.toLowerCase(),
+        },
+        target: {
+          repository: data,
+          branch: data.branch,
+          collection: data.name,
+          path: data.path,
+        },
+      },
+      async () => {
+        const { deleteContentEntry } =
+          await import('#/server/entry-editor.server')
+        return deleteContentEntry({
           database: services.database,
           background: services.background,
           repositoryAccess: services.repositoryAccess,

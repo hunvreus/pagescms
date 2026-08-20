@@ -41,6 +41,7 @@ function CollectionEntryEditor() {
   if (!params._splat) throw new Error('Entry path is required')
   return (
     <ContentEntryEditor
+      afterDeleteHref={`/${encodeURIComponent(params.owner)}/${encodeURIComponent(params.repo)}/${encodeURIComponent(params.branch)}/collection/${encodeURIComponent(params.name)}`}
       coordinates={{ ...params, path: params._splat }}
       initial={initial}
     />
