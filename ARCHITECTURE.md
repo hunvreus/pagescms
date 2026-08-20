@@ -33,6 +33,10 @@ Dynamic route values are encoded as exactly one URL segment and decoded exactly 
 
 Git paths use canonical repository-relative strings without a leading or trailing slash, empty segments, or `.` segments. Parent segments are resolved, but a path that would escape the repository root is rejected. Containment is checked on complete path segments rather than raw string prefixes. Query/cache keys are structured tuples so repository, branch, and path boundaries cannot collide.
 
+### Configuration pipeline
+
+Configuration handling is split into source parsing, legacy normalization, product validation, and editor source mapping. The framework-neutral source parser returns plain data plus positional diagnostics; it does not import the field registry, mutate the input, apply defaults, or decide whether a draft may be saved. Invalid but recoverable YAML remains available to editor callers, while server callers must reject any result with error diagnostics before persistence.
+
 ## Plugins
 
 Plugins are trusted build-time modules discovered from `plugins/*/plugin.ts`. The initial registry validates identifiers, API versions, and duplicates before rendering the application. Plugin manifests are client-safe; server capabilities and access policies will use separate server-only contracts.
