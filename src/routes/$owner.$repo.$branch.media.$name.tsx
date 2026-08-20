@@ -10,6 +10,7 @@ import {
   Folder,
   FolderPlus,
   LoaderCircle,
+  Pencil,
   Trash2,
   Upload,
   X,
@@ -23,6 +24,7 @@ import {
   createMediaFolder,
   getMedia,
   removeMedia,
+  renameMedia,
 } from '#/functions/media'
 import { getSignInUrl } from '#/lib/auth-redirect'
 
@@ -87,6 +89,7 @@ function MediaPage() {
   const [creatingFolder, setCreatingFolder] = useState(false)
   const [folder, setFolder] = useState('')
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [renaming, setRenaming] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   async function upload(files: FileList | null) {
@@ -154,6 +157,25 @@ function MediaPage() {
       )
     } finally {
       setUploading(false)
+    }
+  }
+
+  async function rename(path: string, sha: string | null) {
+    if (!sha) return
+    const current = path.split('/').at(-1) ?? ''
+    const filename = window.prompt('New filename', current)?.trim()
+    if (!filename || filename === current) return
+    setRenaming(path)
+    setError(null)
+    try {
+      await renameMedia({ data: { ...params, path, sha, filename } })
+      await router.invalidate()
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : 'Could not rename media',
+      )
+    } finally {
+      setRenaming(null)
     }
   }
 
@@ -302,6 +324,19 @@ function MediaPage() {
                       {formatSize(entry.size)}
                     </p>
                   </div>
+                  <Button
+                    aria-label={`Rename ${entry.name}`}
+                    disabled={renaming === entry.path}
+                    size="icon"
+                    variant="outline"
+                    onClick={() => void rename(entry.path, entry.sha)}
+                  >
+                    {renaming === entry.path ? (
+                      <LoaderCircle className="animate-spin" />
+                    ) : (
+                      <Pencil />
+                    )}
+                  </Button>
                   <Button
                     aria-label={`Delete ${entry.name}`}
                     disabled={deleting === entry.path}

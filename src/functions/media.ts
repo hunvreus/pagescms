@@ -69,9 +69,22 @@ function parseDelete(input: unknown) {
   return { ...media, path: media.path, sha: value.sha }
 }
 
+export function parseMediaRename(input: unknown) {
+  const media = parseDelete(input)
+  const value = input as Record<string, unknown>
+  if (typeof value.filename !== 'string') {
+    throw new Error('Invalid media rename')
+  }
+  const filename = normalizeGitPath(value.filename.trim())
+  if (!filename || filename.includes('/')) {
+    throw new Error('Media filename must be a non-empty file name')
+  }
+  return { ...media, filename }
+}
+
 function policy(
   data: ReturnType<typeof parseMediaRequest>,
-  operation: 'media.read' | 'media.write' | 'media.delete',
+  operation: 'media.read' | 'media.write' | 'media.rename' | 'media.delete',
   userId: string,
 ) {
   return {
@@ -189,6 +202,34 @@ export const removeMedia = createServerFn({ method: 'POST' })
       async () => {
         const { deleteMedia } = await import('#/server/media-service.server')
         return deleteMedia({
+          database: services.database,
+          background: services.background,
+          repositoryAccess: services.repositoryAccess,
+          user,
+          ...data,
+        })
+      },
+    )
+  })
+
+export const renameMedia = createServerFn({ method: 'POST' })
+  .validator(parseMediaRename)
+  .handler(async ({ context, data }) => {
+    const services = context.getServices()
+    const session = await services.getSession()
+    if (!session?.user) throw new Error('Authentication required')
+    const user = {
+      id: session.user.id,
+      name: session.user.name,
+      email: session.user.email,
+      githubUsername: session.user.githubUsername ?? null,
+    }
+    return services.access.execute(
+      policy(data, 'media.rename', user.id),
+      async () => {
+        const { renameMediaFile } =
+          await import('#/server/media-service.server')
+        return renameMediaFile({
           database: services.database,
           background: services.background,
           repositoryAccess: services.repositoryAccess,
