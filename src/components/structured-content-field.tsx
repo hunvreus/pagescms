@@ -48,23 +48,112 @@ function optionValues(field: JsonObject) {
   const options = isContentField(field.options) ? field.options : undefined
   if (!options || !Array.isArray(options.values)) return []
   return options.values.flatMap((option) => {
-    if (typeof option === 'string' || typeof option === 'number') {
-      return [{ label: String(option), value: option }]
+    if (
+      typeof option === 'string' ||
+      typeof option === 'number' ||
+      typeof option === 'boolean'
+    ) {
+      return [{ label: String(option), value: String(option) }]
     }
     if (isContentField(option)) {
       const value = option.value
-      if (typeof value === 'string' || typeof value === 'number') {
+      if (
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean'
+      ) {
         return [
           {
             label:
               typeof option.label === 'string' ? option.label : String(value),
-            value,
+            value: String(value),
           },
         ]
       }
     }
     return []
   })
+}
+
+function SelectFieldControl({
+  field,
+  value,
+  disabled,
+  required,
+  onChange,
+}: {
+  field: JsonObject
+  value: JsonValue | undefined
+  disabled: boolean
+  required: boolean
+  onChange: (value: JsonValue | undefined) => void
+}) {
+  const settings = isContentField(field.options) ? field.options : {}
+  const options = optionValues(field)
+  if (settings.multiple !== true) {
+    return (
+      <select
+        aria-label={String(field.name)}
+        className="h-10 w-full rounded-lg border bg-background px-3 text-sm"
+        disabled={disabled}
+        required={required}
+        value={value == null ? '' : String(value)}
+        onChange={(event) => {
+          const option = options.find(
+            (candidate) => String(candidate.value) === event.target.value,
+          )
+          onChange(option?.value ?? event.target.value)
+        }}
+      >
+        <option value="">Select…</option>
+        {options.map((option) => (
+          <option key={String(option.value)} value={String(option.value)}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    )
+  }
+
+  const selected = Array.isArray(value) ? value : []
+  const min = typeof settings.min === 'number' ? settings.min : 0
+  const max =
+    typeof settings.max === 'number' ? settings.max : Number.POSITIVE_INFINITY
+  return (
+    <div className="max-h-56 space-y-1 overflow-auto rounded-lg border bg-background p-2">
+      {options.map((option) => {
+        const checked = selected.includes(option.value)
+        return (
+          <label
+            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
+            key={String(option.value)}
+          >
+            <input
+              checked={checked}
+              disabled={
+                disabled ||
+                (checked ? selected.length <= min : selected.length >= max)
+              }
+              type="checkbox"
+              onChange={(event) =>
+                onChange(
+                  event.target.checked
+                    ? [...selected, option.value]
+                    : selected.filter((item) => item !== option.value),
+                )
+              }
+            />
+            <span>{option.label}</span>
+          </label>
+        )
+      })}
+      {!options.length ? (
+        <p className="px-2 py-1 text-sm text-muted-foreground">
+          No options configured.
+        </p>
+      ) : null}
+    </div>
+  )
 }
 
 function fieldListLimits(field: JsonObject) {
@@ -441,28 +530,15 @@ export function StructuredContentField({
         onChange={(event) => onChange(event.target.checked)}
       />
     )
-  } else if (type === 'select' && optionValues(field).length) {
+  } else if (type === 'select') {
     control = (
-      <select
-        aria-label={name}
-        className="h-10 w-full rounded-lg border bg-background px-3 text-sm"
+      <SelectFieldControl
         disabled={disabled}
+        field={field}
         required={required}
-        value={value == null ? '' : String(value)}
-        onChange={(event) => {
-          const option = optionValues(field).find(
-            (candidate) => String(candidate.value) === event.target.value,
-          )
-          onChange(option?.value ?? event.target.value)
-        }}
-      >
-        <option value="">Select…</option>
-        {optionValues(field).map((option) => (
-          <option key={String(option.value)} value={String(option.value)}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+        value={value}
+        onChange={onChange}
+      />
     )
   } else if (['text', 'rich-text', 'code'].includes(type)) {
     control = (
@@ -915,6 +991,8 @@ function ReferenceFieldControl({
   const collection =
     typeof settings.collection === 'string' ? settings.collection : ''
   const multiple = settings.multiple === true
+  const max =
+    typeof settings.max === 'number' ? settings.max : Number.POSITIVE_INFINITY
   const valueTemplate =
     typeof settings.value === 'string' ? settings.value : '{path}'
   const labelTemplate =
@@ -1061,9 +1139,9 @@ function ReferenceFieldControl({
         onChange={(event) => {
           if (multiple) {
             onChange(
-              Array.from(event.target.selectedOptions).map(
-                (option) => option.value,
-              ),
+              Array.from(event.target.selectedOptions)
+                .map((option) => option.value)
+                .slice(0, max),
             )
           } else {
             onChange(event.target.value || undefined)

@@ -33,7 +33,7 @@ function selectValues(field: Field) {
       typeof value === 'number' ||
       typeof value === 'boolean'
     ) {
-      return [value]
+      return [String(value)]
     }
     if (isRecord(value) && 'value' in value) {
       const option = value.value
@@ -42,16 +42,72 @@ function selectValues(field: Field) {
         typeof option === 'number' ||
         typeof option === 'boolean'
       ) {
-        return [option]
+        return [String(option)]
       }
     }
     return []
   })
 }
 
+function optionLimits(field: Field) {
+  const options = isRecord(field.options) ? field.options : {}
+  const multiple = isRecord(options.multiple) ? options.multiple : {}
+  return {
+    min:
+      typeof multiple.min === 'number'
+        ? multiple.min
+        : typeof options.min === 'number'
+          ? options.min
+          : undefined,
+    max:
+      typeof multiple.max === 'number'
+        ? multiple.max
+        : typeof options.max === 'number'
+          ? options.max
+          : undefined,
+  }
+}
+
+function validatesAsMultiple(field: Field) {
+  return (
+    isRecord(field.options) &&
+    Boolean(field.options.multiple) &&
+    ['select', 'reference', 'image', 'file'].includes(String(field.type))
+  )
+}
+
+function minimumItems(field: Field) {
+  if (field.list) return listLimits(field.list).min
+  if (validatesAsMultiple(field)) return optionLimits(field).min
+}
+
+function isValidCalendarDate(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value)
+  if (!match) return false
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const date = new Date(Date.UTC(year, month - 1, day))
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  )
+}
+
 function validateScalar(field: Field, value: JsonValue, path: string) {
-  if (field.type === 'number' && typeof value !== 'number') {
-    return `${path} must be a number`
+  if (field.type === 'number') {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      return `${path} must be a number`
+    }
+    if (isRecord(field.options)) {
+      if (typeof field.options.min === 'number' && value < field.options.min) {
+        return `${path} must be at least ${field.options.min}`
+      }
+      if (typeof field.options.max === 'number' && value > field.options.max) {
+        return `${path} must be at most ${field.options.max}`
+      }
+    }
   }
   if (field.type === 'boolean' && typeof value !== 'boolean') {
     return `${path} must be true or false`
@@ -83,6 +139,34 @@ function validateScalar(field: Field, value: JsonValue, path: string) {
       value,
       path,
     )[0]
+  }
+  if (
+    field.type === 'uuid' &&
+    (typeof value !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        value,
+      ))
+  ) {
+    return `${path} must be a valid UUID`
+  }
+  if (field.type === 'date' && typeof value === 'string') {
+    const options = isRecord(field.options) ? field.options : {}
+    const pattern = options.time
+      ? /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?$/
+      : /^\d{4}-\d{2}-\d{2}$/
+    if (
+      !pattern.test(value) ||
+      !isValidCalendarDate(value) ||
+      Number.isNaN(Date.parse(value))
+    ) {
+      return `${path} must be a valid date`
+    }
+    if (typeof options.min === 'string' && value < options.min) {
+      return `${path} must be on or after ${options.min}`
+    }
+    if (typeof options.max === 'string' && value > options.max) {
+      return `${path} must be on or before ${options.max}`
+    }
   }
   if (
     typeof field.type === 'string' &&
@@ -137,19 +221,37 @@ export function validateStructuredContent(
     const value = content[candidate.name]
     if (isEmpty(value)) {
       if (field.required === true) errors.push(`${path} is required`)
-      continue
+      const minimum = minimumItems(field)
+      if (
+        field.required === true ||
+        !Array.isArray(value) ||
+        minimum === undefined ||
+        minimum <= 0
+      ) {
+        continue
+      }
     }
-    const options = isRecord(field.options) ? field.options : {}
-    if (
-      (field.type === 'image' || field.type === 'file') &&
-      options.multiple &&
-      !field.list
-    ) {
+    if (validatesAsMultiple(field) && !field.list) {
       if (
         !Array.isArray(value) ||
-        value.some((item) => typeof item !== 'string')
+        value.some((item) => {
+          if (field.type === 'select') {
+            return validateScalar(field, item, path) !== undefined
+          }
+          return typeof item !== 'string'
+        })
       ) {
-        errors.push(`${path} must be a list of file paths`)
+        errors.push(
+          `${path} must be a list of ${field.type === 'image' || field.type === 'file' ? 'file paths' : 'valid values'}`,
+        )
+        continue
+      }
+      const limits = optionLimits(field)
+      if (limits.min !== undefined && value.length < limits.min) {
+        errors.push(`${path} requires at least ${limits.min} selections`)
+      }
+      if (limits.max !== undefined && value.length > limits.max) {
+        errors.push(`${path} allows at most ${limits.max} selections`)
       }
       continue
     }
@@ -207,11 +309,7 @@ export function initializeStructuredContent(fields: unknown[]) {
     let value: unknown = candidate.default
     if (value === undefined) {
       if (candidate.list) value = []
-      else if (
-        (candidate.type === 'image' || candidate.type === 'file') &&
-        isRecord(candidate.options) &&
-        candidate.options.multiple
-      ) {
+      else if (validatesAsMultiple(candidate)) {
         value = []
       } else if (candidate.type === 'boolean') value = false
       else if (candidate.type === 'uuid') value = crypto.randomUUID()
