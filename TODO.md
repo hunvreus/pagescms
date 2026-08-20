@@ -1,9 +1,5 @@
 # TODO
 
-## MVP parity
-
-- Add authenticated browser fixtures for repository navigation and all critical read/mutation journeys.
-
 ## Release and cutover
 
 - Run the self-hosted and private hosted-plugin acceptance matrices, including free, paid, expired, quota, granular-role, provider-failure, and support-override cases.

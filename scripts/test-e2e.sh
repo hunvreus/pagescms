@@ -1,9 +1,9 @@
 #!/bin/sh
 set -eu
 
-container_name="pagescms-integration-$$"
-database_password="pagescms-integration"
-database_name="pagescms_integration"
+container_name="pagescms-e2e-$$"
+database_password="pagescms-e2e"
+database_name="pagescms_e2e"
 
 cleanup() {
   docker stop "$container_name" >/dev/null 2>&1 || true
@@ -27,7 +27,6 @@ until docker exec "$container_name" pg_isready -U postgres -d "$database_name" >
   sleep 1
 done
 
-
 # The image briefly exposes its initialization server before restarting into
 # the final server. Avoid racing that handoff.
 sleep 1
@@ -36,4 +35,4 @@ published_port=$(docker port "$container_name" 5432/tcp | sed 's/.*://')
 database_url="postgres://postgres:${database_password}@127.0.0.1:${published_port}/${database_name}"
 
 DATABASE_URL="$database_url" pnpm db:migrate
-TEST_DATABASE_URL="$database_url" pnpm exec vitest run tests/integration
+E2E_DATABASE_URL="$database_url" pnpm exec playwright test

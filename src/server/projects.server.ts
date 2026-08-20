@@ -3,7 +3,11 @@ import { and, eq, isNull, or, sql } from 'drizzle-orm'
 import { createGitHubApi } from './github-api.server'
 
 import type { Database } from './database/client.server'
-import type { GitHubInstallation, GitHubRepository } from './github-api.server'
+import type {
+  GitHubApiFactory,
+  GitHubInstallation,
+  GitHubRepository,
+} from './github-api.server'
 import type { BackgroundExecutor } from './runtime-ports.server'
 import type { RepositoryAccessService } from './repository-access.server'
 
@@ -113,6 +117,7 @@ export function createProjectService(
   database: Database,
   background: BackgroundExecutor,
   repositoryAccess: RepositoryAccessService,
+  githubApiFactory: GitHubApiFactory = createGitHubApi,
 ) {
   return {
     async listAccounts(user: ProjectUser): Promise<ProjectAccount[]> {
@@ -129,7 +134,7 @@ export function createProjectService(
       ])
       const installations =
         token && user.githubUsername
-          ? await createGitHubApi(token).listInstallations()
+          ? await githubApiFactory(token).listInstallations()
           : []
       const collaboratorAccounts: ProjectAccount[] = collaboratorRows.map(
         (row) => ({
@@ -161,7 +166,7 @@ export function createProjectService(
           ),
         }),
       ])
-      const api = token && user.githubUsername ? createGitHubApi(token) : null
+      const api = token && user.githubUsername ? githubApiFactory(token) : null
       const githubRepositories = api
         ? account.repositorySelection === 'selected'
           ? await api.listInstallationRepositories(account.installationId)

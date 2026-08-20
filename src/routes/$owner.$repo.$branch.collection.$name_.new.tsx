@@ -1,13 +1,13 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute(
-  '/$owner/$repo/$branch/collection/$name/edit/$',
+  '/$owner/$repo/$branch/collection/$name_/new',
 )({
   beforeLoad: ({ params }) => {
-    if (!params._splat) throw new Error('Entry path is required')
     throw redirect({
-      to: '/$owner/$repo/$branch/collection/$name/entry/$',
+      to: '/$owner/$repo/$branch/collection/$name',
       params,
+      search: { create: true },
     })
   },
 })

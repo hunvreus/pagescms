@@ -10,6 +10,7 @@ import { createGitHubAppApi } from './github-app.server'
 import { decryptSecret, encryptSecret } from './secret-crypto.server'
 
 import type { Database } from './database/client.server'
+import type { GitHubApiFactory } from './github-api.server'
 import type { ProjectUser } from './projects.server'
 import type { RuntimeConfiguration } from './runtime-config.server'
 
@@ -48,6 +49,7 @@ function collaboratorMatches(
 export function createRepositoryAccessService(
   database: Database,
   githubApp: RuntimeConfiguration['githubApp'],
+  githubApiFactory: GitHubApiFactory = createGitHubApi,
 ) {
   const resolutions = new Map<string, Promise<RepositoryAccess>>()
   const installationTokens = new Map<number, Promise<string>>()
@@ -108,7 +110,7 @@ export function createRepositoryAccessService(
       ),
     })
     if (account?.accessToken) {
-      const api = createGitHubApi(account.accessToken)
+      const api = githubApiFactory(account.accessToken)
       try {
         await api.getRepository(owner, repo)
         return { api, tokenSource: 'user' as const }
@@ -130,7 +132,10 @@ export function createRepositoryAccessService(
       throw new Error(`You do not have permission to access "${owner}/${repo}"`)
     }
     const token = await getInstallationToken(collaborator.installationId)
-    return { api: createGitHubApi(token), tokenSource: 'installation' as const }
+    return {
+      api: githubApiFactory(token),
+      tokenSource: 'installation' as const,
+    }
   }
 
   return {

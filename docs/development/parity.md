@@ -6,4 +6,4 @@ Implemented product areas include authentication and account linking, repository
 
 The old Next.js UI called many `/api/:owner/:repo/...` JSON routes as an internal transport. Repository history contains no public documentation or non-legacy consumer for those shapes, so the replacement intentionally uses validated TanStack server functions through the same access-policy gateway instead of maintaining two transports. The externally meaningful HTTP routes retained are Better Auth, app version, GitHub App installation, GitHub webhook, health, and authenticated media preview.
 
-Behavioral parity is not yet release acceptance. The remaining editor polish, hosted-policy UI, authenticated browser fixtures, and deployment/cutover gates are tracked in [`TODO.md`](../../TODO.md).
+Behavioral parity is not yet release acceptance. The remaining hosted acceptance, performance measurement, and deployment/cutover gates are tracked in [`TODO.md`](../../TODO.md).

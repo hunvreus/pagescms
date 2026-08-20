@@ -17,3 +17,4 @@
 - Preserved the previous Next.js application under `_legacy/` as a frozen migration reference.
 - Replaced undocumented internal client REST calls with validated TanStack server functions and shared authorization services.
 - Lazy-loaded the rich-text editor and kept server-only adapters out of client bundles.
+- Added isolated authenticated browser coverage for repository navigation and structured content updates.
