@@ -18,4 +18,5 @@
 - Replaced undocumented internal client REST calls with validated TanStack server functions and shared authorization services.
 - Lazy-loaded the rich-text editor and kept server-only adapters out of client bundles.
 - Added isolated authenticated browser coverage for repository navigation and structured content updates.
-- Made Drizzle commands load the ignored local `.dev.vars` file consistently with the Worker development server.
+- Separated ordinary Node/Vite development from explicit Cloudflare build, preview, compatibility, and deployment commands.
+- Made Node development and Drizzle commands load the ignored local `.env.local` file consistently.

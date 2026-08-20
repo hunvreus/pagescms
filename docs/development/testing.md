@@ -32,7 +32,7 @@ The integration command starts an ephemeral PostgreSQL 17 container on a random 
 pnpm test:integration
 ```
 
-Docker must be installed and running. The command never reads `.dev.vars` and cannot target an existing database.
+Docker must be installed and running. The command never reads `.env.local` and cannot target an existing database.
 
 ## Build and Workers checks
 
@@ -43,4 +43,4 @@ pnpm cf:typecheck
 pnpm cf:dry-run
 ```
 
-The dry run builds and bundles the Worker without uploading it. `pnpm build` is the framework production split and can be run independently when live Cloudflare validation is deferred.
+The dry run builds and bundles the Worker without uploading it. `pnpm build` explicitly selects the Cloudflare production target and can be run independently when live Cloudflare validation is deferred. `pnpm dev` instead exercises the ordinary Node development runtime.

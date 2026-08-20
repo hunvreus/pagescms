@@ -11,9 +11,10 @@
   },
   "scripts": {
     "dev": "vite dev --port 3000",
+    "cf:dev": "PAGESCMS_RUNTIME=cloudflare vite dev --port 3000",
     "generate-routes": "tsr generate",
-    "build": "vite build",
-    "preview": "vite preview",
+    "build": "CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false PAGESCMS_RUNTIME=cloudflare vite build",
+    "preview": "PAGESCMS_RUNTIME=cloudflare vite preview",
     "typecheck": "pnpm generate-routes && tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write . && eslint --fix",

@@ -3,7 +3,7 @@ import { loadEnvFile } from 'node:process'
 
 import { defineConfig } from 'drizzle-kit'
 
-if (existsSync('.dev.vars')) loadEnvFile('.dev.vars')
+if (existsSync('.env.local')) loadEnvFile('.env.local')
 
 const databaseUrl = process.env.DATABASE_URL
 

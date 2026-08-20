@@ -4,7 +4,7 @@ import {
   createStart,
 } from '@tanstack/react-start'
 
-import { createCloudflareRequestServicesAccessor } from '#/server/cloudflare-request-services.server'
+import { createRuntimeRequestServicesAccessor } from '#/server/runtime-request-services.server'
 
 import type { getRouter } from './router'
 
@@ -12,7 +12,7 @@ const requestServicesMiddleware = createMiddleware({ type: 'request' }).server(
   ({ next, request }) =>
     next({
       context: {
-        getServices: createCloudflareRequestServicesAccessor(request),
+        getServices: createRuntimeRequestServicesAccessor(request),
       },
     }),
 )
