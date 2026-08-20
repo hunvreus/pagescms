@@ -29,8 +29,18 @@ export function createRequestServices(
   const getSession = createSessionReader(() =>
     auth.api.getSession({ headers: requestHeaders }),
   )
+  const authenticationMethods = {
+    email: Boolean(serverPluginRegistry.emailProvider),
+  } as const
 
-  return { access, auth, configuration, database, getSession }
+  return {
+    access,
+    auth,
+    authenticationMethods,
+    configuration,
+    database,
+    getSession,
+  }
 }
 
 export type RequestServices = ReturnType<typeof createRequestServices>
