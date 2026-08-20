@@ -130,6 +130,11 @@ function MediaPage() {
           <h1 className="text-2xl font-semibold tracking-tight">
             {data.media.label}
           </h1>
+          {data.stale ? (
+            <p className="text-xs text-muted-foreground">
+              Refreshing cached media…
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
           <RepositoryActionButtons

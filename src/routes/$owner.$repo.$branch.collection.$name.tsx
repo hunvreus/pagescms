@@ -118,6 +118,11 @@ function CollectionPage() {
           <h1 className="text-2xl font-semibold tracking-tight">
             {data.collection.label}
           </h1>
+          {data.stale ? (
+            <p className="text-xs text-muted-foreground">
+              Refreshing cached content…
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
           <RepositoryActionButtons

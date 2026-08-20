@@ -3,11 +3,13 @@ import {
   findContentSchema,
 } from '#/lib/configuration-content'
 import { schemaActions } from '#/lib/actions'
+import { isCacheEnabled } from '#/lib/configuration'
 import { parseContent } from '#/lib/content-serialization'
 import { resolveContentOperations } from '#/lib/content-operations'
 import { toJsonValue } from '#/lib/json'
 
 import { createConfigurationStore } from './configuration-store.server'
+import { createDirectoryCache } from './directory-cache.server'
 
 import type {
   ContentFormat,
@@ -98,7 +100,19 @@ export async function loadCollection({
     throw new Error(`Collection ${name} was not found`)
   }
   const directory = collectionDirectoryPath(schema, path)
-  const entries = await api.getDirectory(owner, repo, branch, directory)
+  const directoryResult = await createDirectoryCache({
+    database,
+    background,
+  }).get({
+    api,
+    owner,
+    repo,
+    branch,
+    path: directory,
+    context: 'collection',
+    enabled: isCacheEnabled(configuration.object),
+  })
+  const entries = directoryResult.entries
   const extension =
     typeof schema.extension === 'string' && schema.extension
       ? `.${schema.extension}`
@@ -184,5 +198,6 @@ export async function loadCollection({
     },
     contents,
     errors,
+    stale: directoryResult.stale,
   }
 }

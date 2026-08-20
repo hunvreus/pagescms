@@ -9,6 +9,7 @@ import { normalizeConfiguration } from '#/lib/configuration'
 import { parseConfigurationSource } from '#/lib/configuration-source'
 
 import { createConfigurationStore } from './configuration-store.server'
+import { invalidateDirectoryCacheAfterMutation } from './directory-cache.server'
 import { GitHubApiError } from './github-api.server'
 
 import type { Database } from './database/client.server'
@@ -132,5 +133,6 @@ export async function saveConfigurationSource({
         eq(configTable.branch, branch),
       ),
     )
+  await invalidateDirectoryCacheAfterMutation(database, owner, repo, branch)
   return result
 }

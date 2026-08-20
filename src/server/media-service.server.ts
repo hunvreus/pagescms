@@ -5,6 +5,7 @@ import {
 } from '#/lib/commit-message'
 import { schemaActions } from '#/lib/actions'
 import { base64ByteLength } from '#/lib/base64'
+import { isCacheEnabled } from '#/lib/configuration'
 import {
   findMediaSchema,
   mediaDirectoryPath,
@@ -13,6 +14,10 @@ import { getFileExtension } from '#/lib/file-types'
 import { normalizeGitPath } from '#/lib/git-path'
 
 import { createConfigurationStore } from './configuration-store.server'
+import {
+  createDirectoryCache,
+  invalidateDirectoryCacheAfterMutation,
+} from './directory-cache.server'
 
 import type { CommitIdentity, CommitTemplates } from '#/lib/commit-message'
 import type { MediaSchema } from '#/lib/configuration-content'
@@ -95,11 +100,21 @@ function committer(
 export async function loadMediaDirectory(
   input: MediaInput & { path?: string },
 ) {
-  const { api, schema } = await context(input)
+  const { api, configuration, schema } = await context(input)
   const path = mediaDirectoryPath(schema, input.path)
-  const entries = (
-    await api.getDirectory(input.owner, input.repo, input.branch, path)
-  )
+  const directory = await createDirectoryCache({
+    database: input.database,
+    background: input.background,
+  }).get({
+    api,
+    owner: input.owner,
+    repo: input.repo,
+    branch: input.branch,
+    path,
+    context: 'media',
+    enabled: isCacheEnabled(configuration.object),
+  })
+  const entries = directory.entries
     .filter(
       (entry) => entry.type === 'dir' || allowedExtension(schema, entry.path),
     )
@@ -124,6 +139,7 @@ export async function loadMediaDirectory(
       actions: schemaActions(schema),
     },
     entries: entries.map(({ content: _content, ...entry }) => entry),
+    stale: directory.stale,
   }
 }
 
@@ -153,7 +169,7 @@ export async function uploadMedia(
     configuration: configuration.object,
     identityOverride: commit.identity,
   })
-  return api.putFile({
+  const result = await api.putFile({
     owner: input.owner,
     repo: input.repo,
     branch: input.branch,
@@ -179,6 +195,13 @@ export async function uploadMedia(
       ? { committer: committer(identity, input.user) }
       : {}),
   })
+  await invalidateDirectoryCacheAfterMutation(
+    input.database,
+    input.owner,
+    input.repo,
+    input.branch,
+  )
+  return result
 }
 
 export async function deleteMedia(
@@ -196,7 +219,7 @@ export async function deleteMedia(
     configuration: configuration.object,
     identityOverride: commit.identity,
   })
-  return api.deleteFile({
+  const result = await api.deleteFile({
     owner: input.owner,
     repo: input.repo,
     branch: input.branch,
@@ -222,4 +245,11 @@ export async function deleteMedia(
       ? { committer: committer(identity, input.user) }
       : {}),
   })
+  await invalidateDirectoryCacheAfterMutation(
+    input.database,
+    input.owner,
+    input.repo,
+    input.branch,
+  )
+  return result
 }
