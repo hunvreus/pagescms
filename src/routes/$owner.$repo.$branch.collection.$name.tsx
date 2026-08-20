@@ -444,11 +444,12 @@ function CollectionPage() {
             ) : null}
             {entry.type === 'file' ? (
               <Button asChild size="sm" variant="outline">
-                <a
-                  href={`/${encodeURIComponent(params.owner)}/${encodeURIComponent(params.repo)}/${encodeURIComponent(params.branch)}/collection/${encodeURIComponent(params.name)}/entry/${entry.path.split('/').map(encodeURIComponent).join('/')}`}
+                <Link
+                  params={{ ...params, _splat: entry.path }}
+                  to="/$owner/$repo/$branch/collection/$name/entry/$"
                 >
                   Edit
-                </a>
+                </Link>
               </Button>
             ) : null}
           </div>
@@ -843,11 +844,12 @@ function CollectionPage() {
                         {fieldSummary(entry)}
                       </div>
                       <Button asChild size="sm" variant="outline">
-                        <a
-                          href={`/${encodeURIComponent(params.owner)}/${encodeURIComponent(params.repo)}/${encodeURIComponent(params.branch)}/collection/${encodeURIComponent(params.name)}/entry/${entry.path.split('/').map(encodeURIComponent).join('/')}`}
+                        <Link
+                          params={{ ...params, _splat: entry.path }}
+                          to="/$owner/$repo/$branch/collection/$name/entry/$"
                         >
                           Edit
-                        </a>
+                        </Link>
                       </Button>
                     </div>
                   )}
