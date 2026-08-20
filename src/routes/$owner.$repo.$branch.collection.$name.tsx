@@ -110,7 +110,9 @@ function CollectionPage() {
   const [creating, setCreating] = useState(false)
   const [creationParent, setCreationParent] = useState(data.collection.path)
   const [creatingFolder, setCreatingFolder] = useState(false)
-  const [content, setContent] = useState<JsonObject>({})
+  const [content, setContent] = useState<JsonObject | JsonValue[]>(
+    data.collection.list ? [] : {},
+  )
   const [source, setSource] = useState('')
   const [filename, setFilename] = useState('')
   const [folder, setFolder] = useState('')
@@ -262,7 +264,7 @@ function CollectionPage() {
   }
 
   function openCreator(parent = data.collection.path) {
-    setContent(initializeStructuredContent(fields))
+    setContent(data.collection.list ? [] : initializeStructuredContent(fields))
     setSource('')
     setFilename('')
     setCreateError(null)
@@ -605,25 +607,44 @@ function CollectionPage() {
             </label>
           ) : null}
           {fields.length ? (
-            fields.map((field) => {
-              const name = String(field.name)
-              return (
-                <StructuredContentField
-                  field={field}
-                  key={name}
-                  referenceContext={{ ...params, media: data.media }}
-                  value={content[name]}
-                  onChange={(value: JsonValue | undefined) => {
-                    setContent((current) => {
-                      const next = { ...current }
-                      if (value === undefined) delete next[name]
-                      else next[name] = value
-                      return next
-                    })
-                  }}
-                />
-              )
-            })
+            data.collection.list ? (
+              <StructuredContentField
+                field={{
+                  name: 'items',
+                  label: false,
+                  type: 'object',
+                  fields,
+                  list: data.collection.list,
+                }}
+                referenceContext={{ ...params, media: data.media }}
+                value={content}
+                onChange={(value) => {
+                  setContent(Array.isArray(value) ? value : [])
+                }}
+              />
+            ) : (
+              fields.map((field) => {
+                const name = String(field.name)
+                return (
+                  <StructuredContentField
+                    field={field}
+                    key={name}
+                    referenceContext={{ ...params, media: data.media }}
+                    value={Array.isArray(content) ? undefined : content[name]}
+                    onChange={(value: JsonValue | undefined) => {
+                      setContent((current) => {
+                        const next = Array.isArray(current)
+                          ? {}
+                          : { ...current }
+                        if (value === undefined) delete next[name]
+                        else next[name] = value
+                        return next
+                      })
+                    }}
+                  />
+                )
+              })
+            )
           ) : (
             <label className="block space-y-2">
               <span className="text-sm font-medium">Content</span>
