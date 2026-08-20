@@ -1,0 +1,54 @@
+import { normalizeGitPath } from './git-path'
+
+export type ContentSchema = Record<string, unknown> & {
+  type: 'collection' | 'file'
+  name: string
+  path: string
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function findInItems(values: unknown, name: string): ContentSchema | undefined {
+  if (!Array.isArray(values)) return
+  for (const value of values) {
+    if (!isRecord(value)) continue
+    if (value.type === 'group') {
+      const nested = findInItems(value.items, name)
+      if (nested) return nested
+      continue
+    }
+    if (
+      (value.type === 'collection' || value.type === 'file') &&
+      value.name === name &&
+      typeof value.path === 'string'
+    ) {
+      return value as ContentSchema
+    }
+  }
+}
+
+export function findContentSchema(
+  configuration: Record<string, unknown>,
+  name: string,
+): ContentSchema | undefined {
+  return findInItems(configuration.content, name)
+}
+
+export function collectionDirectoryPath(
+  schema: ContentSchema,
+  requestedPath?: string,
+) {
+  if (schema.type !== 'collection')
+    throw new Error('Schema is not a collection')
+  const root = normalizeGitPath(schema.path)
+  const path = requestedPath ? normalizeGitPath(requestedPath) : root
+  if (path !== root && !path.startsWith(`${root}/`)) {
+    throw new Error('Collection path is outside its configured root')
+  }
+  if (schema.subfolders === false && path !== root) {
+    throw new Error('This collection does not allow subfolders')
+  }
+  return path
+}

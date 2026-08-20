@@ -39,6 +39,7 @@ export function createRequestServices(
     access,
     auth,
     authenticationMethods,
+    background,
     configuration,
     database,
     getSession,

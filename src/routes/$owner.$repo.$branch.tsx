@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
 
 import { RepositoryWorkspace } from '#/components/repository-workspace'
 import { getRepositoryWorkspace } from '#/functions/repository'
@@ -56,7 +56,9 @@ function BranchWorkspace() {
       branch={workspace.branch!}
       branches={workspace.branches}
       configuration={workspace.configuration}
-    />
+    >
+      <Outlet />
+    </RepositoryWorkspace>
   )
 }
 

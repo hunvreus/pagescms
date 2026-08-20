@@ -4,6 +4,7 @@ import { File, FileStack, FolderOpen, GitBranch, Settings } from 'lucide-react'
 import { getConfigurationNavigation } from '#/lib/configuration-navigation'
 
 interface WorkspaceProps {
+  children: React.ReactNode
   owner: string
   repo: string
   branch: string
@@ -15,6 +16,7 @@ interface WorkspaceProps {
 }
 
 export function RepositoryWorkspace({
+  children,
   owner,
   repo,
   branch,
@@ -89,33 +91,7 @@ export function RepositoryWorkspace({
           </nav>
         </div>
       </aside>
-      <main className="flex min-h-[60vh] items-center justify-center p-6">
-        <div className="max-w-md text-center">
-          {configuration ? (
-            <>
-              <h2 className="text-xl font-semibold tracking-tight">
-                Choose content to edit
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Select a collection, file, or media library from the repository
-                navigation.
-                {configuration.stale
-                  ? ' Cached configuration is visible while Pages CMS checks GitHub for changes.'
-                  : ''}
-              </p>
-            </>
-          ) : (
-            <>
-              <h2 className="text-xl font-semibold tracking-tight">
-                Repository not configured
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Add a .pages.yml file on this branch to start editing content.
-              </p>
-            </>
-          )}
-        </div>
-      </main>
+      <main className="min-w-0 p-4 md:p-6">{children}</main>
     </div>
   )
 }
