@@ -195,6 +195,11 @@ export async function loadCollection({
       fields: toJsonValue(Array.isArray(schema.fields) ? schema.fields : []),
       filenameField:
         schema.filenameField === true || schema.filenameField === 'create',
+      view: toJsonValue(
+        typeof schema.view === 'object' && schema.view !== null
+          ? schema.view
+          : {},
+      ),
       operations: resolveContentOperations({ schema }),
       actions: schemaActions(schema, 'collection'),
     },

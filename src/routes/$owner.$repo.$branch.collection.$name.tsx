@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Link,
   createFileRoute,
@@ -11,6 +11,7 @@ import {
   FolderPlus,
   LoaderCircle,
   Plus,
+  Search,
   X,
 } from 'lucide-react'
 
@@ -35,6 +36,17 @@ import type { JsonObject, JsonValue } from '#/lib/json'
 
 interface CollectionSearch {
   path?: string
+}
+
+function jsonValueAt(value: JsonValue, path: string): JsonValue | undefined {
+  let current: JsonValue | undefined = value
+  for (const segment of path.split('.')) {
+    if (!current || typeof current !== 'object' || Array.isArray(current)) {
+      return
+    }
+    current = current[segment]
+  }
+  return current
 }
 
 export const Route = createFileRoute('/$owner/$repo/$branch/collection/$name')({
@@ -90,6 +102,77 @@ function CollectionPage() {
   const [folder, setFolder] = useState('')
   const [saving, setSaving] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
+  const view =
+    data.collection.view &&
+    typeof data.collection.view === 'object' &&
+    !Array.isArray(data.collection.view)
+      ? data.collection.view
+      : {}
+  const defaults =
+    view.default &&
+    typeof view.default === 'object' &&
+    !Array.isArray(view.default)
+      ? view.default
+      : {}
+  const [query, setQuery] = useState(
+    typeof defaults.search === 'string' ? defaults.search : '',
+  )
+  const sortFields = Array.isArray(view.sort)
+    ? view.sort.filter((value): value is string => typeof value === 'string')
+    : []
+  const [sort, setSort] = useState(
+    typeof defaults.sort === 'string'
+      ? defaults.sort
+      : (sortFields[0] ?? 'name'),
+  )
+  const [order, setOrder] = useState<'asc' | 'desc'>(
+    defaults.order === 'desc' ? 'desc' : 'asc',
+  )
+  const primaryField = typeof view.primary === 'string' ? view.primary : 'title'
+  const visibleContents = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase()
+    const searchFields = Array.isArray(view.search)
+      ? view.search.filter(
+          (candidate): candidate is string => typeof candidate === 'string',
+        )
+      : []
+    const searchable = (entry: (typeof data.contents)[number]) => {
+      if (!normalizedQuery) return true
+      if (entry.type === 'dir') {
+        return entry.name.toLocaleLowerCase().includes(normalizedQuery)
+      }
+      const entryFields = entry.fields
+      const values = searchFields.length
+        ? searchFields.map((field) => jsonValueAt(entryFields, field))
+        : [entry.name, entry.path, entryFields]
+      return values.some((candidate) =>
+        (typeof candidate === 'string' || typeof candidate === 'number'
+          ? String(candidate)
+          : JSON.stringify(candidate)
+        )
+          .toLocaleLowerCase()
+          .includes(normalizedQuery),
+      )
+    }
+    const sorted = data.contents.filter(searchable).sort((left, right) => {
+      if (left.type !== right.type) return left.type === 'dir' ? -1 : 1
+      const leftValue =
+        left.type === 'file' && sort !== 'name'
+          ? jsonValueAt(left.fields, sort)
+          : left.name
+      const rightValue =
+        right.type === 'file' && sort !== 'name'
+          ? jsonValueAt(right.fields, sort)
+          : right.name
+      const comparison = String(leftValue ?? '').localeCompare(
+        String(rightValue ?? ''),
+        undefined,
+        { numeric: true, sensitivity: 'base' },
+      )
+      return order === 'desc' ? -comparison : comparison
+    })
+    return sorted
+  }, [data.contents, order, query, sort, view.search])
 
   function openCreator() {
     setContent(initializeStructuredContent(fields))
@@ -356,9 +439,64 @@ function CollectionPage() {
         </div>
       ) : null}
 
-      {data.contents.length ? (
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <label className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            aria-label="Search collection"
+            className="pl-9"
+            placeholder="Search entries…"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </label>
+        <select
+          aria-label="Sort collection"
+          className="h-10 rounded-lg border bg-background px-3 text-sm"
+          value={sort}
+          onChange={(event) => setSort(event.target.value)}
+        >
+          <option value="name">Filename</option>
+          {sortFields
+            .filter((field) => field !== 'name')
+            .map((field) => (
+              <option key={field} value={field}>
+                {field}
+              </option>
+            ))}
+        </select>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() =>
+            setOrder((current) => (current === 'asc' ? 'desc' : 'asc'))
+          }
+        >
+          {order === 'asc' ? 'Ascending' : 'Descending'}
+        </Button>
+      </div>
+
+      {data.collection.path !== data.collection.rootPath ? (
+        <Link
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+          params={params}
+          search={{
+            path: (() => {
+              const parts = data.collection.path.split('/')
+              parts.pop()
+              const parent = parts.join('/')
+              return parent === data.collection.rootPath ? undefined : parent
+            })(),
+          }}
+          to="/$owner/$repo/$branch/collection/$name"
+        >
+          <span aria-hidden>←</span> Parent folder
+        </Link>
+      ) : null}
+
+      {visibleContents.length ? (
         <ul className="overflow-hidden rounded-xl border bg-card shadow-xs">
-          {data.contents.map((entry) => (
+          {visibleContents.map((entry) => (
             <li className="border-b last:border-b-0" key={entry.path}>
               {entry.type === 'dir' ? (
                 <Link
@@ -375,12 +513,13 @@ function CollectionPage() {
                   <FileText className="size-4 text-muted-foreground" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">
-                      {entry.fields &&
-                      typeof entry.fields === 'object' &&
-                      !Array.isArray(entry.fields) &&
-                      typeof entry.fields.title === 'string'
-                        ? entry.fields.title
-                        : entry.name}
+                      {(() => {
+                        const primary = jsonValueAt(entry.fields, primaryField)
+                        return typeof primary === 'string' ||
+                          typeof primary === 'number'
+                          ? String(primary)
+                          : entry.name
+                      })()}
                     </p>
                     <p className="truncate text-xs text-muted-foreground">
                       {entry.path}
@@ -400,7 +539,9 @@ function CollectionPage() {
         </ul>
       ) : (
         <div className="rounded-xl border bg-card p-10 text-center text-sm text-muted-foreground shadow-xs">
-          This collection is empty.
+          {query
+            ? 'No entries match this search.'
+            : 'This collection is empty.'}
         </div>
       )}
     </div>
