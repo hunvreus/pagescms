@@ -1,6 +1,6 @@
 # Pages CMS TanStack Start Overhaul
 
-Status: approved; Wave 1 local foundation implemented, deployed preview pending
+Status: approved; Wave 1 complete, live Workers preview deferred to deployment/cutover
 
 Branch: `overhaul/tanstack-start`
 
@@ -579,7 +579,9 @@ Validation:
 - development server starts;
 - typecheck, lint, unit test, production build, and Worker dry-run pass;
 - the checked-in shadcn configuration can reproduce added primitives, and a small component/theme preview verifies Pages CMS green contrast in both color schemes;
-- a deployed preview serves the root route and static assets;
+- a deployed preview serves the root route and static assets (explicitly deferred
+  to deployment/cutover after the local build, type generation, startup check,
+  and Wrangler dry run passed);
 - public and hosted-composed builds resolve their intended extensions, reject incompatible extension API versions, and exclude unused extension code from bundles;
 - the bundle report is recorded.
 

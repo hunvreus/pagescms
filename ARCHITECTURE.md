@@ -25,6 +25,14 @@ Requests receive a validated or generated correlation identifier. Server logs ar
 
 The router preloads code and required route data. TanStack Query begins with a conservative 30-second default freshness window and five-minute garbage-collection window. Feature query definitions will override these defaults according to resource semantics. Durable cache ownership, keys, versioning, and webhook invalidation are introduced in later waves.
 
+### Canonical repository identity
+
+GitHub repository owners and names retain their display casing at application boundaries, but cache and persistence identities lowercase both values because GitHub repository coordinates are case-insensitive. Branch names and Git paths remain case-sensitive.
+
+Dynamic route values are encoded as exactly one URL segment and decoded exactly once at the routing boundary. Internal domain values are never stored URL-encoded.
+
+Git paths use canonical repository-relative strings without a leading or trailing slash, empty segments, or `.` segments. Parent segments are resolved, but a path that would escape the repository root is rejected. Containment is checked on complete path segments rather than raw string prefixes. Query/cache keys are structured tuples so repository, branch, and path boundaries cannot collide.
+
 ## Plugins
 
 Plugins are trusted build-time modules discovered from `plugins/*/plugin.ts`. The initial registry validates identifiers, API versions, and duplicates before rendering the application. Plugin manifests are client-safe; server capabilities and access policies will use separate server-only contracts.
