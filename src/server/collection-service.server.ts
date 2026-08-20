@@ -241,6 +241,7 @@ export async function loadCollection({
       extension: typeof schema.extension === 'string' ? schema.extension : null,
       subfolders: schema.subfolders !== false,
       fields: toJsonValue(Array.isArray(schema.fields) ? schema.fields : []),
+      list: schema.list ? toJsonValue(schema.list) : null,
       filenameField:
         schema.filenameField === true || schema.filenameField === 'create',
       view: toJsonValue(
