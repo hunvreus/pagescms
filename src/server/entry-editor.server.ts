@@ -402,6 +402,146 @@ export async function createStructuredEntry(
   }
 }
 
+async function loadCollectionCreationContext(input: {
+  database: Database
+  background: BackgroundExecutor
+  repositoryAccess: RepositoryAccessService
+  user: ProjectUser
+  owner: string
+  repo: string
+  branch: string
+  name: string
+  parent?: string
+}) {
+  const { api } = await input.repositoryAccess.resolve(
+    input.user,
+    input.owner,
+    input.repo,
+    input.branch,
+  )
+  const configuration = await createConfigurationStore({
+    database: input.database,
+    background: input.background,
+  }).get(api, input.owner, input.repo, input.branch)
+  if (!configuration) throw new Error('Repository configuration not found')
+  const schema = findContentSchema(configuration.object, input.name)
+  if (!schema || schema.type !== 'collection') {
+    throw new Error(`Collection ${input.name} was not found`)
+  }
+  if (!isContentOperationAllowed('create', { schema })) {
+    throw new Error('Creating entries is disabled for this collection')
+  }
+  return {
+    api,
+    configuration,
+    schema,
+    parent: collectionDirectoryPath(schema, input.parent),
+  }
+}
+
+export async function createRawEntry(
+  input: Omit<Parameters<typeof saveRawEntry>[0], 'path' | 'sha'> & {
+    parent?: string
+    filename?: string
+  },
+) {
+  const context = await loadCollectionCreationContext(input)
+  let filename: string
+  if (input.filename !== undefined) {
+    if (
+      context.schema.filenameField !== true &&
+      context.schema.filenameField !== 'create'
+    ) {
+      throw new Error('Custom filenames are disabled for this collection')
+    }
+    filename = normalizeGitPath(input.filename.trim())
+    if (!filename || filename.includes('/')) {
+      throw new Error('Filename must be a non-empty file name')
+    }
+  } else {
+    if (typeof context.schema.filename !== 'string') {
+      throw new Error('Collection filename template is missing')
+    }
+    filename = generateContentFilename(
+      context.schema.filename,
+      context.schema,
+      {},
+    )
+  }
+  const path = normalizeGitPath(
+    context.parent ? `${context.parent}/${filename}` : filename,
+  )
+  return {
+    ...(await saveRawEntry({ ...input, path })),
+    path,
+  }
+}
+
+export async function createContentFolder(
+  input: Omit<Parameters<typeof saveRawEntry>[0], 'path' | 'source' | 'sha'> & {
+    parent: string
+    folder: string
+  },
+) {
+  const context = await loadCollectionCreationContext(input)
+  if (context.schema.subfolders === false) {
+    throw new Error('This collection does not allow subfolders')
+  }
+  const folder = normalizeGitPath(input.folder)
+  if (!folder || folder.split('/').some((part) => part === '.gitkeep')) {
+    throw new Error('Folder name is invalid')
+  }
+  const directory = collectionDirectoryPath(
+    context.schema,
+    `${context.parent}/${folder}`,
+  )
+  const path = normalizeGitPath(`${directory}/.gitkeep`)
+  const commit = schemaCommitOptions(context.schema)
+  const identity = resolveCommitIdentity({
+    configuration: context.configuration.object,
+    identityOverride: commit.identity,
+  })
+  const message = resolveCommitMessage({
+    configuration: context.configuration.object,
+    templatesOverride: commit.templates,
+    action: 'create',
+    tokens: buildCommitTokens({
+      action: 'create',
+      owner: input.owner,
+      repo: input.repo,
+      branch: input.branch,
+      path,
+      contentName: input.name,
+      user: input.user.email,
+      userName: input.user.name,
+      userEmail: input.user.email,
+    }),
+  })
+  const result = await context.api.putFile({
+    owner: input.owner,
+    repo: input.repo,
+    branch: input.branch,
+    path,
+    content: encodeBase64(''),
+    message,
+    ...(identity === 'user'
+      ? {
+          committer: {
+            name: input.user.name || input.user.email,
+            email: input.user.email,
+          },
+        }
+      : {}),
+  })
+  await invalidateDirectoryCacheAfterMutation(
+    input.database,
+    input.owner,
+    input.repo,
+    input.branch,
+  )
+  return { ...result, path: directory }
+}
+
 export async function deleteContentEntry(input: {
   database: Database
   background: BackgroundExecutor

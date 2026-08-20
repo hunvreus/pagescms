@@ -65,7 +65,7 @@ function parseStructuredEntryUpdate(input: unknown) {
   return { ...entry, content: value.content, sha: value.sha }
 }
 
-function parseStructuredEntryCreate(input: unknown) {
+export function parseStructuredEntryCreate(input: unknown) {
   if (typeof input !== 'object' || input === null) {
     throw new Error('Invalid entry creation')
   }
@@ -93,6 +93,66 @@ function parseStructuredEntryCreate(input: unknown) {
     content: value.content,
     ...(value.parent ? { parent: normalizeGitPath(value.parent) } : {}),
     ...(value.filename !== undefined ? { filename: value.filename } : {}),
+  }
+}
+
+export function parseRawEntryCreate(input: unknown) {
+  if (typeof input !== 'object' || input === null) {
+    throw new Error('Invalid raw entry creation')
+  }
+  const value = input as Record<string, unknown>
+  if (
+    typeof value.owner !== 'string' ||
+    typeof value.repo !== 'string' ||
+    typeof value.branch !== 'string' ||
+    !value.branch ||
+    typeof value.name !== 'string' ||
+    !value.name ||
+    value.name.includes('/') ||
+    typeof value.source !== 'string' ||
+    (value.parent !== undefined && typeof value.parent !== 'string') ||
+    (value.filename !== undefined && typeof value.filename !== 'string')
+  ) {
+    throw new Error('Invalid raw entry creation')
+  }
+  return {
+    ...repositoryRef({ owner: value.owner, repo: value.repo }),
+    branch: value.branch,
+    name: value.name,
+    source: value.source,
+    ...(value.parent ? { parent: normalizeGitPath(value.parent) } : {}),
+    ...(value.filename !== undefined ? { filename: value.filename } : {}),
+  }
+}
+
+export function parseCollectionFolderCreate(input: unknown) {
+  if (typeof input !== 'object' || input === null) {
+    throw new Error('Invalid folder creation')
+  }
+  const value = input as Record<string, unknown>
+  if (
+    typeof value.owner !== 'string' ||
+    typeof value.repo !== 'string' ||
+    typeof value.branch !== 'string' ||
+    !value.branch ||
+    typeof value.name !== 'string' ||
+    !value.name ||
+    value.name.includes('/') ||
+    typeof value.parent !== 'string' ||
+    typeof value.folder !== 'string'
+  ) {
+    throw new Error('Invalid folder creation')
+  }
+  const folder = normalizeGitPath(value.folder.trim())
+  if (!folder || folder.split('/').some((part) => part === '.gitkeep')) {
+    throw new Error('Folder name is invalid')
+  }
+  return {
+    ...repositoryRef({ owner: value.owner, repo: value.repo }),
+    branch: value.branch,
+    name: value.name,
+    parent: normalizeGitPath(value.parent),
+    folder,
   }
 }
 
@@ -289,6 +349,87 @@ export const createStructuredCollectionEntry = createServerFn({
         const { createStructuredEntry } =
           await import('#/server/entry-editor.server')
         return createStructuredEntry({
+          database: services.database,
+          background: services.background,
+          repositoryAccess: services.repositoryAccess,
+          user,
+          ...data,
+        })
+      },
+    )
+  })
+
+export const createRawCollectionEntry = createServerFn({ method: 'POST' })
+  .validator(parseRawEntryCreate)
+  .handler(async ({ context, data }) => {
+    const services = context.getServices()
+    const session = await services.getSession()
+    if (!session?.user) throw new Error('Authentication required')
+    const user = {
+      id: session.user.id,
+      name: session.user.name,
+      email: session.user.email,
+      githubUsername: session.user.githubUsername ?? null,
+    }
+    return services.access.execute(
+      {
+        operation: 'entry.create',
+        principal: { type: 'user', id: user.id },
+        tenant: {
+          type: 'repository',
+          id: `${data.owner}/${data.repo}`.toLowerCase(),
+        },
+        target: {
+          repository: data,
+          branch: data.branch,
+          collection: data.name,
+          ...(data.parent ? { path: data.parent } : {}),
+        },
+      },
+      async () => {
+        const { createRawEntry } = await import('#/server/entry-editor.server')
+        return createRawEntry({
+          database: services.database,
+          background: services.background,
+          repositoryAccess: services.repositoryAccess,
+          user,
+          ...data,
+        })
+      },
+    )
+  })
+
+export const createCollectionFolder = createServerFn({ method: 'POST' })
+  .validator(parseCollectionFolderCreate)
+  .handler(async ({ context, data }) => {
+    const services = context.getServices()
+    const session = await services.getSession()
+    if (!session?.user) throw new Error('Authentication required')
+    const user = {
+      id: session.user.id,
+      name: session.user.name,
+      email: session.user.email,
+      githubUsername: session.user.githubUsername ?? null,
+    }
+    return services.access.execute(
+      {
+        operation: 'entry.create',
+        principal: { type: 'user', id: user.id },
+        tenant: {
+          type: 'repository',
+          id: `${data.owner}/${data.repo}`.toLowerCase(),
+        },
+        target: {
+          repository: data,
+          branch: data.branch,
+          collection: data.name,
+          path: data.parent,
+        },
+      },
+      async () => {
+        const { createContentFolder } =
+          await import('#/server/entry-editor.server')
+        return createContentFolder({
           database: services.database,
           background: services.background,
           repositoryAccess: services.repositoryAccess,
