@@ -27,7 +27,12 @@ import {
 } from '#/functions/entry-editor'
 import type { getRawEntry } from '#/functions/entry-editor'
 
-type EntryData = Awaited<ReturnType<typeof getRawEntry>>
+type LoadedEntryData = Awaited<ReturnType<typeof getRawEntry>>
+type EntryData = LoadedEntryData extends infer Entry
+  ? Entry extends { sha: string }
+    ? Omit<Entry, 'sha'> & { sha: string | null }
+    : never
+  : never
 
 export interface ContentEntryCoordinates {
   owner: string
@@ -76,7 +81,7 @@ function useUnsavedWarning(dirty: boolean) {
 
 function useEntryDeletion(
   coordinates: ContentEntryCoordinates,
-  sha: string,
+  sha: string | null,
   afterDeleteHref: string,
 ) {
   const router = useRouter()
@@ -87,6 +92,7 @@ function useEntryDeletion(
     deleting,
     error,
     async remove() {
+      if (!sha) return
       if (
         !window.confirm(`Delete ${coordinates.path}? This creates a commit.`)
       ) {
@@ -111,7 +117,7 @@ function useEntryDeletion(
 
 function useEntryRename(
   coordinates: ContentEntryCoordinates,
-  sha: string,
+  sha: string | null,
   renameBaseHref?: string,
 ) {
   const router = useRouter()
@@ -122,7 +128,7 @@ function useEntryRename(
     renaming,
     error,
     async rename() {
-      if (!renameBaseHref) return
+      if (!renameBaseHref || !sha) return
       const current = coordinates.path.split('/').at(-1) ?? ''
       const filename = window.prompt('New filename', current)?.trim()
       if (!filename || filename === current) return
@@ -199,12 +205,14 @@ function RawEntryEditor({
         }}
         coordinates={coordinates}
         dirty={dirty}
-        canDelete={initial.operations.delete}
+        canDelete={initial.operations.delete && Boolean(sha)}
         initial={initial}
         saved={saved}
         saving={saving}
         deleting={deletion.deleting}
-        canRename={initial.operations.rename && Boolean(renameBaseHref)}
+        canRename={
+          initial.operations.rename && Boolean(renameBaseHref) && Boolean(sha)
+        }
         renaming={rename.renaming}
         onDelete={() => void deletion.remove()}
         onRename={() => void rename.rename()}
@@ -281,12 +289,14 @@ function StructuredEntryEditor({
         }}
         coordinates={coordinates}
         dirty={dirty}
-        canDelete={initial.operations.delete}
+        canDelete={initial.operations.delete && Boolean(sha)}
         initial={initial}
         saved={saved}
         saving={saving}
         deleting={deletion.deleting}
-        canRename={initial.operations.rename && Boolean(renameBaseHref)}
+        canRename={
+          initial.operations.rename && Boolean(renameBaseHref) && Boolean(sha)
+        }
         renaming={rename.renaming}
         onDelete={() => void deletion.remove()}
         onRename={() => void rename.rename()}
@@ -357,7 +367,7 @@ function EditorHeader({
         </h1>
       </div>
       <div className="flex gap-2">
-        <EntryHistoryButton coordinates={coordinates} />
+        {initial.sha ? <EntryHistoryButton coordinates={coordinates} /> : null}
         <RepositoryActionButtons
           actions={initial.actions}
           context={{
