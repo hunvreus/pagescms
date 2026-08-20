@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from '@tanstack/react-router'
+import { Link, useRouter } from '@tanstack/react-router'
 import {
   File,
   FileStack,
@@ -38,6 +38,7 @@ export function RepositoryWorkspace({
   branches,
   configuration,
 }: WorkspaceProps) {
+  const router = useRouter()
   const navigation = configuration
     ? getConfigurationNavigation(configuration.object)
     : []
@@ -53,9 +54,10 @@ export function RepositoryWorkspace({
       const result = await createRepositoryBranch({
         data: { owner, repo, branch: newBranch, source: branch },
       })
-      window.location.assign(
-        `/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(result.branch)}`,
-      )
+      await router.navigate({
+        to: '/$owner/$repo/$branch',
+        params: { owner, repo, branch: result.branch },
+      })
     } catch (cause) {
       setBranchError(
         cause instanceof Error ? cause.message : 'Could not create branch',
@@ -99,9 +101,10 @@ export function RepositoryWorkspace({
               className="h-9 w-full rounded-lg border bg-background px-2 text-sm text-foreground"
               value={branch}
               onChange={(event) => {
-                window.location.assign(
-                  `/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(event.target.value)}`,
-                )
+                void router.navigate({
+                  to: '/$owner/$repo/$branch',
+                  params: { owner, repo, branch: event.target.value },
+                })
               }}
             >
               {branches.map((value) => (
@@ -162,46 +165,77 @@ export function RepositoryWorkspace({
                   : item.type === 'file'
                     ? File
                     : FolderOpen
-              const href = `/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(branch)}/${item.type}/${encodeURIComponent(item.name)}`
-              return (
-                <a
-                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
-                  href={href}
-                  key={`${item.type}:${item.name}`}
-                >
+              const params = { owner, repo, branch, name: item.name }
+              const className =
+                'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted'
+              const content = (
+                <>
                   <Icon className="size-4 text-muted-foreground" />
                   <span className="truncate">{item.label}</span>
-                </a>
+                </>
+              )
+              return (
+                <span className="block" key={`${item.type}:${item.name}`}>
+                  {item.type === 'collection' ? (
+                    <Link
+                      className={className}
+                      params={params}
+                      to="/$owner/$repo/$branch/collection/$name"
+                    >
+                      {content}
+                    </Link>
+                  ) : item.type === 'file' ? (
+                    <Link
+                      className={className}
+                      params={params}
+                      to="/$owner/$repo/$branch/file/$name"
+                    >
+                      {content}
+                    </Link>
+                  ) : (
+                    <Link
+                      className={className}
+                      params={params}
+                      to="/$owner/$repo/$branch/media/$name"
+                    >
+                      {content}
+                    </Link>
+                  )}
+                </span>
               )
             })}
-            <a
+            <Link
               className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
-              href={`/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(branch)}/configuration`}
+              params={{ owner, repo, branch }}
+              to="/$owner/$repo/$branch/configuration"
             >
               <Settings className="size-4 text-muted-foreground" />
               Configuration
-            </a>
-            <a
+            </Link>
+            <Link
               className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
-              href={`/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(branch)}/collaborators`}
+              params={{ owner, repo, branch }}
+              to="/$owner/$repo/$branch/collaborators"
             >
               <Users className="size-4 text-muted-foreground" />
               Collaborators
-            </a>
-            <a
+            </Link>
+            <Link
               className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
-              href={`/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(branch)}/actions`}
+              params={{ owner, repo, branch }}
+              to="/$owner/$repo/$branch/actions"
             >
               <Play className="size-4 text-muted-foreground" />
               Actions
-            </a>
-            <a
+            </Link>
+            <Link
               className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
-              href={`/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(branch)}/cache`}
+              params={{ owner, repo, branch }}
+              to="/$owner/$repo/$branch/cache"
             >
               <Database className="size-4 text-muted-foreground" />
               Cache
-            </a>
+            </Link>
           </nav>
         </div>
       </aside>

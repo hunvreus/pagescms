@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { Link } from '@tanstack/react-router'
 import { ExternalLink, FolderGit2, LockKeyhole, Search } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
@@ -15,13 +16,6 @@ function useDebouncedValue(value: string, delay: number) {
     return () => window.clearTimeout(timeout)
   }, [delay, value])
   return debounced
-}
-
-function projectUrl(owner: string, repo: string, branch: string | null) {
-  const segments = [owner, repo, branch].filter((segment): segment is string =>
-    Boolean(segment),
-  )
-  return `/${segments.map(encodeURIComponent).join('/')}`
 }
 
 function updatedLabel(value: string | null) {
@@ -155,11 +149,21 @@ export function ProjectSelector({
       ) : visibleRepositories.length ? (
         <ul className="overflow-hidden rounded-xl border bg-card shadow-xs">
           {visibleRepositories.map((repository) => {
-            const href = projectUrl(
-              repository.owner,
-              repository.repo,
-              repository.defaultBranch,
-            )
+            const params = {
+              owner: repository.owner,
+              repo: repository.repo,
+              branch: repository.defaultBranch ?? '',
+            }
+            const projectLink = (children: React.ReactNode) =>
+              repository.defaultBranch ? (
+                <Link params={params} to="/$owner/$repo/$branch">
+                  {children}
+                </Link>
+              ) : (
+                <Link params={params} to="/$owner/$repo">
+                  {children}
+                </Link>
+              )
             return (
               <li
                 key={`${repository.owner}/${repository.repo}`}
@@ -174,15 +178,14 @@ export function ProjectSelector({
                   width="28"
                 />
                 <div className="min-w-0 flex-1">
-                  <a
-                    className="inline-flex max-w-full items-center gap-1.5 font-medium hover:underline"
-                    href={href}
-                  >
-                    <span className="truncate">{repository.repo}</span>
-                    {repository.private ? (
-                      <LockKeyhole className="size-3 text-muted-foreground" />
-                    ) : null}
-                  </a>
+                  {projectLink(
+                    <span className="inline-flex max-w-full items-center gap-1.5 font-medium hover:underline">
+                      <span className="truncate">{repository.repo}</span>
+                      {repository.private ? (
+                        <LockKeyhole className="size-3 text-muted-foreground" />
+                      ) : null}
+                    </span>,
+                  )}
                   <p className="text-xs text-muted-foreground">
                     {repository.owner}
                     {updatedLabel(repository.updatedAt)
@@ -191,7 +194,7 @@ export function ProjectSelector({
                   </p>
                 </div>
                 <Button asChild size="sm" variant="outline">
-                  <a href={href}>Open</a>
+                  {projectLink(<span>Open</span>)}
                 </Button>
               </li>
             )
