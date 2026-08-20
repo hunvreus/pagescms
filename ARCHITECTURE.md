@@ -37,6 +37,8 @@ Git paths use canonical repository-relative strings without a leading or trailin
 
 Configuration handling is split into source parsing, legacy normalization, product validation, and editor source mapping. The framework-neutral source parser returns plain data plus positional diagnostics; it does not import the field registry, mutate the input, apply defaults, or decide whether a draft may be saved. Invalid but recoverable YAML remains available to editor callers, while server callers must reject any result with error diagnostics before persistence.
 
+Normalization is a pure clone-and-transform step. It migrates legacy settings, media, commit, filename, component, format, and navigation forms without retaining YAML AST or UI dependencies. Repository-relative input and content paths use the canonical Git-path rules, so unlike the legacy normalizer they reject traversal above the repository root.
+
 ## Plugins
 
 Plugins are trusted build-time modules discovered from `plugins/*/plugin.ts`. The initial registry validates identifiers, API versions, and duplicates before rendering the application. Plugin manifests are client-safe; server capabilities and access policies will use separate server-only contracts.
