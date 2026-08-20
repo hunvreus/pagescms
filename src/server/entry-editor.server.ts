@@ -170,6 +170,27 @@ export async function loadRawEntry(input: {
   }
 }
 
+export async function loadFixedFile(
+  input: Omit<Parameters<typeof loadRawEntry>[0], 'path'>,
+) {
+  const { api } = await input.repositoryAccess.resolve(
+    input.user,
+    input.owner,
+    input.repo,
+    input.branch,
+  )
+  const configuration = await createConfigurationStore({
+    database: input.database,
+    background: input.background,
+  }).get(api, input.owner, input.repo, input.branch)
+  if (!configuration) throw new Error('Repository configuration not found')
+  const schema = findContentSchema(configuration.object, input.name)
+  if (!schema || schema.type !== 'file') {
+    throw new Error(`File ${input.name} was not found`)
+  }
+  return loadRawEntry({ ...input, path: schema.path })
+}
+
 export async function saveStructuredEntry(
   input: Omit<Parameters<typeof saveRawEntry>[0], 'source'> & {
     content: unknown
