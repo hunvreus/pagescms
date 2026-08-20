@@ -12,6 +12,7 @@ export type RuntimeConfiguration = Readonly<{
   auth: AuthRuntimeConfiguration
   databaseConnectionString: string
   deployment: 'self-hosted' | 'hosted'
+  githubWebhookSecret?: string
   githubApp?: Readonly<{
     appId: string
     privateKey: string
@@ -93,6 +94,9 @@ export function parseRuntimeConfiguration(
     environment.GITHUB_APP_PRIVATE_KEY,
   )?.replace(/\\n/g, '\n')
   const cryptoKey = optionalString(environment.CRYPTO_KEY)
+  const githubWebhookSecret = optionalString(
+    environment.GITHUB_APP_WEBHOOK_SECRET,
+  )
   const githubAppValues = [appId, privateKey, cryptoKey]
   if (githubAppValues.some(Boolean) && !githubAppValues.every(Boolean)) {
     throw new Error(
@@ -122,6 +126,7 @@ export function parseRuntimeConfiguration(
     },
     databaseConnectionString,
     deployment: deploymentValue,
+    ...(githubWebhookSecret ? { githubWebhookSecret } : {}),
     ...(appId && privateKey && cryptoKey
       ? {
           githubApp: {
