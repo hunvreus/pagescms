@@ -5,7 +5,7 @@ import {
   redirect,
   useRouter,
 } from '@tanstack/react-router'
-import { LoaderCircle, LogOut, Settings } from 'lucide-react'
+import { LoaderCircle, LogOut, Settings, Shield } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
 import { ProjectSelector } from '#/components/project-selector'
@@ -32,11 +32,11 @@ export const Route = createFileRoute('/')({
 })
 
 function Dashboard() {
-  const { user, accounts } = Route.useLoaderData()
+  const { user, accounts, isAdmin } = Route.useLoaderData()
 
   return (
     <div className="min-h-screen bg-muted/20">
-      <AppHeader user={user} />
+      <AppHeader isAdmin={isAdmin} user={user} />
       <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-2xl items-center px-5 py-12">
         <section className="w-full space-y-8">
           <header className="space-y-1">
@@ -55,7 +55,13 @@ function Dashboard() {
   )
 }
 
-function AppHeader({ user }: { user: ReturnType<typeof Route.useLoaderData> }) {
+function AppHeader({
+  user,
+  isAdmin,
+}: {
+  user: { email: string }
+  isAdmin: boolean
+}) {
   const router = useRouter()
   const [signingOut, setSigningOut] = useState(false)
 
@@ -91,6 +97,13 @@ function AppHeader({ user }: { user: ReturnType<typeof Route.useLoaderData> }) {
               <Settings />
             </Link>
           </Button>
+          {isAdmin ? (
+            <Button asChild aria-label="Admin" variant="ghost" size="icon">
+              <Link to="/admin">
+                <Shield />
+              </Link>
+            </Button>
+          ) : null}
           <Button
             disabled={signingOut}
             onClick={() => void handleSignOut()}
