@@ -3,6 +3,7 @@ import {
   File,
   FileStack,
   FolderOpen,
+  Database,
   GitBranch,
   Play,
   Settings,
@@ -109,6 +110,13 @@ export function RepositoryWorkspace({
             >
               <Play className="size-4 text-muted-foreground" />
               Actions
+            </a>
+            <a
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
+              href={`/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(branch)}/cache`}
+            >
+              <Database className="size-4 text-muted-foreground" />
+              Cache
             </a>
           </nav>
         </div>

@@ -218,6 +218,23 @@ export function createDirectoryCache({
         input.context,
       )
     },
+    refresh(input: {
+      api: GitHubApi
+      owner: string
+      repo: string
+      branch: string
+      path: string
+      context: DirectoryContext
+    }) {
+      return refresh(
+        input.api,
+        input.owner,
+        input.repo,
+        input.branch,
+        input.path,
+        input.context,
+      )
+    },
   }
 }
 

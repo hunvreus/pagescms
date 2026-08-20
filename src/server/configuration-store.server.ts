@@ -188,6 +188,10 @@ export function createConfigurationStore({
       }
       return refresh(api, owner, repo, branch, cached)
     },
+    async refresh(api: GitHubApi, owner: string, repo: string, branch: string) {
+      return refresh(api, owner, repo, branch, await find(owner, repo, branch))
+    },
+    remove,
   }
 }
 
