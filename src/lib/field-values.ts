@@ -139,6 +139,20 @@ export function validateStructuredContent(
       if (field.required === true) errors.push(`${path} is required`)
       continue
     }
+    const options = isRecord(field.options) ? field.options : {}
+    if (
+      (field.type === 'image' || field.type === 'file') &&
+      options.multiple &&
+      !field.list
+    ) {
+      if (
+        !Array.isArray(value) ||
+        value.some((item) => typeof item !== 'string')
+      ) {
+        errors.push(`${path} must be a list of file paths`)
+      }
+      continue
+    }
     if (field.list) {
       if (!Array.isArray(value)) {
         errors.push(`${path} must be a list`)
@@ -170,7 +184,13 @@ export function initializeStructuredContent(fields: unknown[]) {
     let value: unknown = candidate.default
     if (value === undefined) {
       if (candidate.list) value = []
-      else if (candidate.type === 'boolean') value = false
+      else if (
+        (candidate.type === 'image' || candidate.type === 'file') &&
+        isRecord(candidate.options) &&
+        candidate.options.multiple
+      ) {
+        value = []
+      } else if (candidate.type === 'boolean') value = false
       else if (candidate.type === 'uuid') value = crypto.randomUUID()
       else if (candidate.type === 'object') {
         value = initializeStructuredContent(

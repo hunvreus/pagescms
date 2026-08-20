@@ -61,6 +61,36 @@ export function findMediaSchema(
   return value as MediaSchema
 }
 
+export function configuredMediaSchemas(configuration: Record<string, unknown>) {
+  if (!Array.isArray(configuration.media)) return []
+  return configuration.media.flatMap((value) => {
+    if (
+      !isRecord(value) ||
+      typeof value.name !== 'string' ||
+      typeof value.input !== 'string' ||
+      typeof value.output !== 'string'
+    ) {
+      return []
+    }
+    return [
+      {
+        name: value.name,
+        label:
+          typeof value.label === 'string' && value.label
+            ? value.label
+            : value.name,
+        input: value.input,
+        output: value.output,
+        extensions: Array.isArray(value.extensions)
+          ? value.extensions.filter(
+              (extension): extension is string => typeof extension === 'string',
+            )
+          : [],
+      },
+    ]
+  })
+}
+
 export function mediaDirectoryPath(
   schema: MediaSchema,
   requestedPath?: string,
