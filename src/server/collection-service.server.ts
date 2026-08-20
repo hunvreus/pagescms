@@ -130,6 +130,7 @@ export async function loadCollection({
   const contents: CollectionEntry[] = []
 
   for (const entry of entries) {
+    if (entry.name === '.gitkeep') continue
     if (excluded.has(entry.name)) continue
     if (entry.type === 'dir') {
       if (schema.subfolders !== false) {

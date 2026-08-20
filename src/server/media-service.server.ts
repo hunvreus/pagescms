@@ -37,6 +37,13 @@ type MediaInput = {
   name: string
 }
 
+function encodeBase64(value: string) {
+  const bytes = new TextEncoder().encode(value)
+  let binary = ''
+  for (const byte of bytes) binary += String.fromCharCode(byte)
+  return btoa(binary)
+}
+
 function allowedExtension(schema: MediaSchema, path: string) {
   const extensions = Array.isArray(schema.extensions)
     ? schema.extensions.filter(
@@ -116,7 +123,9 @@ export async function loadMediaDirectory(
   })
   const entries = directory.entries
     .filter(
-      (entry) => entry.type === 'dir' || allowedExtension(schema, entry.path),
+      (entry) =>
+        entry.name !== '.gitkeep' &&
+        (entry.type === 'dir' || allowedExtension(schema, entry.path)),
     )
     .sort((left, right) =>
       left.type === right.type
@@ -202,6 +211,64 @@ export async function uploadMedia(
     input.branch,
   )
   return result
+}
+
+export async function createMediaDirectory(
+  input: MediaInput & {
+    user: ProjectUser & { name: string }
+    parent?: string
+    folder: string
+  },
+) {
+  const { api, configuration, schema } = await context(input)
+  const parent = mediaDirectoryPath(schema, input.parent)
+  const folder = normalizeGitPath(input.folder)
+  if (!folder || folder.split('/').some((part) => part === '.gitkeep')) {
+    throw new Error('Media folder name is invalid')
+  }
+  const directory = mediaDirectoryPath(
+    schema,
+    normalizeGitPath(parent ? `${parent}/${folder}` : folder),
+  )
+  const path = normalizeGitPath(`${directory}/.gitkeep`)
+  const commit = commitOptions(schema)
+  const identity = resolveCommitIdentity({
+    configuration: configuration.object,
+    identityOverride: commit.identity,
+  })
+  const result = await api.putFile({
+    owner: input.owner,
+    repo: input.repo,
+    branch: input.branch,
+    path,
+    content: encodeBase64(''),
+    message: resolveCommitMessage({
+      configuration: configuration.object,
+      templatesOverride: commit.templates,
+      action: 'create',
+      tokens: buildCommitTokens({
+        action: 'create',
+        owner: input.owner,
+        repo: input.repo,
+        branch: input.branch,
+        path,
+        contentName: input.name,
+        user: input.user.email,
+        userName: input.user.name,
+        userEmail: input.user.email,
+      }),
+    }),
+    ...(committer(identity, input.user)
+      ? { committer: committer(identity, input.user) }
+      : {}),
+  })
+  await invalidateDirectoryCacheAfterMutation(
+    input.database,
+    input.owner,
+    input.repo,
+    input.branch,
+  )
+  return { ...result, path: directory }
 }
 
 export async function deleteMedia(
