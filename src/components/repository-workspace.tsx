@@ -4,6 +4,7 @@ import {
   FileStack,
   FolderOpen,
   GitBranch,
+  Play,
   Settings,
   Users,
 } from 'lucide-react'
@@ -101,6 +102,13 @@ export function RepositoryWorkspace({
             >
               <Users className="size-4 text-muted-foreground" />
               Collaborators
+            </a>
+            <a
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
+              href={`/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(branch)}/actions`}
+            >
+              <Play className="size-4 text-muted-foreground" />
+              Actions
             </a>
           </nav>
         </div>

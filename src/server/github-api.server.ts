@@ -556,6 +556,51 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
         commitSha,
       }
     },
+
+    async getRefSha(owner: string, repo: string, ref: string) {
+      if (/^[a-f0-9]{40}$/i.test(ref)) return ref
+      const repositoryPath = `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`
+      const refPath = ref.split('/').map(encodeURIComponent).join('/')
+      for (const namespace of ['heads', 'tags']) {
+        try {
+          const body = requiredRecord(
+            await githubRequest(
+              fetcher,
+              token,
+              `${repositoryPath}/git/ref/${namespace}/${refPath}`,
+            ),
+            'Git reference',
+          )
+          return requiredString(
+            requiredRecord(body.object, 'Git reference object').sha,
+            'Git reference sha',
+          )
+        } catch (error) {
+          if (!(error instanceof GitHubApiError) || error.status !== 404)
+            throw error
+        }
+      }
+      throw new GitHubApiError(`Git reference ${ref} was not found`, 404)
+    },
+
+    async dispatchWorkflow(input: {
+      owner: string
+      repo: string
+      workflow: string
+      ref: string
+      inputs: Record<string, string>
+    }) {
+      await githubRequest(
+        fetcher,
+        token,
+        `/repos/${encodeURIComponent(input.owner)}/${encodeURIComponent(input.repo)}/actions/workflows/${encodeURIComponent(input.workflow)}/dispatches`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ ref: input.ref, inputs: input.inputs }),
+        },
+      )
+    },
   }
 }
 
