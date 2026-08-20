@@ -1,5 +1,3 @@
-import { env, waitUntil } from 'cloudflare:workers'
-
 import { createGitHubApi } from '#/server/github-api.server'
 import {
   createRequestServices,
@@ -8,10 +6,19 @@ import {
 
 import { githubFixtureFetch } from './github-fixture.server'
 
-export function createCloudflareRequestServices(request: Request) {
+function testEnvironment() {
+  return {
+    BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+    BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+    DATABASE_URL: process.env.DATABASE_URL,
+    DEPLOYMENT_MODE: 'self-hosted',
+  }
+}
+
+export function createRuntimeRequestServices(request: Request) {
   return createRequestServices(
-    env,
-    { defer: (task) => waitUntil(task) },
+    testEnvironment(),
+    { defer: (task) => void task.catch(() => undefined) },
     request.headers,
     {
       githubApiFactory: (token) => createGitHubApi(token, githubFixtureFetch),
@@ -19,8 +26,8 @@ export function createCloudflareRequestServices(request: Request) {
   )
 }
 
-export function createCloudflareRequestServicesAccessor(request: Request) {
+export function createRuntimeRequestServicesAccessor(request: Request) {
   return createRequestServicesAccessor(() =>
-    createCloudflareRequestServices(request),
+    createRuntimeRequestServices(request),
   )
 }

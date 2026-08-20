@@ -5,7 +5,7 @@ import {
   createRequestServicesAccessor,
 } from './request-services.server'
 
-export function createCloudflareRequestServices(request: Request) {
+export function createRuntimeRequestServices(request: Request) {
   return createRequestServices(
     env,
     {
@@ -17,8 +17,8 @@ export function createCloudflareRequestServices(request: Request) {
   )
 }
 
-export function createCloudflareRequestServicesAccessor(request: Request) {
+export function createRuntimeRequestServicesAccessor(request: Request) {
   return createRequestServicesAccessor(() =>
-    createCloudflareRequestServices(request),
+    createRuntimeRequestServices(request),
   )
 }

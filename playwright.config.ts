@@ -47,7 +47,6 @@ export default defineConfig({
       ...process.env,
       BETTER_AUTH_SECRET: authSecret,
       BETTER_AUTH_URL: 'http://127.0.0.1:3100',
-      CLOUDFLARE_INCLUDE_PROCESS_ENV: 'true',
       DATABASE_URL:
         process.env.E2E_DATABASE_URL ??
         'postgres://pagescms:pagescms@127.0.0.1:5432/pagescms_playwright',

@@ -4,7 +4,7 @@ Pages CMS preserves the existing PostgreSQL tables and Drizzle migration history
 
 ## Schema changes
 
-Drizzle CLI commands automatically load `DATABASE_URL` from an ignored root `.dev.vars` file. An explicitly exported environment variable takes precedence, which is how isolated test containers supply their connection:
+Drizzle CLI commands automatically load `DATABASE_URL` from an ignored root `.env.local` file. An explicitly exported environment variable takes precedence, which is how isolated test containers supply their connection:
 
 ```bash
 pnpm db:check

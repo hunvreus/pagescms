@@ -14,12 +14,12 @@ The replacement is being built in reviewable migration waves. It currently inclu
 
 ```bash
 pnpm install
-cp .dev.vars.example .dev.vars
+cp .env.example .env.local
 pnpm db:migrate
 pnpm dev
 ```
 
-Set a random `BETTER_AUTH_SECRET`, a disposable/local PostgreSQL `DATABASE_URL`, and at least one sign-in method in `.dev.vars`. Database commands automatically load that file. Verify that `DATABASE_URL` does not identify production before running `pnpm db:migrate`. The application runs at `http://localhost:3000`; its health endpoint is `GET /api/health`. See [`docs/development/authentication.md`](./docs/development/authentication.md).
+Set a random `BETTER_AUTH_SECRET`, a disposable/local PostgreSQL `DATABASE_URL`, and at least one sign-in method in `.env.local`. Database commands automatically load that file. Verify that `DATABASE_URL` does not identify production before running `pnpm db:migrate`. `pnpm dev` runs ordinary TanStack Start/Vite under Node at `http://localhost:3000`; its health endpoint is `GET /api/health`. See [`docs/development/authentication.md`](./docs/development/authentication.md).
 
 ## Verification
 
@@ -36,7 +36,7 @@ pnpm cf:dry-run
 
 `pnpm validate` runs every non-browser verification above, including a local Worker dry run. Browser binaries are installed separately with `pnpm exec playwright install chromium`. Live Cloudflare deployment verification is intentionally separate.
 
-`pnpm test:e2e` and `pnpm test:integration` create and remove their own PostgreSQL containers. They do not read `.dev.vars` or use a real GitHub account.
+`pnpm test:e2e` and `pnpm test:integration` create and remove their own PostgreSQL containers. They do not read `.env.local` or use a real GitHub account.
 
 ## UI components
 
@@ -55,6 +55,8 @@ The checked-in `wrangler.jsonc` is the source of truth for Workers configuration
 ```bash
 pnpm cf:typegen
 ```
+
+Cloudflare is selected only by explicit production or compatibility commands: `pnpm build`, `pnpm preview`, `pnpm cf:dev`, and `pnpm deploy`. Normal local development does not run inside workerd. Production builds explicitly ignore `.env.local`; deployed secrets come from Cloudflare bindings and its secret store.
 
 No deployment occurs during `pnpm cf:dry-run`. See [`docs/development/cloudflare.md`](./docs/development/cloudflare.md) before configuring environments or secrets.
 

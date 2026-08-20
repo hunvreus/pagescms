@@ -6,7 +6,7 @@ The TanStack Start application lives at the repository root. `_legacy/` is a fro
 
 ## Runtime shape
 
-TanStack Router owns URL parsing, loader orchestration, pending/error boundaries, and intent preloading. TanStack Query owns reusable client-side server state. TanStack Start server functions and server routes form the application transport boundary. Cloudflare Workers is the primary runtime.
+TanStack Router owns URL parsing, loader orchestration, pending/error boundaries, and intent preloading. TanStack Query owns reusable client-side server state. TanStack Start server functions and server routes form the application transport boundary. Ordinary development runs under Node; explicit build, preview, compatibility, and deployment commands select the Cloudflare Workers production adapter.
 
 ```text
 route or server function
@@ -19,9 +19,9 @@ Route files own loader and page composition. Reusable product UI belongs in `src
 
 ## Request lifecycle
 
-Requests receive a validated or generated correlation identifier. Server logs are structured JSON. Request-scoped state must be passed explicitly and never stored in mutable module globals. Background work must be awaited or registered with the Workers execution context.
+Requests receive a validated or generated correlation identifier. Server logs are structured JSON. Request-scoped state must be passed explicitly and never stored in mutable module globals. Background work must be awaited, reported by the local Node adapter, or registered with the Workers execution context.
 
-PostgreSQL uses the legacy-compatible Drizzle schema and migration history. A Postgres.js client is created per request from the eventual Hyperdrive binding with a conservative connection limit, type-fetch round trips disabled, and prepared statements enabled. Database construction never reads ambient process environment; only the explicit Drizzle release CLI accepts `DATABASE_URL`.
+PostgreSQL uses the legacy-compatible Drizzle schema and migration history. A Postgres.js client is created per request from the Node development environment or eventual Hyperdrive binding with a conservative connection limit, type-fetch round trips disabled, and prepared statements enabled. Database construction receives the connection string explicitly from its runtime adapter; the Drizzle release CLI separately loads `DATABASE_URL` from `.env.local`.
 
 ## Data and caching
 
@@ -53,7 +53,7 @@ Plugins are trusted build-time modules discovered from `plugins/*/plugin.ts`. Th
 
 The first server capability is the access-policy provider. Server functions authorize stable operation identifiers against principal, tenant, repository, branch, collection, media, and path targets before protected work. Hosted startup fails without a provider; self-hosted deployments select an explicit versioned allow-all policy. Quota-consuming mutations reserve atomically before their side effect and settle the reservation afterward. Billing and role logic therefore remains replaceable proprietary plugin code without becoming a client-side authority or a fork.
 
-Email is a second isolated server capability with one small provider contract and no default SMTP dependency. Runtime time, identifiers, and background execution also use injectable ports. Production adapters use `Date`, Web Crypto, and the Workers execution context; tests can supply deterministic implementations without mutable module-level request state.
+Email is a second isolated server capability with one small provider contract and no default SMTP dependency. Runtime time, identifiers, and background execution also use injectable ports. Runtime adapters use `Date` and Web Crypto; Cloudflare additionally registers background work with the Workers execution context. Tests can supply deterministic implementations without mutable module-level request state.
 
 An optional client contribution can register custom field components by name. Client, manifest, and server entry points are discovered independently, preventing a server-only billing or email dependency from entering browser chunks. Rich-text editing is additionally client-only and lazy-loaded.
 

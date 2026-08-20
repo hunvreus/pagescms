@@ -6,13 +6,14 @@
 
 ## Local development
 
+Normal application development uses the Node runtime, not workerd:
+
 ```bash
 pnpm install
-pnpm cf:typegen
 pnpm dev
 ```
 
-Put local secrets in `.dev.vars`; it is ignored by Git. Keep only documented placeholders in `.dev.vars.example`.
+Put local secrets in `.env.local`; it is ignored by Git. Keep only documented placeholders in `.env.example`. When runtime-parity investigation is useful, run `pnpm cf:dev` explicitly; the Cloudflare Vite plugin will use the same local environment file. Production builds disable dotenv ingestion so local secrets are not copied into build output.
 
 ## Validation and deployment
 
