@@ -48,11 +48,50 @@ describe('parseRuntimeConfiguration', () => {
     ).toBe('postgres://localhost/pagescms')
   })
 
+  it('accepts complete GitHub App server credentials', () => {
+    const cryptoKey = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)))
+    expect(
+      parseRuntimeConfiguration({
+        ...base,
+        GITHUB_APP_ID: '12345',
+        GITHUB_APP_PRIVATE_KEY:
+          '-----BEGIN PRIVATE KEY-----\\nZmFrZQ==\\n-----END PRIVATE KEY-----',
+        CRYPTO_KEY: cryptoKey,
+      }).githubApp,
+    ).toEqual({
+      appId: '12345',
+      privateKey:
+        '-----BEGIN PRIVATE KEY-----\nZmFrZQ==\n-----END PRIVATE KEY-----',
+      cryptoKey,
+    })
+  })
+
   it.each([
     [{ ...base, BETTER_AUTH_SECRET: 'short' }, 'at least 32'],
     [{ ...base, BETTER_AUTH_URL: 'not-a-url' }, 'valid HTTP'],
     [{ ...base, HYPERDRIVE: undefined }, 'database connection'],
     [{ ...base, GITHUB_APP_CLIENT_ID: 'only-one' }, 'provided together'],
+    [{ ...base, GITHUB_APP_ID: '123' }, 'must be provided together'],
+    [
+      {
+        ...base,
+        GITHUB_APP_ID: 'not-a-number',
+        GITHUB_APP_PRIVATE_KEY:
+          '-----BEGIN PRIVATE KEY-----x-----END PRIVATE KEY-----',
+        CRYPTO_KEY: btoa('too-short'),
+      },
+      'positive integer',
+    ],
+    [
+      {
+        ...base,
+        GITHUB_APP_ID: '123',
+        GITHUB_APP_PRIVATE_KEY:
+          '-----BEGIN PRIVATE KEY-----x-----END PRIVATE KEY-----',
+        CRYPTO_KEY: btoa('too-short'),
+      },
+      '32-byte key',
+    ],
     [{ ...base, DEPLOYMENT_MODE: 'mystery' }, 'DEPLOYMENT_MODE'],
   ])('rejects invalid runtime configuration', (input, message) => {
     expect(() => parseRuntimeConfiguration(input)).toThrow(message)

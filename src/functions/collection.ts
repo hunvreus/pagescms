@@ -60,6 +60,7 @@ export const getCollection = createServerFn({ method: 'GET' })
         return loadCollection({
           database: services.database,
           background: services.background,
+          repositoryAccess: services.repositoryAccess,
           user,
           ...data,
         })

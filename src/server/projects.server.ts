@@ -5,6 +5,7 @@ import { createGitHubApi } from './github-api.server'
 import type { Database } from './database/client.server'
 import type { GitHubInstallation, GitHubRepository } from './github-api.server'
 import type { BackgroundExecutor } from './runtime-ports.server'
+import type { RepositoryAccessService } from './repository-access.server'
 
 import { accountTable, collaboratorTable } from './database/schema'
 
@@ -111,6 +112,7 @@ async function findGitHubToken(database: Database, userId: string) {
 export function createProjectService(
   database: Database,
   background: BackgroundExecutor,
+  repositoryAccess: RepositoryAccessService,
 ) {
   return {
     async listAccounts(user: ProjectUser): Promise<ProjectAccount[]> {
@@ -195,13 +197,7 @@ export function createProjectService(
       repo: string,
       branch?: string,
     ) {
-      const token = await findGitHubToken(database, user.id)
-      if (!token || !user.githubUsername) {
-        throw new Error(
-          'A GitHub user token is currently required to open this repository',
-        )
-      }
-      const api = createGitHubApi(token)
+      const { api } = await repositoryAccess.resolve(user, owner, repo, branch)
       const configurationPromise = branch
         ? import('./configuration-store.server').then(
             ({ createConfigurationStore }) =>

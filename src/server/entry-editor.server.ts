@@ -1,5 +1,3 @@
-import { and, eq } from 'drizzle-orm'
-
 import {
   buildCommitTokens,
   resolveCommitIdentity,
@@ -11,9 +9,8 @@ import { getFileExtension } from '#/lib/file-types'
 import { normalizeGitPath } from '#/lib/git-path'
 
 import { createConfigurationStore } from './configuration-store.server'
-import { createGitHubApi } from './github-api.server'
 
-import type { CommitTemplates } from '#/lib/commit-message'
+import type { CommitIdentity, CommitTemplates } from '#/lib/commit-message'
 import type {
   ContentFormat,
   FrontmatterDelimiters,
@@ -21,8 +18,7 @@ import type {
 import type { Database } from './database/client.server'
 import type { BackgroundExecutor } from './runtime-ports.server'
 import type { ProjectUser } from './projects.server'
-
-import { accountTable } from './database/schema'
+import type { RepositoryAccessService } from './repository-access.server'
 
 const formats = new Set<ContentFormat>([
   'yaml',
@@ -50,6 +46,7 @@ function encodeBase64(value: string) {
 async function loadContext(
   database: Database,
   background: BackgroundExecutor,
+  repositoryAccess: RepositoryAccessService,
   user: ProjectUser,
   owner: string,
   repo: string,
@@ -57,17 +54,7 @@ async function loadContext(
   name: string,
   path: string,
 ) {
-  const account = await database.query.accountTable.findFirst({
-    columns: { accessToken: true },
-    where: and(
-      eq(accountTable.userId, user.id),
-      eq(accountTable.providerId, 'github'),
-    ),
-  })
-  if (!account?.accessToken || !user.githubUsername) {
-    throw new Error('A GitHub user token is currently required')
-  }
-  const api = createGitHubApi(account.accessToken)
+  const { api } = await repositoryAccess.resolve(user, owner, repo, branch)
   const configuration = await createConfigurationStore({
     database,
     background,
@@ -89,26 +76,31 @@ async function loadContext(
   return { api, configuration, schema, path: normalizedPath }
 }
 
-function schemaCommitOptions(schema: Record<string, unknown>) {
+function schemaCommitOptions(schema: Record<string, unknown>): {
+  templates: CommitTemplates | undefined
+  identity: CommitIdentity | undefined
+} {
   const commit =
     typeof schema.commit === 'object' && schema.commit !== null
       ? (schema.commit as Record<string, unknown>)
       : {}
+  const identity =
+    commit.identity === 'app' || commit.identity === 'user'
+      ? commit.identity
+      : undefined
   return {
     templates:
       typeof commit.templates === 'object' && commit.templates !== null
-        ? (commit.templates as CommitTemplates)
+        ? commit.templates
         : undefined,
-    identity:
-      commit.identity === 'app' || commit.identity === 'user'
-        ? commit.identity
-        : undefined,
+    identity,
   }
 }
 
 export async function loadRawEntry(input: {
   database: Database
   background: BackgroundExecutor
+  repositoryAccess: RepositoryAccessService
   user: ProjectUser
   owner: string
   repo: string
@@ -119,6 +111,7 @@ export async function loadRawEntry(input: {
   const context = await loadContext(
     input.database,
     input.background,
+    input.repositoryAccess,
     input.user,
     input.owner,
     input.repo,
@@ -146,6 +139,7 @@ export async function loadRawEntry(input: {
 export async function saveRawEntry(input: {
   database: Database
   background: BackgroundExecutor
+  repositoryAccess: RepositoryAccessService
   user: ProjectUser & { name: string }
   owner: string
   repo: string
@@ -160,6 +154,7 @@ export async function saveRawEntry(input: {
   const context = await loadContext(
     input.database,
     input.background,
+    input.repositoryAccess,
     input.user,
     input.owner,
     input.repo,

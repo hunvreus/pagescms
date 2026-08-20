@@ -4,6 +4,7 @@ import { createAccessPolicyGateway } from './access-policy.server'
 import { createPagesCmsAuth } from './auth.server'
 import { createDatabase } from './database/client.server'
 import { createProjectService } from './projects.server'
+import { createRepositoryAccessService } from './repository-access.server'
 import { parseRuntimeConfiguration } from './runtime-config.server'
 
 import type { BackgroundExecutor } from './runtime-ports.server'
@@ -21,7 +22,11 @@ export function createRequestServices(
     deployment: configuration.deployment,
     policy: serverPluginRegistry.accessPolicy,
   })
-  const projects = createProjectService(database, background)
+  const repositoryAccess = createRepositoryAccessService(
+    database,
+    configuration.githubApp,
+  )
+  const projects = createProjectService(database, background, repositoryAccess)
   const auth = createPagesCmsAuth({
     database,
     configuration: configuration.auth,
@@ -44,6 +49,7 @@ export function createRequestServices(
     database,
     getSession,
     projects,
+    repositoryAccess,
   }
 }
 
