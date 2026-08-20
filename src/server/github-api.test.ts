@@ -344,4 +344,58 @@ describe('createGitHubApi', () => {
     })
     expect(requests[4]).toMatchObject({ method: 'PATCH' })
   })
+
+  it('resolves branch and tag references while accepting commit SHAs', async () => {
+    const requests: string[] = []
+    const fetcher = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      requests.push(url)
+      if (url.includes('/git/ref/heads/release/next')) {
+        return jsonResponse({ message: 'Not Found' }, { status: 404 })
+      }
+      return jsonResponse({ object: { sha: 'resolved-sha' } })
+    })
+    const api = createGitHubApi('token', fetcher)
+
+    await expect(
+      api.getRefSha('PagesCMS', 'pages-cms', 'release/next'),
+    ).resolves.toBe('resolved-sha')
+    expect(requests).toHaveLength(2)
+    expect(requests[1]).toContain('/git/ref/tags/release/next')
+
+    const sha = 'a'.repeat(40)
+    await expect(api.getRefSha('PagesCMS', 'pages-cms', sha)).resolves.toBe(sha)
+    expect(requests).toHaveLength(2)
+  })
+
+  it('dispatches workflows with the configured ref and payload input', async () => {
+    let request: { url?: string; method?: string; body?: unknown } = {}
+    const fetcher = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        request = {
+          url: String(input),
+          method: init?.method,
+          body: JSON.parse(String(init?.body)),
+        }
+        return new Response(null, { status: 204 })
+      },
+    )
+
+    await createGitHubApi('token', fetcher).dispatchWorkflow({
+      owner: 'PagesCMS',
+      repo: 'pages-cms',
+      workflow: 'deploy.yml',
+      ref: 'main',
+      inputs: { payload: '{"source":"pages-cms"}' },
+    })
+
+    expect(request).toEqual({
+      url: 'https://api.github.com/repos/PagesCMS/pages-cms/actions/workflows/deploy.yml/dispatches',
+      method: 'POST',
+      body: {
+        ref: 'main',
+        inputs: { payload: '{"source":"pages-cms"}' },
+      },
+    })
+  })
 })
