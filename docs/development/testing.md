@@ -22,7 +22,7 @@ pnpm exec playwright install chromium
 pnpm test:e2e
 ```
 
-The Playwright web server supplies isolated non-secret runtime placeholders, so the guest smoke test does not depend on a developer's `.dev.vars`. Browser tests that read or mutate persisted state must receive a real isolated PostgreSQL database and own their fixtures; they must never use a development or production database.
+The Playwright command starts an ephemeral PostgreSQL 17 container, migrates and seeds it, and removes it afterward. A build-time test service seam supplies a deterministic in-process GitHub fixture, so authenticated repository navigation and mutations never use a real GitHub account, development database, or production database. The seam is enabled only by `pnpm test:e2e` and is excluded from normal builds.
 
 ## PostgreSQL integration tests
 

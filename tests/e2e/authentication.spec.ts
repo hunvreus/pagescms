@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test'
 
+test.use({ storageState: { cookies: [], origins: [] } })
+
 test('redirects guests to sign in and serves the health contract', async ({
   page,
   request,

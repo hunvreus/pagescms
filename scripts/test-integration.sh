@@ -27,6 +27,11 @@ until docker exec "$container_name" pg_isready -U postgres -d "$database_name" >
   sleep 1
 done
 
+
+# The image briefly exposes its initialization server before restarting into
+# the final server. Avoid racing that handoff.
+sleep 1
+
 published_port=$(docker port "$container_name" 5432/tcp | sed 's/.*://')
 database_url="postgres://postgres:${database_password}@127.0.0.1:${published_port}/${database_name}"
 

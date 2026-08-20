@@ -8,7 +8,7 @@ import { getRawEntry } from '#/functions/entry-editor'
 import { getSignInUrl } from '#/lib/auth-redirect'
 
 export const Route = createFileRoute(
-  '/$owner/$repo/$branch/collection/$name/entry/$',
+  '/$owner/$repo/$branch/collection/$name_/entry/$',
 )({
   loader: async ({ params }) => {
     const path = params._splat

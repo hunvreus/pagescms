@@ -821,3 +821,4 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
 }
 
 export type GitHubApi = ReturnType<typeof createGitHubApi>
+export type GitHubApiFactory = (token: string) => GitHubApi
