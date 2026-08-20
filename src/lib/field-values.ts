@@ -142,3 +142,32 @@ export function validateStructuredContent(
   }
   return errors
 }
+
+export function initializeStructuredContent(fields: unknown[]) {
+  const content: JsonObject = {}
+  for (const candidate of fields) {
+    if (!isRecord(candidate) || typeof candidate.name !== 'string') continue
+    let value: unknown = candidate.default
+    if (value === undefined) {
+      if (candidate.list) value = []
+      else if (candidate.type === 'boolean') value = false
+      else if (candidate.type === 'uuid') value = crypto.randomUUID()
+      else if (candidate.type === 'object') {
+        value = initializeStructuredContent(
+          Array.isArray(candidate.fields) ? candidate.fields : [],
+        )
+      }
+    }
+    if (
+      value === null ||
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean' ||
+      Array.isArray(value) ||
+      isRecord(value)
+    ) {
+      content[candidate.name] = value as JsonValue
+    }
+  }
+  return content
+}

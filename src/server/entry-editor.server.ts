@@ -3,8 +3,13 @@ import {
   resolveCommitIdentity,
   resolveCommitMessage,
 } from '#/lib/commit-message'
-import { findContentSchema } from '#/lib/configuration-content'
+import { generateContentFilename } from '#/lib/content-filename'
+import {
+  collectionDirectoryPath,
+  findContentSchema,
+} from '#/lib/configuration-content'
 import { parseContent, serializeContent } from '#/lib/content-serialization'
+import { isContentOperationAllowed } from '#/lib/content-operations'
 import { validateStructuredContent } from '#/lib/field-values'
 import { getFileExtension } from '#/lib/file-types'
 import { normalizeGitPath } from '#/lib/git-path'
@@ -211,7 +216,7 @@ export async function saveRawEntry(input: {
   name: string
   path: string
   source: string
-  sha: string
+  sha?: string
 }) {
   if (input.source.length > 5_000_000)
     throw new Error('Entry exceeds the 5 MB limit')
@@ -237,6 +242,7 @@ export async function saveRawEntry(input: {
     })
   }
   const commit = schemaCommitOptions(context.schema)
+  const action = input.sha ? 'update' : 'create'
   const identity = resolveCommitIdentity({
     configuration: context.configuration.object,
     identityOverride: commit.identity,
@@ -244,9 +250,9 @@ export async function saveRawEntry(input: {
   const message = resolveCommitMessage({
     configuration: context.configuration.object,
     templatesOverride: commit.templates,
-    action: 'update',
+    action,
     tokens: buildCommitTokens({
-      action: 'update',
+      action,
       owner: input.owner,
       repo: input.repo,
       branch: input.branch,
@@ -264,7 +270,7 @@ export async function saveRawEntry(input: {
     path: context.path,
     content: encodeBase64(input.source),
     message,
-    sha: input.sha,
+    ...(input.sha ? { sha: input.sha } : {}),
     ...(identity === 'user'
       ? {
           committer: {
@@ -274,4 +280,52 @@ export async function saveRawEntry(input: {
         }
       : {}),
   })
+}
+
+export async function createStructuredEntry(
+  input: Omit<Parameters<typeof saveStructuredEntry>[0], 'path' | 'sha'> & {
+    parent?: string
+    filename?: string
+  },
+) {
+  const content = toJsonObject(input.content)
+  const { api } = await input.repositoryAccess.resolve(
+    input.user,
+    input.owner,
+    input.repo,
+    input.branch,
+  )
+  const configuration = await createConfigurationStore({
+    database: input.database,
+    background: input.background,
+  }).get(api, input.owner, input.repo, input.branch)
+  if (!configuration) throw new Error('Repository configuration not found')
+  const schema = findContentSchema(configuration.object, input.name)
+  if (!schema || schema.type !== 'collection') {
+    throw new Error(`Collection ${input.name} was not found`)
+  }
+  if (!isContentOperationAllowed('create', { schema })) {
+    throw new Error('Creating entries is disabled for this collection')
+  }
+  const parent = collectionDirectoryPath(schema, input.parent)
+  let filename: string
+  if (input.filename !== undefined) {
+    if (schema.filenameField !== true && schema.filenameField !== 'create') {
+      throw new Error('Custom filenames are disabled for this collection')
+    }
+    filename = normalizeGitPath(input.filename.trim())
+    if (!filename || filename.includes('/')) {
+      throw new Error('Filename must be a non-empty file name')
+    }
+  } else {
+    if (typeof schema.filename !== 'string') {
+      throw new Error('Collection filename template is missing')
+    }
+    filename = generateContentFilename(schema.filename, schema, content)
+  }
+  const path = normalizeGitPath(parent ? `${parent}/${filename}` : filename)
+  return {
+    ...(await saveStructuredEntry({ ...input, content, path })),
+    path,
+  }
 }
