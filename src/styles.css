@@ -142,3 +142,78 @@ body {
     @apply font-sans;
   }
 }
+
+.pagescms-code-field {
+  position: relative;
+  min-height: 12rem;
+  overflow: hidden;
+  border: 1px solid var(--input);
+  border-radius: var(--radius);
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.pagescms-code-field:focus-within {
+  border-color: var(--ring);
+  outline: 3px solid color-mix(in oklab, var(--ring) 50%, transparent);
+}
+
+.pagescms-code-field pre,
+.pagescms-code-field textarea {
+  position: absolute;
+  inset: 0;
+  min-height: 12rem;
+  margin: 0;
+  overflow: auto;
+  border: 0;
+  background: transparent;
+  padding: 0.75rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+  tab-size: 2;
+  white-space: pre;
+}
+
+.pagescms-code-field pre {
+  pointer-events: none;
+  overflow: visible;
+}
+
+.pagescms-code-field textarea {
+  z-index: 1;
+  resize: none;
+  color: transparent;
+  caret-color: var(--foreground);
+  outline: none;
+}
+
+.pagescms-code-field textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.pagescms-code-field textarea::selection {
+  background: color-mix(in oklab, var(--primary) 30%, transparent);
+  color: transparent;
+}
+
+.code-token-comment {
+  color: var(--muted-foreground);
+}
+
+.code-token-keyword {
+  color: var(--primary);
+}
+
+.code-token-number {
+  color: oklch(0.6 0.15 55);
+}
+
+.code-token-punctuation {
+  color: var(--muted-foreground);
+}
+
+.code-token-string {
+  color: oklch(0.55 0.13 145);
+}

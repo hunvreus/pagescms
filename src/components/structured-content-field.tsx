@@ -35,6 +35,10 @@ const loadRichTextField = createClientOnlyFn(
   () => import('#/components/rich-text-field'),
 )
 const RichTextField = lazy(loadRichTextField)
+const loadCodeField = createClientOnlyFn(
+  () => import('#/components/code-field'),
+)
+const CodeField = lazy(loadCodeField)
 
 export interface ReferenceContext {
   owner: string
@@ -572,11 +576,33 @@ export function StructuredContentField({
         </Suspense>
       </ClientOnly>
     )
-  } else if (['text', 'code'].includes(type)) {
+  } else if (type === 'code') {
+    control = (
+      <ClientOnly
+        fallback={
+          <div className="min-h-48 animate-pulse rounded-lg border bg-muted/30" />
+        }
+      >
+        <Suspense
+          fallback={
+            <div className="min-h-48 animate-pulse rounded-lg border bg-muted/30" />
+          }
+        >
+          <CodeField
+            disabled={disabled}
+            field={field}
+            required={required}
+            value={value}
+            onChange={onChange}
+          />
+        </Suspense>
+      </ClientOnly>
+    )
+  } else if (type === 'text') {
     control = (
       <Textarea
         aria-label={name}
-        className={type === 'code' ? 'min-h-48 font-mono' : 'min-h-32'}
+        className="min-h-32"
         disabled={disabled}
         required={required}
         value={typeof value === 'string' ? value : ''}
