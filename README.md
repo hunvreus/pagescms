@@ -13,10 +13,12 @@ The replacement is being built in reviewable migration waves. [`PLAN.md`](./PLAN
 
 ```bash
 pnpm install
+cp .dev.vars.example .dev.vars
+pnpm db:migrate
 pnpm dev
 ```
 
-The application runs at `http://localhost:3000`; its health endpoint is `GET /api/health`.
+Set a random `BETTER_AUTH_SECRET`, a local PostgreSQL `DATABASE_URL`, and at least one sign-in method in `.dev.vars`. The application runs at `http://localhost:3000`; its health endpoint is `GET /api/health`. See [`docs/development/authentication.md`](./docs/development/authentication.md).
 
 ## Verification
 
@@ -56,4 +58,5 @@ No deployment occurs during `pnpm cf:dry-run`. See [`docs/development/cloudflare
 
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md)
 - [`docs/index.md`](./docs/index.md)
+- [`docs/development/authentication.md`](./docs/development/authentication.md)
 - [`AGENTS.md`](./AGENTS.md)

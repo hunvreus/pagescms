@@ -12,3 +12,4 @@ playwright-report/
 test-results/
 src/routeTree.gen.ts
 worker-configuration.d.ts
+.dev.vars.example

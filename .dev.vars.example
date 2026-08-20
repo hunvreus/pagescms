@@ -1,0 +1,10 @@
+BETTER_AUTH_SECRET="replace-with-at-least-32-random-characters"
+BETTER_AUTH_URL="http://localhost:3000"
+DATABASE_URL="postgres://user:password@localhost:5432/pagescms"
+
+# Optional GitHub sign-in
+GITHUB_APP_CLIENT_ID=""
+GITHUB_APP_CLIENT_SECRET=""
+
+# hosted deployments must provide an access-policy plugin
+DEPLOYMENT_MODE="self-hosted"
