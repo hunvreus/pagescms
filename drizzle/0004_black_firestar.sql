@@ -1,0 +1,1 @@
+ALTER TABLE "config" ADD COLUMN "last_checked_at" timestamp DEFAULT now() NOT NULL;

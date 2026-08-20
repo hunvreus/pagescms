@@ -4,6 +4,7 @@ yarn.lock
 AGENTS.md
 PLAN.md
 _legacy/
+drizzle/
 .output/
 .wrangler/
 coverage/

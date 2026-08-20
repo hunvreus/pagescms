@@ -21,6 +21,8 @@ Route files stay thin. Product UI and client behavior belong in `src/features`; 
 
 Requests receive a validated or generated correlation identifier. Server logs are structured JSON. Request-scoped state must be passed explicitly and never stored in mutable module globals. Background work must be awaited or registered with the Workers execution context.
 
+PostgreSQL uses the legacy-compatible Drizzle schema and migration history. A Postgres.js client is created per request from the eventual Hyperdrive binding with a conservative connection limit, type-fetch round trips disabled, and prepared statements enabled. Database construction never reads ambient process environment; only the explicit Drizzle release CLI accepts `DATABASE_URL`.
+
 ## Data and caching
 
 The router preloads code and required route data. TanStack Query begins with a conservative 30-second default freshness window and five-minute garbage-collection window. Feature query definitions will override these defaults according to resource semantics. Durable cache ownership, keys, versioning, and webhook invalidation are introduced in later waves.
