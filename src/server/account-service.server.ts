@@ -10,6 +10,7 @@ export async function loadAccountSettings(input: {
   projects: ProjectService
   user: ProjectUser & { name: string; image: string | null }
   githubClientId?: string
+  githubAppName?: string
 }) {
   const githubAccount = await input.database.query.accountTable.findFirst({
     columns: { id: true },
@@ -23,6 +24,7 @@ export async function loadAccountSettings(input: {
     user: input.user,
     githubConnected,
     githubAvailable: Boolean(input.githubClientId),
+    githubAppInstallAvailable: Boolean(input.githubAppName),
     githubManageUrl: input.githubClientId
       ? `https://github.com/settings/connections/applications/${input.githubClientId}`
       : null,

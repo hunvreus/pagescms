@@ -32,7 +32,8 @@ export const Route = createFileRoute('/')({
 })
 
 function Dashboard() {
-  const { user, accounts, isAdmin } = Route.useLoaderData()
+  const { user, accounts, isAdmin, githubAppInstallAvailable } =
+    Route.useLoaderData()
 
   return (
     <div className="min-h-screen bg-muted/20">
@@ -48,7 +49,10 @@ function Dashboard() {
             </h1>
           </header>
 
-          <ProjectSelector accounts={accounts} />
+          <ProjectSelector
+            accounts={accounts}
+            githubAppInstallAvailable={githubAppInstallAvailable}
+          />
         </section>
       </main>
     </div>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { FolderGit2, LockKeyhole, Search } from 'lucide-react'
+import { ExternalLink, FolderGit2, LockKeyhole, Search } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
@@ -35,8 +35,10 @@ function updatedLabel(value: string | null) {
 
 export function ProjectSelector({
   accounts,
+  githubAppInstallAvailable,
 }: {
   accounts: readonly ProjectAccount[]
+  githubAppInstallAvailable: boolean
 }) {
   const [selectedKey, setSelectedKey] = useState(() =>
     accounts[0] ? `${accounts[0].login}:${accounts[0].installationId}` : '',
@@ -94,6 +96,13 @@ export function ProjectSelector({
           Install the GitHub App or ask a repository owner to invite this email
           address.
         </p>
+        {githubAppInstallAvailable ? (
+          <Button asChild className="mt-4">
+            <a href="/api/github-app/install">
+              Install GitHub App <ExternalLink />
+            </a>
+          </Button>
+        ) : null}
       </div>
     )
   }

@@ -42,6 +42,7 @@ export const getAccountSettings = createServerFn({ method: 'GET' }).handler(
             githubUsername: session.user.githubUsername ?? null,
           },
           githubClientId: services.configuration.auth.github?.clientId,
+          githubAppName: services.configuration.githubAppName,
         })
       },
     )
