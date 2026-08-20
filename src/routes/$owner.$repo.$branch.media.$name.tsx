@@ -19,6 +19,7 @@ import {
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { RepositoryActionButtons } from '#/components/repository-action-buttons'
+import { MediaThumbnail } from '#/components/media-thumbnail'
 import {
   createMedia,
   createMediaFolder,
@@ -317,7 +318,11 @@ function MediaPage() {
                 </Link>
               ) : (
                 <div className="flex items-center gap-3 px-4 py-3">
-                  <File className="size-4 text-muted-foreground" />
+                  {/\.(?:avif|gif|jpe?g|png|svg|webp)$/i.test(entry.name) ? (
+                    <MediaThumbnail {...params} path={entry.path} />
+                  ) : (
+                    <File className="size-4 text-muted-foreground" />
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{entry.name}</p>
                     <p className="text-xs text-muted-foreground">
