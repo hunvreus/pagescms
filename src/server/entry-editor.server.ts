@@ -20,6 +20,7 @@ import { normalizeGitPath } from '#/lib/git-path'
 import { toJsonObject, toJsonValue } from '#/lib/json'
 
 import { createConfigurationStore } from './configuration-store.server'
+import { invalidateDirectoryCacheAfterMutation } from './directory-cache.server'
 
 import type { CommitIdentity, CommitTemplates } from '#/lib/commit-message'
 import type {
@@ -297,7 +298,7 @@ export async function saveRawEntry(input: {
       userEmail: input.user.email,
     }),
   })
-  return context.api.putFile({
+  const result = await context.api.putFile({
     owner: input.owner,
     repo: input.repo,
     branch: input.branch,
@@ -314,6 +315,13 @@ export async function saveRawEntry(input: {
         }
       : {}),
   })
+  await invalidateDirectoryCacheAfterMutation(
+    input.database,
+    input.owner,
+    input.repo,
+    input.branch,
+  )
+  return result
 }
 
 export async function createStructuredEntry(
@@ -411,7 +419,7 @@ export async function deleteContentEntry(input: {
       userEmail: input.user.email,
     }),
   })
-  return context.api.deleteFile({
+  const result = await context.api.deleteFile({
     owner: input.owner,
     repo: input.repo,
     branch: input.branch,
@@ -427,6 +435,13 @@ export async function deleteContentEntry(input: {
         }
       : {}),
   })
+  await invalidateDirectoryCacheAfterMutation(
+    input.database,
+    input.owner,
+    input.repo,
+    input.branch,
+  )
+  return result
 }
 
 export async function renameContentEntry(
@@ -487,7 +502,7 @@ export async function renameContentEntry(
       userEmail: input.user.email,
     }),
   })
-  return context.api.renameFile({
+  const result = await context.api.renameFile({
     owner: input.owner,
     repo: input.repo,
     branch: input.branch,
@@ -504,4 +519,11 @@ export async function renameContentEntry(
         }
       : {}),
   })
+  await invalidateDirectoryCacheAfterMutation(
+    input.database,
+    input.owner,
+    input.repo,
+    input.branch,
+  )
+  return result
 }
