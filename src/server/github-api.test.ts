@@ -209,4 +209,38 @@ describe('createGitHubApi', () => {
       },
     ])
   })
+
+  it('updates files with optimistic SHA conflict protection', async () => {
+    let requestBody: Record<string, unknown> = {}
+    const fetcher = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        requestBody = JSON.parse(String(init?.body)) as Record<string, unknown>
+        return jsonResponse({
+          content: { path: '.pages.yml', sha: 'new-sha' },
+          commit: { sha: 'commit-sha' },
+        })
+      },
+    )
+
+    await expect(
+      createGitHubApi('token', fetcher).putFile({
+        owner: 'PagesCMS',
+        repo: 'pages-cms',
+        branch: 'main',
+        path: '.pages.yml',
+        content: 'Y29udGVudA==',
+        message: 'Update .pages.yml',
+        sha: 'old-sha',
+      }),
+    ).resolves.toEqual({
+      path: '.pages.yml',
+      sha: 'new-sha',
+      commitSha: 'commit-sha',
+    })
+    expect(requestBody).toMatchObject({
+      branch: 'main',
+      sha: 'old-sha',
+      content: 'Y29udGVudA==',
+    })
+  })
 })

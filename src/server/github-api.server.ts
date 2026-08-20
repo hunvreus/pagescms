@@ -122,13 +122,16 @@ async function githubRequest(
   fetcher: typeof fetch,
   token: string,
   path: string,
+  init: RequestInit = {},
 ): Promise<unknown> {
   const response = await fetcher(`${GITHUB_API_URL}${path}`, {
+    ...init,
     headers: {
       accept: 'application/vnd.github+json',
       authorization: `Bearer ${token}`,
       'user-agent': 'pagescms',
       'x-github-api-version': '2022-11-28',
+      ...init.headers,
     },
   })
   const body: unknown = await response.json().catch(() => ({}))
@@ -368,6 +371,44 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
               : null,
         }
       })
+    },
+
+    async putFile(input: {
+      owner: string
+      repo: string
+      branch: string
+      path: string
+      content: string
+      message: string
+      sha?: string
+      committer?: { name: string; email: string }
+    }) {
+      const body = requiredRecord(
+        await githubRequest(
+          fetcher,
+          token,
+          `/repos/${encodeURIComponent(input.owner)}/${encodeURIComponent(input.repo)}/contents/${input.path.split('/').map(encodeURIComponent).join('/')}`,
+          {
+            method: 'PUT',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              message: input.message,
+              content: input.content,
+              branch: input.branch,
+              ...(input.sha ? { sha: input.sha } : {}),
+              ...(input.committer ? { committer: input.committer } : {}),
+            }),
+          },
+        ),
+        'file update response',
+      )
+      const content = requiredRecord(body.content, 'updated file')
+      const commit = requiredRecord(body.commit, 'file commit')
+      return {
+        path: requiredString(content.path, 'updated file path'),
+        sha: requiredString(content.sha, 'updated file sha'),
+        commitSha: requiredString(commit.sha, 'file commit sha'),
+      }
     },
   }
 }
