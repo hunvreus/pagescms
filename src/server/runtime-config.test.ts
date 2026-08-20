@@ -13,6 +13,7 @@ describe('parseRuntimeConfiguration', () => {
 
   it('prefers Hyperdrive and defaults ordinary deployments to self-hosted', () => {
     expect(parseRuntimeConfiguration(base)).toEqual({
+      adminEmails: [],
       auth: {
         baseUrl: 'https://app.pagescms.org',
         secret: base.BETTER_AUTH_SECRET,
@@ -20,6 +21,15 @@ describe('parseRuntimeConfiguration', () => {
       databaseConnectionString: 'postgres://hyperdrive.internal/pagescms',
       deployment: 'self-hosted',
     })
+  })
+
+  it('normalizes and deduplicates bootstrap administrators', () => {
+    expect(
+      parseRuntimeConfiguration({
+        ...base,
+        ADMIN_EMAILS: ' Admin@example.com,owner@example.com,admin@example.com ',
+      }).adminEmails,
+    ).toEqual(['admin@example.com', 'owner@example.com'])
   })
 
   it('accepts paired GitHub OAuth credentials and hosted mode', () => {

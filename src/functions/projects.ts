@@ -73,6 +73,9 @@ export const getDashboardData = createServerFn({ method: 'GET' }).handler(
     return {
       user,
       accounts,
+      isAdmin: services.configuration.adminEmails.includes(
+        user.email.toLowerCase(),
+      ),
     }
   },
 )

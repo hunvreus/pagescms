@@ -8,6 +8,7 @@ export type AuthRuntimeConfiguration = Readonly<{
 }>
 
 export type RuntimeConfiguration = Readonly<{
+  adminEmails: readonly string[]
   auth: AuthRuntimeConfiguration
   databaseConnectionString: string
   deployment: 'self-hosted' | 'hosted'
@@ -106,6 +107,12 @@ export function parseRuntimeConfiguration(
   }
 
   return {
+    adminEmails: (optionalString(environment.ADMIN_EMAILS) ?? '')
+      .split(',')
+      .map((email) => email.trim().toLowerCase())
+      .filter(
+        (email, index, values) => email && values.indexOf(email) === index,
+      ),
     auth: {
       baseUrl: parseBaseUrl(environment.BETTER_AUTH_URL),
       secret,
