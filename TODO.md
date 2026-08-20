@@ -2,9 +2,7 @@
 
 ## MVP parity
 
-- Decide whether the legacy `/api/:owner/:repo/...` JSON endpoints have external consumers. Either add a tested compatibility facade or explicitly approve the TanStack server-function transport as the replacement.
 - Add authenticated browser fixtures for repository navigation and all critical read/mutation journeys.
-- Add isolated PostgreSQL integration tests for persistence, invitations, cache invalidation, and migration compatibility.
 
 ## Release and cutover
 

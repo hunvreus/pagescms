@@ -24,6 +24,16 @@ pnpm test:e2e
 
 The Playwright web server supplies isolated non-secret runtime placeholders, so the guest smoke test does not depend on a developer's `.dev.vars`. Browser tests that read or mutate persisted state must receive a real isolated PostgreSQL database and own their fixtures; they must never use a development or production database.
 
+## PostgreSQL integration tests
+
+The integration command starts an ephemeral PostgreSQL 17 container on a random local port, applies every migration, runs persistence/cache constraints, and removes the container afterward:
+
+```bash
+pnpm test:integration
+```
+
+Docker must be installed and running. The command never reads `.dev.vars` and cannot target an existing database.
+
 ## Build and Workers checks
 
 ```bash
