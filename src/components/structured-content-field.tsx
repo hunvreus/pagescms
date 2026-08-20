@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
+import { MediaThumbnail } from '#/components/media-thumbnail'
 import { Input } from '#/components/ui/input'
 import { Textarea } from '#/components/ui/textarea'
 import { getReferenceOptions } from '#/functions/references'
@@ -852,7 +853,16 @@ function MediaFieldControl({
               className="flex items-center gap-2 rounded-lg border bg-muted/20 px-3 py-2 text-sm"
               key={selectedPath}
             >
-              {image ? <span aria-hidden>▧</span> : <File className="size-4" />}
+              {image ? (
+                <MediaThumbnail
+                  {...context}
+                  className="size-10"
+                  name={mediaName}
+                  path={selectedPath}
+                />
+              ) : (
+                <File className="size-4" />
+              )}
               <span className="min-w-0 flex-1 truncate">{selectedPath}</span>
               <Button
                 asChild

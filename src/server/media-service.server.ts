@@ -152,6 +152,18 @@ export async function loadMediaDirectory(
   }
 }
 
+export async function loadMediaAsset(input: MediaInput & { path: string }) {
+  const { api, schema } = await context(input)
+  const path = mediaDirectoryPath(schema, input.path)
+  if (path === normalizeGitPath(schema.input)) {
+    throw new Error('Media asset path must identify a file')
+  }
+  if (!allowedExtension(schema, path)) {
+    throw new Error('This file extension is not allowed')
+  }
+  return api.getFile(input.owner, input.repo, path, input.branch)
+}
+
 export async function uploadMedia(
   input: MediaInput & {
     user: ProjectUser & { name: string }
