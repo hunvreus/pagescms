@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseMediaFolderCreate } from './media'
+import { parseMediaFolderCreate, parseMediaRename } from './media'
 
 describe('media folder requests', () => {
   it('normalizes nested media folders', () => {
@@ -30,5 +30,30 @@ describe('media folder requests', () => {
         folder: '.gitkeep',
       }),
     ).toThrow('invalid')
+  })
+
+  it('validates media rename filenames', () => {
+    expect(
+      parseMediaRename({
+        owner: 'PagesCMS',
+        repo: 'pages-cms',
+        branch: 'main',
+        name: 'images',
+        path: 'public/images/old.jpg',
+        sha: 'sha',
+        filename: 'new.jpg',
+      }),
+    ).toMatchObject({ filename: 'new.jpg' })
+    expect(() =>
+      parseMediaRename({
+        owner: 'PagesCMS',
+        repo: 'pages-cms',
+        branch: 'main',
+        name: 'images',
+        path: 'public/images/old.jpg',
+        sha: 'sha',
+        filename: '../bad.jpg',
+      }),
+    ).toThrow()
   })
 })

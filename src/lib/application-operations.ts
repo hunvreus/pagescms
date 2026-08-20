@@ -17,6 +17,7 @@ export const APPLICATION_OPERATIONS = [
   'entry.history',
   'media.read',
   'media.write',
+  'media.rename',
   'media.delete',
   'reference.read',
   'action.read',

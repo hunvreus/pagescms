@@ -320,3 +320,70 @@ export async function deleteMedia(
   )
   return result
 }
+
+export async function renameMediaFile(
+  input: MediaInput & {
+    user: ProjectUser & { name: string }
+    path: string
+    sha: string
+    filename: string
+  },
+) {
+  const { api, configuration, schema } = await context(input)
+  const path = mediaDirectoryPath(schema, input.path)
+  if (!allowedExtension(schema, path)) throw new Error('Invalid media path')
+  const filename = normalizeGitPath(input.filename.trim())
+  if (!filename || filename.includes('/')) {
+    throw new Error('Media filename must be a non-empty file name')
+  }
+  const separator = path.lastIndexOf('/')
+  const parent = separator === -1 ? '' : path.slice(0, separator)
+  const newPath = mediaDirectoryPath(
+    schema,
+    normalizeGitPath(parent ? `${parent}/${filename}` : filename),
+  )
+  if (!allowedExtension(schema, newPath)) {
+    throw new Error('This file extension is not allowed')
+  }
+  if (newPath === path) throw new Error('The filename has not changed')
+  const commit = commitOptions(schema)
+  const identity = resolveCommitIdentity({
+    configuration: configuration.object,
+    identityOverride: commit.identity,
+  })
+  const result = await api.renameFile({
+    owner: input.owner,
+    repo: input.repo,
+    branch: input.branch,
+    path,
+    newPath,
+    sha: input.sha,
+    message: resolveCommitMessage({
+      configuration: configuration.object,
+      templatesOverride: commit.templates,
+      action: 'rename',
+      tokens: buildCommitTokens({
+        action: 'rename',
+        owner: input.owner,
+        repo: input.repo,
+        branch: input.branch,
+        oldPath: path,
+        newPath,
+        contentName: input.name,
+        user: input.user.email,
+        userName: input.user.name,
+        userEmail: input.user.email,
+      }),
+    }),
+    ...(committer(identity, input.user)
+      ? { committer: committer(identity, input.user) }
+      : {}),
+  })
+  await invalidateDirectoryCacheAfterMutation(
+    input.database,
+    input.owner,
+    input.repo,
+    input.branch,
+  )
+  return result
+}
