@@ -8,6 +8,7 @@ import {
 import { File, Folder, LoaderCircle, Trash2, Upload } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
+import { RepositoryActionButtons } from '#/components/repository-action-buttons'
 import { createMedia, getMedia, removeMedia } from '#/functions/media'
 import { getSignInUrl } from '#/lib/auth-redirect'
 
@@ -130,23 +131,43 @@ function MediaPage() {
             {data.media.label}
           </h1>
         </div>
-        <Button asChild disabled={uploading}>
-          <label>
-            {uploading ? <LoaderCircle className="animate-spin" /> : <Upload />}
-            {uploading ? 'Uploading' : 'Upload'}
-            <input
-              multiple
-              accept={accept}
-              className="sr-only"
-              disabled={uploading}
-              type="file"
-              onChange={(event) => {
-                void upload(event.target.files)
-                event.target.value = ''
-              }}
-            />
-          </label>
-        </Button>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <RepositoryActionButtons
+            actions={data.media.actions}
+            context={{
+              type: 'media',
+              name: data.media.name,
+              path: data.media.path,
+              data: {
+                label: data.media.label,
+                input: data.media.rootPath,
+                output: data.media.output,
+              },
+            }}
+            coordinates={params}
+          />
+          <Button asChild disabled={uploading}>
+            <label>
+              {uploading ? (
+                <LoaderCircle className="animate-spin" />
+              ) : (
+                <Upload />
+              )}
+              {uploading ? 'Uploading' : 'Upload'}
+              <input
+                multiple
+                accept={accept}
+                className="sr-only"
+                disabled={uploading}
+                type="file"
+                onChange={(event) => {
+                  void upload(event.target.files)
+                  event.target.value = ''
+                }}
+              />
+            </label>
+          </Button>
+        </div>
       </header>
       {error ? (
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">

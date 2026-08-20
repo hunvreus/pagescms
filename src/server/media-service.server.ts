@@ -3,6 +3,7 @@ import {
   resolveCommitIdentity,
   resolveCommitMessage,
 } from '#/lib/commit-message'
+import { schemaActions } from '#/lib/actions'
 import { base64ByteLength } from '#/lib/base64'
 import {
   findMediaSchema,
@@ -118,7 +119,9 @@ export async function loadMediaDirectory(
           : schema.name,
       path,
       rootPath: schema.input,
+      output: typeof schema.output === 'string' ? schema.output : null,
       extensions: Array.isArray(schema.extensions) ? schema.extensions : [],
+      actions: schemaActions(schema),
     },
     entries: entries.map(({ content: _content, ...entry }) => entry),
   }

@@ -3,8 +3,11 @@ import { and, desc, eq, isNotNull, ne } from 'drizzle-orm'
 import {
   repositoryActions,
   resolveActionRef,
+  schemaActions,
   validateActionInputs,
 } from '#/lib/actions'
+import { findContentSchema, findMediaSchema } from '#/lib/configuration-content'
+import { normalizeGitPath } from '#/lib/git-path'
 
 import { createConfigurationStore } from './configuration-store.server'
 
@@ -25,7 +28,58 @@ type ActionInput = {
   branch: string
 }
 
-async function actionContext(input: ActionInput) {
+export type RepositoryActionContext = {
+  type: 'repository' | 'collection' | 'entry' | 'file' | 'media'
+  name: string | null
+  path: string | null
+  data: Record<string, unknown>
+}
+
+function configuredActions(
+  configuration: Record<string, unknown>,
+  context: RepositoryActionContext,
+) {
+  if (context.type === 'repository') return repositoryActions(configuration)
+  if (!context.name) throw new Error('Action context name is required')
+  const schema =
+    context.type === 'media'
+      ? findMediaSchema(configuration, context.name)
+      : findContentSchema(configuration, context.name)
+  if (!schema) throw new Error(`Action context ${context.name} was not found`)
+  if (context.type === 'collection' && schema.type !== 'collection') {
+    throw new Error('Collection action context is invalid')
+  }
+  if (context.type === 'entry' && schema.type !== 'collection') {
+    throw new Error('Entry action context is invalid')
+  }
+  if (context.type === 'file' && schema.type !== 'file') {
+    throw new Error('File action context is invalid')
+  }
+  const rootValue = context.type === 'media' ? schema.input : schema.path
+  if (typeof rootValue !== 'string') {
+    throw new Error('Action context root is invalid')
+  }
+  const root = normalizeGitPath(rootValue)
+  const path = normalizeGitPath(context.path ?? root)
+  if (path !== root && !path.startsWith(`${root}/`)) {
+    throw new Error('Action context path is outside its configured root')
+  }
+  return context.type === 'collection'
+    ? schemaActions(schema, 'collection')
+    : context.type === 'entry'
+      ? schemaActions(schema, 'entry')
+      : schemaActions(schema)
+}
+
+async function actionContext(
+  input: ActionInput,
+  context: RepositoryActionContext = {
+    type: 'repository',
+    name: null,
+    path: null,
+    data: {},
+  },
+) {
   const { api } = await input.repositoryAccess.resolve(
     input.user,
     input.owner,
@@ -39,7 +93,7 @@ async function actionContext(input: ActionInput) {
   if (!configuration) throw new Error('Repository configuration not found')
   return {
     api,
-    actions: repositoryActions(configuration.object),
+    actions: configuredActions(configuration.object, context),
   }
 }
 
@@ -211,9 +265,13 @@ export async function loadRepositoryActions(input: ActionInput) {
 }
 
 export async function dispatchRepositoryAction(
-  input: ActionInput & { actionName: string; inputs: Record<string, unknown> },
+  input: ActionInput & {
+    actionName: string
+    inputs: Record<string, unknown>
+    context: RepositoryActionContext
+  },
 ) {
-  const { api, actions } = await actionContext(input)
+  const { api, actions } = await actionContext(input, input.context)
   const action = actions.find((value) => value.name === input.actionName)
   if (!action) throw new Error(`Action ${input.actionName} was not found`)
   const values = validateActionInputs(action.fields ?? [], input.inputs)
@@ -243,7 +301,7 @@ export async function dispatchRepositoryAction(
     },
     triggeredAt: timestamp.toISOString(),
     triggeredBy,
-    context: { type: 'repository', name: null, path: null, data: {} },
+    context: input.context,
     inputs: values,
   }
   const rows = await input.database
@@ -255,9 +313,9 @@ export async function dispatchRepositoryAction(
       workflowRef,
       sha,
       actionName: action.name,
-      contextType: 'repository',
-      contextName: null,
-      contextPath: null,
+      contextType: input.context.type,
+      contextName: input.context.name,
+      contextPath: input.context.path,
       workflow: action.workflow,
       status: 'dispatching',
       triggeredBy,

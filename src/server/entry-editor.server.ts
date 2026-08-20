@@ -3,6 +3,7 @@ import {
   resolveCommitIdentity,
   resolveCommitMessage,
 } from '#/lib/commit-message'
+import { schemaActions } from '#/lib/actions'
 import { generateContentFilename } from '#/lib/content-filename'
 import {
   collectionDirectoryPath,
@@ -153,6 +154,14 @@ export async function loadRawEntry(input: {
         ? context.schema.label
         : context.schema.name,
     operations: resolveContentOperations({ schema: context.schema }),
+    actionContextType:
+      context.schema.type === 'collection'
+        ? ('entry' as const)
+        : ('file' as const),
+    actions:
+      context.schema.type === 'collection'
+        ? schemaActions(context.schema, 'entry')
+        : schemaActions(context.schema),
   }
   if (fields.length && format) {
     return {

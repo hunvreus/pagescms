@@ -126,14 +126,13 @@ function ActionsPage() {
                 values[action.name]?.[field.name] ??
                 field.default ??
                 (field.type === 'checkbox' ? false : '')
-              const update = (next: string | number | boolean) =>
-                setValues((current) => ({
-                  ...current,
-                  [action.name]: {
-                    ...current[action.name],
-                    [field.name]: next,
-                  },
-                }))
+              const update = (next: string | number | boolean | undefined) =>
+                setValues((current) => {
+                  const actionValues = { ...current[action.name] }
+                  if (next === undefined) delete actionValues[field.name]
+                  else actionValues[field.name] = next
+                  return { ...current, [action.name]: actionValues }
+                })
               return (
                 <label className="block space-y-2" key={field.name}>
                   <span className="text-sm font-medium">
@@ -178,7 +177,9 @@ function ActionsPage() {
                       onChange={(event) =>
                         update(
                           field.type === 'number'
-                            ? event.target.valueAsNumber
+                            ? event.target.value === ''
+                              ? undefined
+                              : event.target.valueAsNumber
                             : event.target.value,
                         )
                       }

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   repositoryActions,
   resolveActionRef,
+  schemaActions,
   validateActionInputs,
 } from './actions'
 
@@ -44,5 +45,32 @@ describe('repository actions', () => {
         { count: 'two' },
       ),
     ).toThrow('number')
+  })
+
+  it('selects schema actions by context scope', () => {
+    const schema = {
+      actions: [
+        { name: 'file', label: 'File', workflow: 'file.yml' },
+        {
+          name: 'collection',
+          label: 'Collection',
+          workflow: 'collection.yml',
+          scope: 'collection',
+        },
+        {
+          name: 'entry',
+          label: 'Entry',
+          workflow: 'entry.yml',
+          scope: 'entry',
+        },
+      ],
+    }
+    expect(schemaActions(schema).map((action) => action.name)).toEqual(['file'])
+    expect(
+      schemaActions(schema, 'collection').map((action) => action.name),
+    ).toEqual(['collection'])
+    expect(schemaActions(schema, 'entry').map((action) => action.name)).toEqual(
+      ['entry'],
+    )
   })
 })
