@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import {
   allowedMediaFieldExtensions,
+  mediaInputPath,
+  mediaOutputPath,
   transformMediaFieldValues,
   validateMediaFieldValues,
 } from './media-field-values'
@@ -16,6 +18,21 @@ const media = [
 ]
 
 describe('media field values', () => {
+  it('maps rich-text image paths across input and output roots', () => {
+    expect(mediaInputPath('/uploads/cover.jpg', media[0])).toBe(
+      'static/uploads/cover.jpg',
+    )
+    expect(mediaOutputPath('static/uploads/cover.jpg', media[0])).toBe(
+      '/uploads/cover.jpg',
+    )
+    expect(mediaInputPath('/cover.jpg', { ...media[0], output: '/' })).toBe(
+      'static/uploads/cover.jpg',
+    )
+    expect(mediaInputPath('https://example.com/cover.jpg', media[0])).toBe(
+      'https://example.com/cover.jpg',
+    )
+  })
+
   it('translates public paths for editing and restores them for persistence', () => {
     const fields = [
       { name: 'cover', type: 'image' },

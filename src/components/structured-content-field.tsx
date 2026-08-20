@@ -36,7 +36,7 @@ const loadRichTextField = createClientOnlyFn(
 )
 const RichTextField = lazy(loadRichTextField)
 
-interface ReferenceContext {
+export interface ReferenceContext {
   owner: string
   repo: string
   branch: string
@@ -564,6 +564,7 @@ export function StructuredContentField({
           <RichTextField
             disabled={disabled}
             field={field}
+            referenceContext={referenceContext}
             required={required}
             value={value}
             onChange={onChange}
