@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { validateStructuredContent } from './field-values'
+import {
+  initializeStructuredContent,
+  validateStructuredContent,
+} from './field-values'
 
 describe('structured field values', () => {
   it('validates required, typed, patterned, nested, and list fields', () => {
@@ -45,5 +48,28 @@ describe('structured field values', () => {
         { status: 'published' },
       ),
     ).toEqual([])
+  })
+
+  it('initializes defaults, booleans, UUIDs, objects, and lists', () => {
+    const content = initializeStructuredContent([
+      { name: 'title', type: 'string', default: 'Untitled' },
+      { name: 'published', type: 'boolean' },
+      { name: 'id', type: 'uuid' },
+      { name: 'tags', type: 'string', list: true },
+      {
+        name: 'seo',
+        type: 'object',
+        fields: [{ name: 'description', type: 'text', default: 'Summary' }],
+      },
+    ])
+    expect(content).toMatchObject({
+      title: 'Untitled',
+      published: false,
+      tags: [],
+      seo: { description: 'Summary' },
+    })
+    expect(content.id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    )
   })
 })
