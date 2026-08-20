@@ -145,6 +145,33 @@ describe('createGitHubApi', () => {
     expect(fileUrl.searchParams.get('ref')).toBe('feature/a')
   })
 
+  it('creates a branch from an existing ref', async () => {
+    const fetcher = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = new URL(String(input))
+        if (url.pathname.endsWith('/git/ref/heads/main')) {
+          return jsonResponse({ object: { sha: 'source-sha' } })
+        }
+        expect(url.pathname).toMatch(/\/git\/refs$/)
+        expect(init?.method).toBe('POST')
+        expect(JSON.parse(String(init?.body))).toEqual({
+          ref: 'refs/heads/feature/editor',
+          sha: 'source-sha',
+        })
+        return jsonResponse({ object: { sha: 'source-sha' } })
+      },
+    )
+
+    await expect(
+      createGitHubApi('token', fetcher).createBranch(
+        'PagesCMS',
+        'pages-cms',
+        'feature/editor',
+        'main',
+      ),
+    ).resolves.toEqual({ branch: 'feature/editor', sha: 'source-sha' })
+  })
+
   it('loads collection text and directories in one GraphQL request', async () => {
     const fetcher = vi.fn(
       async (_input: RequestInfo | URL, init?: RequestInit) => {

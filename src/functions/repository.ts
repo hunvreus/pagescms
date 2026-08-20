@@ -1,6 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 
-import { repositoryRef } from '#/lib/repository'
+import { branchName, repositoryRef } from '#/lib/repository'
 
 import type { RequestServices } from '#/server/request-services.server'
 
@@ -25,6 +25,26 @@ function parseRepositoryRequest(input: unknown) {
     throw new Error('Invalid branch name')
   }
   return { ...repository, branch }
+}
+
+export function parseBranchCreate(input: unknown) {
+  if (typeof input !== 'object' || input === null) {
+    throw new Error('Invalid branch creation')
+  }
+  const value = input as Record<string, unknown>
+  if (
+    typeof value.owner !== 'string' ||
+    typeof value.repo !== 'string' ||
+    typeof value.branch !== 'string' ||
+    typeof value.source !== 'string'
+  ) {
+    throw new Error('Invalid branch creation')
+  }
+  return {
+    ...repositoryRef({ owner: value.owner, repo: value.repo }),
+    branch: branchName(value.branch),
+    source: branchName(value.source),
+  }
 }
 
 function authenticatedProjectUser(
@@ -63,5 +83,35 @@ export const getRepositoryWorkspace = createServerFn({ method: 'GET' })
           data.repo,
           data.branch,
         ),
+    )
+  })
+
+export const createRepositoryBranch = createServerFn({ method: 'POST' })
+  .validator(parseBranchCreate)
+  .handler(async ({ context, data }) => {
+    const services = context.getServices()
+    const user = authenticatedProjectUser(await services.getSession())
+    return services.access.execute(
+      {
+        operation: 'branch.create',
+        principal: { type: 'user', id: user.id },
+        tenant: {
+          type: 'repository',
+          id: `${data.owner}/${data.repo}`.toLowerCase(),
+        },
+        target: {
+          repository: data,
+          branch: data.source,
+        },
+      },
+      async () => {
+        const { api } = await services.repositoryAccess.resolve(
+          user,
+          data.owner,
+          data.repo,
+          data.source,
+        )
+        return api.createBranch(data.owner, data.repo, data.branch, data.source)
+      },
     )
   })

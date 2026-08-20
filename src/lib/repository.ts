@@ -65,6 +65,28 @@ function assertBranch(branch: string) {
   return branch
 }
 
+/** Validates the subset of Git reference rules applicable to branch names. */
+export function branchName(value: string) {
+  const branch = value.trim()
+  if (
+    !branch ||
+    branch.length > 255 ||
+    containsControlCharacter(branch) ||
+    branch.startsWith('/') ||
+    branch.endsWith('/') ||
+    branch.startsWith('.') ||
+    branch.endsWith('.') ||
+    branch.endsWith('.lock') ||
+    branch.includes('..') ||
+    branch.includes('//') ||
+    branch.includes('@{') ||
+    Array.from(branch).some((character) => ' ~^:?*[\\'.includes(character))
+  ) {
+    throw new Error('Invalid branch name')
+  }
+  return branch
+}
+
 export function repositoryCacheKey(repository: RepositoryRef) {
   const [owner, repo] = canonicalRepositoryCoordinates(repository)
   return ['repository', owner, repo] as const
