@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { ClientOnly } from '@tanstack/react-router'
+import { createClientOnlyFn } from '@tanstack/react-start'
 import {
   ArrowDown,
   ArrowUp,
@@ -26,6 +28,11 @@ import {
 import { clientPluginRegistry } from '#/plugins/client-discovery'
 
 import type { JsonObject, JsonValue } from '#/lib/json'
+
+const loadRichTextField = createClientOnlyFn(
+  () => import('#/components/rich-text-field'),
+)
+const RichTextField = lazy(loadRichTextField)
 
 interface ReferenceContext {
   owner: string
@@ -540,7 +547,29 @@ export function StructuredContentField({
         onChange={onChange}
       />
     )
-  } else if (['text', 'rich-text', 'code'].includes(type)) {
+  } else if (type === 'rich-text') {
+    control = (
+      <ClientOnly
+        fallback={
+          <div className="min-h-48 animate-pulse rounded-lg border bg-muted/30" />
+        }
+      >
+        <Suspense
+          fallback={
+            <div className="min-h-48 animate-pulse rounded-lg border bg-muted/30" />
+          }
+        >
+          <RichTextField
+            disabled={disabled}
+            field={field}
+            required={required}
+            value={value}
+            onChange={onChange}
+          />
+        </Suspense>
+      </ClientOnly>
+    )
+  } else if (['text', 'code'].includes(type)) {
     control = (
       <Textarea
         aria-label={name}
