@@ -52,6 +52,15 @@ export interface GitHubWorkflowRun {
   updatedAt: string
 }
 
+export interface GitHubCommitSummary {
+  sha: string
+  url: string
+  message: string
+  authorName: string
+  authorLogin: string | null
+  authoredAt: string | null
+}
+
 export class GitHubApiError extends Error {
   constructor(
     message: string,
@@ -141,6 +150,27 @@ function parseWorkflowRun(value: unknown): GitHubWorkflowRun {
     htmlUrl: typeof value.html_url === 'string' ? value.html_url : null,
     createdAt: requiredString(value.created_at, 'workflow run creation time'),
     updatedAt: requiredString(value.updated_at, 'workflow run update time'),
+  }
+}
+
+function parseCommit(value: unknown): GitHubCommitSummary {
+  const record = requiredRecord(value, 'commit')
+  const commit = requiredRecord(record.commit, 'commit metadata')
+  const author = isRecord(commit.author) ? commit.author : {}
+  const githubAuthor = isRecord(record.author) ? record.author : {}
+  return {
+    sha: requiredString(record.sha, 'commit sha'),
+    url: requiredString(record.html_url, 'commit URL'),
+    message: requiredString(commit.message, 'commit message'),
+    authorName:
+      typeof author.name === 'string' && author.name
+        ? author.name
+        : typeof githubAuthor.login === 'string'
+          ? githubAuthor.login
+          : 'Unknown author',
+    authorLogin:
+      typeof githubAuthor.login === 'string' ? githubAuthor.login : null,
+    authoredAt: typeof author.date === 'string' ? author.date : null,
   }
 }
 
@@ -668,6 +698,23 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
         `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/runs/${runId}/cancel`,
         { method: 'POST' },
       )
+    },
+
+    async listFileCommits(
+      owner: string,
+      repo: string,
+      branch: string,
+      path: string,
+    ) {
+      const query = new URLSearchParams({ sha: branch, path, per_page: '20' })
+      const body = await githubRequest(
+        fetcher,
+        token,
+        `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/commits?${query}`,
+      )
+      if (!Array.isArray(body))
+        throw new Error('GitHub returned invalid commits')
+      return body.map(parseCommit)
     },
   }
 }

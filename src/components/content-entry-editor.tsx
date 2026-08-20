@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from '@tanstack/react-router'
-import { Check, LoaderCircle, Pencil, Save, Trash2 } from 'lucide-react'
+import {
+  Check,
+  ExternalLink,
+  History,
+  LoaderCircle,
+  Pencil,
+  Save,
+  Trash2,
+  X,
+} from 'lucide-react'
 
 import {
   StructuredContentField,
@@ -11,6 +20,7 @@ import { Button } from '#/components/ui/button'
 import { Textarea } from '#/components/ui/textarea'
 import {
   deleteEntry,
+  getEntryHistory,
   renameEntry,
   updateRawEntry,
   updateStructuredEntry,
@@ -346,6 +356,7 @@ function EditorHeader({
         </h1>
       </div>
       <div className="flex gap-2">
+        <EntryHistoryButton coordinates={coordinates} />
         <RepositoryActionButtons
           actions={initial.actions}
           context={{
@@ -391,6 +402,110 @@ function EditorHeader({
         </Button>
       </div>
     </header>
+  )
+}
+
+function EntryHistoryButton({
+  coordinates,
+}: {
+  coordinates: ContentEntryCoordinates
+}) {
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [history, setHistory] = useState<
+    Awaited<ReturnType<typeof getEntryHistory>> | undefined
+  >()
+  const [error, setError] = useState<string | null>(null)
+
+  async function toggle() {
+    if (open) {
+      setOpen(false)
+      return
+    }
+    setOpen(true)
+    if (history) return
+    setLoading(true)
+    setError(null)
+    try {
+      setHistory(await getEntryHistory({ data: coordinates }))
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : 'Could not load history',
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="relative">
+      <Button
+        aria-label="Entry history"
+        size="icon"
+        type="button"
+        variant="outline"
+        onClick={() => void toggle()}
+      >
+        {loading ? <LoaderCircle className="animate-spin" /> : <History />}
+      </Button>
+      {open ? (
+        <div className="absolute right-0 top-full z-20 mt-2 w-80 rounded-xl border bg-popover p-3 text-popover-foreground shadow-lg">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <h2 className="font-semibold">History</h2>
+            <Button
+              aria-label="Close history"
+              size="icon"
+              type="button"
+              variant="ghost"
+              onClick={() => setOpen(false)}
+            >
+              <X />
+            </Button>
+          </div>
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Loading history…</p>
+          ) : history?.length ? (
+            <ul className="divide-y">
+              {history.slice(0, 5).map((commit) => (
+                <li key={commit.sha}>
+                  <a
+                    className="flex items-start gap-3 rounded-md px-2 py-2 hover:bg-muted"
+                    href={commit.url}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {commit.message.split('\n')[0]}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {commit.authorName}
+                        {commit.authoredAt
+                          ? ` · ${new Date(commit.authoredAt).toLocaleString()}`
+                          : ''}
+                      </p>
+                    </div>
+                    <ExternalLink className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">No history found.</p>
+          )}
+          <Button asChild className="mt-3 w-full" size="sm" variant="outline">
+            <a
+              href={`https://github.com/${encodeURIComponent(coordinates.owner)}/${encodeURIComponent(coordinates.repo)}/commits/${encodeURIComponent(coordinates.branch)}/${coordinates.path.split('/').map(encodeURIComponent).join('/')}`}
+              rel="noreferrer"
+              target="_blank"
+            >
+              View all on GitHub <ExternalLink />
+            </a>
+          </Button>
+        </div>
+      ) : null}
+    </div>
   )
 }
 

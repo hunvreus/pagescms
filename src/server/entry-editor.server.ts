@@ -184,6 +184,36 @@ export async function loadRawEntry(input: {
   }
 }
 
+export async function loadEntryHistory(input: {
+  database: Database
+  background: BackgroundExecutor
+  repositoryAccess: RepositoryAccessService
+  user: ProjectUser
+  owner: string
+  repo: string
+  branch: string
+  name: string
+  path: string
+}) {
+  const context = await loadContext(
+    input.database,
+    input.background,
+    input.repositoryAccess,
+    input.user,
+    input.owner,
+    input.repo,
+    input.branch,
+    input.name,
+    input.path,
+  )
+  return context.api.listFileCommits(
+    input.owner,
+    input.repo,
+    input.branch,
+    context.path,
+  )
+}
+
 export async function loadFixedFile(
   input: Omit<Parameters<typeof loadRawEntry>[0], 'path'>,
 ) {

@@ -449,4 +449,43 @@ describe('createGitHubApi', () => {
     await api.cancelWorkflowRun('PagesCMS', 'pages-cms', 72)
     expect(requests.at(-1)).toMatchObject({ method: 'POST' })
   })
+
+  it('loads normalized file history with encoded branch and path filters', async () => {
+    let requestedUrl = ''
+    const fetcher = vi.fn(async (input: RequestInfo | URL) => {
+      requestedUrl = String(input)
+      return jsonResponse([
+        {
+          sha: 'commit-sha',
+          html_url: 'https://github.com/PagesCMS/pages-cms/commit/commit-sha',
+          commit: {
+            message: 'Update post',
+            author: { name: 'Ada', date: '2026-08-20T00:00:00Z' },
+          },
+          author: { login: 'ada' },
+        },
+      ])
+    })
+
+    await expect(
+      createGitHubApi('token', fetcher).listFileCommits(
+        'PagesCMS',
+        'pages-cms',
+        'feature/a',
+        'content/hello world.md',
+      ),
+    ).resolves.toEqual([
+      {
+        sha: 'commit-sha',
+        url: 'https://github.com/PagesCMS/pages-cms/commit/commit-sha',
+        message: 'Update post',
+        authorName: 'Ada',
+        authorLogin: 'ada',
+        authoredAt: '2026-08-20T00:00:00Z',
+      },
+    ])
+    const url = new URL(requestedUrl)
+    expect(url.searchParams.get('sha')).toBe('feature/a')
+    expect(url.searchParams.get('path')).toBe('content/hello world.md')
+  })
 })
