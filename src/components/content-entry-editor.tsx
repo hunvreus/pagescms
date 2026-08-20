@@ -300,6 +300,7 @@ function StructuredEntryEditor({
             <StructuredContentField
               field={field}
               key={name}
+              referenceContext={coordinates}
               value={content[name]}
               onChange={(value) => {
                 setSaved(false)

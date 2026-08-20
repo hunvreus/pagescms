@@ -194,6 +194,7 @@ function CollectionPage() {
               <StructuredContentField
                 field={field}
                 key={name}
+                referenceContext={params}
                 value={content[name]}
                 onChange={(value: JsonValue | undefined) => {
                   setContent((current) => {
