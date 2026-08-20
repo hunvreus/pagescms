@@ -70,6 +70,39 @@ export const getConfigurationEditor = createServerFn({ method: 'GET' })
     )
   })
 
+export const getConfigurationHistory = createServerFn({ method: 'GET' })
+  .validator(parseCoordinates)
+  .handler(async ({ context, data }) => {
+    const services = context.getServices()
+    const session = await services.getSession()
+    if (!session?.user) throw new Error('Authentication required')
+    const user = {
+      id: session.user.id,
+      email: session.user.email,
+      githubUsername: session.user.githubUsername ?? null,
+    }
+    return services.access.execute(
+      {
+        operation: 'configuration.history',
+        principal: { type: 'user', id: user.id },
+        tenant: {
+          type: 'repository',
+          id: `${data.owner}/${data.repo}`.toLowerCase(),
+        },
+        target: { repository: data, branch: data.branch, path: '.pages.yml' },
+      },
+      async () => {
+        const { loadConfigurationHistory } =
+          await import('#/server/configuration-editor.server')
+        return loadConfigurationHistory({
+          repositoryAccess: services.repositoryAccess,
+          user,
+          ...data,
+        })
+      },
+    )
+  })
+
 export const updateConfiguration = createServerFn({ method: 'POST' })
   .validator(parseSaveRequest)
   .handler(async ({ context, data }) => {

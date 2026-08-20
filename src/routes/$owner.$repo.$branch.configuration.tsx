@@ -1,11 +1,19 @@
 import { useEffect, useState } from 'react'
 import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
-import { Check, LoaderCircle, Save } from 'lucide-react'
+import {
+  Check,
+  ExternalLink,
+  History,
+  LoaderCircle,
+  Save,
+  X,
+} from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
 import { Textarea } from '#/components/ui/textarea'
 import {
   getConfigurationEditor,
+  getConfigurationHistory,
   updateConfiguration,
 } from '#/functions/configuration-editor'
 import { getSignInUrl } from '#/lib/auth-redirect'
@@ -44,6 +52,10 @@ function ConfigurationEditor() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [history, setHistory] = useState<Awaited<
+    ReturnType<typeof getConfigurationHistory>
+  > | null>(null)
+  const [loadingHistory, setLoadingHistory] = useState(false)
   const dirty = source !== savedSource
 
   useEffect(() => {
@@ -74,6 +86,24 @@ function ConfigurationEditor() {
     }
   }
 
+  async function showHistory() {
+    if (history) {
+      setHistory(null)
+      return
+    }
+    setLoadingHistory(true)
+    setError(null)
+    try {
+      setHistory(await getConfigurationHistory({ data: params }))
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : 'Could not load history',
+      )
+    } finally {
+      setLoadingHistory(false)
+    }
+  }
+
   return (
     <div className="mx-auto max-w-5xl space-y-5">
       <header className="flex items-start justify-between gap-4">
@@ -83,22 +113,75 @@ function ConfigurationEditor() {
             Configuration
           </h1>
         </div>
-        <Button disabled={saving || !dirty} onClick={() => void save()}>
-          {saving ? (
-            <LoaderCircle className="animate-spin" />
-          ) : saved ? (
-            <Check />
-          ) : (
-            <Save />
-          )}
-          {saving ? 'Saving' : 'Save'}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            disabled={loadingHistory}
+            variant="outline"
+            onClick={() => void showHistory()}
+          >
+            {loadingHistory ? (
+              <LoaderCircle className="animate-spin" />
+            ) : history ? (
+              <X />
+            ) : (
+              <History />
+            )}
+            {history ? 'Close history' : 'History'}
+          </Button>
+          <Button disabled={saving || !dirty} onClick={() => void save()}>
+            {saving ? (
+              <LoaderCircle className="animate-spin" />
+            ) : saved ? (
+              <Check />
+            ) : (
+              <Save />
+            )}
+            {saving ? 'Saving' : 'Save'}
+          </Button>
+        </div>
       </header>
 
       {error ? (
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
           {error}
         </div>
+      ) : null}
+
+      {history ? (
+        <section className="space-y-3 rounded-xl border bg-card p-4 shadow-xs">
+          <h2 className="font-semibold">Configuration history</h2>
+          {history.length ? (
+            <ul className="divide-y">
+              {history.map((commit) => (
+                <li className="flex items-start gap-3 py-3" key={commit.sha}>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">
+                      {commit.message.split('\n')[0]}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {commit.authorName}
+                      {commit.authoredAt
+                        ? ` · ${new Date(commit.authoredAt).toLocaleString()}`
+                        : ''}
+                    </p>
+                  </div>
+                  <Button
+                    asChild
+                    aria-label="Open commit"
+                    size="icon"
+                    variant="ghost"
+                  >
+                    <a href={commit.url} rel="noreferrer" target="_blank">
+                      <ExternalLink />
+                    </a>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">No commits found.</p>
+          )}
+        </section>
       ) : null}
 
       <Textarea

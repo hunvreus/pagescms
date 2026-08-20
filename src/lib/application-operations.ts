@@ -6,6 +6,7 @@ export const APPLICATION_OPERATIONS = [
   'branch.read',
   'branch.create',
   'configuration.read',
+  'configuration.history',
   'configuration.update',
   'collection.read',
   'entry.read',
