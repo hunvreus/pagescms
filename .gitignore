@@ -1,22 +1,38 @@
-# Root ignores for the TanStack Start rewrite.
+# Dependencies
 node_modules/
-.output/
-.wrangler/
-.dev.vars*
+
+# Environment and local secrets
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+*.local
+
+# Build and framework output
 dist/
+dist-ssr/
+.output/
+.tanstack/
+.vinxi/
+.nitro/
+.wrangler/
 coverage/
 playwright-report/
 test-results/
 *.tsbuildinfo
+*.cpuprofile
+__unconfig*
+todos.json
+
+# Generated code
+src/routeTree.gen.ts
+
+# Editor and OS files
 .DS_Store
 
-# Environment files remain local. Commit explicit examples only.
-.env*
-!.env.example
-!.env.local.example
-
-# The legacy tree is source-controlled, but its local dependencies, caches,
-# generated builds, secrets, and previous Vinext experiment outputs are not.
+# Legacy local dependencies, experiments, generated output, and secrets
 _legacy/node_modules/
 _legacy/.next/
 _legacy/.tmp/
