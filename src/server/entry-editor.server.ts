@@ -1,0 +1,218 @@
+import { and, eq } from 'drizzle-orm'
+
+import {
+  buildCommitTokens,
+  resolveCommitIdentity,
+  resolveCommitMessage,
+} from '#/lib/commit-message'
+import { findContentSchema } from '#/lib/configuration-content'
+import { parseContent } from '#/lib/content-serialization'
+import { getFileExtension } from '#/lib/file-types'
+import { normalizeGitPath } from '#/lib/git-path'
+
+import { createConfigurationStore } from './configuration-store.server'
+import { createGitHubApi } from './github-api.server'
+
+import type { CommitTemplates } from '#/lib/commit-message'
+import type {
+  ContentFormat,
+  FrontmatterDelimiters,
+} from '#/lib/content-serialization'
+import type { Database } from './database/client.server'
+import type { BackgroundExecutor } from './runtime-ports.server'
+import type { ProjectUser } from './projects.server'
+
+import { accountTable } from './database/schema'
+
+const formats = new Set<ContentFormat>([
+  'yaml',
+  'json',
+  'toml',
+  'yaml-frontmatter',
+  'json-frontmatter',
+  'toml-frontmatter',
+])
+
+function decodeBase64(value: string) {
+  const binary = atob(value.replace(/\s/g, ''))
+  return new TextDecoder().decode(
+    Uint8Array.from(binary, (item) => item.charCodeAt(0)),
+  )
+}
+
+function encodeBase64(value: string) {
+  const bytes = new TextEncoder().encode(value)
+  let binary = ''
+  for (const byte of bytes) binary += String.fromCharCode(byte)
+  return btoa(binary)
+}
+
+async function loadContext(
+  database: Database,
+  background: BackgroundExecutor,
+  user: ProjectUser,
+  owner: string,
+  repo: string,
+  branch: string,
+  name: string,
+  path: string,
+) {
+  const account = await database.query.accountTable.findFirst({
+    columns: { accessToken: true },
+    where: and(
+      eq(accountTable.userId, user.id),
+      eq(accountTable.providerId, 'github'),
+    ),
+  })
+  if (!account?.accessToken || !user.githubUsername) {
+    throw new Error('A GitHub user token is currently required')
+  }
+  const api = createGitHubApi(account.accessToken)
+  const configuration = await createConfigurationStore({
+    database,
+    background,
+  }).get(api, owner, repo, branch)
+  if (!configuration) throw new Error('Repository configuration not found')
+  const schema = findContentSchema(configuration.object, name)
+  if (!schema) throw new Error(`Content schema ${name} was not found`)
+  const normalizedPath = normalizeGitPath(path)
+  const root = normalizeGitPath(schema.path)
+  if (normalizedPath !== root && !normalizedPath.startsWith(`${root}/`)) {
+    throw new Error('Entry path is outside its configured content root')
+  }
+  if (
+    typeof schema.extension === 'string' &&
+    getFileExtension(normalizedPath) !== schema.extension
+  ) {
+    throw new Error('Entry extension does not match its content schema')
+  }
+  return { api, configuration, schema, path: normalizedPath }
+}
+
+function schemaCommitOptions(schema: Record<string, unknown>) {
+  const commit =
+    typeof schema.commit === 'object' && schema.commit !== null
+      ? (schema.commit as Record<string, unknown>)
+      : {}
+  return {
+    templates:
+      typeof commit.templates === 'object' && commit.templates !== null
+        ? (commit.templates as CommitTemplates)
+        : undefined,
+    identity:
+      commit.identity === 'app' || commit.identity === 'user'
+        ? commit.identity
+        : undefined,
+  }
+}
+
+export async function loadRawEntry(input: {
+  database: Database
+  background: BackgroundExecutor
+  user: ProjectUser
+  owner: string
+  repo: string
+  branch: string
+  name: string
+  path: string
+}) {
+  const context = await loadContext(
+    input.database,
+    input.background,
+    input.user,
+    input.owner,
+    input.repo,
+    input.branch,
+    input.name,
+    input.path,
+  )
+  const file = await context.api.getFile(
+    input.owner,
+    input.repo,
+    context.path,
+    input.branch,
+  )
+  return {
+    source: decodeBase64(file.content),
+    sha: file.sha,
+    path: context.path,
+    label:
+      typeof context.schema.label === 'string' && context.schema.label
+        ? context.schema.label
+        : context.schema.name,
+  }
+}
+
+export async function saveRawEntry(input: {
+  database: Database
+  background: BackgroundExecutor
+  user: ProjectUser & { name: string }
+  owner: string
+  repo: string
+  branch: string
+  name: string
+  path: string
+  source: string
+  sha: string
+}) {
+  if (input.source.length > 5_000_000)
+    throw new Error('Entry exceeds the 5 MB limit')
+  const context = await loadContext(
+    input.database,
+    input.background,
+    input.user,
+    input.owner,
+    input.repo,
+    input.branch,
+    input.name,
+    input.path,
+  )
+  if (
+    typeof context.schema.format === 'string' &&
+    formats.has(context.schema.format as ContentFormat)
+  ) {
+    parseContent(input.source, {
+      format: context.schema.format as ContentFormat,
+      delimiters: context.schema.delimiters as
+        FrontmatterDelimiters | undefined,
+    })
+  }
+  const commit = schemaCommitOptions(context.schema)
+  const identity = resolveCommitIdentity({
+    configuration: context.configuration.object,
+    identityOverride: commit.identity,
+  })
+  const message = resolveCommitMessage({
+    configuration: context.configuration.object,
+    templatesOverride: commit.templates,
+    action: 'update',
+    tokens: buildCommitTokens({
+      action: 'update',
+      owner: input.owner,
+      repo: input.repo,
+      branch: input.branch,
+      path: context.path,
+      contentName: input.name,
+      user: input.user.email,
+      userName: input.user.name,
+      userEmail: input.user.email,
+    }),
+  })
+  return context.api.putFile({
+    owner: input.owner,
+    repo: input.repo,
+    branch: input.branch,
+    path: context.path,
+    content: encodeBase64(input.source),
+    message,
+    sha: input.sha,
+    ...(identity === 'user'
+      ? {
+          committer: {
+            name: input.user.name || input.user.email,
+            email: input.user.email,
+          },
+        }
+      : {}),
+  })
+}
