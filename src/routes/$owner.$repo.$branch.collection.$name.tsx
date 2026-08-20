@@ -103,8 +103,12 @@ function CollectionPage() {
                       {entry.path}
                     </p>
                   </div>
-                  <Button disabled size="sm" variant="outline">
-                    Edit
+                  <Button asChild size="sm" variant="outline">
+                    <a
+                      href={`/${encodeURIComponent(params.owner)}/${encodeURIComponent(params.repo)}/${encodeURIComponent(params.branch)}/collection/${encodeURIComponent(params.name)}/entry/${entry.path.split('/').map(encodeURIComponent).join('/')}`}
+                    >
+                      Edit
+                    </a>
                   </Button>
                 </div>
               )}
