@@ -6,6 +6,12 @@ export type ContentSchema = Record<string, unknown> & {
   path: string
 }
 
+export type MediaSchema = Record<string, unknown> & {
+  name: string
+  input: string
+  output: string
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -34,6 +40,37 @@ export function findContentSchema(
   name: string,
 ): ContentSchema | undefined {
   return findInItems(configuration.content, name)
+}
+
+export function findMediaSchema(
+  configuration: Record<string, unknown>,
+  name: string,
+): MediaSchema | undefined {
+  if (!Array.isArray(configuration.media)) return
+  const value = configuration.media.find(
+    (candidate) => isRecord(candidate) && candidate.name === name,
+  )
+  if (
+    !isRecord(value) ||
+    typeof value.name !== 'string' ||
+    typeof value.input !== 'string' ||
+    typeof value.output !== 'string'
+  ) {
+    return
+  }
+  return value as MediaSchema
+}
+
+export function mediaDirectoryPath(
+  schema: MediaSchema,
+  requestedPath?: string,
+) {
+  const root = normalizeGitPath(schema.input)
+  const path = requestedPath ? normalizeGitPath(requestedPath) : root
+  if (path !== root && !path.startsWith(root ? `${root}/` : '')) {
+    throw new Error('Media path is outside its configured root')
+  }
+  return path
 }
 
 export function collectionDirectoryPath(
