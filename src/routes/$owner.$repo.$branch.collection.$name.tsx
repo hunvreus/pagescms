@@ -5,7 +5,14 @@ import {
   redirect,
   useRouter,
 } from '@tanstack/react-router'
-import { FileText, Folder, LoaderCircle, Plus, X } from 'lucide-react'
+import {
+  FileText,
+  Folder,
+  FolderPlus,
+  LoaderCircle,
+  Plus,
+  X,
+} from 'lucide-react'
 
 import {
   StructuredContentField,
@@ -14,8 +21,13 @@ import {
 import { RepositoryActionButtons } from '#/components/repository-action-buttons'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
+import { Textarea } from '#/components/ui/textarea'
 import { getCollection } from '#/functions/collection'
-import { createStructuredCollectionEntry } from '#/functions/entry-editor'
+import {
+  createCollectionFolder,
+  createRawCollectionEntry,
+  createStructuredCollectionEntry,
+} from '#/functions/entry-editor'
 import { getSignInUrl } from '#/lib/auth-redirect'
 import { initializeStructuredContent } from '#/lib/field-values'
 
@@ -71,13 +83,17 @@ function CollectionPage() {
     ? data.collection.fields.filter(isContentField)
     : []
   const [creating, setCreating] = useState(false)
+  const [creatingFolder, setCreatingFolder] = useState(false)
   const [content, setContent] = useState<JsonObject>({})
+  const [source, setSource] = useState('')
   const [filename, setFilename] = useState('')
+  const [folder, setFolder] = useState('')
   const [saving, setSaving] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
 
   function openCreator() {
     setContent(initializeStructuredContent(fields))
+    setSource('')
     setFilename('')
     setCreateError(null)
     setCreating(true)
@@ -87,14 +103,18 @@ function CollectionPage() {
     setSaving(true)
     setCreateError(null)
     try {
-      const result = await createStructuredCollectionEntry({
-        data: {
-          ...params,
-          parent: data.collection.path,
-          content,
-          ...(data.collection.filenameField ? { filename } : {}),
-        },
-      })
+      const coordinates = {
+        ...params,
+        parent: data.collection.path,
+        ...(data.collection.filenameField ? { filename } : {}),
+      }
+      const result = fields.length
+        ? await createStructuredCollectionEntry({
+            data: { ...coordinates, content },
+          })
+        : await createRawCollectionEntry({
+            data: { ...coordinates, source },
+          })
       setCreating(false)
       await router.navigate({
         href: `/${encodeURIComponent(params.owner)}/${encodeURIComponent(params.repo)}/${encodeURIComponent(params.branch)}/collection/${encodeURIComponent(params.name)}/entry/${result.path.split('/').map(encodeURIComponent).join('/')}`,
@@ -102,6 +122,29 @@ function CollectionPage() {
     } catch (cause) {
       setCreateError(
         cause instanceof Error ? cause.message : 'Could not create entry',
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function createFolder() {
+    setSaving(true)
+    setCreateError(null)
+    try {
+      await createCollectionFolder({
+        data: {
+          ...params,
+          parent: data.collection.path,
+          folder,
+        },
+      })
+      setCreatingFolder(false)
+      setFolder('')
+      await router.invalidate()
+    } catch (cause) {
+      setCreateError(
+        cause instanceof Error ? cause.message : 'Could not create folder',
       )
     } finally {
       setSaving(false)
@@ -139,13 +182,22 @@ function CollectionPage() {
             }}
             coordinates={params}
           />
+          {data.collection.subfolders ? (
+            <Button
+              disabled={!data.collection.operations.create}
+              variant="outline"
+              onClick={() => {
+                setCreating(false)
+                setFolder('')
+                setCreateError(null)
+                setCreatingFolder(true)
+              }}
+            >
+              <FolderPlus /> New folder
+            </Button>
+          ) : null}
           <Button
-            disabled={!data.collection.operations.create || fields.length === 0}
-            title={
-              fields.length === 0
-                ? 'Raw entry creation is not ported yet'
-                : undefined
-            }
+            disabled={!data.collection.operations.create}
             onClick={openCreator}
           >
             <Plus /> New entry
@@ -188,25 +240,36 @@ function CollectionPage() {
               />
             </label>
           ) : null}
-          {fields.map((field) => {
-            const name = String(field.name)
-            return (
-              <StructuredContentField
-                field={field}
-                key={name}
-                referenceContext={params}
-                value={content[name]}
-                onChange={(value: JsonValue | undefined) => {
-                  setContent((current) => {
-                    const next = { ...current }
-                    if (value === undefined) delete next[name]
-                    else next[name] = value
-                    return next
-                  })
-                }}
+          {fields.length ? (
+            fields.map((field) => {
+              const name = String(field.name)
+              return (
+                <StructuredContentField
+                  field={field}
+                  key={name}
+                  referenceContext={params}
+                  value={content[name]}
+                  onChange={(value: JsonValue | undefined) => {
+                    setContent((current) => {
+                      const next = { ...current }
+                      if (value === undefined) delete next[name]
+                      else next[name] = value
+                      return next
+                    })
+                  }}
+                />
+              )
+            })
+          ) : (
+            <label className="block space-y-2">
+              <span className="text-sm font-medium">Content</span>
+              <Textarea
+                className="min-h-72 font-mono"
+                value={source}
+                onChange={(event) => setSource(event.target.value)}
               />
-            )
-          })}
+            </label>
+          )}
           {createError ? (
             <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
               {createError}
@@ -223,6 +286,65 @@ function CollectionPage() {
             <Button disabled={saving} type="submit">
               {saving ? <LoaderCircle className="animate-spin" /> : <Plus />}
               {saving ? 'Creating' : 'Create entry'}
+            </Button>
+          </div>
+        </form>
+      ) : null}
+
+      {creatingFolder ? (
+        <form
+          className="space-y-4 rounded-xl border bg-card p-5 shadow-xs"
+          onSubmit={(event) => {
+            event.preventDefault()
+            void createFolder()
+          }}
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="font-semibold">New folder</h2>
+              <p className="text-xs text-muted-foreground">
+                Under {data.collection.path}
+              </p>
+            </div>
+            <Button
+              aria-label="Cancel folder creation"
+              size="icon"
+              type="button"
+              variant="ghost"
+              onClick={() => setCreatingFolder(false)}
+            >
+              <X />
+            </Button>
+          </div>
+          <label className="block space-y-2">
+            <span className="text-sm font-medium">Folder path *</span>
+            <Input
+              required
+              placeholder="drafts or 2026/launches"
+              value={folder}
+              onChange={(event) => setFolder(event.target.value)}
+            />
+          </label>
+          {createError ? (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+              {createError}
+            </div>
+          ) : null}
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setCreatingFolder(false)}
+            >
+              Cancel
+            </Button>
+            <Button disabled={saving || !folder.trim()} type="submit">
+              {saving ? (
+                <LoaderCircle className="animate-spin" />
+              ) : (
+                <FolderPlus />
+              )}
+              {saving ? 'Creating' : 'Create folder'}
             </Button>
           </div>
         </form>
