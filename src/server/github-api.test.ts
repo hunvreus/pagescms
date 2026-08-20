@@ -99,4 +99,47 @@ describe('createGitHubApi', () => {
     expect(error).toBeInstanceOf(GitHubApiError)
     expect(error).toMatchObject({ status: 403, retryAfter: '30' })
   })
+
+  it('loads repository metadata, branches, and encoded file refs', async () => {
+    const fetcher = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input))
+      if (url.pathname.endsWith('/branches')) {
+        return jsonResponse([{ name: 'main' }, { name: 'feature/a' }])
+      }
+      if (url.pathname.includes('/contents/')) {
+        return jsonResponse({
+          type: 'file',
+          sha: 'config-sha',
+          content: 'dGVzdA==',
+        })
+      }
+      return jsonResponse({
+        id: 1,
+        owner: { id: 2, login: 'PagesCMS' },
+        name: 'pages-cms',
+        default_branch: 'main',
+        private: false,
+      })
+    })
+    const api = createGitHubApi('token', fetcher)
+
+    await expect(api.getRepository('PagesCMS', 'pages-cms')).resolves.toEqual({
+      id: 1,
+      owner: 'PagesCMS',
+      ownerId: 2,
+      repo: 'pages-cms',
+      defaultBranch: 'main',
+      private: false,
+    })
+    await expect(api.listBranches('PagesCMS', 'pages-cms')).resolves.toEqual([
+      'main',
+      'feature/a',
+    ])
+    await expect(
+      api.getFile('PagesCMS', 'pages-cms', '.pages.yml', 'feature/a'),
+    ).resolves.toEqual({ sha: 'config-sha', content: 'dGVzdA==' })
+
+    const fileUrl = new URL(String(fetcher.mock.calls[2]?.[0]))
+    expect(fileUrl.searchParams.get('ref')).toBe('feature/a')
+  })
 })
