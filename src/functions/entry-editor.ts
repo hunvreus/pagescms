@@ -54,6 +54,17 @@ function parseEntryRename(input: unknown) {
   return { ...entry, filename: value.filename }
 }
 
+export function parseEntryMove(input: unknown) {
+  const entry = parseEntryDelete(input)
+  const value = input as Record<string, unknown>
+  if (typeof value.newPath !== 'string') {
+    throw new Error('Invalid entry move')
+  }
+  const newPath = normalizeGitPath(value.newPath.trim())
+  if (!newPath) throw new Error('Invalid entry move')
+  return { ...entry, newPath }
+}
+
 export function parseStructuredEntryUpdate(input: unknown) {
   const entry = parseEntryRequest(input)
   const value = input as Record<string, unknown>
@@ -515,6 +526,48 @@ export const renameEntry = createServerFn({ method: 'POST' })
         const { renameContentEntry } =
           await import('#/server/entry-editor.server')
         return renameContentEntry({
+          database: services.database,
+          background: services.background,
+          repositoryAccess: services.repositoryAccess,
+          user,
+          ...data,
+        })
+      },
+    )
+  })
+
+export const moveEntry = createServerFn({ method: 'POST' })
+  .validator(parseEntryMove)
+  .handler(async ({ context, data }) => {
+    const services = context.getServices()
+    const session = await services.getSession()
+    if (!session?.user) throw new Error('Authentication required')
+    const user = {
+      id: session.user.id,
+      name: session.user.name,
+      email: session.user.email,
+      githubUsername: session.user.githubUsername ?? null,
+    }
+    return services.access.execute(
+      {
+        operation: 'entry.rename',
+        principal: { type: 'user', id: user.id },
+        tenant: {
+          type: 'repository',
+          id: `${data.owner}/${data.repo}`.toLowerCase(),
+        },
+        target: {
+          repository: data,
+          branch: data.branch,
+          collection: data.name,
+          path: data.path,
+        },
+        facts: { newPath: data.newPath },
+      },
+      async () => {
+        const { moveContentEntry } =
+          await import('#/server/entry-editor.server')
+        return moveContentEntry({
           database: services.database,
           background: services.background,
           repositoryAccess: services.repositoryAccess,

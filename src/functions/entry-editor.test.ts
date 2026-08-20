@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   parseCollectionFolderCreate,
   parseEntryUpdate,
+  parseEntryMove,
   parseRawEntryCreate,
   parseStructuredEntryUpdate,
 } from './entry-editor'
@@ -86,5 +87,19 @@ describe('entry creation requests', () => {
         sha: 'abc123',
       }).content,
     ).toEqual([{ label: 'Home', path: '/' }])
+  })
+
+  it('normalizes full entry move paths', () => {
+    expect(
+      parseEntryMove({
+        owner: 'PagesCMS',
+        repo: 'pages-cms',
+        branch: 'main',
+        name: 'docs',
+        path: 'content/guide.md',
+        newPath: '/content/guide/index.md/',
+        sha: 'abc123',
+      }).newPath,
+    ).toBe('content/guide/index.md')
   })
 })

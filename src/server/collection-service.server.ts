@@ -238,6 +238,7 @@ export async function loadCollection({
       path: directory,
       rootPath: schema.path,
       format: typeof schema.format === 'string' ? schema.format : null,
+      extension: typeof schema.extension === 'string' ? schema.extension : null,
       subfolders: schema.subfolders !== false,
       fields: toJsonValue(Array.isArray(schema.fields) ? schema.fields : []),
       filenameField:
