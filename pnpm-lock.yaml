@@ -56,6 +56,9 @@ importers:
       shadcn:
         specifier: ^4.18.0
         version: 4.18.0(typescript@6.0.3)
+      smol-toml:
+        specifier: ^1.8.0
+        version: 1.8.0
       tailwind-merge:
         specifier: ^3.6.0
         version: 3.6.0
@@ -3940,6 +3943,10 @@ packages:
   smart-buffer@4.2.0:
     resolution: {integrity: sha512-94hK0Hh8rPqQl2xXc3HsaBoOXKV20MToPkcXvwbISWLEs+64sBq5kFgn2kJDHb1Pry9yrP0dxrCI9RRci7RXKg==}
     engines: {node: '>= 6.0.0', npm: '>= 3.0.0'}
+
+  smol-toml@1.8.0:
+    resolution: {integrity: sha512-kCZr2V3ch9i00x8zXRhjUNVcjG9ijES5dDudkXvUVCT5QlJNQWElSJdZqyPemffHoLNUYwOcou0Fy+ojN0uHSQ==}
+    engines: {node: '>= 18'}
 
   socks@2.8.9:
     resolution: {integrity: sha512-LJhUYUvItdQ0LkJTmPeaEObWXAqFyfmP85x0tch/ez9cahmhlBBLbIqDFnvBnUJGagb0JbIQrkBs1wJ+yRYpEw==}
@@ -8250,6 +8257,8 @@ snapshots:
   sisteransi@1.0.5: {}
 
   smart-buffer@4.2.0: {}
+
+  smol-toml@1.8.0: {}
 
   socks@2.8.9:
     dependencies:
