@@ -3,6 +3,7 @@ import { serverPluginRegistry } from '#/plugins/server-discovery.server'
 import { createAccessPolicyGateway } from './access-policy.server'
 import { createPagesCmsAuth } from './auth.server'
 import { createDatabase } from './database/client.server'
+import { createProjectService } from './projects.server'
 import { parseRuntimeConfiguration } from './runtime-config.server'
 
 import type { BackgroundExecutor } from './runtime-ports.server'
@@ -20,6 +21,7 @@ export function createRequestServices(
     deployment: configuration.deployment,
     policy: serverPluginRegistry.accessPolicy,
   })
+  const projects = createProjectService(database)
   const auth = createPagesCmsAuth({
     database,
     configuration: configuration.auth,
@@ -40,6 +42,7 @@ export function createRequestServices(
     configuration,
     database,
     getSession,
+    projects,
   }
 }
 
