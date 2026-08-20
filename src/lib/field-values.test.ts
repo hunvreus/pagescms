@@ -104,4 +104,17 @@ describe('structured field values', () => {
       validateStructuredContent(fields, { hero: { _block: 'image' } }),
     ).toEqual(['hero.src is required'])
   })
+
+  it('supports media fields configured for multiple paths', () => {
+    const fields = [
+      { name: 'gallery', type: 'image', options: { multiple: true } },
+    ]
+    expect(initializeStructuredContent(fields)).toEqual({ gallery: [] })
+    expect(
+      validateStructuredContent(fields, { gallery: ['one.jpg', 'two.jpg'] }),
+    ).toEqual([])
+    expect(validateStructuredContent(fields, { gallery: 'one.jpg' })).toEqual([
+      'gallery must be a list of file paths',
+    ])
+  })
 })

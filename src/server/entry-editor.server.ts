@@ -7,6 +7,7 @@ import { schemaActions } from '#/lib/actions'
 import { generateContentFilename } from '#/lib/content-filename'
 import {
   collectionDirectoryPath,
+  configuredMediaSchemas,
   findContentSchema,
 } from '#/lib/configuration-content'
 import { parseContent, serializeContent } from '#/lib/content-serialization'
@@ -163,6 +164,7 @@ export async function loadRawEntry(input: {
       context.schema.type === 'collection'
         ? schemaActions(context.schema, 'entry')
         : schemaActions(context.schema),
+    media: configuredMediaSchemas(context.configuration.object),
   }
   if (fields.length && format) {
     return {

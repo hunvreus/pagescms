@@ -300,7 +300,7 @@ function StructuredEntryEditor({
             <StructuredContentField
               field={field}
               key={name}
-              referenceContext={coordinates}
+              referenceContext={{ ...coordinates, media: initial.media }}
               value={content[name]}
               onChange={(value) => {
                 setSaved(false)

@@ -1,5 +1,6 @@
 import {
   collectionDirectoryPath,
+  configuredMediaSchemas,
   findContentSchema,
 } from '#/lib/configuration-content'
 import { schemaActions } from '#/lib/actions'
@@ -199,6 +200,7 @@ export async function loadCollection({
     },
     contents,
     errors,
+    media: configuredMediaSchemas(configuration.object),
     stale: directoryResult.stale,
   }
 }

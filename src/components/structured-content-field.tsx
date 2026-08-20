@@ -3,15 +3,21 @@ import {
   ArrowDown,
   ArrowUp,
   ExternalLink,
+  File,
+  Folder,
+  LoaderCircle,
   Plus,
   RefreshCw,
   Trash2,
+  Upload,
+  X,
 } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { Textarea } from '#/components/ui/textarea'
 import { getReferenceOptions } from '#/functions/references'
+import { createMedia, getMedia } from '#/functions/media'
 import { initializeStructuredContent } from '#/lib/field-values'
 
 import type { JsonObject, JsonValue } from '#/lib/json'
@@ -20,6 +26,13 @@ interface ReferenceContext {
   owner: string
   repo: string
   branch: string
+  media?: Array<{
+    name: string
+    label: string
+    input: string
+    output: string
+    extensions: string[]
+  }>
 }
 
 export function isContentField(value: unknown): value is JsonObject {
@@ -382,6 +395,20 @@ export function StructuredContentField({
         onChange={onChange}
       />
     )
+  } else if (
+    (type === 'image' || type === 'file') &&
+    referenceContext?.media?.length
+  ) {
+    control = (
+      <MediaFieldControl
+        context={referenceContext}
+        disabled={disabled}
+        field={field}
+        image={type === 'image'}
+        value={value}
+        onChange={onChange}
+      />
+    )
   } else if (type === 'boolean') {
     control = (
       <input
@@ -504,6 +531,320 @@ export function StructuredContentField({
         <span className="block text-xs text-muted-foreground">
           {description}
         </span>
+      ) : null}
+    </div>
+  )
+}
+
+function mediaValues(value: JsonValue | undefined, multiple: boolean) {
+  if (multiple) {
+    return Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === 'string')
+      : []
+  }
+  return typeof value === 'string' && value ? [value] : []
+}
+
+function fileBase64(file: globalThis.File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error(`Could not read ${file.name}`))
+    reader.onload = () => {
+      const result = String(reader.result)
+      resolve(result.slice(result.indexOf(',') + 1))
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
+function MediaFieldControl({
+  context,
+  field,
+  value,
+  disabled,
+  image,
+  onChange,
+}: {
+  context: ReferenceContext
+  field: JsonObject
+  value: JsonValue | undefined
+  disabled: boolean
+  image: boolean
+  onChange: (value: JsonValue | undefined) => void
+}) {
+  const settings = isContentField(field.options) ? field.options : {}
+  const requestedMedia =
+    typeof settings.media === 'string' ? settings.media : undefined
+  const media =
+    context.media?.find((item) => item.name === requestedMedia) ??
+    context.media?.[0]
+  const multiple =
+    settings.multiple === true || isContentField(settings.multiple)
+  const max = isContentField(settings.multiple)
+    ? typeof settings.multiple.max === 'number'
+      ? settings.multiple.max
+      : Number.POSITIVE_INFINITY
+    : multiple
+      ? Number.POSITIVE_INFINITY
+      : 1
+  const selected = mediaValues(value, multiple)
+  const [open, setOpen] = useState(false)
+  const [path, setPath] = useState('')
+  const [entries, setEntries] = useState<
+    Array<{
+      type: 'file' | 'dir'
+      name: string
+      path: string
+      sha: string | null
+      size: number | null
+    }>
+  >([])
+  const [loading, setLoading] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!open || !media) return
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+    void getMedia({
+      data: {
+        owner: context.owner,
+        repo: context.repo,
+        branch: context.branch,
+        name: media.name,
+        path: path || media.input,
+      },
+    })
+      .then((result) => {
+        if (!cancelled) {
+          setPath(result.media.path)
+          setEntries(result.entries)
+        }
+      })
+      .catch((cause: unknown) => {
+        if (!cancelled) {
+          setError(
+            cause instanceof Error ? cause.message : 'Could not load media',
+          )
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [
+    context.branch,
+    context.owner,
+    context.repo,
+    media?.input,
+    media?.name,
+    open,
+    path,
+  ])
+
+  if (!media) {
+    return <p className="text-sm text-destructive">Media is not configured.</p>
+  }
+  const mediaName = media.name
+  const mediaInput = media.input
+
+  function select(pathValue: string) {
+    if (!multiple) {
+      onChange(pathValue)
+      setOpen(false)
+      return
+    }
+    const next = [...new Set([...selected, pathValue])].slice(0, max)
+    onChange(next)
+  }
+
+  async function upload(files: FileList | null) {
+    if (!files?.length) return
+    setUploading(true)
+    setError(null)
+    try {
+      const uploaded: string[] = []
+      for (const file of Array.from(files)) {
+        if (file.size > 20 * 1024 * 1024) {
+          throw new Error(`${file.name} exceeds the 20 MB limit`)
+        }
+        const result = await createMedia({
+          data: {
+            owner: context.owner,
+            repo: context.repo,
+            branch: context.branch,
+            name: mediaName,
+            path: path || mediaInput,
+            filename: file.name,
+            content: await fileBase64(file),
+          },
+        })
+        uploaded.push(result.path)
+        if (!multiple) break
+      }
+      if (multiple)
+        onChange([...new Set([...selected, ...uploaded])].slice(0, max))
+      else if (uploaded[0]) onChange(uploaded[0])
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : 'Could not upload media',
+      )
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      {selected.length ? (
+        <ul className="space-y-2">
+          {selected.map((selectedPath) => (
+            <li
+              className="flex items-center gap-2 rounded-lg border bg-muted/20 px-3 py-2 text-sm"
+              key={selectedPath}
+            >
+              {image ? <span aria-hidden>▧</span> : <File className="size-4" />}
+              <span className="min-w-0 flex-1 truncate">{selectedPath}</span>
+              <Button
+                asChild
+                aria-label={`Open ${selectedPath}`}
+                size="icon"
+                variant="ghost"
+              >
+                <a
+                  href={`https://github.com/${encodeURIComponent(context.owner)}/${encodeURIComponent(context.repo)}/blob/${encodeURIComponent(context.branch)}/${selectedPath.split('/').map(encodeURIComponent).join('/')}`}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  <ExternalLink />
+                </a>
+              </Button>
+              {!disabled ? (
+                <Button
+                  aria-label={`Remove ${selectedPath}`}
+                  size="icon"
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    const next = selected.filter(
+                      (item) => item !== selectedPath,
+                    )
+                    onChange(multiple ? next : undefined)
+                  }}
+                >
+                  <Trash2 />
+                </Button>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-muted-foreground">No file selected.</p>
+      )}
+      {!disabled && selected.length < max ? (
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setPath(
+                typeof settings.path === 'string' ? settings.path : media.input,
+              )
+              setOpen(true)
+            }}
+          >
+            <Folder /> Select
+          </Button>
+          <Button asChild variant="outline">
+            <label>
+              {uploading ? (
+                <LoaderCircle className="animate-spin" />
+              ) : (
+                <Upload />
+              )}
+              Upload
+              <input
+                accept={
+                  media.extensions.length
+                    ? media.extensions
+                        .map((extension) => `.${extension}`)
+                        .join(',')
+                    : undefined
+                }
+                className="sr-only"
+                disabled={uploading}
+                multiple={multiple}
+                type="file"
+                onChange={(event) => {
+                  void upload(event.target.files)
+                  event.target.value = ''
+                }}
+              />
+            </label>
+          </Button>
+        </div>
+      ) : null}
+      {open ? (
+        <div className="space-y-3 rounded-lg border bg-background p-3 shadow-sm">
+          <div className="flex items-center justify-between gap-2">
+            <p className="truncate text-xs text-muted-foreground">{path}</p>
+            <Button
+              aria-label="Close media browser"
+              size="icon"
+              type="button"
+              variant="ghost"
+              onClick={() => setOpen(false)}
+            >
+              <X />
+            </Button>
+          </div>
+          {path !== media.input ? (
+            <Button
+              size="sm"
+              type="button"
+              variant="outline"
+              onClick={() => {
+                const parts = path.split('/')
+                parts.pop()
+                const parent = parts.join('/')
+                setPath(parent.startsWith(media.input) ? parent : media.input)
+              }}
+            >
+              <ArrowUp /> Parent folder
+            </Button>
+          ) : null}
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Loading media…</p>
+          ) : (
+            <ul className="max-h-64 divide-y overflow-auto rounded-lg border">
+              {entries.map((entry) => (
+                <li key={entry.path}>
+                  <button
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
+                    type="button"
+                    onClick={() =>
+                      entry.type === 'dir'
+                        ? setPath(entry.path)
+                        : select(entry.path)
+                    }
+                  >
+                    {entry.type === 'dir' ? (
+                      <Folder className="size-4" />
+                    ) : (
+                      <File className="size-4" />
+                    )}
+                    <span className="truncate">{entry.name}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {error ? <p className="text-xs text-destructive">{error}</p> : null}
+        </div>
       ) : null}
     </div>
   )
