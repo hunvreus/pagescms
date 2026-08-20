@@ -239,6 +239,76 @@ describe('createGitHubApi', () => {
     ])
   })
 
+  it('loads configured node files for child directories in one extra request', async () => {
+    let request = 0
+    const fetcher = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        request += 1
+        const body = JSON.parse(String(init?.body)) as {
+          variables: Record<string, string>
+        }
+        if (request === 1) {
+          return jsonResponse({
+            data: {
+              repository: {
+                object: {
+                  entries: [
+                    {
+                      type: 'tree',
+                      name: 'guides',
+                      path: 'content/guides',
+                      object: {},
+                    },
+                    {
+                      type: 'tree',
+                      name: 'empty',
+                      path: 'content/empty',
+                      object: {},
+                    },
+                  ],
+                },
+              },
+            },
+          })
+        }
+        expect(body.variables).toMatchObject({
+          node0: 'main:content/guides/index.md',
+          node1: 'main:content/empty/index.md',
+        })
+        return jsonResponse({
+          data: {
+            repository: {
+              node0: {
+                text: '---\ntitle: Guides\n---',
+                oid: 'node-sha',
+                byteSize: 24,
+              },
+              node1: null,
+            },
+          },
+        })
+      },
+    )
+
+    await expect(
+      createGitHubApi('token', fetcher).getDirectory(
+        'PagesCMS',
+        'pages-cms',
+        'main',
+        'content',
+        'index.md',
+      ),
+    ).resolves.toContainEqual({
+      type: 'file',
+      name: 'index.md',
+      path: 'content/guides/index.md',
+      sha: 'node-sha',
+      content: '---\ntitle: Guides\n---',
+      size: 24,
+    })
+    expect(fetcher).toHaveBeenCalledTimes(2)
+  })
+
   it('updates files with optimistic SHA conflict protection', async () => {
     let requestBody: Record<string, unknown> = {}
     const fetcher = vi.fn(

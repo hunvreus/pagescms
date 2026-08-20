@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Link,
   createFileRoute,
@@ -9,6 +9,8 @@ import {
   FileText,
   Folder,
   FolderPlus,
+  ChevronDown,
+  ChevronRight,
   LoaderCircle,
   Plus,
   Search,
@@ -33,6 +35,16 @@ import { getSignInUrl } from '#/lib/auth-redirect'
 import { initializeStructuredContent } from '#/lib/field-values'
 
 import type { JsonObject, JsonValue } from '#/lib/json'
+
+type CollectionData = Awaited<ReturnType<typeof getCollection>>
+type CollectionItem = CollectionData['contents'][number]
+
+interface ExpandedCollection {
+  open: boolean
+  loading: boolean
+  contents?: CollectionItem[]
+  error?: string
+}
 
 interface CollectionSearch {
   path?: string
@@ -95,6 +107,7 @@ function CollectionPage() {
     ? data.collection.fields.filter(isContentField)
     : []
   const [creating, setCreating] = useState(false)
+  const [creationParent, setCreationParent] = useState(data.collection.path)
   const [creatingFolder, setCreatingFolder] = useState(false)
   const [content, setContent] = useState<JsonObject>({})
   const [source, setSource] = useState('')
@@ -102,6 +115,9 @@ function CollectionPage() {
   const [folder, setFolder] = useState('')
   const [saving, setSaving] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState<
+    Partial<Record<string, ExpandedCollection>>
+  >({})
   const view =
     data.collection.view &&
     typeof data.collection.view === 'object' &&
@@ -129,6 +145,12 @@ function CollectionPage() {
     defaults.order === 'desc' ? 'desc' : 'asc',
   )
   const primaryField = typeof view.primary === 'string' ? view.primary : 'title'
+  const treeLayout = view.layout === 'tree'
+
+  useEffect(() => {
+    setExpanded({})
+    setCreationParent(data.collection.path)
+  }, [data.collection.name, data.collection.path])
   const visibleContents = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase()
     const searchFields = Array.isArray(view.search)
@@ -174,12 +196,156 @@ function CollectionPage() {
     return sorted
   }, [data.contents, order, query, sort, view.search])
 
-  function openCreator() {
+  function openCreator(parent = data.collection.path) {
     setContent(initializeStructuredContent(fields))
     setSource('')
     setFilename('')
     setCreateError(null)
+    setCreationParent(parent)
     setCreating(true)
+  }
+
+  async function toggleTreeEntry(entry: CollectionItem) {
+    if (entry.type !== 'dir' && !entry.isNode) return
+    const key = entry.path
+    const current = expanded[key]
+    if (current?.open) {
+      setExpanded((values) => ({
+        ...values,
+        [key]: { ...current, open: false },
+      }))
+      return
+    }
+    if (current?.contents) {
+      setExpanded((values) => ({
+        ...values,
+        [key]: { ...current, open: true },
+      }))
+      return
+    }
+    setExpanded((values) => ({
+      ...values,
+      [key]: { open: true, loading: true },
+    }))
+    try {
+      const result = await getCollection({
+        data: {
+          ...params,
+          path: entry.type === 'file' ? entry.parentPath : entry.path,
+        },
+      })
+      setExpanded((values) => ({
+        ...values,
+        [key]: { open: true, loading: false, contents: result.contents },
+      }))
+    } catch (cause) {
+      setExpanded((values) => ({
+        ...values,
+        [key]: {
+          open: true,
+          loading: false,
+          error:
+            cause instanceof Error
+              ? cause.message
+              : 'Could not load child entries',
+        },
+      }))
+    }
+  }
+
+  function treeRows(entries: CollectionItem[], depth = 0): React.ReactNode {
+    return entries.map((entry) => {
+      const state = expanded[entry.path]
+      const expandable = entry.type === 'dir' || entry.isNode
+      const title =
+        entry.type === 'file'
+          ? (() => {
+              const primary = jsonValueAt(entry.fields, primaryField)
+              return typeof primary === 'string' || typeof primary === 'number'
+                ? String(primary)
+                : entry.name
+            })()
+          : entry.name
+      const childParent = entry.type === 'file' ? entry.parentPath : entry.path
+      return (
+        <li className="border-b last:border-b-0" key={entry.path}>
+          <div
+            className="flex items-center gap-2 px-3 py-2.5 hover:bg-muted/60"
+            style={{ paddingLeft: `${12 + depth * 24}px` }}
+          >
+            {expandable ? (
+              <Button
+                aria-label={`${state?.open ? 'Collapse' : 'Expand'} ${title}`}
+                size="icon"
+                type="button"
+                variant="ghost"
+                onClick={() => void toggleTreeEntry(entry)}
+              >
+                {state?.loading ? (
+                  <LoaderCircle className="animate-spin" />
+                ) : state?.open ? (
+                  <ChevronDown />
+                ) : (
+                  <ChevronRight />
+                )}
+              </Button>
+            ) : (
+              <span className="size-9" />
+            )}
+            {entry.type === 'dir' ? (
+              <Folder className="size-4 text-muted-foreground" />
+            ) : (
+              <FileText className="size-4 text-muted-foreground" />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-medium">{title}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {entry.path}
+              </p>
+            </div>
+            {data.collection.operations.create && expandable ? (
+              <Button
+                aria-label={`Add child to ${title}`}
+                size="icon"
+                type="button"
+                variant="outline"
+                onClick={() => openCreator(childParent)}
+              >
+                <Plus />
+              </Button>
+            ) : null}
+            {entry.type === 'file' ? (
+              <Button asChild size="sm" variant="outline">
+                <a
+                  href={`/${encodeURIComponent(params.owner)}/${encodeURIComponent(params.repo)}/${encodeURIComponent(params.branch)}/collection/${encodeURIComponent(params.name)}/entry/${entry.path.split('/').map(encodeURIComponent).join('/')}`}
+                >
+                  Edit
+                </a>
+              </Button>
+            ) : null}
+          </div>
+          {state?.open ? (
+            state.error ? (
+              <p
+                className="border-t px-4 py-2 text-xs text-destructive"
+                style={{ paddingLeft: `${52 + depth * 24}px` }}
+              >
+                {state.error}
+              </p>
+            ) : state.contents?.length ? (
+              <ul>{treeRows(state.contents, depth + 1)}</ul>
+            ) : !state.loading ? (
+              <p
+                className="border-t px-4 py-2 text-xs text-muted-foreground"
+                style={{ paddingLeft: `${52 + depth * 24}px` }}
+              >
+                No child entries.
+              </p>
+            ) : null
+          ) : null}
+        </li>
+      )
+    })
   }
 
   async function createEntry() {
@@ -188,7 +354,7 @@ function CollectionPage() {
     try {
       const coordinates = {
         ...params,
-        parent: data.collection.path,
+        parent: creationParent,
         ...(data.collection.filenameField ? { filename } : {}),
       }
       const result = fields.length
@@ -281,7 +447,7 @@ function CollectionPage() {
           ) : null}
           <Button
             disabled={!data.collection.operations.create}
-            onClick={openCreator}
+            onClick={() => openCreator()}
           >
             <Plus /> New entry
           </Button>
@@ -299,9 +465,7 @@ function CollectionPage() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="font-semibold">New entry</h2>
-              <p className="text-xs text-muted-foreground">
-                {data.collection.path}
-              </p>
+              <p className="text-xs text-muted-foreground">{creationParent}</p>
             </div>
             <Button
               aria-label="Cancel entry creation"
@@ -476,7 +640,7 @@ function CollectionPage() {
         </Button>
       </div>
 
-      {data.collection.path !== data.collection.rootPath ? (
+      {!treeLayout && data.collection.path !== data.collection.rootPath ? (
         <Link
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
           params={params}
@@ -496,46 +660,51 @@ function CollectionPage() {
 
       {visibleContents.length ? (
         <ul className="overflow-hidden rounded-xl border bg-card shadow-xs">
-          {visibleContents.map((entry) => (
-            <li className="border-b last:border-b-0" key={entry.path}>
-              {entry.type === 'dir' ? (
-                <Link
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-muted/60"
-                  params={params}
-                  search={{ path: entry.path }}
-                  to="/$owner/$repo/$branch/collection/$name"
-                >
-                  <Folder className="size-4 text-muted-foreground" />
-                  <span className="font-medium">{entry.name}</span>
-                </Link>
-              ) : (
-                <div className="flex items-center gap-3 px-4 py-3">
-                  <FileText className="size-4 text-muted-foreground" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">
-                      {(() => {
-                        const primary = jsonValueAt(entry.fields, primaryField)
-                        return typeof primary === 'string' ||
-                          typeof primary === 'number'
-                          ? String(primary)
-                          : entry.name
-                      })()}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {entry.path}
-                    </p>
-                  </div>
-                  <Button asChild size="sm" variant="outline">
-                    <a
-                      href={`/${encodeURIComponent(params.owner)}/${encodeURIComponent(params.repo)}/${encodeURIComponent(params.branch)}/collection/${encodeURIComponent(params.name)}/entry/${entry.path.split('/').map(encodeURIComponent).join('/')}`}
+          {treeLayout
+            ? treeRows(visibleContents)
+            : visibleContents.map((entry) => (
+                <li className="border-b last:border-b-0" key={entry.path}>
+                  {entry.type === 'dir' ? (
+                    <Link
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-muted/60"
+                      params={params}
+                      search={{ path: entry.path }}
+                      to="/$owner/$repo/$branch/collection/$name"
                     >
-                      Edit
-                    </a>
-                  </Button>
-                </div>
-              )}
-            </li>
-          ))}
+                      <Folder className="size-4 text-muted-foreground" />
+                      <span className="font-medium">{entry.name}</span>
+                    </Link>
+                  ) : (
+                    <div className="flex items-center gap-3 px-4 py-3">
+                      <FileText className="size-4 text-muted-foreground" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium">
+                          {(() => {
+                            const primary = jsonValueAt(
+                              entry.fields,
+                              primaryField,
+                            )
+                            return typeof primary === 'string' ||
+                              typeof primary === 'number'
+                              ? String(primary)
+                              : entry.name
+                          })()}
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {entry.path}
+                        </p>
+                      </div>
+                      <Button asChild size="sm" variant="outline">
+                        <a
+                          href={`/${encodeURIComponent(params.owner)}/${encodeURIComponent(params.repo)}/${encodeURIComponent(params.branch)}/collection/${encodeURIComponent(params.name)}/entry/${entry.path.split('/').map(encodeURIComponent).join('/')}`}
+                        >
+                          Edit
+                        </a>
+                      </Button>
+                    </div>
+                  )}
+                </li>
+              ))}
         </ul>
       ) : (
         <div className="rounded-xl border bg-card p-10 text-center text-sm text-muted-foreground shadow-xs">
