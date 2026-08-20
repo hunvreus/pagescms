@@ -4,7 +4,7 @@
  * Look at the `lib/config.ts` file to understand how we use this schema.
  */
 
-import { z } from 'zod'
+import { z } from 'zod/v3'
 
 import { normalizeGitPath } from './git-path'
 
