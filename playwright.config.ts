@@ -18,6 +18,14 @@ export default defineConfig({
   ],
   webServer: {
     command: 'pnpm exec vite dev --host 127.0.0.1 --port 3100 --strictPort',
+    env: {
+      ...process.env,
+      BETTER_AUTH_SECRET: 'playwright-only-auth-secret-at-least-32-characters',
+      BETTER_AUTH_URL: 'http://127.0.0.1:3100',
+      CLOUDFLARE_INCLUDE_PROCESS_ENV: 'true',
+      DATABASE_URL:
+        'postgres://pagescms:pagescms@127.0.0.1:5432/pagescms_playwright',
+    },
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     url: 'http://127.0.0.1:3100/api/health',
