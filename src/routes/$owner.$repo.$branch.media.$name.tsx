@@ -5,11 +5,25 @@ import {
   redirect,
   useRouter,
 } from '@tanstack/react-router'
-import { File, Folder, LoaderCircle, Trash2, Upload } from 'lucide-react'
+import {
+  File,
+  Folder,
+  FolderPlus,
+  LoaderCircle,
+  Trash2,
+  Upload,
+  X,
+} from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
+import { Input } from '#/components/ui/input'
 import { RepositoryActionButtons } from '#/components/repository-action-buttons'
-import { createMedia, getMedia, removeMedia } from '#/functions/media'
+import {
+  createMedia,
+  createMediaFolder,
+  getMedia,
+  removeMedia,
+} from '#/functions/media'
 import { getSignInUrl } from '#/lib/auth-redirect'
 
 interface MediaSearch {
@@ -70,6 +84,8 @@ function MediaPage() {
   const params = Route.useParams()
   const router = useRouter()
   const [uploading, setUploading] = useState(false)
+  const [creatingFolder, setCreatingFolder] = useState(false)
+  const [folder, setFolder] = useState('')
   const [deleting, setDeleting] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -118,6 +134,29 @@ function MediaPage() {
     }
   }
 
+  async function addFolder() {
+    setUploading(true)
+    setError(null)
+    try {
+      await createMediaFolder({
+        data: {
+          ...params,
+          path: data.media.path,
+          folder,
+        },
+      })
+      setFolder('')
+      setCreatingFolder(false)
+      await router.invalidate()
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : 'Could not create folder',
+      )
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const accept = data.media.extensions.length
     ? data.media.extensions.map((value) => `.${value}`).join(',')
     : undefined
@@ -151,6 +190,16 @@ function MediaPage() {
             }}
             coordinates={params}
           />
+          <Button
+            disabled={uploading}
+            variant="outline"
+            onClick={() => {
+              setError(null)
+              setCreatingFolder(true)
+            }}
+          >
+            <FolderPlus /> New folder
+          </Button>
           <Button asChild disabled={uploading}>
             <label>
               {uploading ? (
@@ -174,6 +223,57 @@ function MediaPage() {
           </Button>
         </div>
       </header>
+      {creatingFolder ? (
+        <form
+          className="space-y-4 rounded-xl border bg-card p-5 shadow-xs"
+          onSubmit={(event) => {
+            event.preventDefault()
+            void addFolder()
+          }}
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="font-semibold">New media folder</h2>
+              <p className="text-xs text-muted-foreground">
+                Under {data.media.path}
+              </p>
+            </div>
+            <Button
+              aria-label="Cancel folder creation"
+              size="icon"
+              type="button"
+              variant="ghost"
+              onClick={() => setCreatingFolder(false)}
+            >
+              <X />
+            </Button>
+          </div>
+          <Input
+            required
+            aria-label="Folder path"
+            placeholder="photos or 2026/launch"
+            value={folder}
+            onChange={(event) => setFolder(event.target.value)}
+          />
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setCreatingFolder(false)}
+            >
+              Cancel
+            </Button>
+            <Button disabled={uploading || !folder.trim()} type="submit">
+              {uploading ? (
+                <LoaderCircle className="animate-spin" />
+              ) : (
+                <FolderPlus />
+              )}
+              {uploading ? 'Creating' : 'Create folder'}
+            </Button>
+          </div>
+        </form>
+      ) : null}
       {error ? (
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
           {error}

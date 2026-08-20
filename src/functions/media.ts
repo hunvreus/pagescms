@@ -3,7 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { normalizeGitPath } from '#/lib/git-path'
 import { repositoryRef } from '#/lib/repository'
 
-function parseMediaRequest(input: unknown) {
+export function parseMediaRequest(input: unknown) {
   if (typeof input !== 'object' || input === null) {
     throw new Error('Invalid media request')
   }
@@ -26,6 +26,23 @@ function parseMediaRequest(input: unknown) {
     ...(typeof value.path === 'string' && value.path
       ? { path: normalizeGitPath(value.path) }
       : {}),
+  }
+}
+
+export function parseMediaFolderCreate(input: unknown) {
+  const media = parseMediaRequest(input)
+  const value = input as Record<string, unknown>
+  if (typeof value.folder !== 'string') {
+    throw new Error('Invalid media folder creation')
+  }
+  const folder = normalizeGitPath(value.folder.trim())
+  if (!folder || folder.split('/').some((part) => part === '.gitkeep')) {
+    throw new Error('Media folder name is invalid')
+  }
+  return {
+    ...media,
+    parent: media.path,
+    folder,
   }
 }
 
@@ -117,6 +134,34 @@ export const createMedia = createServerFn({ method: 'POST' })
       async () => {
         const { uploadMedia } = await import('#/server/media-service.server')
         return uploadMedia({
+          database: services.database,
+          background: services.background,
+          repositoryAccess: services.repositoryAccess,
+          user,
+          ...data,
+        })
+      },
+    )
+  })
+
+export const createMediaFolder = createServerFn({ method: 'POST' })
+  .validator(parseMediaFolderCreate)
+  .handler(async ({ context, data }) => {
+    const services = context.getServices()
+    const session = await services.getSession()
+    if (!session?.user) throw new Error('Authentication required')
+    const user = {
+      id: session.user.id,
+      name: session.user.name,
+      email: session.user.email,
+      githubUsername: session.user.githubUsername ?? null,
+    }
+    return services.access.execute(
+      policy(data, 'media.write', user.id),
+      async () => {
+        const { createMediaDirectory } =
+          await import('#/server/media-service.server')
+        return createMediaDirectory({
           database: services.database,
           background: services.background,
           repositoryAccess: services.repositoryAccess,
