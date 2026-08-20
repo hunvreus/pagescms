@@ -621,6 +621,12 @@ const ContentLeafSchema = z
               message: "'layout' must be either 'tree' or 'list'.",
             })
             .optional(),
+          foldersFirst: z
+            .boolean({
+              message: "'foldersFirst' must be a boolean.",
+            })
+            .optional()
+            .nullable(),
           node: z
             .union(
               [
