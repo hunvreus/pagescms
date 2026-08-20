@@ -5,13 +5,20 @@ import {
   redirect,
   useRouter,
 } from '@tanstack/react-router'
-import { ArrowLeft, ExternalLink, LoaderCircle, Mail, Save } from 'lucide-react'
+import {
+  ArrowLeft,
+  ExternalLink,
+  LoaderCircle,
+  Mail,
+  Save,
+  Unplug,
+} from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
 import { GitHubIcon } from '#/components/github-icon'
 import { Input } from '#/components/ui/input'
 import { getAccountSettings, updateProfile } from '#/functions/account'
-import { signIn } from '#/lib/auth-client'
+import { authClient, signIn } from '#/lib/auth-client'
 
 export const Route = createFileRoute('/settings')({
   loader: async () => {
@@ -38,6 +45,7 @@ function SettingsPage() {
   const [name, setName] = useState(data.user.name)
   const [saving, setSaving] = useState(false)
   const [connecting, setConnecting] = useState(false)
+  const [disconnecting, setDisconnecting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
   async function save() {
@@ -74,6 +82,29 @@ function SettingsPage() {
         cause instanceof Error ? cause.message : 'Could not connect GitHub',
       )
       setConnecting(false)
+    }
+  }
+
+  async function disconnectGithub() {
+    if (!window.confirm('Disconnect your GitHub account from Pages CMS?')) {
+      return
+    }
+    setDisconnecting(true)
+    setMessage(null)
+    try {
+      if (!data.githubAccountId) throw new Error('GitHub account not found')
+      const result = await authClient.unlinkAccount({
+        accountId: data.githubAccountId,
+      })
+      if (result.error?.message) throw new Error(result.error.message)
+      setMessage('GitHub account disconnected')
+      await router.invalidate()
+    } catch (cause) {
+      setMessage(
+        cause instanceof Error ? cause.message : 'Could not disconnect GitHub',
+      )
+    } finally {
+      setDisconnecting(false)
     }
   }
 
@@ -163,6 +194,19 @@ function SettingsPage() {
                     </a>
                   </Button>
                 ) : null}
+                <Button
+                  aria-label="Disconnect GitHub"
+                  disabled={disconnecting}
+                  size="icon"
+                  variant="outline"
+                  onClick={() => void disconnectGithub()}
+                >
+                  {disconnecting ? (
+                    <LoaderCircle className="animate-spin" />
+                  ) : (
+                    <Unplug />
+                  )}
+                </Button>
               </>
             ) : data.githubAvailable ? (
               <Button

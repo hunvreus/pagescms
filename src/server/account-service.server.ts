@@ -23,6 +23,7 @@ export async function loadAccountSettings(input: {
   return {
     user: input.user,
     githubConnected,
+    githubAccountId: githubAccount?.id ?? null,
     githubAvailable: Boolean(input.githubClientId),
     githubAppInstallAvailable: Boolean(input.githubAppName),
     githubManageUrl: input.githubClientId
