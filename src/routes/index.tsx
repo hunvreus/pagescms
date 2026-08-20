@@ -86,8 +86,10 @@ function AppHeader({ user }: { user: ReturnType<typeof Route.useLoaderData> }) {
           <span className="hidden max-w-48 truncate px-2 text-sm text-muted-foreground sm:inline">
             {user.email}
           </span>
-          <Button aria-label="Settings" disabled variant="ghost" size="icon">
-            <Settings />
+          <Button asChild aria-label="Settings" variant="ghost" size="icon">
+            <Link to="/settings">
+              <Settings />
+            </Link>
           </Button>
           <Button
             disabled={signingOut}
