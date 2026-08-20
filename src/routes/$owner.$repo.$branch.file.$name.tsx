@@ -36,6 +36,7 @@ function FixedFileEditor() {
   const params = Route.useParams()
   return (
     <ContentEntryEditor
+      afterDeleteHref={`/${encodeURIComponent(params.owner)}/${encodeURIComponent(params.repo)}/${encodeURIComponent(params.branch)}`}
       coordinates={{ ...params, path: initial.path }}
       initial={initial}
     />

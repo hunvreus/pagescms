@@ -410,6 +410,37 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
         commitSha: requiredString(commit.sha, 'file commit sha'),
       }
     },
+
+    async deleteFile(input: {
+      owner: string
+      repo: string
+      branch: string
+      path: string
+      sha: string
+      message: string
+      committer?: { name: string; email: string }
+    }) {
+      const body = requiredRecord(
+        await githubRequest(
+          fetcher,
+          token,
+          `/repos/${encodeURIComponent(input.owner)}/${encodeURIComponent(input.repo)}/contents/${input.path.split('/').map(encodeURIComponent).join('/')}`,
+          {
+            method: 'DELETE',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              message: input.message,
+              sha: input.sha,
+              branch: input.branch,
+              ...(input.committer ? { committer: input.committer } : {}),
+            }),
+          },
+        ),
+        'file delete response',
+      )
+      const commit = requiredRecord(body.commit, 'file delete commit')
+      return { commitSha: requiredString(commit.sha, 'file delete commit sha') }
+    },
   }
 }
 

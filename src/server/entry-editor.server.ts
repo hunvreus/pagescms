@@ -9,7 +9,10 @@ import {
   findContentSchema,
 } from '#/lib/configuration-content'
 import { parseContent, serializeContent } from '#/lib/content-serialization'
-import { isContentOperationAllowed } from '#/lib/content-operations'
+import {
+  isContentOperationAllowed,
+  resolveContentOperations,
+} from '#/lib/content-operations'
 import { validateStructuredContent } from '#/lib/field-values'
 import { getFileExtension } from '#/lib/file-types'
 import { normalizeGitPath } from '#/lib/git-path'
@@ -149,6 +152,7 @@ export async function loadRawEntry(input: {
       typeof context.schema.label === 'string' && context.schema.label
         ? context.schema.label
         : context.schema.name,
+    operations: resolveContentOperations({ schema: context.schema }),
   }
   if (fields.length && format) {
     return {
@@ -349,4 +353,69 @@ export async function createStructuredEntry(
     ...(await saveStructuredEntry({ ...input, content, path })),
     path,
   }
+}
+
+export async function deleteContentEntry(input: {
+  database: Database
+  background: BackgroundExecutor
+  repositoryAccess: RepositoryAccessService
+  user: ProjectUser & { name: string }
+  owner: string
+  repo: string
+  branch: string
+  name: string
+  path: string
+  sha: string
+}) {
+  const context = await loadContext(
+    input.database,
+    input.background,
+    input.repositoryAccess,
+    input.user,
+    input.owner,
+    input.repo,
+    input.branch,
+    input.name,
+    input.path,
+  )
+  if (!isContentOperationAllowed('delete', { schema: context.schema })) {
+    throw new Error('Deleting this content is disabled')
+  }
+  const commit = schemaCommitOptions(context.schema)
+  const identity = resolveCommitIdentity({
+    configuration: context.configuration.object,
+    identityOverride: commit.identity,
+  })
+  const message = resolveCommitMessage({
+    configuration: context.configuration.object,
+    templatesOverride: commit.templates,
+    action: 'delete',
+    tokens: buildCommitTokens({
+      action: 'delete',
+      owner: input.owner,
+      repo: input.repo,
+      branch: input.branch,
+      path: context.path,
+      contentName: input.name,
+      user: input.user.email,
+      userName: input.user.name,
+      userEmail: input.user.email,
+    }),
+  })
+  return context.api.deleteFile({
+    owner: input.owner,
+    repo: input.repo,
+    branch: input.branch,
+    path: context.path,
+    sha: input.sha,
+    message,
+    ...(identity === 'user'
+      ? {
+          committer: {
+            name: input.user.name || input.user.email,
+            email: input.user.email,
+          },
+        }
+      : {}),
+  })
 }

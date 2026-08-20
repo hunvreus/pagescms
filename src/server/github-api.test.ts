@@ -243,4 +243,30 @@ describe('createGitHubApi', () => {
       content: 'Y29udGVudA==',
     })
   })
+
+  it('deletes files with optimistic SHA conflict protection', async () => {
+    let requestBody: Record<string, unknown> = {}
+    const fetcher = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        expect(init?.method).toBe('DELETE')
+        requestBody = JSON.parse(String(init?.body)) as Record<string, unknown>
+        return jsonResponse({ commit: { sha: 'delete-commit' } })
+      },
+    )
+    await expect(
+      createGitHubApi('token', fetcher).deleteFile({
+        owner: 'PagesCMS',
+        repo: 'pages-cms',
+        branch: 'main',
+        path: 'content/post.md',
+        sha: 'old-sha',
+        message: 'Delete post',
+      }),
+    ).resolves.toEqual({ commitSha: 'delete-commit' })
+    expect(requestBody).toMatchObject({
+      branch: 'main',
+      sha: 'old-sha',
+      message: 'Delete post',
+    })
+  })
 })
