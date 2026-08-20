@@ -5,16 +5,25 @@ import {
   redirect,
   useRouter,
 } from '@tanstack/react-router'
-import { FolderGit2, LoaderCircle, LogOut, Settings } from 'lucide-react'
+import { LoaderCircle, LogOut, Settings } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
-import { getAuthenticationState } from '#/functions/auth'
+import { ProjectSelector } from '#/components/project-selector'
+import { getDashboardData } from '#/functions/projects'
 
 export const Route = createFileRoute('/')({
   loader: async () => {
-    const authentication = await getAuthenticationState()
-    if (!authentication.user) throw redirect({ href: '/sign-in' })
-    return authentication.user
+    try {
+      return await getDashboardData()
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === 'Authentication required'
+      ) {
+        throw redirect({ href: '/sign-in' })
+      }
+      throw error
+    }
   },
   staleTime: 10_000,
   pendingMs: 120,
@@ -23,7 +32,7 @@ export const Route = createFileRoute('/')({
 })
 
 function Dashboard() {
-  const user = Route.useLoaderData()
+  const { user, accounts } = Route.useLoaderData()
 
   return (
     <div className="min-h-screen bg-muted/20">
@@ -39,16 +48,7 @@ function Dashboard() {
             </h1>
           </header>
 
-          <div className="rounded-xl border bg-card p-8 text-center shadow-xs">
-            <div className="mx-auto mb-4 flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <FolderGit2 className="size-5" aria-hidden="true" />
-            </div>
-            <h2 className="font-medium">Repository loading is next</h2>
-            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-              Your session is connected. The GitHub repository and
-              recent-project loaders are being moved into this cached route.
-            </p>
-          </div>
+          <ProjectSelector accounts={accounts} />
         </section>
       </main>
     </div>
