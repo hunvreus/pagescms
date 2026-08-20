@@ -39,6 +39,27 @@ function dispatchRequest(input: unknown) {
   }
 }
 
+function managementRequest(input: unknown): ReturnType<typeof coordinates> & {
+  runId: number
+  intent: 'cancel' | 'rerun'
+} {
+  const repository = coordinates(input)
+  const value = input as Record<string, unknown>
+  if (
+    typeof value.runId !== 'number' ||
+    !Number.isInteger(value.runId) ||
+    value.runId <= 0 ||
+    (value.intent !== 'cancel' && value.intent !== 'rerun')
+  ) {
+    throw new Error('Invalid action management request')
+  }
+  return {
+    ...repository,
+    runId: value.runId,
+    intent: value.intent,
+  }
+}
+
 function policy(
   data: ReturnType<typeof coordinates>,
   operation: 'action.read' | 'action.run',
@@ -105,6 +126,28 @@ export const runAction = createServerFn({ method: 'POST' })
         const { dispatchRepositoryAction } =
           await import('#/server/action-service.server')
         return dispatchRepositoryAction({
+          database: services.database,
+          background: services.background,
+          repositoryAccess: services.repositoryAccess,
+          user: actionUser(session.user),
+          ...data,
+        })
+      },
+    )
+  })
+
+export const manageAction = createServerFn({ method: 'POST' })
+  .validator(managementRequest)
+  .handler(async ({ context, data }) => {
+    const services = context.getServices()
+    const session = await services.getSession()
+    if (!session?.user) throw new Error('Authentication required')
+    return services.access.execute(
+      policy(data, 'action.run', session.user.id),
+      async () => {
+        const { manageRepositoryAction } =
+          await import('#/server/action-service.server')
+        return manageRepositoryAction({
           database: services.database,
           background: services.background,
           repositoryAccess: services.repositoryAccess,

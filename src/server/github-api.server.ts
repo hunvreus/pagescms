@@ -43,6 +43,15 @@ export interface GitHubDirectoryEntry {
   size: number | null
 }
 
+export interface GitHubWorkflowRun {
+  id: number
+  status: string
+  conclusion: string | null
+  htmlUrl: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 export class GitHubApiError extends Error {
   constructor(
     message: string,
@@ -116,6 +125,22 @@ function parseRepository(value: unknown): GitHubRepository {
     defaultBranch: requiredString(value.default_branch, 'default branch'),
     updatedAt: requiredString(value.updated_at, 'updated timestamp'),
     canPush: permissions.push === true,
+  }
+}
+
+function parseWorkflowRun(value: unknown): GitHubWorkflowRun {
+  if (!isRecord(value))
+    throw new Error('GitHub returned an invalid workflow run')
+  return {
+    id: requiredNumber(value.id, 'workflow run id'),
+    status:
+      typeof value.status === 'string' && value.status
+        ? value.status
+        : 'queued',
+    conclusion: typeof value.conclusion === 'string' ? value.conclusion : null,
+    htmlUrl: typeof value.html_url === 'string' ? value.html_url : null,
+    createdAt: requiredString(value.created_at, 'workflow run creation time'),
+    updatedAt: requiredString(value.updated_at, 'workflow run update time'),
   }
 }
 
@@ -599,6 +624,49 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ ref: input.ref, inputs: input.inputs }),
         },
+      )
+    },
+
+    async listWorkflowRuns(input: {
+      owner: string
+      repo: string
+      workflow: string
+      ref: string
+    }) {
+      const query = new URLSearchParams({
+        branch: input.ref,
+        event: 'workflow_dispatch',
+        per_page: '10',
+      })
+      const body = requiredRecord(
+        await githubRequest(
+          fetcher,
+          token,
+          `/repos/${encodeURIComponent(input.owner)}/${encodeURIComponent(input.repo)}/actions/workflows/${encodeURIComponent(input.workflow)}/runs?${query}`,
+        ),
+        'workflow runs',
+      )
+      return (Array.isArray(body.workflow_runs) ? body.workflow_runs : []).map(
+        parseWorkflowRun,
+      )
+    },
+
+    async getWorkflowRun(owner: string, repo: string, runId: number) {
+      return parseWorkflowRun(
+        await githubRequest(
+          fetcher,
+          token,
+          `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/runs/${runId}`,
+        ),
+      )
+    },
+
+    async cancelWorkflowRun(owner: string, repo: string, runId: number) {
+      await githubRequest(
+        fetcher,
+        token,
+        `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/runs/${runId}/cancel`,
+        { method: 'POST' },
       )
     },
   }

@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
-import { ExternalLink, LoaderCircle, Play } from 'lucide-react'
+import { ExternalLink, LoaderCircle, Play, RotateCcw, X } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { Textarea } from '#/components/ui/textarea'
-import { getActions, runAction } from '#/functions/actions'
+import { getActions, manageAction, runAction } from '#/functions/actions'
 import { getSignInUrl } from '#/lib/auth-redirect'
 
 export const Route = createFileRoute('/$owner/$repo/$branch/actions')({
@@ -39,7 +39,25 @@ function ActionsPage() {
     Partial<Record<string, Record<string, string | number | boolean>>>
   >({})
   const [running, setRunning] = useState<string | null>(null)
+  const [managing, setManaging] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  const hasActiveRuns = data.runs.some(
+    (actionRun) => actionRun.status !== 'completed',
+  )
+  useEffect(() => {
+    if (!hasActiveRuns) return
+    let cancelled = false
+    let timer = window.setTimeout(refresh, 4_000)
+    async function refresh() {
+      await router.invalidate()
+      if (!cancelled) timer = window.setTimeout(refresh, 4_000)
+    }
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [hasActiveRuns, router])
 
   async function run(action: (typeof data.actions)[number]) {
     const confirm = action.confirm
@@ -65,6 +83,23 @@ function ActionsPage() {
       setError(cause instanceof Error ? cause.message : 'Could not run action')
     } finally {
       setRunning(null)
+    }
+  }
+
+  async function manage(runId: number, intent: 'cancel' | 'rerun') {
+    if (intent === 'cancel' && !window.confirm('Cancel this action run?'))
+      return
+    setManaging(runId)
+    setError(null)
+    try {
+      await manageAction({ data: { ...params, runId, intent } })
+      await router.invalidate()
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : 'Could not update action run',
+      )
+    } finally {
+      setManaging(null)
     }
   }
 
@@ -196,6 +231,36 @@ function ActionsPage() {
                     >
                       <ExternalLink />
                     </a>
+                  </Button>
+                ) : null}
+                {actionRun.canCancel ? (
+                  <Button
+                    aria-label="Cancel action run"
+                    disabled={managing === actionRun.id}
+                    size="icon"
+                    variant="outline"
+                    onClick={() => void manage(actionRun.id, 'cancel')}
+                  >
+                    {managing === actionRun.id ? (
+                      <LoaderCircle className="animate-spin" />
+                    ) : (
+                      <X />
+                    )}
+                  </Button>
+                ) : null}
+                {actionRun.canRerun && actionRun.status === 'completed' ? (
+                  <Button
+                    aria-label="Run action again"
+                    disabled={managing === actionRun.id}
+                    size="icon"
+                    variant="outline"
+                    onClick={() => void manage(actionRun.id, 'rerun')}
+                  >
+                    {managing === actionRun.id ? (
+                      <LoaderCircle className="animate-spin" />
+                    ) : (
+                      <RotateCcw />
+                    )}
                   </Button>
                 ) : null}
               </li>

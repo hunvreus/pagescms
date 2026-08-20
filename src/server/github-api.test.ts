@@ -398,4 +398,55 @@ describe('createGitHubApi', () => {
       },
     })
   })
+
+  it('lists, loads, and cancels workflow runs without an SDK', async () => {
+    const requests: Array<{ url: string; method: string }> = []
+    const workflowRun = {
+      id: 72,
+      status: 'in_progress',
+      conclusion: null,
+      html_url: 'https://github.com/PagesCMS/pages-cms/actions/runs/72',
+      created_at: '2026-08-20T01:00:00Z',
+      updated_at: '2026-08-20T01:01:00Z',
+    }
+    const fetcher = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input)
+        requests.push({ url, method: init?.method ?? 'GET' })
+        if (url.includes('/workflows/')) {
+          return jsonResponse({ workflow_runs: [workflowRun] })
+        }
+        if (url.endsWith('/cancel')) return new Response(null, { status: 202 })
+        return jsonResponse(workflowRun)
+      },
+    )
+    const api = createGitHubApi('token', fetcher)
+
+    await expect(
+      api.listWorkflowRuns({
+        owner: 'PagesCMS',
+        repo: 'pages-cms',
+        workflow: 'deploy.yml',
+        ref: 'feature/a',
+      }),
+    ).resolves.toEqual([
+      {
+        id: 72,
+        status: 'in_progress',
+        conclusion: null,
+        htmlUrl: 'https://github.com/PagesCMS/pages-cms/actions/runs/72',
+        createdAt: '2026-08-20T01:00:00Z',
+        updatedAt: '2026-08-20T01:01:00Z',
+      },
+    ])
+    const listUrl = new URL(requests[0]?.url ?? '')
+    expect(listUrl.searchParams.get('branch')).toBe('feature/a')
+    expect(listUrl.searchParams.get('event')).toBe('workflow_dispatch')
+
+    await expect(
+      api.getWorkflowRun('PagesCMS', 'pages-cms', 72),
+    ).resolves.toMatchObject({ id: 72, status: 'in_progress' })
+    await api.cancelWorkflowRun('PagesCMS', 'pages-cms', 72)
+    expect(requests.at(-1)).toMatchObject({ method: 'POST' })
+  })
 })
