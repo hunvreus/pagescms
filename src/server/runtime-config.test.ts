@@ -85,6 +85,15 @@ describe('parseRuntimeConfiguration', () => {
     ).toBe('webhook-secret')
   })
 
+  it('accepts a GitHub App installation slug', () => {
+    expect(
+      parseRuntimeConfiguration({
+        ...base,
+        GITHUB_APP_NAME: 'pages-cms',
+      }).githubAppName,
+    ).toBe('pages-cms')
+  })
+
   it.each([
     [{ ...base, BETTER_AUTH_SECRET: 'short' }, 'at least 32'],
     [{ ...base, BETTER_AUTH_URL: 'not-a-url' }, 'valid HTTP'],
@@ -112,6 +121,7 @@ describe('parseRuntimeConfiguration', () => {
       '32-byte key',
     ],
     [{ ...base, DEPLOYMENT_MODE: 'mystery' }, 'DEPLOYMENT_MODE'],
+    [{ ...base, GITHUB_APP_NAME: '../bad' }, 'GitHub App slug'],
   ])('rejects invalid runtime configuration', (input, message) => {
     expect(() => parseRuntimeConfiguration(input)).toThrow(message)
   })

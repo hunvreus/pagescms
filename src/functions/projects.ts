@@ -76,6 +76,7 @@ export const getDashboardData = createServerFn({ method: 'GET' }).handler(
       isAdmin: services.configuration.adminEmails.includes(
         user.email.toLowerCase(),
       ),
+      githubAppInstallAvailable: Boolean(services.configuration.githubAppName),
     }
   },
 )

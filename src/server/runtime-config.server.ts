@@ -13,6 +13,7 @@ export type RuntimeConfiguration = Readonly<{
   databaseConnectionString: string
   deployment: 'self-hosted' | 'hosted'
   githubWebhookSecret?: string
+  githubAppName?: string
   githubApp?: Readonly<{
     appId: string
     privateKey: string
@@ -97,6 +98,10 @@ export function parseRuntimeConfiguration(
   const githubWebhookSecret = optionalString(
     environment.GITHUB_APP_WEBHOOK_SECRET,
   )
+  const githubAppName = optionalString(environment.GITHUB_APP_NAME)
+  if (githubAppName && !/^[A-Za-z0-9-]+$/.test(githubAppName)) {
+    throw new Error('GITHUB_APP_NAME must be a GitHub App slug')
+  }
   const githubAppValues = [appId, privateKey, cryptoKey]
   if (githubAppValues.some(Boolean) && !githubAppValues.every(Boolean)) {
     throw new Error(
@@ -127,6 +132,7 @@ export function parseRuntimeConfiguration(
     databaseConnectionString,
     deployment: deploymentValue,
     ...(githubWebhookSecret ? { githubWebhookSecret } : {}),
+    ...(githubAppName ? { githubAppName } : {}),
     ...(appId && privateKey && cryptoKey
       ? {
           githubApp: {

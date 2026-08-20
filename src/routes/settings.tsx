@@ -193,6 +193,13 @@ function SettingsPage() {
               GitHub App accounts available to Pages CMS.
             </p>
           </div>
+          {data.githubAppInstallAvailable ? (
+            <Button asChild variant="outline">
+              <a href="/api/github-app/install">
+                Install on another account <ExternalLink />
+              </a>
+            </Button>
+          ) : null}
           {data.accounts.length ? (
             <ul className="overflow-hidden rounded-lg border">
               {data.accounts.map((account) => {
