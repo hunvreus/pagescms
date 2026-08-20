@@ -28,6 +28,7 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm test:e2e
+pnpm test:integration
 pnpm cf:typecheck
 pnpm cf:dry-run
 ```

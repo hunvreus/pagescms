@@ -15,5 +15,5 @@
 ### Changed
 
 - Preserved the previous Next.js application under `_legacy/` as a frozen migration reference.
-- Replaced internal client REST calls with validated TanStack server functions and shared authorization services; compatibility for potential external REST consumers remains under review.
+- Replaced undocumented internal client REST calls with validated TanStack server functions and shared authorization services.
 - Lazy-loaded the rich-text editor and kept server-only adapters out of client bundles.
