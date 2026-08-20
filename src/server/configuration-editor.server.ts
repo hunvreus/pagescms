@@ -58,6 +58,23 @@ export async function loadConfigurationSource({
   }
 }
 
+export async function loadConfigurationHistory({
+  repositoryAccess,
+  user,
+  owner,
+  repo,
+  branch,
+}: {
+  repositoryAccess: RepositoryAccessService
+  user: ProjectUser
+  owner: string
+  repo: string
+  branch: string
+}) {
+  const { api } = await repositoryAccess.resolve(user, owner, repo, branch)
+  return api.listFileCommits(owner, repo, branch, '.pages.yml')
+}
+
 export async function saveConfigurationSource({
   database,
   background,

@@ -12,6 +12,7 @@ describe('application operation catalog', () => {
         'repository.connect',
         'repository.read',
         'configuration.update',
+        'configuration.history',
         'entry.create',
         'entry.update',
         'entry.delete',
