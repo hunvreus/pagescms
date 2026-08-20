@@ -19,6 +19,10 @@ import { Textarea } from '#/components/ui/textarea'
 import { getReferenceOptions } from '#/functions/references'
 import { createMedia, getMedia } from '#/functions/media'
 import { initializeStructuredContent } from '#/lib/field-values'
+import {
+  allowedMediaFieldExtensions,
+  resolveFieldMedia,
+} from '#/lib/media-field-values'
 import { clientPluginRegistry } from '#/plugins/client-discovery'
 
 import type { JsonObject, JsonValue } from '#/lib/json'
@@ -413,7 +417,8 @@ export function StructuredContentField({
     )
   } else if (
     (type === 'image' || type === 'file') &&
-    referenceContext?.media?.length
+    referenceContext?.media?.length &&
+    (!isContentField(field.options) || field.options.media !== false)
   ) {
     control = (
       <MediaFieldControl
@@ -589,11 +594,7 @@ function MediaFieldControl({
   onChange: (value: JsonValue | undefined) => void
 }) {
   const settings = isContentField(field.options) ? field.options : {}
-  const requestedMedia =
-    typeof settings.media === 'string' ? settings.media : undefined
-  const media =
-    context.media?.find((item) => item.name === requestedMedia) ??
-    context.media?.[0]
+  const media = resolveFieldMedia(field, context.media ?? [])
   const multiple =
     settings.multiple === true || isContentField(settings.multiple)
   const max = isContentField(settings.multiple)
@@ -667,6 +668,22 @@ function MediaFieldControl({
   }
   const mediaName = media.name
   const mediaInput = media.input
+  const configuredStartPath =
+    typeof settings.path === 'string' &&
+    (!mediaInput ||
+      settings.path === mediaInput ||
+      settings.path.startsWith(`${mediaInput}/`))
+      ? settings.path
+      : mediaInput
+  const allowedExtensions = allowedMediaFieldExtensions(field, media)
+  const visibleEntries = entries.filter(
+    (entry) =>
+      entry.type === 'dir' ||
+      !allowedExtensions?.length ||
+      allowedExtensions.includes(
+        entry.name.split('.').at(-1)?.toLowerCase() ?? '',
+      ),
+  )
 
   function select(pathValue: string) {
     if (!multiple) {
@@ -687,6 +704,13 @@ function MediaFieldControl({
       for (const file of Array.from(files)) {
         if (file.size > 20 * 1024 * 1024) {
           throw new Error(`${file.name} exceeds the 20 MB limit`)
+        }
+        const extension = file.name.split('.').at(-1)?.toLowerCase() ?? ''
+        if (
+          allowedExtensions?.length &&
+          !allowedExtensions.includes(extension)
+        ) {
+          throw new Error(`${file.name} uses a disallowed file extension`)
         }
         const result = await createMedia({
           data: {
@@ -767,9 +791,7 @@ function MediaFieldControl({
             type="button"
             variant="outline"
             onClick={() => {
-              setPath(
-                typeof settings.path === 'string' ? settings.path : media.input,
-              )
+              setPath(configuredStartPath)
               setOpen(true)
             }}
           >
@@ -785,8 +807,8 @@ function MediaFieldControl({
               Upload
               <input
                 accept={
-                  media.extensions.length
-                    ? media.extensions
+                  allowedExtensions?.length
+                    ? allowedExtensions
                         .map((extension) => `.${extension}`)
                         .join(',')
                     : undefined
@@ -837,7 +859,7 @@ function MediaFieldControl({
             <p className="text-sm text-muted-foreground">Loading media…</p>
           ) : (
             <ul className="max-h-64 divide-y overflow-auto rounded-lg border">
-              {entries.map((entry) => (
+              {visibleEntries.map((entry) => (
                 <li key={entry.path}>
                   <button
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"

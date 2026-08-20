@@ -23,6 +23,10 @@ import {
 import { getFileExtension } from '#/lib/file-types'
 import { normalizeGitPath } from '#/lib/git-path'
 import { toJsonObject, toJsonValue } from '#/lib/json'
+import {
+  transformMediaFieldValues,
+  validateMediaFieldValues,
+} from '#/lib/media-field-values'
 
 import { createConfigurationStore } from './configuration-store.server'
 import { invalidateDirectoryCacheAfterMutation } from './directory-cache.server'
@@ -182,6 +186,8 @@ export async function loadRawEntry(input: {
             FrontmatterDelimiters | undefined,
         }),
         Boolean(context.schema.list),
+        fields,
+        shared.media,
       ),
       ...(context.schema.list
         ? { list: toJsonValue(context.schema.list) }
@@ -194,15 +200,31 @@ export async function loadRawEntry(input: {
   }
 }
 
-function structuredContent(content: unknown, list: boolean) {
+function structuredContent(
+  content: unknown,
+  list: boolean,
+  fields: unknown[],
+  media: ReturnType<typeof configuredMediaSchemas>,
+) {
   const value = toJsonValue(content)
   if (list) {
     if (!Array.isArray(value)) {
       throw new Error('Expected a list at the root of this content file')
     }
-    return { mode: 'structured-list' as const, content: value }
+    return {
+      mode: 'structured-list' as const,
+      content: transformMediaFieldValues(fields, value, media, 'read'),
+    }
   }
-  return { mode: 'structured' as const, content: toJsonObject(value) }
+  return {
+    mode: 'structured' as const,
+    content: transformMediaFieldValues(
+      fields,
+      toJsonObject(value),
+      media,
+      'read',
+    ),
+  }
 }
 
 export async function loadEntryHistory(input: {
@@ -337,6 +359,13 @@ export async function saveStructuredEntry(
   const errors = Array.isArray(content)
     ? validateStructuredList(fields, content, context.schema.list)
     : validateStructuredContent(fields, content)
+  errors.push(
+    ...validateMediaFieldValues(
+      fields,
+      content,
+      configuredMediaSchemas(context.configuration.object),
+    ),
+  )
   if (errors.length) throw new Error(errors[0])
   if (
     typeof context.schema.format !== 'string' ||
@@ -344,7 +373,13 @@ export async function saveStructuredEntry(
   ) {
     throw new Error('This content schema does not use a structured format')
   }
-  const source = serializeContent(content, {
+  const persistedContent = transformMediaFieldValues(
+    fields,
+    content,
+    configuredMediaSchemas(context.configuration.object),
+    'write',
+  )
+  const source = serializeContent(persistedContent, {
     format: context.schema.format as ContentFormat,
     delimiters: context.schema.delimiters as FrontmatterDelimiters | undefined,
   })
