@@ -441,6 +441,119 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
       const commit = requiredRecord(body.commit, 'file delete commit')
       return { commitSha: requiredString(commit.sha, 'file delete commit sha') }
     },
+
+    async renameFile(input: {
+      owner: string
+      repo: string
+      branch: string
+      path: string
+      newPath: string
+      sha: string
+      message: string
+      committer?: { name: string; email: string }
+    }) {
+      const repositoryPath = `/repos/${encodeURIComponent(input.owner)}/${encodeURIComponent(input.repo)}`
+      const branchPath = input.branch
+        .split('/')
+        .map(encodeURIComponent)
+        .join('/')
+      const reference = requiredRecord(
+        await githubRequest(
+          fetcher,
+          token,
+          `${repositoryPath}/git/ref/heads/${branchPath}`,
+        ),
+        'Git reference',
+      )
+      const referenceObject = requiredRecord(
+        reference.object,
+        'Git reference object',
+      )
+      const headSha = requiredString(referenceObject.sha, 'branch head sha')
+      const treeResponse = requiredRecord(
+        await githubRequest(
+          fetcher,
+          token,
+          `${repositoryPath}/git/trees/${encodeURIComponent(headSha)}?recursive=1`,
+        ),
+        'Git tree',
+      )
+      if (!Array.isArray(treeResponse.tree)) {
+        throw new Error('GitHub returned an invalid Git tree')
+      }
+      const entries = treeResponse.tree.map((value) =>
+        requiredRecord(value, 'Git tree entry'),
+      )
+      const source = entries.find(
+        (entry) => entry.path === input.path && entry.type !== 'tree',
+      )
+      if (!source)
+        throw new GitHubApiError(`File not found at ${input.path}`, 404)
+      if (requiredString(source.sha, 'Git tree sha') !== input.sha) {
+        throw new GitHubApiError('The file changed before it was renamed', 409)
+      }
+      if (entries.some((entry) => entry.path === input.newPath)) {
+        throw new GitHubApiError(`File already exists at ${input.newPath}`, 409)
+      }
+      const baseTree = requiredString(treeResponse.sha, 'base Git tree sha')
+      const sourceMode = requiredString(source.mode, 'Git tree mode')
+      const sourceType = requiredString(source.type, 'Git tree type')
+      const newTree = requiredRecord(
+        await githubRequest(fetcher, token, `${repositoryPath}/git/trees`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            base_tree: baseTree,
+            tree: [
+              {
+                path: input.path,
+                mode: sourceMode,
+                type: sourceType,
+                sha: null,
+              },
+              {
+                path: input.newPath,
+                mode: sourceMode,
+                type: sourceType,
+                sha: input.sha,
+              },
+            ],
+          }),
+        }),
+        'new Git tree',
+      )
+      const treeSha = requiredString(newTree.sha, 'new Git tree sha')
+      const commit = requiredRecord(
+        await githubRequest(fetcher, token, `${repositoryPath}/git/commits`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            message: input.message,
+            tree: treeSha,
+            parents: [headSha],
+            ...(input.committer ? { committer: input.committer } : {}),
+          }),
+        }),
+        'rename commit',
+      )
+      const commitSha = requiredString(commit.sha, 'rename commit sha')
+      await githubRequest(
+        fetcher,
+        token,
+        `${repositoryPath}/git/refs/heads/${branchPath}`,
+        {
+          method: 'PATCH',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ sha: commitSha, force: false }),
+        },
+      )
+      return {
+        path: input.path,
+        newPath: input.newPath,
+        sha: input.sha,
+        commitSha,
+      }
+    },
   }
 }
 

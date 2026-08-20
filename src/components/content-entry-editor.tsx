@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from '@tanstack/react-router'
-import { Check, LoaderCircle, Save, Trash2 } from 'lucide-react'
+import { Check, LoaderCircle, Pencil, Save, Trash2 } from 'lucide-react'
 
 import {
   StructuredContentField,
@@ -10,6 +10,7 @@ import { Button } from '#/components/ui/button'
 import { Textarea } from '#/components/ui/textarea'
 import {
   deleteEntry,
+  renameEntry,
   updateRawEntry,
   updateStructuredEntry,
 } from '#/functions/entry-editor'
@@ -29,22 +30,26 @@ export function ContentEntryEditor({
   initial,
   coordinates,
   afterDeleteHref,
+  renameBaseHref,
 }: {
   initial: EntryData
   coordinates: ContentEntryCoordinates
   afterDeleteHref: string
+  renameBaseHref?: string
 }) {
   return initial.mode === 'structured' ? (
     <StructuredEntryEditor
       afterDeleteHref={afterDeleteHref}
       coordinates={coordinates}
       initial={initial}
+      renameBaseHref={renameBaseHref}
     />
   ) : (
     <RawEntryEditor
       afterDeleteHref={afterDeleteHref}
       coordinates={coordinates}
       initial={initial}
+      renameBaseHref={renameBaseHref}
     />
   )
 }
@@ -93,14 +98,54 @@ function useEntryDeletion(
   }
 }
 
+function useEntryRename(
+  coordinates: ContentEntryCoordinates,
+  sha: string,
+  renameBaseHref?: string,
+) {
+  const router = useRouter()
+  const [renaming, setRenaming] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  return {
+    renaming,
+    error,
+    async rename() {
+      if (!renameBaseHref) return
+      const current = coordinates.path.split('/').at(-1) ?? ''
+      const filename = window.prompt('New filename', current)?.trim()
+      if (!filename || filename === current) return
+      setRenaming(true)
+      setError(null)
+      try {
+        const result = await renameEntry({
+          data: { ...coordinates, sha, filename },
+        })
+        await router.navigate({
+          href: `${renameBaseHref}/${result.newPath.split('/').map(encodeURIComponent).join('/')}`,
+        })
+        void router.invalidate()
+      } catch (cause) {
+        setError(
+          cause instanceof Error ? cause.message : 'Could not rename entry',
+        )
+      } finally {
+        setRenaming(false)
+      }
+    },
+  }
+}
+
 function RawEntryEditor({
   initial,
   coordinates,
   afterDeleteHref,
+  renameBaseHref,
 }: {
   initial: EntryData
   coordinates: ContentEntryCoordinates
   afterDeleteHref: string
+  renameBaseHref?: string
 }) {
   const router = useRouter()
   const [source, setSource] = useState(initial.source)
@@ -111,6 +156,7 @@ function RawEntryEditor({
   const [error, setError] = useState<string | null>(null)
   const dirty = source !== savedSource
   const deletion = useEntryDeletion(coordinates, sha, afterDeleteHref)
+  const rename = useEntryRename(coordinates, sha, renameBaseHref)
   useUnsavedWarning(dirty)
 
   async function save() {
@@ -141,11 +187,14 @@ function RawEntryEditor({
         saved={saved}
         saving={saving}
         deleting={deletion.deleting}
+        canRename={initial.operations.rename && Boolean(renameBaseHref)}
+        renaming={rename.renaming}
         onDelete={() => void deletion.remove()}
+        onRename={() => void rename.rename()}
         onSave={() => void save()}
       />
       <p className="text-sm text-muted-foreground">Source editor</p>
-      <EditorError error={error ?? deletion.error} />
+      <EditorError error={error ?? deletion.error ?? rename.error} />
       <Textarea
         aria-label="Entry source"
         className="min-h-[calc(100vh-13rem)] bg-card font-mono text-[13px] leading-6"
@@ -164,10 +213,12 @@ function StructuredEntryEditor({
   initial,
   coordinates,
   afterDeleteHref,
+  renameBaseHref,
 }: {
   initial: Extract<EntryData, { mode: 'structured' }>
   coordinates: ContentEntryCoordinates
   afterDeleteHref: string
+  renameBaseHref?: string
 }) {
   const router = useRouter()
   const [content, setContent] = useState(initial.content)
@@ -181,6 +232,7 @@ function StructuredEntryEditor({
     ? initial.fields.filter(isContentField)
     : []
   const deletion = useEntryDeletion(coordinates, sha, afterDeleteHref)
+  const rename = useEntryRename(coordinates, sha, renameBaseHref)
   useUnsavedWarning(dirty)
 
   async function save() {
@@ -211,10 +263,13 @@ function StructuredEntryEditor({
         saved={saved}
         saving={saving}
         deleting={deletion.deleting}
+        canRename={initial.operations.rename && Boolean(renameBaseHref)}
+        renaming={rename.renaming}
         onDelete={() => void deletion.remove()}
+        onRename={() => void rename.rename()}
         onSave={() => void save()}
       />
-      <EditorError error={error ?? deletion.error} />
+      <EditorError error={error ?? deletion.error ?? rename.error} />
       <div className="space-y-5 rounded-xl border bg-card p-5 shadow-xs">
         {fields.map((field) => {
           const name = String(field.name)
@@ -246,8 +301,11 @@ function EditorHeader({
   saved,
   dirty,
   canDelete,
+  canRename,
   deleting,
+  renaming,
   onDelete,
+  onRename,
   onSave,
 }: {
   initial: EntryData
@@ -255,8 +313,11 @@ function EditorHeader({
   saved: boolean
   dirty: boolean
   canDelete: boolean
+  canRename: boolean
   deleting: boolean
+  renaming: boolean
   onDelete: () => void
+  onRename: () => void
   onSave: () => void
 }) {
   return (
@@ -268,9 +329,19 @@ function EditorHeader({
         </h1>
       </div>
       <div className="flex gap-2">
+        {canRename ? (
+          <Button
+            disabled={saving || deleting || renaming}
+            variant="outline"
+            onClick={onRename}
+          >
+            {renaming ? <LoaderCircle className="animate-spin" /> : <Pencil />}
+            {renaming ? 'Renaming' : 'Rename'}
+          </Button>
+        ) : null}
         {canDelete ? (
           <Button
-            disabled={saving || deleting}
+            disabled={saving || deleting || renaming}
             variant="destructive"
             onClick={onDelete}
           >
@@ -278,7 +349,10 @@ function EditorHeader({
             {deleting ? 'Deleting' : 'Delete'}
           </Button>
         ) : null}
-        <Button disabled={saving || deleting || !dirty} onClick={onSave}>
+        <Button
+          disabled={saving || deleting || renaming || !dirty}
+          onClick={onSave}
+        >
           {saving ? (
             <LoaderCircle className="animate-spin" />
           ) : saved ? (
