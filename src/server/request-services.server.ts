@@ -21,7 +21,7 @@ export function createRequestServices(
     deployment: configuration.deployment,
     policy: serverPluginRegistry.accessPolicy,
   })
-  const projects = createProjectService(database)
+  const projects = createProjectService(database, background)
   const auth = createPagesCmsAuth({
     database,
     configuration: configuration.auth,

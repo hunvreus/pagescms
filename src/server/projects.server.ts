@@ -4,6 +4,7 @@ import { createGitHubApi } from './github-api.server'
 
 import type { Database } from './database/client.server'
 import type { GitHubInstallation, GitHubRepository } from './github-api.server'
+import type { BackgroundExecutor } from './runtime-ports.server'
 
 import { accountTable, collaboratorTable } from './database/schema'
 
@@ -107,7 +108,10 @@ async function findGitHubToken(database: Database, userId: string) {
   return account?.accessToken ?? null
 }
 
-export function createProjectService(database: Database) {
+export function createProjectService(
+  database: Database,
+  background: BackgroundExecutor,
+) {
   return {
     async listAccounts(user: ProjectUser): Promise<ProjectAccount[]> {
       const [token, collaboratorRows] = await Promise.all([
@@ -183,6 +187,44 @@ export function createProjectService(database: Database) {
         githubRepositories,
         collaboratorRepositories,
       )
+    },
+
+    async openRepository(
+      user: ProjectUser,
+      owner: string,
+      repo: string,
+      branch?: string,
+    ) {
+      const token = await findGitHubToken(database, user.id)
+      if (!token || !user.githubUsername) {
+        throw new Error(
+          'A GitHub user token is currently required to open this repository',
+        )
+      }
+      const api = createGitHubApi(token)
+      const configurationPromise = branch
+        ? import('./configuration-store.server').then(
+            ({ createConfigurationStore }) =>
+              createConfigurationStore({ database, background }).get(
+                api,
+                owner,
+                repo,
+                branch,
+              ),
+          )
+        : Promise.resolve(null)
+      const [repository, branches, configuration] = await Promise.all([
+        api.getRepository(owner, repo),
+        api.listBranches(owner, repo),
+        configurationPromise,
+      ])
+      return {
+        repository,
+        branches,
+        branch: branch ?? null,
+        branchExists: branch ? branches.includes(branch) : true,
+        configuration,
+      }
     },
   }
 }

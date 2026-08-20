@@ -19,6 +19,20 @@ export interface GitHubRepository {
   canPush: boolean
 }
 
+export interface GitHubRepositorySnapshot {
+  id: number
+  owner: string
+  ownerId: number
+  repo: string
+  defaultBranch: string
+  private: boolean
+}
+
+export interface GitHubFile {
+  sha: string
+  content: string
+}
+
 export class GitHubApiError extends Error {
   constructor(
     message: string,
@@ -32,6 +46,11 @@ export class GitHubApiError extends Error {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function requiredRecord(value: unknown, field: string) {
+  if (!isRecord(value)) throw new Error(`GitHub returned an invalid ${field}`)
+  return value
 }
 
 function requiredString(value: unknown, field: string) {
@@ -94,7 +113,7 @@ async function githubRequest(
   fetcher: typeof fetch,
   token: string,
   path: string,
-): Promise<Record<string, unknown>> {
+): Promise<unknown> {
   const response = await fetcher(`${GITHUB_API_URL}${path}`, {
     headers: {
       accept: 'application/vnd.github+json',
@@ -118,7 +137,6 @@ async function githubRequest(
         : undefined)
     throw new GitHubApiError(message, response.status, retryAfter ?? undefined)
   }
-  if (!isRecord(body)) throw new Error('GitHub returned an invalid response')
   return body
 }
 
@@ -129,10 +147,13 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
     async listInstallations(): Promise<GitHubInstallation[]> {
       const installations: GitHubInstallation[] = []
       for (let page = 1; page <= MAX_PAGES; page += 1) {
-        const body = await githubRequest(
-          fetcher,
-          token,
-          `/user/installations?per_page=100&page=${page}`,
+        const body = requiredRecord(
+          await githubRequest(
+            fetcher,
+            token,
+            `/user/installations?per_page=100&page=${page}`,
+          ),
+          'installation response',
         )
         const values = Array.isArray(body.installations)
           ? body.installations
@@ -155,10 +176,13 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
       }
       const repositories: GitHubRepository[] = []
       for (let page = 1; page <= MAX_PAGES; page += 1) {
-        const body = await githubRequest(
-          fetcher,
-          token,
-          `/user/installations/${installationId}/repositories?per_page=100&page=${page}`,
+        const body = requiredRecord(
+          await githubRequest(
+            fetcher,
+            token,
+            `/user/installations/${installationId}/repositories?per_page=100&page=${page}`,
+          ),
+          'repository response',
         )
         const values = Array.isArray(body.repositories) ? body.repositories : []
         repositories.push(...values.map(parseRepository))
@@ -181,12 +205,81 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
         order: 'desc',
         per_page: '10',
       })
-      const body = await githubRequest(
-        fetcher,
-        token,
-        `/search/repositories?${parameters.toString()}`,
+      const body = requiredRecord(
+        await githubRequest(
+          fetcher,
+          token,
+          `/search/repositories?${parameters.toString()}`,
+        ),
+        'search response',
       )
       return (Array.isArray(body.items) ? body.items : []).map(parseRepository)
+    },
+
+    async getRepository(
+      owner: string,
+      repo: string,
+    ): Promise<GitHubRepositorySnapshot> {
+      const body = requiredRecord(
+        await githubRequest(
+          fetcher,
+          token,
+          `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`,
+        ),
+        'repository',
+      )
+      const repositoryOwner = requiredRecord(body.owner, 'repository owner')
+      return {
+        id: requiredNumber(body.id, 'repository id'),
+        owner: requiredString(repositoryOwner.login, 'repository owner login'),
+        ownerId: requiredNumber(repositoryOwner.id, 'repository owner id'),
+        repo: requiredString(body.name, 'repository name'),
+        defaultBranch: requiredString(body.default_branch, 'default branch'),
+        private: body.private === true,
+      }
+    },
+
+    async listBranches(owner: string, repo: string): Promise<string[]> {
+      const branches: string[] = []
+      for (let page = 1; page <= MAX_PAGES; page += 1) {
+        const body = await githubRequest(
+          fetcher,
+          token,
+          `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/branches?per_page=100&page=${page}`,
+        )
+        if (!Array.isArray(body)) {
+          throw new Error('GitHub returned an invalid branch response')
+        }
+        branches.push(
+          ...body.map((value) =>
+            requiredString(requiredRecord(value, 'branch').name, 'branch name'),
+          ),
+        )
+        if (body.length < 100) break
+      }
+      return branches
+    },
+
+    async getFile(
+      owner: string,
+      repo: string,
+      path: string,
+      branch: string,
+    ): Promise<GitHubFile> {
+      const parameters = new URLSearchParams({ ref: branch })
+      const body = requiredRecord(
+        await githubRequest(
+          fetcher,
+          token,
+          `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${path.split('/').map(encodeURIComponent).join('/')}?${parameters.toString()}`,
+        ),
+        'file response',
+      )
+      if (body.type !== 'file') throw new Error(`Expected ${path} to be a file`)
+      return {
+        sha: requiredString(body.sha, 'file sha'),
+        content: requiredString(body.content, 'file content'),
+      }
     },
   }
 }
