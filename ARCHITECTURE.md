@@ -15,7 +15,7 @@ route or server function
   -> GitHub, database, email, or background-work adapter
 ```
 
-Route files stay thin. Product UI and client behavior belong in `src/features`; shared presentation primitives belong in `src/components`; server behavior belongs in `src/server`.
+Route files own loader and page composition. Reusable product UI belongs in `src/components`; shadcn primitives live in `src/components/ui`; framework-neutral rules live in `src/lib`; authenticated operations live in `src/functions`; application services and adapters live in `src/server`.
 
 ## Request lifecycle
 
@@ -25,7 +25,9 @@ PostgreSQL uses the legacy-compatible Drizzle schema and migration history. A Po
 
 ## Data and caching
 
-The router preloads code and required route data. TanStack Query begins with a conservative 30-second default freshness window and five-minute garbage-collection window. Feature query definitions will override these defaults according to resource semantics. Durable cache ownership, keys, versioning, and webhook invalidation are introduced in later waves.
+TanStack Router uses intent preloading, route-specific stale windows, skeletons after short pending delays, and ten-minute garbage collection for repository content. Internal navigation uses typed links so the persistent repository shell and route cache survive page changes. TanStack Query handles reusable paginated repository discovery with placeholder data.
+
+Configuration and directory snapshots are stored in PostgreSQL when repository caching is enabled. Fresh snapshots are returned immediately; expired snapshots are returned as stale while a request-scoped background task refreshes them. Content mutations and signed GitHub push/installation webhooks invalidate the affected scopes. Private media previews use authenticated responses with private browser caching and ETags; private repository content is never placed in a public CDN cache.
 
 ### Canonical repository identity
 
@@ -41,7 +43,7 @@ Configuration handling is split into source parsing, legacy normalization, produ
 
 Normalization is a pure clone-and-transform step. It migrates legacy settings, media, commit, filename, component, format, and navigation forms without retaining YAML AST or UI dependencies. Repository-relative input and content paths use the canonical Git-path rules, so unlike the legacy normalizer they reject traversal above the repository root.
 
-The configuration schema remains strict and retains the legacy validation surface, but its core field-type catalog is plain metadata rather than an import of the React field registry. This prevents validation in loaders and server services from eagerly pulling editor implementations into their bundles. Additional plugin field types will extend this catalog through the field contract introduced with the editor wave.
+The configuration schema remains strict and retains the legacy validation surface, but its core field-type catalog is plain metadata rather than an import of the React field registry. This prevents validation in loaders and server services from eagerly pulling editor implementations into their bundles. Custom `component` fields resolve through the independent client plugin registry.
 
 Content serialization is also framework-neutral and supports raw or frontmatter YAML, JSON, and TOML. Frontmatter parsing keeps the body byte-for-byte after newline-boundary normalization. JSON frontmatter is scanned to its actual closing object boundary instead of using the legacy greedy regular expression, so braces in document bodies are safe. TOML uses the small ESM-only `smol-toml` implementation rather than the substantially larger legacy parser.
 
@@ -49,9 +51,11 @@ Content serialization is also framework-neutral and supports raw or frontmatter 
 
 Plugins are trusted build-time modules discovered from `plugins/*/plugin.ts`. The registry validates identifiers, API versions, and duplicates before rendering the application. Manifests are client-safe; optional capabilities are discovered independently from `plugins/*/server.ts` and guarded by `.server.ts` boundaries.
 
-The first server capability is the access-policy provider. Core application services authorize stable operation identifiers against principal, tenant, repository, branch, collection, media, and path targets before protected work. Hosted startup fails without a provider; self-hosted deployments select an explicit versioned allow-all policy. Quota-consuming mutations reserve atomically before their side effect and settle the reservation afterward. Billing and role logic therefore remains replaceable proprietary plugin code without becoming a client-side authority or a fork.
+The first server capability is the access-policy provider. Server functions authorize stable operation identifiers against principal, tenant, repository, branch, collection, media, and path targets before protected work. Hosted startup fails without a provider; self-hosted deployments select an explicit versioned allow-all policy. Quota-consuming mutations reserve atomically before their side effect and settle the reservation afterward. Billing and role logic therefore remains replaceable proprietary plugin code without becoming a client-side authority or a fork.
 
 Email is a second isolated server capability with one small provider contract and no default SMTP dependency. Runtime time, identifiers, and background execution also use injectable ports. Production adapters use `Date`, Web Crypto, and the Workers execution context; tests can supply deterministic implementations without mutable module-level request state.
+
+An optional client contribution can register custom field components by name. Client, manifest, and server entry points are discovered independently, preventing a server-only billing or email dependency from entering browser chunks. Rich-text editing is additionally client-only and lazy-loaded.
 
 The public core must build with an empty plugin directory. Hosted and proprietary packages depend on public contracts, never the reverse.
 

@@ -2,7 +2,7 @@
 
 Pages CMS is an open-source content management system for GitHub repositories. This branch contains a new TanStack Start application targeting Cloudflare Workers. The previous Next.js implementation is preserved under [`_legacy/`](./_legacy/).
 
-The replacement is being built in reviewable migration waves. [`PLAN.md`](./PLAN.md) defines scope, parity requirements, validation gates, and cutover criteria.
+The replacement is being built in reviewable migration waves. It currently includes repository and branch navigation, configuration editing/history, collections and fields, file and entry operations, media, references, actions, collaborators, cache controls, settings, administration, GitHub webhooks, and build-time plugins. [`PLAN.md`](./PLAN.md) defines the remaining parity and cutover gates; [`TODO.md`](./TODO.md) records concrete unfinished work.
 
 ## Requirements
 
@@ -32,7 +32,7 @@ pnpm cf:typecheck
 pnpm cf:dry-run
 ```
 
-`pnpm validate` runs every non-browser verification above. Browser binaries are installed separately with `pnpm exec playwright install chromium`.
+`pnpm validate` runs every non-browser verification above, including a local Worker dry run. Browser binaries are installed separately with `pnpm exec playwright install chromium`. Live Cloudflare deployment verification is intentionally separate.
 
 ## UI components
 
@@ -42,7 +42,7 @@ The UI uses the shadcn/ui Nova preset with Radix primitives, neutral surfaces, a
 pnpm dlx shadcn@latest add button
 ```
 
-Registry primitives belong in `src/components/ui`; feature UI belongs in `src/features`.
+Registry primitives belong in `src/components/ui`; product components belong in `src/components` or a focused feature module when one is introduced.
 
 ## Cloudflare
 
@@ -59,4 +59,6 @@ No deployment occurs during `pnpm cf:dry-run`. See [`docs/development/cloudflare
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md)
 - [`docs/index.md`](./docs/index.md)
 - [`docs/development/authentication.md`](./docs/development/authentication.md)
+- [`docs/development/webhooks-and-cache.md`](./docs/development/webhooks-and-cache.md)
+- [`docs/development/parity.md`](./docs/development/parity.md)
 - [`AGENTS.md`](./AGENTS.md)
