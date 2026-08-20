@@ -1,5 +1,12 @@
 import { Link } from '@tanstack/react-router'
-import { File, FileStack, FolderOpen, GitBranch, Settings } from 'lucide-react'
+import {
+  File,
+  FileStack,
+  FolderOpen,
+  GitBranch,
+  Settings,
+  Users,
+} from 'lucide-react'
 
 import { getConfigurationNavigation } from '#/lib/configuration-navigation'
 
@@ -87,6 +94,13 @@ export function RepositoryWorkspace({
             >
               <Settings className="size-4 text-muted-foreground" />
               Configuration
+            </a>
+            <a
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
+              href={`/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(branch)}/collaborators`}
+            >
+              <Users className="size-4 text-muted-foreground" />
+              Collaborators
             </a>
           </nav>
         </div>

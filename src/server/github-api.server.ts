@@ -26,6 +26,7 @@ export interface GitHubRepositorySnapshot {
   repo: string
   defaultBranch: string
   private: boolean
+  canPush: boolean
 }
 
 export interface GitHubFile {
@@ -248,6 +249,7 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
         repo: requiredString(body.name, 'repository name'),
         defaultBranch: requiredString(body.default_branch, 'default branch'),
         private: body.private === true,
+        canPush: isRecord(body.permissions) && body.permissions.push === true,
       }
     },
 
