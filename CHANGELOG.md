@@ -9,6 +9,7 @@
 - Trusted build-time plugins for hosted access policy, email delivery, and custom client fields without maintaining a fork.
 - Typed paid-plan, quota, permission, and policy-unavailable errors with safe plugin-provided upgrade links.
 - Lazy rich-text Markdown/HTML editing with embedded media browsing, upload, private previews, and repository/public path round-tripping.
+- Lazy syntax-aware code fields for YAML, JavaScript/TypeScript, JSON, HTML, and Markdown without bundling the full CodeMirror language catalog.
 - Vitest coverage and Playwright guest/health smoke coverage.
 
 ### Changed
