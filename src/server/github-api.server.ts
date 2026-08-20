@@ -329,6 +329,42 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
       return branches
     },
 
+    async createBranch(
+      owner: string,
+      repo: string,
+      branch: string,
+      source: string,
+    ) {
+      const repositoryPath = `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`
+      const sourcePath = source.split('/').map(encodeURIComponent).join('/')
+      const sourceRef = requiredRecord(
+        await githubRequest(
+          fetcher,
+          token,
+          `${repositoryPath}/git/ref/heads/${sourcePath}`,
+        ),
+        'source branch',
+      )
+      const sourceObject = requiredRecord(
+        sourceRef.object,
+        'source branch object',
+      )
+      const sha = requiredString(sourceObject.sha, 'source branch sha')
+      const body = requiredRecord(
+        await githubRequest(fetcher, token, `${repositoryPath}/git/refs`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ ref: `refs/heads/${branch}`, sha }),
+        }),
+        'new branch',
+      )
+      const object = requiredRecord(body.object, 'new branch object')
+      return {
+        branch,
+        sha: requiredString(object.sha, 'new branch sha'),
+      }
+    },
+
     async getFile(
       owner: string,
       repo: string,

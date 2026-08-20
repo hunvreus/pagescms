@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import {
   File,
@@ -5,11 +6,16 @@ import {
   FolderOpen,
   Database,
   GitBranch,
+  LoaderCircle,
+  Plus,
   Play,
   Settings,
   Users,
 } from 'lucide-react'
 
+import { Button } from '#/components/ui/button'
+import { Input } from '#/components/ui/input'
+import { createRepositoryBranch } from '#/functions/repository'
 import { getConfigurationNavigation } from '#/lib/configuration-navigation'
 
 interface WorkspaceProps {
@@ -35,6 +41,28 @@ export function RepositoryWorkspace({
   const navigation = configuration
     ? getConfigurationNavigation(configuration.object)
     : []
+  const [showBranchCreator, setShowBranchCreator] = useState(false)
+  const [newBranch, setNewBranch] = useState('')
+  const [creatingBranch, setCreatingBranch] = useState(false)
+  const [branchError, setBranchError] = useState<string | null>(null)
+
+  async function createBranch() {
+    setCreatingBranch(true)
+    setBranchError(null)
+    try {
+      const result = await createRepositoryBranch({
+        data: { owner, repo, branch: newBranch, source: branch },
+      })
+      window.location.assign(
+        `/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(result.branch)}`,
+      )
+    } catch (cause) {
+      setBranchError(
+        cause instanceof Error ? cause.message : 'Could not create branch',
+      )
+      setCreatingBranch(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-muted/20 md:grid md:grid-cols-[16rem_1fr]">
@@ -50,11 +78,24 @@ export function RepositoryWorkspace({
           <p className="truncate text-xs text-muted-foreground">{owner}</p>
         </div>
         <div className="space-y-4 p-3">
-          <label className="block space-y-1.5 text-xs font-medium text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <GitBranch className="size-3.5" /> Branch
-            </span>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between gap-2 text-xs font-medium text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <GitBranch className="size-3.5" /> Branch
+              </span>
+              <button
+                className="hover:text-foreground"
+                type="button"
+                onClick={() => {
+                  setBranchError(null)
+                  setShowBranchCreator((current) => !current)
+                }}
+              >
+                New
+              </button>
+            </div>
             <select
+              aria-label="Branch"
               className="h-9 w-full rounded-lg border bg-background px-2 text-sm text-foreground"
               value={branch}
               onChange={(event) => {
@@ -69,7 +110,50 @@ export function RepositoryWorkspace({
                 </option>
               ))}
             </select>
-          </label>
+            {showBranchCreator ? (
+              <form
+                className="space-y-2 rounded-lg border bg-muted/30 p-2"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  void createBranch()
+                }}
+              >
+                <Input
+                  aria-label="New branch name"
+                  autoFocus
+                  className="h-8 bg-background text-xs"
+                  placeholder="feature/editor"
+                  value={newBranch}
+                  onChange={(event) => setNewBranch(event.target.value)}
+                />
+                {branchError ? (
+                  <p className="text-xs text-destructive">{branchError}</p>
+                ) : null}
+                <div className="flex justify-end gap-1">
+                  <Button
+                    size="sm"
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setShowBranchCreator(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    disabled={creatingBranch || !newBranch.trim()}
+                    size="sm"
+                    type="submit"
+                  >
+                    {creatingBranch ? (
+                      <LoaderCircle className="animate-spin" />
+                    ) : (
+                      <Plus />
+                    )}
+                    Create
+                  </Button>
+                </div>
+              </form>
+            ) : null}
+          </div>
           <nav className="space-y-1" aria-label="Repository content">
             {navigation.map((item) => {
               const Icon =
