@@ -987,6 +987,13 @@ function MediaFieldControl({
                   >
                     {entry.type === 'dir' ? (
                       <Folder className="size-4" />
+                    ) : image ? (
+                      <MediaThumbnail
+                        {...context}
+                        className="size-8"
+                        name={mediaName}
+                        path={entry.path}
+                      />
                     ) : (
                       <File className="size-4" />
                     )}

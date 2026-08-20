@@ -207,7 +207,16 @@ function CollectionPage() {
       )
     }
     const sorted = data.contents.filter(searchable).sort((left, right) => {
-      if (left.type !== right.type) return left.type === 'dir' ? -1 : 1
+      if (left.type !== right.type) {
+        const directoriesFirst = view.foldersFirst === true
+        return left.type === 'dir'
+          ? directoriesFirst
+            ? -1
+            : 1
+          : directoriesFirst
+            ? 1
+            : -1
+      }
       const leftValue =
         left.type === 'file' && sort !== 'name'
           ? jsonValueAt(left.fields, sort)

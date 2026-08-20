@@ -16,6 +16,7 @@ describe('ConfigurationSchema', () => {
             type: 'collection',
             name: 'posts',
             path: 'content/posts',
+            view: { foldersFirst: true },
             fields: [
               { name: 'title', type: 'string', required: true },
               {
