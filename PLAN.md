@@ -1,6 +1,6 @@
 # Pages CMS TanStack Start Overhaul
 
-Status: draft for approval
+Status: approved; Wave 1 local foundation implemented, deployed preview pending
 
 Branch: `overhaul/tanstack-start`
 

@@ -1,0 +1,13 @@
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+AGENTS.md
+PLAN.md
+_legacy/
+.output/
+.wrangler/
+coverage/
+playwright-report/
+test-results/
+src/routeTree.gen.ts
+worker-configuration.d.ts

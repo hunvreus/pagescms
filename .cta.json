@@ -1,0 +1,17 @@
+{
+  "projectName": "pagescms",
+  "mode": "file-router",
+  "typescript": true,
+  "tailwind": true,
+  "packageManager": "pnpm",
+  "git": false,
+  "install": true,
+  "intent": false,
+  "addOnOptions": {},
+  "projectPreset": "default",
+  "includeExamples": false,
+  "routerOnly": false,
+  "version": 1,
+  "framework": "react",
+  "chosenAddOns": ["shadcn", "tanstack-query", "eslint", "cloudflare"]
+}
