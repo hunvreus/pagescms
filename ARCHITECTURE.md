@@ -43,7 +43,9 @@ Content serialization is also framework-neutral and supports raw or frontmatter 
 
 ## Plugins
 
-Plugins are trusted build-time modules discovered from `plugins/*/plugin.ts`. The initial registry validates identifiers, API versions, and duplicates before rendering the application. Plugin manifests are client-safe; server capabilities and access policies will use separate server-only contracts.
+Plugins are trusted build-time modules discovered from `plugins/*/plugin.ts`. The registry validates identifiers, API versions, and duplicates before rendering the application. Manifests are client-safe; optional capabilities are discovered independently from `plugins/*/server.ts` and guarded by `.server.ts` boundaries.
+
+The first server capability is the access-policy provider. Core application services authorize stable operation identifiers against principal, tenant, repository, branch, collection, media, and path targets before protected work. Hosted startup fails without a provider; self-hosted deployments select an explicit versioned allow-all policy. Quota-consuming mutations reserve atomically before their side effect and settle the reservation afterward. Billing and role logic therefore remains replaceable proprietary plugin code without becoming a client-side authority or a fork.
 
 The public core must build with an empty plugin directory. Hosted and proprietary packages depend on public contracts, never the reverse.
 

@@ -12,4 +12,4 @@ export default definePlugin({
 })
 ```
 
-Discovery is static during the Vite build. Pages CMS does not download or execute user-supplied runtime code. Server capabilities, access policies, UI slots, packaging, and independent plugin updates will be added through versioned contracts in later waves.
+Discovery is static during the Vite build. Pages CMS does not download or execute user-supplied runtime code. A plugin may optionally add a server-only `server.ts` contribution; see [`docs/development/plugins.md`](../docs/development/plugins.md) for the access-policy contract and isolation rules.
