@@ -146,7 +146,23 @@ function CollectionPage() {
   const [order, setOrder] = useState<'asc' | 'desc'>(
     defaults.order === 'desc' ? 'desc' : 'asc',
   )
+  const [page, setPage] = useState(0)
   const primaryField = typeof view.primary === 'string' ? view.primary : 'title'
+  const viewFields = Array.isArray(view.fields)
+    ? view.fields.filter(
+        (candidate): candidate is string => typeof candidate === 'string',
+      )
+    : fields.flatMap((field) =>
+        field.hidden !== true &&
+        field.type !== 'object' &&
+        field.type !== 'block' &&
+        typeof field.name === 'string'
+          ? [field.name]
+          : [],
+      )
+  const secondaryFields = viewFields
+    .filter((field) => field !== primaryField)
+    .slice(0, 3)
   const treeLayout = view.layout === 'tree'
   const nodeView =
     view.node && typeof view.node === 'object' && !Array.isArray(view.node)
@@ -159,6 +175,10 @@ function CollectionPage() {
     setExpanded({})
     setCreationParent(data.collection.path)
   }, [data.collection.name, data.collection.path])
+
+  useEffect(() => {
+    setPage(0)
+  }, [data.collection.path, order, query, sort])
   const visibleContents = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase()
     const searchFields = Array.isArray(view.search)
@@ -203,6 +223,43 @@ function CollectionPage() {
     })
     return sorted
   }, [data.contents, order, query, sort, view.search])
+  const pageSize = 25
+  const pageCount = Math.max(1, Math.ceil(visibleContents.length / pageSize))
+  const currentPage = Math.min(page, pageCount - 1)
+  const displayedContents = visibleContents.slice(
+    currentPage * pageSize,
+    (currentPage + 1) * pageSize,
+  )
+
+  function displayFieldValue(value: JsonValue | undefined) {
+    if (value === undefined || value === null || value === '') return null
+    if (Array.isArray(value)) {
+      return value
+        .flatMap((item) =>
+          typeof item === 'string' || typeof item === 'number'
+            ? [String(item)]
+            : [],
+        )
+        .join(', ')
+    }
+    if (typeof value === 'boolean') return value ? 'Yes' : 'No'
+    if (typeof value === 'string' || typeof value === 'number') {
+      return String(value)
+    }
+    return null
+  }
+
+  function fieldSummary(entry: Extract<CollectionItem, { type: 'file' }>) {
+    const values = secondaryFields.flatMap((field) => {
+      const value = displayFieldValue(jsonValueAt(entry.fields, field))
+      return value ? [{ field, value }] : []
+    })
+    return values.length ? (
+      <p className="truncate text-xs text-muted-foreground">
+        {values.map(({ field, value }) => `${field}: ${value}`).join(' · ')}
+      </p>
+    ) : null
+  }
 
   function openCreator(parent = data.collection.path) {
     setContent(initializeStructuredContent(fields))
@@ -352,6 +409,7 @@ function CollectionPage() {
               <p className="truncate text-xs text-muted-foreground">
                 {entry.path}
               </p>
+              {entry.type === 'file' ? fieldSummary(entry) : null}
             </div>
             {data.collection.operations.create && (expandable || promotable) ? (
               <Button
@@ -717,11 +775,11 @@ function CollectionPage() {
         </Link>
       ) : null}
 
-      {visibleContents.length ? (
+      {displayedContents.length ? (
         <ul className="overflow-hidden rounded-xl border bg-card shadow-xs">
           {treeLayout
-            ? treeRows(visibleContents)
-            : visibleContents.map((entry) => (
+            ? treeRows(displayedContents)
+            : displayedContents.map((entry) => (
                 <li className="border-b last:border-b-0" key={entry.path}>
                   {entry.type === 'dir' ? (
                     <Link
@@ -752,6 +810,7 @@ function CollectionPage() {
                         <p className="truncate text-xs text-muted-foreground">
                           {entry.path}
                         </p>
+                        {fieldSummary(entry)}
                       </div>
                       <Button asChild size="sm" variant="outline">
                         <a
@@ -772,6 +831,36 @@ function CollectionPage() {
             : 'This collection is empty.'}
         </div>
       )}
+      {visibleContents.length > pageSize ? (
+        <nav
+          aria-label="Collection pages"
+          className="flex items-center justify-between gap-3"
+        >
+          <p className="text-sm text-muted-foreground">
+            Page {currentPage + 1} of {pageCount}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              disabled={currentPage === 0}
+              type="button"
+              variant="outline"
+              onClick={() => setPage((value) => Math.max(0, value - 1))}
+            >
+              Previous
+            </Button>
+            <Button
+              disabled={currentPage >= pageCount - 1}
+              type="button"
+              variant="outline"
+              onClick={() =>
+                setPage((value) => Math.min(pageCount - 1, value + 1))
+              }
+            >
+              Next
+            </Button>
+          </div>
+        </nav>
+      ) : null}
     </div>
   )
 }
