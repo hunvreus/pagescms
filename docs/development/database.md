@@ -4,11 +4,11 @@ Pages CMS preserves the existing PostgreSQL tables and Drizzle migration history
 
 ## Schema changes
 
-Drizzle CLI commands use a direct `DATABASE_URL` from the operator environment:
+Drizzle CLI commands automatically load `DATABASE_URL` from an ignored root `.dev.vars` file. An explicitly exported environment variable takes precedence, which is how isolated test containers supply their connection:
 
 ```bash
-DATABASE_URL=postgres://... pnpm db:check
-DATABASE_URL=postgres://... pnpm db:generate
+pnpm db:check
+pnpm db:generate
 ```
 
 Review generated SQL and snapshots before committing them. Do not edit an already-applied migration.
@@ -18,7 +18,7 @@ Review generated SQL and snapshots before committing them. Do not edit an alread
 Migrations are an explicit release action:
 
 ```bash
-DATABASE_URL=postgres://... pnpm db:migrate
+pnpm db:migrate
 ```
 
 Application builds, Workers dry runs, and deployments never execute migrations. Back up production data and follow the release rollback plan before applying a new migration. Tests that require PostgreSQL must use an isolated database rather than a developer or production schema.
