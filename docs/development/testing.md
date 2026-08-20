@@ -6,6 +6,8 @@ Pages CMS uses layered verification so failures are caught at the narrowest usef
 
 Vitest covers framework-neutral behavior such as plugin contracts, identifiers, validation, serialization, caching rules, and authorization decisions.
 
+When porting legacy behavior, add characterization cases before the replacement implementation. Preserve intentional behavior, but encode corrected safety invariants explicitly when a legacy case permits ambiguous identity, path traversal, or incorrect path containment.
+
 ```bash
 pnpm test
 pnpm test:watch
