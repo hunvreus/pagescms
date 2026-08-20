@@ -42,6 +42,15 @@ function parseEntryDelete(input: unknown) {
   return { ...entry, sha: value.sha }
 }
 
+function parseEntryRename(input: unknown) {
+  const entry = parseEntryDelete(input)
+  const value = input as Record<string, unknown>
+  if (typeof value.filename !== 'string') {
+    throw new Error('Invalid entry rename')
+  }
+  return { ...entry, filename: value.filename }
+}
+
 function parseStructuredEntryUpdate(input: unknown) {
   const entry = parseEntryRequest(input)
   const value = input as Record<string, unknown>
@@ -281,6 +290,47 @@ export const deleteEntry = createServerFn({ method: 'POST' })
         const { deleteContentEntry } =
           await import('#/server/entry-editor.server')
         return deleteContentEntry({
+          database: services.database,
+          background: services.background,
+          repositoryAccess: services.repositoryAccess,
+          user,
+          ...data,
+        })
+      },
+    )
+  })
+
+export const renameEntry = createServerFn({ method: 'POST' })
+  .validator(parseEntryRename)
+  .handler(async ({ context, data }) => {
+    const services = context.getServices()
+    const session = await services.getSession()
+    if (!session?.user) throw new Error('Authentication required')
+    const user = {
+      id: session.user.id,
+      name: session.user.name,
+      email: session.user.email,
+      githubUsername: session.user.githubUsername ?? null,
+    }
+    return services.access.execute(
+      {
+        operation: 'entry.rename',
+        principal: { type: 'user', id: user.id },
+        tenant: {
+          type: 'repository',
+          id: `${data.owner}/${data.repo}`.toLowerCase(),
+        },
+        target: {
+          repository: data,
+          branch: data.branch,
+          collection: data.name,
+          path: data.path,
+        },
+      },
+      async () => {
+        const { renameContentEntry } =
+          await import('#/server/entry-editor.server')
+        return renameContentEntry({
           database: services.database,
           background: services.background,
           repositoryAccess: services.repositoryAccess,

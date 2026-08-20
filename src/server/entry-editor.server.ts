@@ -419,3 +419,80 @@ export async function deleteContentEntry(input: {
       : {}),
   })
 }
+
+export async function renameContentEntry(
+  input: Parameters<typeof deleteContentEntry>[0] & { filename: string },
+) {
+  const context = await loadContext(
+    input.database,
+    input.background,
+    input.repositoryAccess,
+    input.user,
+    input.owner,
+    input.repo,
+    input.branch,
+    input.name,
+    input.path,
+  )
+  if (!isContentOperationAllowed('rename', { schema: context.schema })) {
+    throw new Error('Renaming this content is disabled')
+  }
+  const filename = normalizeGitPath(input.filename.trim())
+  if (!filename || filename.includes('/')) {
+    throw new Error('Filename must be a non-empty file name')
+  }
+  const separator = context.path.lastIndexOf('/')
+  const parent = separator === -1 ? '' : context.path.slice(0, separator)
+  const newPath = normalizeGitPath(parent ? `${parent}/${filename}` : filename)
+  await loadContext(
+    input.database,
+    input.background,
+    input.repositoryAccess,
+    input.user,
+    input.owner,
+    input.repo,
+    input.branch,
+    input.name,
+    newPath,
+  )
+  if (newPath === context.path) throw new Error('The filename has not changed')
+  const commit = schemaCommitOptions(context.schema)
+  const identity = resolveCommitIdentity({
+    configuration: context.configuration.object,
+    identityOverride: commit.identity,
+  })
+  const message = resolveCommitMessage({
+    configuration: context.configuration.object,
+    templatesOverride: commit.templates,
+    action: 'rename',
+    tokens: buildCommitTokens({
+      action: 'rename',
+      owner: input.owner,
+      repo: input.repo,
+      branch: input.branch,
+      oldPath: context.path,
+      newPath,
+      contentName: input.name,
+      user: input.user.email,
+      userName: input.user.name,
+      userEmail: input.user.email,
+    }),
+  })
+  return context.api.renameFile({
+    owner: input.owner,
+    repo: input.repo,
+    branch: input.branch,
+    path: context.path,
+    newPath,
+    sha: input.sha,
+    message,
+    ...(identity === 'user'
+      ? {
+          committer: {
+            name: input.user.name || input.user.email,
+            email: input.user.email,
+          },
+        }
+      : {}),
+  })
+}

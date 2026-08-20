@@ -269,4 +269,77 @@ describe('createGitHubApi', () => {
       message: 'Delete post',
     })
   })
+
+  it('renames a file in one history-preserving commit', async () => {
+    const requests: Array<{ url: string; method: string; body: unknown }> = []
+    const fetcher = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input)
+        requests.push({
+          url,
+          method: init?.method ?? 'GET',
+          body: init?.body ? JSON.parse(String(init.body)) : undefined,
+        })
+        if (url.includes('/git/ref/')) {
+          return jsonResponse({ object: { sha: 'head-sha' } })
+        }
+        if (url.includes('/git/trees/head-sha')) {
+          return jsonResponse({
+            sha: 'base-tree-sha',
+            tree: [
+              { path: 'content', mode: '040000', type: 'tree', sha: 'dir' },
+              {
+                path: 'content/old.md',
+                mode: '100644',
+                type: 'blob',
+                sha: 'blob-sha',
+              },
+            ],
+          })
+        }
+        if (url.endsWith('/git/trees')) return jsonResponse({ sha: 'tree-sha' })
+        if (url.endsWith('/git/commits')) {
+          return jsonResponse({ sha: 'commit-sha' })
+        }
+        return jsonResponse({ object: { sha: 'commit-sha' } })
+      },
+    )
+    await expect(
+      createGitHubApi('token', fetcher).renameFile({
+        owner: 'PagesCMS',
+        repo: 'pages-cms',
+        branch: 'feature/a',
+        path: 'content/old.md',
+        newPath: 'content/new.md',
+        sha: 'blob-sha',
+        message: 'Rename post',
+      }),
+    ).resolves.toMatchObject({
+      newPath: 'content/new.md',
+      commitSha: 'commit-sha',
+    })
+    expect(requests).toHaveLength(5)
+    expect(requests[2]?.body).toEqual({
+      base_tree: 'base-tree-sha',
+      tree: [
+        {
+          path: 'content/old.md',
+          mode: '100644',
+          type: 'blob',
+          sha: null,
+        },
+        {
+          path: 'content/new.md',
+          mode: '100644',
+          type: 'blob',
+          sha: 'blob-sha',
+        },
+      ],
+    })
+    expect(requests[3]?.body).toMatchObject({
+      tree: 'tree-sha',
+      parents: ['head-sha'],
+    })
+    expect(requests[4]).toMatchObject({ method: 'PATCH' })
+  })
 })
