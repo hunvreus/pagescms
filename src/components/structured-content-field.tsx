@@ -19,6 +19,7 @@ import { Textarea } from '#/components/ui/textarea'
 import { getReferenceOptions } from '#/functions/references'
 import { createMedia, getMedia } from '#/functions/media'
 import { initializeStructuredContent } from '#/lib/field-values'
+import { clientPluginRegistry } from '#/plugins/client-discovery'
 
 import type { JsonObject, JsonValue } from '#/lib/json'
 
@@ -340,6 +341,21 @@ export function StructuredContentField({
         value={value}
         onChange={onChange}
       />
+    )
+  } else if (typeof field.component === 'string') {
+    const PluginField = clientPluginRegistry.getField(field.component)
+    control = PluginField ? (
+      <PluginField
+        disabled={disabled}
+        field={field}
+        required={required}
+        value={value}
+        onChange={onChange}
+      />
+    ) : (
+      <p className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+        Field component “{field.component}” is not installed.
+      </p>
     )
   } else if (type === 'object') {
     control = (
