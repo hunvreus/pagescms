@@ -135,6 +135,46 @@ export const getRawEntry = createServerFn({ method: 'GET' })
     )
   })
 
+export const getEntryHistory = createServerFn({ method: 'GET' })
+  .validator(parseEntryRequest)
+  .handler(async ({ context, data }) => {
+    const services = context.getServices()
+    const session = await services.getSession()
+    if (!session?.user) throw new Error('Authentication required')
+    const user = {
+      id: session.user.id,
+      email: session.user.email,
+      githubUsername: session.user.githubUsername ?? null,
+    }
+    return services.access.execute(
+      {
+        operation: 'entry.history',
+        principal: { type: 'user', id: user.id },
+        tenant: {
+          type: 'repository',
+          id: `${data.owner}/${data.repo}`.toLowerCase(),
+        },
+        target: {
+          repository: data,
+          branch: data.branch,
+          collection: data.name,
+          path: data.path,
+        },
+      },
+      async () => {
+        const { loadEntryHistory } =
+          await import('#/server/entry-editor.server')
+        return loadEntryHistory({
+          database: services.database,
+          background: services.background,
+          repositoryAccess: services.repositoryAccess,
+          user,
+          ...data,
+        })
+      },
+    )
+  })
+
 export const updateRawEntry = createServerFn({ method: 'POST' })
   .validator(parseEntryUpdate)
   .handler(async ({ context, data }) => {
