@@ -18,6 +18,7 @@ import {
 import {
   initializeStructuredContent,
   validateStructuredContent,
+  validateStructuredList,
 } from '#/lib/field-values'
 import { getFileExtension } from '#/lib/file-types'
 import { normalizeGitPath } from '#/lib/git-path'
@@ -173,21 +174,35 @@ export async function loadRawEntry(input: {
   if (fields.length && format) {
     return {
       ...shared,
-      mode: 'structured' as const,
       fields: toJsonValue(fields),
-      content: toJsonObject(
+      ...structuredContent(
         parseContent(source, {
           format,
           delimiters: context.schema.delimiters as
             FrontmatterDelimiters | undefined,
         }),
+        Boolean(context.schema.list),
       ),
+      ...(context.schema.list
+        ? { list: toJsonValue(context.schema.list) }
+        : {}),
     }
   }
   return {
     ...shared,
     mode: 'raw' as const,
   }
+}
+
+function structuredContent(content: unknown, list: boolean) {
+  const value = toJsonValue(content)
+  if (list) {
+    if (!Array.isArray(value)) {
+      throw new Error('Expected a list at the root of this content file')
+    }
+    return { mode: 'structured-list' as const, content: value }
+  }
+  return { mode: 'structured' as const, content: toJsonObject(value) }
 }
 
 export async function loadEntryHistory(input: {
@@ -266,6 +281,15 @@ export async function loadFixedFile(
     media: configuredMediaSchemas(configuration.object),
   }
   if (fields.length && format) {
+    if (schema.list) {
+      return {
+        ...shared,
+        mode: 'structured-list' as const,
+        fields: toJsonValue(fields),
+        content: [],
+        list: toJsonValue(schema.list),
+      }
+    }
     return {
       ...shared,
       mode: 'structured' as const,
@@ -281,7 +305,7 @@ export async function saveStructuredEntry(
     content: unknown
   },
 ) {
-  const content = toJsonObject(input.content)
+  const value = toJsonValue(input.content)
   const context = await loadContext(
     input.database,
     input.background,
@@ -296,7 +320,23 @@ export async function saveStructuredEntry(
   const fields = Array.isArray(context.schema.fields)
     ? context.schema.fields
     : []
-  const errors = validateStructuredContent(fields, content)
+  const content = context.schema.list
+    ? Array.isArray(value)
+      ? value
+      : undefined
+    : Array.isArray(value)
+      ? undefined
+      : toJsonObject(value)
+  if (!content) {
+    throw new Error(
+      context.schema.list
+        ? 'Content must be a list'
+        : 'Content must be an object',
+    )
+  }
+  const errors = Array.isArray(content)
+    ? validateStructuredList(fields, content, context.schema.list)
+    : validateStructuredContent(fields, content)
   if (errors.length) throw new Error(errors[0])
   if (
     typeof context.schema.format !== 'string' ||
@@ -401,7 +441,7 @@ export async function createStructuredEntry(
     filename?: string
   },
 ) {
-  const content = toJsonObject(input.content)
+  const content = toJsonValue(input.content)
   const { api } = await input.repositoryAccess.resolve(
     input.user,
     input.owner,
@@ -434,7 +474,11 @@ export async function createStructuredEntry(
     if (typeof schema.filename !== 'string') {
       throw new Error('Collection filename template is missing')
     }
-    filename = generateContentFilename(schema.filename, schema, content)
+    filename = generateContentFilename(
+      schema.filename,
+      schema,
+      Array.isArray(content) ? {} : toJsonObject(content),
+    )
   }
   const path = normalizeGitPath(parent ? `${parent}/${filename}` : filename)
   return {

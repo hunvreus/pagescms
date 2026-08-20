@@ -1,6 +1,8 @@
 import { parse as parseToml, stringify as stringifyToml } from 'smol-toml'
 import YAML from 'yaml'
 
+import type { JsonObject, JsonValue } from './json'
+
 export type SerializedFormat = 'json' | 'yaml' | 'toml'
 export type FrontmatterFormat =
   'json-frontmatter' | 'yaml-frontmatter' | 'toml-frontmatter'
@@ -47,8 +49,13 @@ function deserializeContent(source: string, format: SerializedFormat): unknown {
   return JSON.parse(JSON.stringify(parseToml(source))) as unknown
 }
 
-function serializeRecord(value: ContentRecord, format: SerializedFormat) {
-  if (Object.keys(value).length === 0) return ''
+type StructuredValue = JsonObject | JsonValue[]
+
+function serializeValue(value: StructuredValue, format: SerializedFormat) {
+  if (format === 'toml' && Array.isArray(value)) {
+    throw new Error('TOML documents cannot contain a list at the root')
+  }
+  if (!Array.isArray(value) && Object.keys(value).length === 0) return ''
   if (format === 'yaml') return YAML.stringify(value)
   if (format === 'json') return JSON.stringify(value, null, 2)
   return stringifyToml(value)
@@ -142,7 +149,7 @@ export function parseContent(
 }
 
 export function serializeContent(
-  content: ContentRecord = {},
+  content: StructuredValue = {},
   options: {
     delimiters?: FrontmatterDelimiters
     format?: ContentFormat
@@ -150,7 +157,11 @@ export function serializeContent(
 ) {
   const format = options.format ?? 'yaml-frontmatter'
   if (format === 'yaml' || format === 'json' || format === 'toml') {
-    return serializeRecord(content, format)
+    return serializeValue(content, format)
+  }
+
+  if (!isRecord(content)) {
+    throw new Error('Frontmatter content must contain an object')
   }
 
   const delimiters = setFrontmatterDelimiters(options.delimiters, format)
@@ -159,7 +170,7 @@ export function serializeContent(
   const body = rawBody ? String(rawBody) : ''
   delete copy.body
 
-  const serialized = serializeRecord(
+  const serialized = serializeValue(
     copy,
     format.split('-')[0] as SerializedFormat,
   ).trim()

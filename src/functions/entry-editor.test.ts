@@ -73,4 +73,18 @@ describe('entry creation requests', () => {
       }).sha,
     ).toBeNull()
   })
+
+  it('accepts structured root lists', () => {
+    expect(
+      parseStructuredEntryUpdate({
+        owner: 'PagesCMS',
+        repo: 'pages-cms',
+        branch: 'main',
+        name: 'navigation',
+        path: 'data/navigation.yml',
+        content: [{ label: 'Home', path: '/' }],
+        sha: 'abc123',
+      }).content,
+    ).toEqual([{ label: 'Home', path: '/' }])
+  })
 })
