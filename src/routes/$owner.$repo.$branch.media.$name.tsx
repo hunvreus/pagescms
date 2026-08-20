@@ -20,6 +20,7 @@ import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { RepositoryActionButtons } from '#/components/repository-action-buttons'
 import { MediaThumbnail } from '#/components/media-thumbnail'
+import { OperationError } from '#/components/operation-error'
 import {
   createMedia,
   createMediaFolder,
@@ -91,7 +92,7 @@ function MediaPage() {
   const [folder, setFolder] = useState('')
   const [deleting, setDeleting] = useState<string | null>(null)
   const [renaming, setRenaming] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
 
   async function upload(files: FileList | null) {
     if (!files?.length) return
@@ -113,9 +114,7 @@ function MediaPage() {
       }
       await router.invalidate()
     } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : 'Could not upload media',
-      )
+      setError(cause)
     } finally {
       setUploading(false)
     }
@@ -130,9 +129,7 @@ function MediaPage() {
       await removeMedia({ data: { ...params, path, sha } })
       await router.invalidate()
     } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : 'Could not delete media',
-      )
+      setError(cause)
     } finally {
       setDeleting(null)
     }
@@ -153,9 +150,7 @@ function MediaPage() {
       setCreatingFolder(false)
       await router.invalidate()
     } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : 'Could not create folder',
-      )
+      setError(cause)
     } finally {
       setUploading(false)
     }
@@ -172,9 +167,7 @@ function MediaPage() {
       await renameMedia({ data: { ...params, path, sha, filename } })
       await router.invalidate()
     } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : 'Could not rename media',
-      )
+      setError(cause)
     } finally {
       setRenaming(null)
     }
@@ -297,11 +290,7 @@ function MediaPage() {
           </div>
         </form>
       ) : null}
-      {error ? (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-          {error}
-        </div>
-      ) : null}
+      <OperationError error={error} fallback="Could not update media." />
       {data.entries.length ? (
         <ul className="overflow-hidden rounded-xl border bg-card shadow-xs">
           {data.entries.map((entry) => (

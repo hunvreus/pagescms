@@ -15,6 +15,7 @@ import {
 
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
+import { OperationError } from '#/components/operation-error'
 import { createRepositoryBranch } from '#/functions/repository'
 import { getConfigurationNavigation } from '#/lib/configuration-navigation'
 
@@ -45,7 +46,7 @@ export function RepositoryWorkspace({
   const [showBranchCreator, setShowBranchCreator] = useState(false)
   const [newBranch, setNewBranch] = useState('')
   const [creatingBranch, setCreatingBranch] = useState(false)
-  const [branchError, setBranchError] = useState<string | null>(null)
+  const [branchError, setBranchError] = useState<unknown>(null)
 
   async function createBranch() {
     setCreatingBranch(true)
@@ -59,9 +60,7 @@ export function RepositoryWorkspace({
         params: { owner, repo, branch: result.branch },
       })
     } catch (cause) {
-      setBranchError(
-        cause instanceof Error ? cause.message : 'Could not create branch',
-      )
+      setBranchError(cause)
       setCreatingBranch(false)
     }
   }
@@ -129,9 +128,10 @@ export function RepositoryWorkspace({
                   value={newBranch}
                   onChange={(event) => setNewBranch(event.target.value)}
                 />
-                {branchError ? (
-                  <p className="text-xs text-destructive">{branchError}</p>
-                ) : null}
+                <OperationError
+                  error={branchError}
+                  fallback="Could not create branch."
+                />
                 <div className="flex justify-end gap-1">
                   <Button
                     size="sm"

@@ -22,6 +22,7 @@ import {
   isContentField,
 } from '#/components/structured-content-field'
 import { RepositoryActionButtons } from '#/components/repository-action-buttons'
+import { OperationError } from '#/components/operation-error'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { Textarea } from '#/components/ui/textarea'
@@ -120,7 +121,7 @@ function CollectionPage() {
   const [filename, setFilename] = useState('')
   const [folder, setFolder] = useState('')
   const [saving, setSaving] = useState(false)
-  const [createError, setCreateError] = useState<string | null>(null)
+  const [createError, setCreateError] = useState<unknown>(null)
   const [expanded, setExpanded] = useState<
     Partial<Record<string, ExpandedCollection>>
   >({})
@@ -360,9 +361,7 @@ function CollectionPage() {
       await router.invalidate()
       openCreator(basePath)
     } catch (cause) {
-      setCreateError(
-        cause instanceof Error ? cause.message : 'Could not create node',
-      )
+      setCreateError(cause)
     } finally {
       setPromoting(null)
     }
@@ -501,9 +500,7 @@ function CollectionPage() {
         href: `/${encodeURIComponent(params.owner)}/${encodeURIComponent(params.repo)}/${encodeURIComponent(params.branch)}/collection/${encodeURIComponent(params.name)}/entry/${result.path.split('/').map(encodeURIComponent).join('/')}`,
       })
     } catch (cause) {
-      setCreateError(
-        cause instanceof Error ? cause.message : 'Could not create entry',
-      )
+      setCreateError(cause)
     } finally {
       setSaving(false)
     }
@@ -524,9 +521,7 @@ function CollectionPage() {
       setFolder('')
       await router.invalidate()
     } catch (cause) {
-      setCreateError(
-        cause instanceof Error ? cause.message : 'Could not create folder',
-      )
+      setCreateError(cause)
     } finally {
       setSaving(false)
     }
@@ -668,11 +663,10 @@ function CollectionPage() {
               />
             </label>
           )}
-          {createError ? (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-              {createError}
-            </div>
-          ) : null}
+          <OperationError
+            error={createError}
+            fallback="Could not create entry."
+          />
           <div className="flex justify-end gap-2">
             <Button
               type="button"
@@ -723,11 +717,10 @@ function CollectionPage() {
               onChange={(event) => setFolder(event.target.value)}
             />
           </label>
-          {createError ? (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-              {createError}
-            </div>
-          ) : null}
+          <OperationError
+            error={createError}
+            fallback="Could not create folder."
+          />
           <div className="flex justify-end gap-2">
             <Button
               type="button"

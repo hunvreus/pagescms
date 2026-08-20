@@ -17,6 +17,7 @@ import {
 
 import { Button } from '#/components/ui/button'
 import { MediaThumbnail } from '#/components/media-thumbnail'
+import { OperationError } from '#/components/operation-error'
 import { Input } from '#/components/ui/input'
 import { Textarea } from '#/components/ui/textarea'
 import { getReferenceOptions } from '#/functions/references'
@@ -724,7 +725,7 @@ function MediaFieldControl({
   >([])
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
 
   useEffect(() => {
     if (!open || !media) return
@@ -748,9 +749,7 @@ function MediaFieldControl({
       })
       .catch((cause: unknown) => {
         if (!cancelled) {
-          setError(
-            cause instanceof Error ? cause.message : 'Could not load media',
-          )
+          setError(cause)
         }
       })
       .finally(() => {
@@ -836,9 +835,7 @@ function MediaFieldControl({
         onChange([...new Set([...selected, ...uploaded])].slice(0, max))
       else if (uploaded[0]) onChange(uploaded[0])
     } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : 'Could not upload media',
-      )
+      setError(cause)
     } finally {
       setUploading(false)
     }
@@ -1003,7 +1000,7 @@ function MediaFieldControl({
               ))}
             </ul>
           )}
-          {error ? <p className="text-xs text-destructive">{error}</p> : null}
+          <OperationError error={error} fallback="Could not load media." />
         </div>
       ) : null}
     </div>
@@ -1061,7 +1058,7 @@ function ReferenceFieldControl({
     Array<{ value: string; label: string }>
   >([])
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
 
   useEffect(() => {
     if (!collection) return
@@ -1084,11 +1081,7 @@ function ReferenceFieldControl({
         if (!cancelled) setOptions(result)
       } catch (cause) {
         if (!cancelled) {
-          setError(
-            cause instanceof Error
-              ? cause.message
-              : 'Could not load references',
-          )
+          setError(cause)
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -1131,11 +1124,7 @@ function ReferenceFieldControl({
       })
       .catch((cause: unknown) => {
         if (!cancelled) {
-          setError(
-            cause instanceof Error
-              ? cause.message
-              : 'Could not resolve references',
-          )
+          setError(cause)
         }
       })
     return () => {
@@ -1204,7 +1193,7 @@ function ReferenceFieldControl({
       {loading ? (
         <p className="text-xs text-muted-foreground">Loading references…</p>
       ) : null}
-      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+      <OperationError error={error} fallback="Could not load references." />
     </div>
   )
 }

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { LoaderCircle, Play, X } from 'lucide-react'
 
 import { runAction } from '#/functions/actions'
+import { OperationError } from '#/components/operation-error'
 
 import type { RepositoryAction } from '#/lib/actions'
 
@@ -29,6 +30,7 @@ export function RepositoryActionButtons({
   const [values, setValues] = useState<Partial<Record<string, ActionValue>>>({})
   const [running, setRunning] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
 
   async function dispatch(action: RepositoryAction) {
     const confirmation = action.confirm
@@ -41,6 +43,7 @@ export function RepositoryActionButtons({
     }
     setRunning(true)
     setMessage(null)
+    setError(null)
     try {
       await runAction({
         data: {
@@ -54,9 +57,7 @@ export function RepositoryActionButtons({
       setValues({})
       setMessage(`${action.label} started`)
     } catch (cause) {
-      setMessage(
-        cause instanceof Error ? cause.message : 'Could not run action',
-      )
+      setError(cause)
     } finally {
       setRunning(false)
     }
@@ -69,6 +70,7 @@ export function RepositoryActionButtons({
     }
     setValues({})
     setMessage(null)
+    setError(null)
     setSelected(action)
   }
 
@@ -78,6 +80,7 @@ export function RepositoryActionButtons({
       {message ? (
         <span className="text-xs text-muted-foreground">{message}</span>
       ) : null}
+      <OperationError error={error} fallback="Could not run action." />
       {actions.map((action) => (
         <Button
           disabled={running}
@@ -182,9 +185,6 @@ export function RepositoryActionButtons({
               </label>
             )
           })}
-          {message ? (
-            <p className="text-sm text-destructive">{message}</p>
-          ) : null}
           <Button disabled={running} type="submit">
             {running ? <LoaderCircle className="animate-spin" /> : <Play />}
             {running ? 'Starting' : selected.label}

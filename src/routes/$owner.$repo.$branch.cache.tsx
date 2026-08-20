@@ -3,6 +3,7 @@ import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
 import { Database, LoaderCircle, RefreshCw, Trash2 } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
+import { OperationError } from '#/components/operation-error'
 import { getCacheStatus, updateCache } from '#/functions/cache'
 import { getSignInUrl } from '#/lib/auth-redirect'
 
@@ -44,7 +45,7 @@ function CachePage() {
   const router = useRouter()
   const [running, setRunning] = useState<CacheAction | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
 
   async function run(action: CacheAction, confirmation?: string) {
     if (confirmation && !window.confirm(confirmation)) return
@@ -56,9 +57,7 @@ function CachePage() {
       setMessage(result.message)
       await router.invalidate()
     } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : 'Could not update cache',
-      )
+      setError(cause)
     } finally {
       setRunning(null)
     }
@@ -76,11 +75,7 @@ function CachePage() {
       {message ? (
         <div className="rounded-lg border bg-card p-3 text-sm">{message}</div>
       ) : null}
-      {error ? (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-          {error}
-        </div>
-      ) : null}
+      <OperationError error={error} fallback="Could not update the cache." />
       <div className="grid gap-4 sm:grid-cols-3">
         <Metric label="Cached files" value={data.fileCount} />
         <Metric label="Cached directories" value={data.directories.length} />

@@ -17,6 +17,7 @@ import {
 import { Button } from '#/components/ui/button'
 import { GitHubIcon } from '#/components/github-icon'
 import { Input } from '#/components/ui/input'
+import { OperationError } from '#/components/operation-error'
 import { getAccountSettings, updateProfile } from '#/functions/account'
 import { authClient, signIn } from '#/lib/auth-client'
 
@@ -47,18 +48,18 @@ function SettingsPage() {
   const [connecting, setConnecting] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
 
   async function save() {
     setSaving(true)
     setMessage(null)
+    setError(null)
     try {
       await updateProfile({ data: { name } })
       setMessage('Profile updated')
       await router.invalidate()
     } catch (cause) {
-      setMessage(
-        cause instanceof Error ? cause.message : 'Could not update profile',
-      )
+      setError(cause)
     } finally {
       setSaving(false)
     }
@@ -67,6 +68,7 @@ function SettingsPage() {
   async function connectGithub() {
     setConnecting(true)
     setMessage(null)
+    setError(null)
     try {
       const result = await signIn.social({
         provider: 'github',
@@ -78,9 +80,7 @@ function SettingsPage() {
       if (!result.data?.url) throw new Error('GitHub connection did not start')
       window.location.assign(result.data.url)
     } catch (cause) {
-      setMessage(
-        cause instanceof Error ? cause.message : 'Could not connect GitHub',
-      )
+      setError(cause)
       setConnecting(false)
     }
   }
@@ -91,6 +91,7 @@ function SettingsPage() {
     }
     setDisconnecting(true)
     setMessage(null)
+    setError(null)
     try {
       if (!data.githubAccountId) throw new Error('GitHub account not found')
       const result = await authClient.unlinkAccount({
@@ -100,9 +101,7 @@ function SettingsPage() {
       setMessage('GitHub account disconnected')
       await router.invalidate()
     } catch (cause) {
-      setMessage(
-        cause instanceof Error ? cause.message : 'Could not disconnect GitHub',
-      )
+      setError(cause)
     } finally {
       setDisconnecting(false)
     }
@@ -121,6 +120,7 @@ function SettingsPage() {
       {message ? (
         <div className="rounded-lg border bg-card p-3 text-sm">{message}</div>
       ) : null}
+      <OperationError error={error} fallback="Could not update settings." />
       <section className="space-y-4 rounded-xl border bg-card p-5 shadow-xs">
         <div>
           <h2 className="font-semibold">Profile</h2>
