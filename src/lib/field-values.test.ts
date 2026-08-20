@@ -61,12 +61,86 @@ describe('structured field values', () => {
     ).toEqual([])
   })
 
+  it('validates numeric, date, and UUID field constraints', () => {
+    const fields = [
+      { name: 'weight', type: 'number', options: { min: 1, max: 5 } },
+      {
+        name: 'launch',
+        type: 'date',
+        options: { min: '2026-01-01', max: '2026-12-31' },
+      },
+      { name: 'id', type: 'uuid' },
+    ]
+    expect(
+      validateStructuredContent(fields, {
+        weight: 10,
+        launch: '2027-01-01',
+        id: 'not-a-uuid',
+      }),
+    ).toEqual([
+      'weight must be at most 5',
+      'launch must be on or before 2026-12-31',
+      'id must be a valid UUID',
+    ])
+  })
+
+  it('validates configured multiple selections', () => {
+    const fields = [
+      {
+        name: 'topics',
+        type: 'select',
+        options: {
+          multiple: true,
+          min: 2,
+          max: 3,
+          values: ['news', 'events'],
+        },
+      },
+      {
+        name: 'related',
+        type: 'reference',
+        options: { multiple: true, max: 1 },
+      },
+      {
+        name: 'gallery',
+        type: 'image',
+        options: { multiple: { max: 1 } },
+      },
+    ]
+    expect(
+      validateStructuredContent(fields, {
+        topics: ['news'],
+        related: ['one', 'two'],
+        gallery: ['one.jpg', 'two.jpg'],
+      }),
+    ).toEqual([
+      'topics requires at least 2 selections',
+      'related allows at most 1 selections',
+      'gallery allows at most 1 selections',
+    ])
+    expect(
+      validateStructuredContent(fields, {
+        topics: [],
+        related: [],
+        gallery: [],
+      }),
+    ).toEqual(['topics requires at least 2 selections'])
+    expect(
+      validateStructuredContent(fields, {
+        topics: ['unknown', 'events'],
+        related: [],
+        gallery: [],
+      }),
+    ).toEqual(['topics must be a list of valid values'])
+  })
+
   it('initializes defaults, booleans, UUIDs, objects, and lists', () => {
     const content = initializeStructuredContent([
       { name: 'title', type: 'string', default: 'Untitled' },
       { name: 'published', type: 'boolean' },
       { name: 'id', type: 'uuid' },
       { name: 'tags', type: 'string', list: true },
+      { name: 'topics', type: 'select', options: { multiple: true } },
       {
         name: 'seo',
         type: 'object',
@@ -87,6 +161,7 @@ describe('structured field values', () => {
       title: 'Untitled',
       published: false,
       tags: [],
+      topics: [],
       seo: { description: 'Summary' },
       hero: { _block: 'image', alt: 'Hero' },
     })
