@@ -76,6 +76,15 @@ describe('parseRuntimeConfiguration', () => {
     })
   })
 
+  it('accepts a webhook secret independently of server credentials', () => {
+    expect(
+      parseRuntimeConfiguration({
+        ...base,
+        GITHUB_APP_WEBHOOK_SECRET: 'webhook-secret',
+      }).githubWebhookSecret,
+    ).toBe('webhook-secret')
+  })
+
   it.each([
     [{ ...base, BETTER_AUTH_SECRET: 'short' }, 'at least 32'],
     [{ ...base, BETTER_AUTH_URL: 'not-a-url' }, 'valid HTTP'],

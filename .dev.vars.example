@@ -10,6 +10,7 @@ GITHUB_APP_CLIENT_SECRET=""
 # CRYPTO_KEY with: openssl rand -base64 32
 GITHUB_APP_ID=""
 GITHUB_APP_PRIVATE_KEY=""
+GITHUB_APP_WEBHOOK_SECRET=""
 CRYPTO_KEY=""
 
 # hosted deployments must provide an access-policy plugin
