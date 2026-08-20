@@ -39,6 +39,7 @@ export function createRequestServices(
   const authenticationMethods = {
     email: Boolean(serverPluginRegistry.emailProvider),
   } as const
+  const emailProvider = serverPluginRegistry.emailProvider
 
   return {
     access,
@@ -47,6 +48,7 @@ export function createRequestServices(
     background,
     configuration,
     database,
+    emailProvider,
     getSession,
     projects,
     repositoryAccess,

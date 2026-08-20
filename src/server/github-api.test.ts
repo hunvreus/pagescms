@@ -119,6 +119,7 @@ describe('createGitHubApi', () => {
         name: 'pages-cms',
         default_branch: 'main',
         private: false,
+        permissions: { push: true },
       })
     })
     const api = createGitHubApi('token', fetcher)
@@ -130,6 +131,7 @@ describe('createGitHubApi', () => {
       repo: 'pages-cms',
       defaultBranch: 'main',
       private: false,
+      canPush: true,
     })
     await expect(api.listBranches('PagesCMS', 'pages-cms')).resolves.toEqual([
       'main',
