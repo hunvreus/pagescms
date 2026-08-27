@@ -1,5 +1,6 @@
 {
   "name": "pagescms",
+  "version": "2.1.8",
   "private": true,
   "packageManager": "pnpm@10.17.1",
   "engines": {
@@ -35,8 +36,11 @@
     "deploy": "pnpm cf:build && wrangler deploy"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@fontsource-variable/geist": "^5.3.0",
-    "@tailwindcss/vite": "^4.1.18",
+    "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-devtools": "latest",
     "@tanstack/react-query": "latest",
     "@tanstack/react-query-devtools": "latest",
@@ -44,45 +48,57 @@
     "@tanstack/react-router-devtools": "latest",
     "@tanstack/react-router-ssr-query": "latest",
     "@tanstack/react-start": "latest",
+    "@tanstack/react-table": "^9.1.2",
+    "@tiptap/core": "^3.30.2",
+    "@tiptap/extension-image": "^3.30.2",
+    "@tiptap/extension-link": "^3.30.2",
+    "@tiptap/extension-placeholder": "^3.30.2",
+    "@tiptap/extension-table": "^3.30.2",
+    "@tiptap/extension-table-cell": "^3.30.2",
+    "@tiptap/extension-table-header": "^3.30.2",
+    "@tiptap/extension-table-row": "^3.30.2",
+    "@tiptap/extension-underline": "^3.30.2",
+    "@tiptap/markdown": "^3.30.2",
+    "@tiptap/pm": "^3.30.2",
+    "@tiptap/react": "^3.30.2",
+    "@tiptap/starter-kit": "^3.30.2",
+    "@tiptap/suggestion": "^3.30.2",
     "better-auth": "^1.7.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
-    "joplin-turndown-plugin-gfm": "^1.0.12",
-    "lucide-react": "^1.32.0",
-    "marked": "^18.0.10",
+    "lucide-react": "^1.33.0",
     "postgres": "^3.4.9",
     "radix-ui": "^1.6.7",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "shadcn": "^4.18.0",
     "smol-toml": "^1.8.0",
     "tailwind-merge": "^3.6.0",
-    "tailwindcss": "^4.1.18",
-    "turndown": "^7.2.4",
+    "tailwindcss": "^4.3.3",
+    "tippy.js": "^6.3.7",
     "tw-animate-css": "^1.4.0",
     "yaml": "^2.9.0",
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.26.0",
-    "@cloudflare/workers-types": "5.20260819.1",
+    "@cloudflare/vite-plugin": "^1.53.1",
+    "@cloudflare/workers-types": "5.20260820.1",
     "@playwright/test": "^1.62.1",
     "@tanstack/devtools-vite": "latest",
     "@tanstack/eslint-config": "latest",
-    "@tanstack/router-cli": "^1.132.0",
-    "@types/node": "^22.10.2",
-    "@types/react": "^19.2.0",
-    "@types/react-dom": "^19.2.0",
-    "@types/turndown": "^5.0.6",
-    "@vitejs/plugin-react": "^6.0.1",
+    "@tanstack/router-cli": "^1.167.32",
+    "@types/node": "^22.20.1",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.1.0",
     "drizzle-kit": "^0.31.10",
     "eslint": "^10.8.1",
-    "prettier": "^3.8.1",
-    "typescript": "^6.0.2",
-    "vite": "^8.0.0",
+    "prettier": "^3.9.6",
+    "typescript": "^6.0.3",
+    "vite": "^8.2.2",
     "vitest": "^4.1.11",
-    "wrangler": "^4.70.0"
+    "wrangler": "^4.125.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -90,6 +106,12 @@
       "lightningcss",
       "sharp",
       "workerd"
-    ]
+    ],
+    "overrides": {
+      "esbuild@<=0.24.2": ">=0.25.0"
+    },
+    "patchedDependencies": {
+      "@tanstack/start-plugin-core@1.171.38": "patches/@tanstack__start-plugin-core@1.171.38.patch"
+    }
   }
 }

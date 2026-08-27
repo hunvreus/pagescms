@@ -22,7 +22,7 @@ export default defineServerPlugin({
 
 Exactly one plugin may provide the deployment access policy. A server contribution without a matching manifest, an incompatible API version, or multiple policy providers fails startup. Hosted mode also fails startup when no policy is registered; ordinary self-hosting uses the explicit core allow-all policy. A plugin can never replace GitHub authorization, override core content-operation restrictions, or authorize from client-side state.
 
-An email plugin implements the small `EmailProvider.send(message)` contract and registers `emailProvider` from the same server contribution. Exactly one provider may be active. Resend, SMTP through a separate service, or a deployment-specific provider can therefore be updated independently, and unused email SDKs never enter the application bundles.
+An email plugin implements the small `EmailProvider.send(message)` contract and registers `createEmailProvider(environment)` from the same server contribution. The factory returns `undefined` when its configuration is absent, so the corresponding sign-in method is not shown. Exactly one provider factory may be installed. The bundled Resend plugin uses the HTTP API without an SDK; it can be removed in favor of SMTP through a separate service or another deployment-specific provider.
 
 A client field plugin registers components by the `component` name used in `.pages.yml`:
 

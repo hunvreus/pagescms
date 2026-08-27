@@ -29,6 +29,12 @@ export interface GitHubRepositorySnapshot {
   canPush: boolean
 }
 
+export interface GitHubCreatedRepository {
+  owner: string
+  repo: string
+  defaultBranch: string
+}
+
 export interface GitHubFile {
   sha: string
   content: string
@@ -271,7 +277,7 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
         q: query,
         sort: 'updated',
         order: 'desc',
-        per_page: '10',
+        per_page: '5',
       })
       const body = requiredRecord(
         await githubRequest(
@@ -282,6 +288,35 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
         'search response',
       )
       return (Array.isArray(body.items) ? body.items : []).map(parseRepository)
+    },
+
+    async createRepositoryFromTemplate(input: {
+      templateOwner: string
+      templateRepo: string
+      owner: string
+      repo: string
+    }): Promise<GitHubCreatedRepository> {
+      const body = requiredRecord(
+        await githubRequest(
+          fetcher,
+          token,
+          `/repos/${encodeURIComponent(input.templateOwner)}/${encodeURIComponent(input.templateRepo)}/generate`,
+          {
+            method: 'POST',
+            body: JSON.stringify({ owner: input.owner, name: input.repo }),
+          },
+        ),
+        'created repository',
+      )
+      const owner = requiredRecord(body.owner, 'created repository owner')
+      return {
+        owner: requiredString(owner.login, 'created repository owner login'),
+        repo: requiredString(body.name, 'created repository name'),
+        defaultBranch: requiredString(
+          body.default_branch,
+          'created repository default branch',
+        ),
+      }
     },
 
     async getRepository(
@@ -381,9 +416,26 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
         'file response',
       )
       if (body.type !== 'file') throw new Error(`Expected ${path} to be a file`)
+      const sha = requiredString(body.sha, 'file sha')
+      let content =
+        typeof body.content === 'string' && body.content ? body.content : null
+      if (!content) {
+        const blob = requiredRecord(
+          await githubRequest(
+            fetcher,
+            token,
+            `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/blobs/${encodeURIComponent(sha)}`,
+          ),
+          'blob response',
+        )
+        if (blob.encoding !== 'base64') {
+          throw new Error('GitHub returned an unsupported blob encoding')
+        }
+        content = requiredString(blob.content, 'blob content')
+      }
       return {
-        sha: requiredString(body.sha, 'file sha'),
-        content: requiredString(body.content, 'file content'),
+        sha,
+        content,
       }
     },
 

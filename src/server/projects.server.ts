@@ -194,6 +194,31 @@ export function createProjectService(
       )
     },
 
+    async createFromTemplate(
+      user: ProjectUser,
+      input: {
+        installationId: number
+        owner: string
+        repo: string
+        templateOwner: string
+        templateRepo: string
+      },
+    ) {
+      const token = await findGitHubToken(database, user.id)
+      if (!token || !user.githubUsername) {
+        throw new Error('GitHub authentication is required')
+      }
+      const api = githubApiFactory(token)
+      const installations = await api.listInstallations()
+      const installation = installations.find(
+        (candidate) =>
+          candidate.id === input.installationId &&
+          candidate.account.login.toLowerCase() === input.owner.toLowerCase(),
+      )
+      if (!installation) throw new Error('GitHub installation was not found')
+      return api.createRepositoryFromTemplate(input)
+    },
+
     async openRepository(
       user: ProjectUser,
       owner: string,

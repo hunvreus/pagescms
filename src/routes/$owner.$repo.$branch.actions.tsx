@@ -5,6 +5,11 @@ import { ExternalLink, LoaderCircle, Play, RotateCcw, X } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
 import { OperationError } from '#/components/operation-error'
+import {
+  RepositoryPageHeader,
+  RepositoryPageTitle,
+} from '#/components/repository-page-header'
+import { Skeleton } from '#/components/ui/skeleton'
 import { Input } from '#/components/ui/input'
 import { Textarea } from '#/components/ui/textarea'
 import { manageAction, runAction } from '#/functions/actions'
@@ -30,6 +35,7 @@ export const Route = createFileRoute('/$owner/$repo/$branch/actions')({
     }
   },
   pendingMs: 100,
+  pendingComponent: ActionsSkeleton,
   component: ActionsPage,
 })
 
@@ -110,169 +116,196 @@ function ActionsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <header>
-        <p className="text-sm text-muted-foreground">{params.branch}</p>
-        <h1 className="text-2xl font-semibold tracking-tight">Actions</h1>
-      </header>
-      <OperationError error={error} fallback="Could not update the action." />
-      <div className="grid gap-4 md:grid-cols-2">
-        {data.actions.map((action) => (
-          <section
-            className="space-y-4 rounded-xl border bg-card p-5 shadow-xs"
-            key={action.name}
-          >
-            <h2 className="font-semibold">{action.label}</h2>
-            {action.fields?.map((field) => {
-              const value =
-                values[action.name]?.[field.name] ??
-                field.default ??
-                (field.type === 'checkbox' ? false : '')
-              const update = (next: string | number | boolean | undefined) =>
-                setValues((current) => {
-                  const actionValues = { ...current[action.name] }
-                  if (next === undefined) delete actionValues[field.name]
-                  else actionValues[field.name] = next
-                  return { ...current, [action.name]: actionValues }
-                })
-              return (
-                <label className="block space-y-2" key={field.name}>
-                  <span className="text-sm font-medium">
-                    {field.label}
-                    {field.required ? ' *' : ''}
-                  </span>
-                  {field.type === 'textarea' ? (
-                    <Textarea
-                      value={String(value)}
-                      onChange={(event) => update(event.target.value)}
-                    />
-                  ) : field.type === 'select' ? (
-                    <select
-                      className="h-10 w-full rounded-lg border bg-background px-3 text-sm"
-                      required={field.required}
-                      value={String(value)}
-                      onChange={(event) => update(event.target.value)}
-                    >
-                      <option value="">Select…</option>
-                      {field.options?.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  ) : field.type === 'checkbox' ? (
-                    <input
-                      checked={value === true}
-                      className="size-4"
-                      type="checkbox"
-                      onChange={(event) => update(event.target.checked)}
-                    />
-                  ) : (
-                    <Input
-                      required={field.required}
-                      type={field.type === 'number' ? 'number' : 'text'}
-                      value={
-                        typeof value === 'string' || typeof value === 'number'
-                          ? value
-                          : ''
-                      }
-                      onChange={(event) =>
-                        update(
-                          field.type === 'number'
-                            ? event.target.value === ''
-                              ? undefined
-                              : event.target.valueAsNumber
-                            : event.target.value,
-                        )
-                      }
-                    />
-                  )}
-                </label>
-              )
-            })}
-            <Button
-              disabled={running === action.name}
-              onClick={() => void run(action)}
+    <div className="-m-4 md:-m-6">
+      <RepositoryPageHeader>
+        <RepositoryPageTitle description={params.branch}>
+          Actions
+        </RepositoryPageTitle>
+      </RepositoryPageHeader>
+      <div className="mx-auto max-w-4xl space-y-6 p-4 md:p-6">
+        <OperationError error={error} fallback="Could not update the action." />
+        <div className="grid gap-4 md:grid-cols-2">
+          {data.actions.map((action) => (
+            <section
+              className="space-y-4 rounded-xl border bg-card p-5 shadow-xs"
+              key={action.name}
             >
-              {running === action.name ? (
-                <LoaderCircle className="animate-spin" />
-              ) : (
-                <Play />
-              )}
-              {running === action.name ? 'Starting' : action.label}
-            </Button>
-          </section>
-        ))}
-      </div>
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Recent runs</h2>
-        {data.runs.length ? (
-          <ul className="overflow-hidden rounded-xl border bg-card shadow-xs">
-            {data.runs.map((actionRun) => (
-              <li
-                className="flex items-center gap-3 border-b px-4 py-3 last:border-b-0"
-                key={actionRun.id}
+              <h2 className="font-semibold">{action.label}</h2>
+              {action.fields?.map((field) => {
+                const value =
+                  values[action.name]?.[field.name] ??
+                  field.default ??
+                  (field.type === 'checkbox' ? false : '')
+                const update = (next: string | number | boolean | undefined) =>
+                  setValues((current) => {
+                    const actionValues = { ...current[action.name] }
+                    if (next === undefined) delete actionValues[field.name]
+                    else actionValues[field.name] = next
+                    return { ...current, [action.name]: actionValues }
+                  })
+                return (
+                  <label className="block space-y-2" key={field.name}>
+                    <span className="text-sm font-medium">
+                      {field.label}
+                      {field.required ? ' *' : ''}
+                    </span>
+                    {field.type === 'textarea' ? (
+                      <Textarea
+                        value={String(value)}
+                        onChange={(event) => update(event.target.value)}
+                      />
+                    ) : field.type === 'select' ? (
+                      <select
+                        className="h-10 w-full rounded-lg border bg-background px-3 text-sm"
+                        required={field.required}
+                        value={String(value)}
+                        onChange={(event) => update(event.target.value)}
+                      >
+                        <option value="">Select…</option>
+                        {field.options?.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : field.type === 'checkbox' ? (
+                      <input
+                        checked={value === true}
+                        className="size-4"
+                        type="checkbox"
+                        onChange={(event) => update(event.target.checked)}
+                      />
+                    ) : (
+                      <Input
+                        required={field.required}
+                        type={field.type === 'number' ? 'number' : 'text'}
+                        value={
+                          typeof value === 'string' || typeof value === 'number'
+                            ? value
+                            : ''
+                        }
+                        onChange={(event) =>
+                          update(
+                            field.type === 'number'
+                              ? event.target.value === ''
+                                ? undefined
+                                : event.target.valueAsNumber
+                              : event.target.value,
+                          )
+                        }
+                      />
+                    )}
+                  </label>
+                )
+              })}
+              <Button
+                disabled={running === action.name}
+                onClick={() => void run(action)}
               >
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium">
-                    {data.actions.find(
-                      (action) => action.name === actionRun.actionName,
-                    )?.label ?? actionRun.actionName}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {actionRun.conclusion ?? actionRun.status} ·{' '}
-                    {actionRun.triggeredBy.name} ·{' '}
-                    {new Date(actionRun.createdAt).toLocaleString()}
-                  </p>
-                </div>
-                {actionRun.htmlUrl ? (
-                  <Button asChild size="icon" variant="outline">
-                    <a
-                      href={actionRun.htmlUrl}
-                      rel="noreferrer"
-                      target="_blank"
+                {running === action.name ? (
+                  <LoaderCircle className="animate-spin" />
+                ) : (
+                  <Play />
+                )}
+                {running === action.name ? 'Starting' : action.label}
+              </Button>
+            </section>
+          ))}
+        </div>
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">Recent runs</h2>
+          {data.runs.length ? (
+            <ul className="overflow-hidden rounded-xl border bg-card shadow-xs">
+              {data.runs.map((actionRun) => (
+                <li
+                  className="flex items-center gap-3 border-b px-4 py-3 last:border-b-0"
+                  key={actionRun.id}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium">
+                      {data.actions.find(
+                        (action) => action.name === actionRun.actionName,
+                      )?.label ?? actionRun.actionName}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {actionRun.conclusion ?? actionRun.status} ·{' '}
+                      {actionRun.triggeredBy.name} ·{' '}
+                      {new Date(actionRun.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                  {actionRun.htmlUrl ? (
+                    <Button asChild size="icon" variant="outline">
+                      <a
+                        href={actionRun.htmlUrl}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        <ExternalLink />
+                      </a>
+                    </Button>
+                  ) : null}
+                  {actionRun.canCancel ? (
+                    <Button
+                      aria-label="Cancel action run"
+                      disabled={managing === actionRun.id}
+                      size="icon"
+                      variant="outline"
+                      onClick={() => void manage(actionRun.id, 'cancel')}
                     >
-                      <ExternalLink />
-                    </a>
-                  </Button>
-                ) : null}
-                {actionRun.canCancel ? (
-                  <Button
-                    aria-label="Cancel action run"
-                    disabled={managing === actionRun.id}
-                    size="icon"
-                    variant="outline"
-                    onClick={() => void manage(actionRun.id, 'cancel')}
-                  >
-                    {managing === actionRun.id ? (
-                      <LoaderCircle className="animate-spin" />
-                    ) : (
-                      <X />
-                    )}
-                  </Button>
-                ) : null}
-                {actionRun.canRerun && actionRun.status === 'completed' ? (
-                  <Button
-                    aria-label="Run action again"
-                    disabled={managing === actionRun.id}
-                    size="icon"
-                    variant="outline"
-                    onClick={() => void manage(actionRun.id, 'rerun')}
-                  >
-                    {managing === actionRun.id ? (
-                      <LoaderCircle className="animate-spin" />
-                    ) : (
-                      <RotateCcw />
-                    )}
-                  </Button>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-muted-foreground">No action runs yet.</p>
-        )}
-      </section>
+                      {managing === actionRun.id ? (
+                        <LoaderCircle className="animate-spin" />
+                      ) : (
+                        <X />
+                      )}
+                    </Button>
+                  ) : null}
+                  {actionRun.canRerun && actionRun.status === 'completed' ? (
+                    <Button
+                      aria-label="Run action again"
+                      disabled={managing === actionRun.id}
+                      size="icon"
+                      variant="outline"
+                      onClick={() => void manage(actionRun.id, 'rerun')}
+                    >
+                      {managing === actionRun.id ? (
+                        <LoaderCircle className="animate-spin" />
+                      ) : (
+                        <RotateCcw />
+                      )}
+                    </Button>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">No action runs yet.</p>
+          )}
+        </section>
+      </div>
+    </div>
+  )
+}
+
+function ActionsSkeleton() {
+  return (
+    <div aria-label="Loading actions" className="-m-4 md:-m-6">
+      <RepositoryPageHeader>
+        <Skeleton className="h-5 w-24" />
+      </RepositoryPageHeader>
+      <div className="mx-auto max-w-4xl space-y-6 p-4 md:p-6">
+        <div className="grid gap-4 md:grid-cols-2">
+          {Array.from({ length: 2 }, (_, index) => (
+            <div
+              className="h-48 rounded-xl border bg-card"
+              key={`action-skeleton-${index}`}
+            />
+          ))}
+        </div>
+        <div className="space-y-3">
+          <div className="h-6 w-32 rounded bg-muted" />
+          <div className="h-36 rounded-xl border bg-card" />
+        </div>
+      </div>
     </div>
   )
 }

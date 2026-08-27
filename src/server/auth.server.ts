@@ -33,6 +33,22 @@ export function createLoginCodeEmail(email: string, otp: string): EmailMessage {
   }
 }
 
+export function authBaseUrl(baseUrl: string) {
+  const url = new URL(baseUrl)
+  if (
+    url.hostname === 'localhost' ||
+    url.hostname === '127.0.0.1' ||
+    url.hostname === '[::1]'
+  ) {
+    return {
+      allowedHosts: ['localhost:*', '127.0.0.1:*', '[::1]:*'],
+      fallback: baseUrl,
+      protocol: 'http' as const,
+    }
+  }
+  return baseUrl
+}
+
 export function createPagesCmsAuth({
   database,
   configuration,
@@ -43,7 +59,7 @@ export function createPagesCmsAuth({
   emailProvider?: EmailProvider
 }) {
   return betterAuth({
-    baseURL: configuration.baseUrl,
+    baseURL: authBaseUrl(configuration.baseUrl),
     secret: configuration.secret,
     user: {
       additionalFields: {
@@ -86,6 +102,9 @@ export function createPagesCmsAuth({
         verification: verificationTable,
       },
     }),
+    onAPIError: {
+      errorURL: '/auth/error',
+    },
     plugins: [
       emailOTP({
         expiresIn: 300,

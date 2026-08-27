@@ -59,9 +59,18 @@ export const getAdminDashboard = createServerFn({ method: 'GET' })
   .validator(parseAdminSearch)
   .handler(async ({ context, data }) => {
     const services = context.getServices()
-    await requireAdmin(services)
+    const user = await requireAdmin(services)
     const { loadAdminDashboard } = await import('#/server/admin-service.server')
-    return loadAdminDashboard(services.database, data)
+    const dashboard = await loadAdminDashboard(services.database, data)
+    return {
+      ...dashboard,
+      user: {
+        name: user.name,
+        email: user.email,
+        image: user.image ?? null,
+        githubUsername: user.githubUsername ?? null,
+      },
+    }
   })
 
 export const runAdminAction = createServerFn({ method: 'POST' })

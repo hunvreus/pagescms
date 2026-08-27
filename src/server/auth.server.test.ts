@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createLoginCodeEmail, createPagesCmsAuth } from './auth.server'
+import {
+  authBaseUrl,
+  createLoginCodeEmail,
+  createPagesCmsAuth,
+} from './auth.server'
 import { createDatabase } from './database/client.server'
 
 describe('createLoginCodeEmail', () => {
@@ -11,6 +15,22 @@ describe('createLoginCodeEmail', () => {
     expect(message.html).not.toContain('<123456>')
     expect(message.html).toContain('&lt;123456&gt;')
     expect(message.html).toContain('han+test@example.com')
+  })
+})
+
+describe('authBaseUrl', () => {
+  it('accepts the active localhost port while retaining a fallback', () => {
+    expect(authBaseUrl('http://localhost:3000')).toEqual({
+      allowedHosts: ['localhost:*', '127.0.0.1:*', '[::1]:*'],
+      fallback: 'http://localhost:3000',
+      protocol: 'http',
+    })
+  })
+
+  it('keeps production origins exact', () => {
+    expect(authBaseUrl('https://app.pagescms.org')).toBe(
+      'https://app.pagescms.org',
+    )
   })
 })
 
@@ -31,5 +51,6 @@ describe('createPagesCmsAuth', () => {
 
     expect(auth.handler).toBeTypeOf('function')
     expect(auth.api.getSession).toBeTypeOf('function')
+    expect(auth.options.onAPIError.errorURL).toBe('/auth/error')
   })
 })

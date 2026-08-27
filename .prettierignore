@@ -10,6 +10,7 @@ drizzle/
 coverage/
 playwright-report/
 test-results/
+.tmp/
 src/routeTree.gen.ts
 worker-configuration.d.ts
 .dev.vars.example

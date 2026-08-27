@@ -28,7 +28,7 @@ function nestedFieldPath(
   }
 }
 
-function primaryField(schema: Record<string, unknown>) {
+export function getContentPrimaryField(schema: Record<string, unknown>) {
   const view = isRecord(schema.view) ? schema.view : undefined
   if (typeof view?.primary === 'string') return view.primary
   return (
@@ -56,7 +56,7 @@ export function generateContentFilename(
   now = new Date(),
 ) {
   const pad = (value: number) => String(value).padStart(2, '0')
-  const primary = primaryField(schema)
+  const primary = getContentPrimaryField(schema)
   const dated = pattern
     .replace(/\{year\}/g, String(now.getUTCFullYear()))
     .replace(/\{month\}/g, pad(now.getUTCMonth() + 1))

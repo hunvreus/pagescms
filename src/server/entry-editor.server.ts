@@ -4,7 +4,10 @@ import {
   resolveCommitMessage,
 } from '#/lib/commit-message'
 import { schemaActions } from '#/lib/actions'
-import { generateContentFilename } from '#/lib/content-filename'
+import {
+  generateContentFilename,
+  getContentPrimaryField,
+} from '#/lib/content-filename'
 import {
   collectionDirectoryPath,
   configuredMediaSchemas,
@@ -15,13 +18,15 @@ import {
   isContentOperationAllowed,
   resolveContentOperations,
 } from '#/lib/content-operations'
+import { getConfigurationNavigationGroupTrail } from '#/lib/configuration-navigation'
 import {
   initializeStructuredContent,
+  sanitizeStructuredContent,
   validateStructuredContent,
   validateStructuredList,
 } from '#/lib/field-values'
 import { getFileExtension } from '#/lib/file-types'
-import { normalizeGitPath } from '#/lib/git-path'
+import { getGitFileName, normalizeGitPath } from '#/lib/git-path'
 import { toJsonObject, toJsonValue } from '#/lib/json'
 import {
   transformMediaFieldValues,
@@ -116,6 +121,22 @@ function schemaCommitOptions(schema: Record<string, unknown>): {
   }
 }
 
+function entrySchemaMetadata(
+  configuration: Record<string, unknown>,
+  schema: Record<string, unknown>,
+  path: string,
+) {
+  const schemaName = typeof schema.name === 'string' ? schema.name : ''
+  return {
+    schemaName,
+    schemaType: typeof schema.type === 'string' ? schema.type : 'file',
+    rootPath: normalizeGitPath(String(schema.path ?? '')),
+    filename: getGitFileName(path),
+    primaryField: getContentPrimaryField(schema),
+    groupTrail: getConfigurationNavigationGroupTrail(configuration, schemaName),
+  }
+}
+
 export async function loadRawEntry(input: {
   database: Database
   repositoryAccess: RepositoryAccessService
@@ -159,6 +180,11 @@ export async function loadRawEntry(input: {
       typeof context.schema.label === 'string' && context.schema.label
         ? context.schema.label
         : context.schema.name,
+    ...entrySchemaMetadata(
+      context.configuration.object,
+      context.schema,
+      context.path,
+    ),
     operations: resolveContentOperations({ schema: context.schema }),
     actionContextType:
       context.schema.type === 'collection'
@@ -289,6 +315,7 @@ export async function loadFixedFile(
       typeof schema.label === 'string' && schema.label
         ? schema.label
         : schema.name,
+    ...entrySchemaMetadata(configuration.object, schema, schema.path),
     operations: resolveContentOperations({ schema }),
     actionContextType: 'file' as const,
     actions: schemaActions(schema),
@@ -347,13 +374,19 @@ export async function saveStructuredEntry(
         : 'Content must be an object',
     )
   }
-  const errors = Array.isArray(content)
-    ? validateStructuredList(fields, content, context.schema.list)
-    : validateStructuredContent(fields, content)
+  const sanitizedValue = sanitizeStructuredContent(content)
+  const sanitizedContent = Array.isArray(content)
+    ? Array.isArray(sanitizedValue)
+      ? sanitizedValue
+      : []
+    : toJsonObject(sanitizedValue)
+  const errors = Array.isArray(sanitizedContent)
+    ? validateStructuredList(fields, sanitizedContent, context.schema.list)
+    : validateStructuredContent(fields, sanitizedContent)
   errors.push(
     ...validateMediaFieldValues(
       fields,
-      content,
+      sanitizedContent,
       configuredMediaSchemas(context.configuration.object),
     ),
   )
@@ -366,7 +399,7 @@ export async function saveStructuredEntry(
   }
   const persistedContent = transformMediaFieldValues(
     fields,
-    content,
+    sanitizedContent,
     configuredMediaSchemas(context.configuration.object),
     'write',
   )

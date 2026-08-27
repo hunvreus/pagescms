@@ -416,6 +416,56 @@ Field extensions must separate:
 - lazily loaded view components;
 - server-only capabilities, if any.
 
+#### 5.5.1 Media subsystem and delivery extensions
+
+The media subsystem must first match or exceed the legacy application's portable performance. Cloudflare, Vercel, S3, or another hosted optimization may improve that baseline, but none may be required for correct browsing, picking, or editing.
+
+The portable GitHub implementation will use one canonical directory manifest for collection, full-page media, embedded picker, and field consumers. A manifest contains normalized asset metadata and delivery leases, and is keyed by repository, commit SHA, and directory path rather than by the UI context that requested it. A separately cached short-lived branch pointer resolves a mutable branch to that immutable revision. Private manifests and temporary URLs are scoped to the authenticated browser session and must never be shared between users through SSR, durable cache, or dehydration. Request memoization, in-flight coalescing, and TanStack Query must prevent parallel consumers from independently fetching the same directory. Public assets use immutable revision-addressed raw URLs. Private assets use GitHub's temporary download URLs, fetched once per directory and cached briefly in the client manifest; those URLs are leases, while blob SHA remains the asset/byte identity. The browser HTTP cache remains responsible for the bytes initially. An expired lease is reminted once per directory without blanking the grid; a custom SHA-keyed browser byte store is considered only if measurements show URL rotation still causes material re-downloads.
+
+The normalized asset model must cover at least stable provider-independent identifier, path, name, kind, size, content type, source revision or blob SHA, delivery URL and expiry, and supported operations. Directories remain first-class navigation entries. GitHub empty-directory behavior must be explicit because Git has no empty directories; if supported it requires a reviewed sentinel convention such as `.gitkeep`. Field values remain portable paths or URLs compatible with `.pages.yml`; delivery leases and proprietary provider objects are never persisted to repository content.
+
+Full-page media browsing and embedded media selection share headless query, selection, navigation, upload, move, rename, delete, and invalidation logic. Their presentation remains deliberately different: the full page uses repository page headers and roomy browsing controls, while dialogs use compact breadcrumbs and picker-specific actions.
+
+The initial provider contract must remain narrow and capability-oriented. Listing returns delivery leases in the same payload, while batched resolution handles field values at arbitrary paths without creating one server call per asset:
+
+```ts
+interface MediaProvider {
+  list(request: MediaListRequest): Promise<MediaManifest>
+  resolve(request: MediaResolveRequest): Promise<MediaDelivery[]>
+  upload(request: MediaUploadRequest): Promise<MediaAsset>
+  delete(request: MediaDeleteRequest): Promise<void>
+  move?(request: MediaMoveRequest): Promise<MediaAsset>
+  createDirectory?(request: MediaDirectoryRequest): Promise<void>
+}
+
+interface MediaTransformProvider {
+  transform(request: MediaTransformRequest): Promise<MediaDelivery>
+}
+```
+
+GitHub is the public in-tree default provider, not an optional plugin. Provider-level capabilities tell the UI whether move, rename, directory creation, direct upload, or transformation is supported. The contract must not assume real directories, permanent public URLs, or image transformation support. GitHub Contents API's 1,000-entry directory limit requires an explicit large-directory error or alternate listing strategy before parity is claimed. Secrets and signing keys are server-only.
+
+A private Pro/Enterprise S3 plugin may provide storage and delivery without modifying or forking the public application. It should use direct signed browser-to-S3 uploads where appropriate, signed delivery URLs, prefix-based directory semantics, and provider capability flags for unsupported operations. Presigned uploads bind an allowed key prefix, content type, maximum size, expiry, and overwrite policy. Uploaded active content such as HTML or SVG is downloaded safely rather than hosted as an executable website unless explicitly configured. Pagination and `CommonPrefixes`, copy-then-delete move failures, quota settlement, and abandoned uploads require tests. A CDN or image transformation service can be composed later rather than built into the S3 contract. The same contract should leave room for a later Cloudinary-style provider.
+
+A private Pro/Enterprise Cloudflare delivery/transform plugin may accelerate the baseline after measurement. The design authorizes the directory manifest once, then issues short-lived HMAC capability URLs scoped to the minimum useful asset or directory prefix. Each asset request validates tenant, owner, repository, revision/blob, variant, signature, and expiry cheaply before serving cached content; knowing an unsigned or expired URL is insufficient. The exact asset-versus-prefix granularity and TTL are chosen in a threat-model spike. A leaked signed URL remains usable until it expires, which is an explicit bounded capability tradeoff. Cache identity uses immutable content identity such as owner, repository, blob SHA, and transformation variant, never only a mutable branch path.
+
+The Cloudflare plugin may use the regular CDN and Tiered Cache as a pull-through acceleration layer. The Workers Cache API is data-center-local and must not be described as globally replicated. Cloudflare Images transformations may optionally produce one measured thumbnail variant, approximately 384–512 pixels with automatic output format; JavaScript or WASM image resizing inside the application Worker is not the default. Durable asset storage such as R2 is not required initially. When the plugin is absent, Node, Vercel, and self-hosted deployments continue to use the portable provider path.
+
+Media performance and security requirements:
+
+- a directory used by several consumers produces one manifest request, not one request per consumer;
+- the portable baseline must not make one application-server request per visible thumbnail;
+- visible thumbnails lazy-load while cached manifests and thumbnails remain on screen during refresh;
+- route-intent prefetching and shared keys allow the embedded picker to reuse an already warm directory manifest;
+- very large directories have bounded rendering/network concurrency; virtualization is adopted only if measurement shows it improves the grid without breaking selection or drag/drop;
+- public and private repositories, co-located content/media directories, expired private URLs, and revision changes receive characterization coverage;
+- provider keys, per-session cache isolation, URL expiry, path traversal, capability signatures, cross-repository and cross-branch denial, and entitlement boundaries receive unit and integration coverage;
+- full-page and embedded browser parity is covered in browser tests;
+- request counts, cache hits, first useful render, and p50/p95 timings are measured against the legacy implementation before hosted optimizations are accepted;
+- paid-provider entitlement checks occur at manifest and mutation boundaries and remain authoritative on the server.
+
+Implementation proceeds in four independently reviewable slices: portable GitHub parity and measurement; shared headless browser/picker behavior; private S3 provider; optional Cloudflare delivery and transformation. The Cloudflare slice begins only if an approved numerical threshold—such as private-thumbnail p95 TTFB, first-useful-grid time, byte re-download rate, or GitHub delivery error/rate-limit incidence—remains unmet after the earlier slices. Each slice receives visual validation and request-count evidence before the next begins.
+
 ### 5.6 Hosted plans, entitlements, and usage limits
 
 Paid access is a deployment policy, not a fork of Pages CMS and not a collection of client-side feature flags. The open-source core owns the enforcement seam and a default self-hosted policy. The hosted deployment registers a proprietary policy implementation backed by its own tables, billing provider, service, or combination of those systems.
@@ -664,7 +714,10 @@ Validation:
 
 Scope:
 
-- port media browsing and mutations;
+- port media browsing and mutations through the canonical manifest and public GitHub provider;
+- share headless media behavior between the full-page browser and embedded picker while retaining their distinct layouts;
+- restore legacy-equivalent request coalescing, temporary private-URL caching, stale display, lazy loading, and request-count instrumentation before adding hosted optimizations;
+- prove the media provider contracts with the private S3 plugin, then evaluate the private Cloudflare delivery/transform plugin against measured need;
 - port configured actions and action-run synchronization;
 - port collaborator management and provider-backed invitation email;
 - port cache inspection/maintenance UI;
@@ -793,4 +846,4 @@ The following decisions require explicit agreement or a short targeted spike bef
 
 ## 12. Immediate next step
 
-Review and amend this plan. Once approved, Wave 1 begins by generating the current official TanStack Start Cloudflare scaffold at the repository root and proving the complete local-test-build-Workers-preview loop before any Pages CMS feature is ported.
+Measure the current and legacy media paths for representative public and private repositories, then implement the portable GitHub manifest and request-coalescing slice described in section 5.5.1. Do not begin S3 or Cloudflare-specific optimization until baseline request counts, first useful render, and visual behavior are verified.

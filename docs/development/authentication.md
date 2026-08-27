@@ -12,7 +12,7 @@ pnpm db:migrate
 pnpm dev
 ```
 
-`BETTER_AUTH_SECRET` must contain at least 32 characters. `BETTER_AUTH_URL` must match the local origin. `DATABASE_URL` supplies the PostgreSQL connection in every environment. Local development and `db:*` package scripts load `.env.local` automatically. Confirm that the URL points to a disposable or development database before applying migrations.
+`BETTER_AUTH_SECRET` must contain at least 32 characters. `BETTER_AUTH_URL` is the canonical local origin and fallback; local development also accepts the active `localhost` port selected by Vite. `DATABASE_URL` supplies the PostgreSQL connection in every environment. Local development and `db:*` package scripts load `.env.local` automatically. Confirm that the URL points to a disposable or development database before applying migrations.
 
 GitHub sign-in is enabled when both `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIENT_SECRET` are present. Configure the GitHub callback URL as:
 
@@ -20,7 +20,9 @@ GitHub sign-in is enabled when both `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIEN
 http://localhost:3000/api/auth/callback/github
 ```
 
-Email-code sign-in is enabled only when a trusted build-time plugin contributes an email provider. This keeps Resend, SMTP gateways, and proprietary delivery systems outside the core and out of deployments that do not use them. See [`plugins.md`](./plugins.md).
+Replace `3000` with the active Vite port when it differs. Better Auth accepts the active localhost port, but GitHub requires the callback URL to match it exactly.
+
+Email-code sign-in is enabled when a trusted build-time plugin creates an email provider from the runtime environment. The bundled Resend plugin activates when both `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are configured. A deployment can remove it and install a custom provider without changing authentication. See [`plugins.md`](./plugins.md).
 
 ## Runtime behavior
 

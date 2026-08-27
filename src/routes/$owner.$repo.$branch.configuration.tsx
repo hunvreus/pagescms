@@ -1,23 +1,22 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import {
-  Check,
-  ExternalLink,
-  History,
-  LoaderCircle,
-  Save,
-  X,
-} from 'lucide-react'
+import { Check, ExternalLink, History, LoaderCircle, X } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
 import { OperationError } from '#/components/operation-error'
+import {
+  RepositoryPageHeader,
+  RepositoryPageTitle,
+} from '#/components/repository-page-header'
+import { Skeleton } from '#/components/ui/skeleton'
 import { Textarea } from '#/components/ui/textarea'
 import {
   getConfigurationHistory,
   updateConfiguration,
 } from '#/functions/configuration-editor'
 import { getSignInUrl } from '#/lib/auth-redirect'
+import { useUnsavedWarning } from '#/hooks/use-unsaved-warning'
 import { configurationEditorQueryOptions } from '#/queries/content'
 import { queryKeys } from '#/queries/keys'
 
@@ -64,12 +63,7 @@ function ConfigurationEditor() {
   const [loadingHistory, setLoadingHistory] = useState(false)
   const dirty = source !== savedSource
 
-  useEffect(() => {
-    if (!dirty) return
-    const warn = (event: BeforeUnloadEvent) => event.preventDefault()
-    window.addEventListener('beforeunload', warn)
-    return () => window.removeEventListener('beforeunload', warn)
-  }, [dirty])
+  useUnsavedWarning(dirty)
 
   async function save() {
     setSaving(true)
@@ -109,107 +103,108 @@ function ConfigurationEditor() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm text-muted-foreground">.pages.yml</p>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Configuration
-          </h1>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            disabled={loadingHistory}
-            variant="outline"
-            onClick={() => void showHistory()}
-          >
-            {loadingHistory ? (
-              <LoaderCircle className="animate-spin" />
-            ) : history ? (
-              <X />
+    <div className="-m-4 md:-m-6">
+      <RepositoryPageHeader
+        actions={
+          <>
+            <Button
+              disabled={loadingHistory}
+              variant="outline"
+              onClick={() => void showHistory()}
+            >
+              {loadingHistory ? (
+                <LoaderCircle className="animate-spin" />
+              ) : history ? (
+                <X />
+              ) : (
+                <History />
+              )}
+              {history ? 'Close history' : 'History'}
+            </Button>
+            <Button disabled={saving || !dirty} onClick={() => void save()}>
+              {saving ? (
+                <LoaderCircle className="animate-spin" />
+              ) : saved ? (
+                <Check />
+              ) : null}
+              {saving ? 'Saving' : 'Save'}
+            </Button>
+          </>
+        }
+      >
+        <RepositoryPageTitle description=".pages.yml">
+          Configuration
+        </RepositoryPageTitle>
+      </RepositoryPageHeader>
+
+      <div className="mx-auto max-w-5xl space-y-5 p-4 md:p-6">
+        <OperationError
+          error={error}
+          fallback="Could not update configuration."
+        />
+
+        {history ? (
+          <section className="space-y-3 rounded-xl border bg-card p-4 shadow-xs">
+            <h2 className="font-semibold">Configuration history</h2>
+            {history.length ? (
+              <ul className="divide-y">
+                {history.map((commit) => (
+                  <li className="flex items-start gap-3 py-3" key={commit.sha}>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {commit.message.split('\n')[0]}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {commit.authorName}
+                        {commit.authoredAt
+                          ? ` · ${new Date(commit.authoredAt).toLocaleString()}`
+                          : ''}
+                      </p>
+                    </div>
+                    <Button
+                      asChild
+                      aria-label="Open commit"
+                      size="icon"
+                      variant="ghost"
+                    >
+                      <a href={commit.url} rel="noreferrer" target="_blank">
+                        <ExternalLink />
+                      </a>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
             ) : (
-              <History />
+              <p className="text-sm text-muted-foreground">No commits found.</p>
             )}
-            {history ? 'Close history' : 'History'}
-          </Button>
-          <Button disabled={saving || !dirty} onClick={() => void save()}>
-            {saving ? (
-              <LoaderCircle className="animate-spin" />
-            ) : saved ? (
-              <Check />
-            ) : (
-              <Save />
-            )}
-            {saving ? 'Saving' : 'Save'}
-          </Button>
-        </div>
-      </header>
+          </section>
+        ) : null}
 
-      <OperationError
-        error={error}
-        fallback="Could not update configuration."
-      />
-
-      {history ? (
-        <section className="space-y-3 rounded-xl border bg-card p-4 shadow-xs">
-          <h2 className="font-semibold">Configuration history</h2>
-          {history.length ? (
-            <ul className="divide-y">
-              {history.map((commit) => (
-                <li className="flex items-start gap-3 py-3" key={commit.sha}>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">
-                      {commit.message.split('\n')[0]}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {commit.authorName}
-                      {commit.authoredAt
-                        ? ` · ${new Date(commit.authoredAt).toLocaleString()}`
-                        : ''}
-                    </p>
-                  </div>
-                  <Button
-                    asChild
-                    aria-label="Open commit"
-                    size="icon"
-                    variant="ghost"
-                  >
-                    <a href={commit.url} rel="noreferrer" target="_blank">
-                      <ExternalLink />
-                    </a>
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-muted-foreground">No commits found.</p>
-          )}
-        </section>
-      ) : null}
-
-      <Textarea
-        aria-label="Pages CMS configuration"
-        className="min-h-[calc(100vh-10rem)] resize-y bg-card font-mono text-[13px] leading-6"
-        placeholder={'media: public/images\ncontent: []\n'}
-        spellCheck={false}
-        value={source}
-        onChange={(event) => {
-          setSource(event.target.value)
-          setSaved(false)
-        }}
-      />
+        <Textarea
+          aria-label="Pages CMS configuration"
+          className="min-h-[calc(100vh-10rem)] resize-y bg-card font-mono text-[13px] leading-6"
+          placeholder={'media: public/images\ncontent: []\n'}
+          spellCheck={false}
+          value={source}
+          onChange={(event) => {
+            setSource(event.target.value)
+            setSaved(false)
+          }}
+        />
+      </div>
     </div>
   )
 }
 
 function ConfigurationSkeleton() {
   return (
-    <div
-      className="mx-auto max-w-5xl animate-pulse space-y-5"
-      aria-label="Loading configuration"
-    >
-      <div className="h-8 w-48 rounded bg-muted" />
-      <div className="h-[70vh] rounded-xl border bg-card" />
+    <div className="-m-4 md:-m-6" aria-label="Loading configuration">
+      <RepositoryPageHeader actions={<Button disabled>Save</Button>}>
+        <Skeleton className="h-5 w-40" />
+      </RepositoryPageHeader>
+      <div className="mx-auto max-w-5xl p-4 md:p-6">
+        <Skeleton className="h-[70vh] w-full rounded-xl" />
+      </div>
     </div>
   )
 }

@@ -82,6 +82,16 @@ export function parseMediaRename(input: unknown) {
   return { ...media, filename }
 }
 
+export function parseMediaMove(input: unknown) {
+  const media = parseDelete(input)
+  const value = input as Record<string, unknown>
+  if (typeof value.destination !== 'string') {
+    throw new Error('Invalid media move')
+  }
+  const destination = normalizeGitPath(value.destination.trim())
+  return { ...media, destination }
+}
+
 function policy(
   data: ReturnType<typeof parseMediaRequest>,
   operation: 'media.read' | 'media.write' | 'media.rename' | 'media.delete',
@@ -226,6 +236,32 @@ export const renameMedia = createServerFn({ method: 'POST' })
         const { renameMediaFile } =
           await import('#/server/media-service.server')
         return renameMediaFile({
+          database: services.database,
+          repositoryAccess: services.repositoryAccess,
+          user,
+          ...data,
+        })
+      },
+    )
+  })
+
+export const moveMedia = createServerFn({ method: 'POST' })
+  .validator(parseMediaMove)
+  .handler(async ({ context, data }) => {
+    const services = context.getServices()
+    const session = await services.getSession()
+    if (!session?.user) throw new Error('Authentication required')
+    const user = {
+      id: session.user.id,
+      name: session.user.name,
+      email: session.user.email,
+      githubUsername: session.user.githubUsername ?? null,
+    }
+    return services.access.execute(
+      policy(data, 'media.rename', user.id),
+      async () => {
+        const { moveMediaFile } = await import('#/server/media-service.server')
+        return moveMediaFile({
           database: services.database,
           repositoryAccess: services.repositoryAccess,
           user,

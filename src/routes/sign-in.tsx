@@ -40,8 +40,8 @@ function SignInPage() {
   const callbackUrl = getSafeRedirect(search.redirect)
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-5 py-12">
-      <div className="w-full max-w-sm">
+    <main className="flex min-h-screen items-center justify-center p-4 md:p-6">
+      <div className="w-full max-w-xs">
         {search.error ? (
           <p className="mb-6 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
             {search.error}
@@ -60,11 +60,10 @@ function SignInPage() {
 function SignInSkeleton() {
   return (
     <main
-      className="flex min-h-screen items-center justify-center px-5 py-12"
+      className="flex min-h-screen items-center justify-center p-4 md:p-6"
       aria-label="Loading sign in"
     >
-      <div className="w-full max-w-sm animate-pulse space-y-6">
-        <div className="mx-auto size-10 rounded-xl bg-muted" />
+      <div className="w-full max-w-xs animate-pulse space-y-6">
         <div className="mx-auto h-6 w-48 rounded bg-muted" />
         <div className="h-10 rounded-lg bg-muted" />
         <div className="h-10 rounded-lg bg-muted" />

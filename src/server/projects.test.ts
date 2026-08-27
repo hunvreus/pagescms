@@ -37,6 +37,32 @@ describe('mergeProjectAccounts', () => {
 })
 
 describe('mergeProjectRepositories', () => {
+  it('orders writable repositories by most recently updated first', () => {
+    expect(
+      mergeProjectRepositories(
+        [
+          {
+            owner: 'PagesCMS',
+            name: 'older',
+            private: false,
+            defaultBranch: 'main',
+            updatedAt: '2026-08-20T00:00:00Z',
+            canPush: true,
+          },
+          {
+            owner: 'PagesCMS',
+            name: 'newer',
+            private: false,
+            defaultBranch: 'main',
+            updatedAt: '2026-08-21T00:00:00Z',
+            canPush: true,
+          },
+        ],
+        [],
+      ).map((repository) => repository.repo),
+    ).toEqual(['newer', 'older'])
+  })
+
   it('filters read-only GitHub repositories and preserves collaborator access', () => {
     expect(
       mergeProjectRepositories(

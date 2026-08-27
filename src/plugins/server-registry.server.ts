@@ -1,9 +1,9 @@
 import type { AccessPolicy } from '#/server/access-policy.server'
 import type { EmailProvider } from '#/server/email.server'
-
 import { PLUGIN_API_VERSION } from './contract'
 
 import type {
+  EmailProviderFactory,
   PagesCmsServerPlugin,
   ServerPluginModule,
 } from './server-contract.server'
@@ -18,7 +18,7 @@ export class ServerPluginConfigurationError extends Error {
 export interface ServerPluginRegistry {
   readonly contributions: readonly PagesCmsServerPlugin[]
   readonly accessPolicy?: AccessPolicy
-  readonly emailProvider?: EmailProvider
+  readonly createEmailProvider?: EmailProviderFactory
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -64,11 +64,11 @@ function parseServerPlugin(
     )
   }
   if (
-    value.emailProvider !== undefined &&
-    !isEmailProvider(value.emailProvider)
+    value.createEmailProvider !== undefined &&
+    typeof value.createEmailProvider !== 'function'
   ) {
     throw new ServerPluginConfigurationError(
-      `Server plugin ${value.pluginId} has an invalid email provider`,
+      `Server plugin ${value.pluginId} has an invalid email provider factory`,
     )
   }
 
@@ -76,7 +76,8 @@ function parseServerPlugin(
     apiVersion: PLUGIN_API_VERSION,
     pluginId: value.pluginId,
     accessPolicy: value.accessPolicy,
-    emailProvider: value.emailProvider,
+    createEmailProvider: value.createEmailProvider as
+      EmailProviderFactory | undefined,
   }
 }
 
@@ -92,8 +93,8 @@ export function createServerPluginRegistry(
   const accessPolicies = contributions.flatMap((contribution) =>
     contribution.accessPolicy ? [contribution.accessPolicy] : [],
   )
-  const emailProviders = contributions.flatMap((contribution) =>
-    contribution.emailProvider ? [contribution.emailProvider] : [],
+  const emailProviderFactories = contributions.flatMap((contribution) =>
+    contribution.createEmailProvider ? [contribution.createEmailProvider] : [],
   )
 
   if (accessPolicies.length > 1) {
@@ -101,15 +102,26 @@ export function createServerPluginRegistry(
       'Multiple access-policy providers are configured',
     )
   }
-  if (emailProviders.length > 1) {
+  if (emailProviderFactories.length > 1) {
     throw new ServerPluginConfigurationError(
       'Multiple email providers are configured',
     )
   }
+  const emailProviderFactory = emailProviderFactories.at(0)
 
   return {
     contributions: Object.freeze(contributions),
     accessPolicy: accessPolicies[0],
-    emailProvider: emailProviders[0],
+    createEmailProvider: emailProviderFactory
+      ? (environment) => {
+          const provider: unknown = emailProviderFactory(environment)
+          if (provider !== undefined && !isEmailProvider(provider)) {
+            throw new ServerPluginConfigurationError(
+              'Email provider factory returned an invalid provider',
+            )
+          }
+          return provider
+        }
+      : undefined,
   }
 }

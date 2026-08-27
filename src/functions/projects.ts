@@ -1,5 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 
+import { PROJECT_TEMPLATES } from '#/lib/project-templates'
+
 import type { ProjectAccount } from '#/server/projects.server'
 import type { RequestServices } from '#/server/request-services.server'
 
@@ -102,5 +104,65 @@ export const getProjectRepositories = createServerFn({ method: 'GET' })
       },
       () =>
         services.projects.listRepositories(user, data.account, data.keyword),
+    )
+  })
+
+export function parseTemplateCopy(input: unknown) {
+  if (typeof input !== 'object' || input === null) {
+    throw new Error('Invalid template request')
+  }
+  const value = input as Record<string, unknown>
+  const account = parseRepositorySearch({ account: value.account }).account
+  const template = PROJECT_TEMPLATES.find(
+    (candidate) => candidate.repository === value.template,
+  )
+  if (!template) throw new Error('Invalid project template')
+  if (
+    typeof value.name !== 'string' ||
+    !/^(?!\.|\.\.|.*\/|.*\/\.|.*\.\.)(?!@)(?!.*[~^:?*[\]{}()<>#%&!\\$'"|;,])[^\x20\x7f]*[^\x20\x7f.]$/.test(
+      value.name,
+    )
+  ) {
+    throw new Error('Invalid repository name')
+  }
+  const [templateOwner, templateRepo] = template.repository.split('/') as [
+    string,
+    string,
+  ]
+  return {
+    account,
+    name: value.name,
+    templateOwner,
+    templateRepo,
+  }
+}
+
+export const copyProjectTemplate = createServerFn({ method: 'POST' })
+  .validator(parseTemplateCopy)
+  .handler(async ({ context, data }) => {
+    const services = context.getServices()
+    const user = requireUser(await services.getSession())
+    return services.access.executeQuota(
+      {
+        operation: 'repository.create',
+        principal: { type: 'user', id: user.id },
+        tenant: {
+          type: 'installation',
+          id: String(data.account.installationId),
+        },
+        facts: {
+          account: data.account.login,
+          template: `${data.templateOwner}/${data.templateRepo}`,
+        },
+      },
+      crypto.randomUUID(),
+      () =>
+        services.projects.createFromTemplate(user, {
+          installationId: data.account.installationId,
+          owner: data.account.login,
+          repo: data.name,
+          templateOwner: data.templateOwner,
+          templateRepo: data.templateRepo,
+        }),
     )
   })

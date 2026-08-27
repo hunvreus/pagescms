@@ -1,27 +1,69 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useId, useRef, useState } from 'react'
 import { ClientOnly } from '@tanstack/react-router'
 import { createClientOnlyFn } from '@tanstack/react-start'
 import {
-  ArrowDown,
-  ArrowUp,
-  ExternalLink,
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import {
+  ArrowUpRight,
+  Asterisk,
+  Ban,
+  ChevronRight,
+  ChevronsDownUp,
+  ChevronsUpDown,
   File,
   Folder,
+  GripVertical,
   LoaderCircle,
   Plus,
-  RefreshCw,
   Trash2,
   Upload,
-  X,
 } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
+import { Badge } from '#/components/ui/badge'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '#/components/ui/alert-dialog'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '#/components/ui/collapsible'
 import { MediaThumbnail } from '#/components/media-thumbnail'
 import { OperationError } from '#/components/operation-error'
+import { Field, FieldDescription, FieldLabel } from '#/components/ui/field'
 import { Input } from '#/components/ui/input'
-import { Textarea } from '#/components/ui/textarea'
+import { MediaPickerDialog } from '#/features/media/media-picker-dialog'
+import { uploadMediaFiles } from '#/features/media/media-upload'
+import { coreFieldRendererRegistry } from '#/features/editor/fields/core-field-renderers'
+import {
+  getListFieldOptions,
+  getListItemSummary,
+} from '#/features/editor/fields/structured-field-options'
 import { getReferenceOptions } from '#/functions/references'
-import { createMedia, getMedia } from '#/functions/media'
 import { initializeStructuredContent } from '#/lib/field-values'
 import {
   allowedMediaFieldExtensions,
@@ -30,6 +72,8 @@ import {
 import { clientPluginRegistry } from '#/plugins/client-discovery'
 
 import type { JsonObject, JsonValue } from '#/lib/json'
+import type { FieldRendererProps } from '#/features/editor/fields/field-renderer-registry'
+import type { ReferenceContext } from '#/features/editor/fields/field-types'
 
 const loadRichTextField = createClientOnlyFn(
   () => import('#/components/rich-text-field'),
@@ -40,141 +84,97 @@ const loadCodeField = createClientOnlyFn(
 )
 const CodeField = lazy(loadCodeField)
 
-export interface ReferenceContext {
-  owner: string
-  repo: string
-  branch: string
-  media?: Array<{
-    name: string
-    label: string
-    input: string
-    output: string
-    extensions: string[]
-  }>
-}
-
-export function isContentField(value: unknown): value is JsonObject {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function optionValues(field: JsonObject) {
-  const options = isContentField(field.options) ? field.options : undefined
-  if (!options || !Array.isArray(options.values)) return []
-  return options.values.flatMap((option) => {
-    if (
-      typeof option === 'string' ||
-      typeof option === 'number' ||
-      typeof option === 'boolean'
-    ) {
-      return [{ label: String(option), value: String(option) }]
-    }
-    if (isContentField(option)) {
-      const value = option.value
-      if (
-        typeof value === 'string' ||
-        typeof value === 'number' ||
-        typeof value === 'boolean'
-      ) {
-        return [
-          {
-            label:
-              typeof option.label === 'string' ? option.label : String(value),
-            value: String(value),
-          },
-        ]
-      }
-    }
-    return []
-  })
-}
-
-function SelectFieldControl({
-  field,
-  value,
+function RichTextRenderer({
   disabled,
-  required,
+  field,
+  id,
+  label,
+  referenceContext,
+  value,
   onChange,
-}: {
-  field: JsonObject
-  value: JsonValue | undefined
-  disabled: boolean
-  required: boolean
-  onChange: (value: JsonValue | undefined) => void
-}) {
+  renderField,
+}: FieldRendererProps) {
+  const [mode, setMode] = useState<'editor' | 'source'>('editor')
+  const [pendingUploads, setPendingUploads] = useState(0)
   const settings = isContentField(field.options) ? field.options : {}
-  const options = optionValues(field)
-  if (settings.multiple !== true) {
-    return (
-      <select
-        aria-label={String(field.name)}
-        className="h-10 w-full rounded-lg border bg-background px-3 text-sm"
-        disabled={disabled}
-        required={required}
-        value={value == null ? '' : String(value)}
-        onChange={(event) => {
-          const option = options.find(
-            (candidate) => String(candidate.value) === event.target.value,
-          )
-          onChange(option?.value ?? event.target.value)
-        }}
-      >
-        <option value="">Select…</option>
-        {options.map((option) => (
-          <option key={String(option.value)} value={String(option.value)}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    )
-  }
-
-  const selected = Array.isArray(value) ? value : []
-  const min = typeof settings.min === 'number' ? settings.min : 0
-  const max =
-    typeof settings.max === 'number' ? settings.max : Number.POSITIVE_INFINITY
-  return (
-    <div className="max-h-56 space-y-1 overflow-auto rounded-lg border bg-background p-2">
-      {options.map((option) => {
-        const checked = selected.includes(option.value)
-        return (
-          <label
-            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
-            key={String(option.value)}
+  const headerActions =
+    settings.switcher === false ? undefined : (
+      <div className="inline-flex h-7 items-center rounded-md bg-muted p-0.5 text-muted-foreground">
+        {(['editor', 'source'] as const).map((nextMode) => (
+          <button
+            className={`h-6 rounded-sm px-2 text-xs capitalize transition-colors hover:text-foreground ${mode === nextMode ? 'bg-background text-foreground shadow-xs' : ''}`}
+            data-active={mode === nextMode || undefined}
+            disabled={disabled || pendingUploads > 0}
+            key={nextMode}
+            type="button"
+            onClick={() => setMode(nextMode)}
           >
-            <input
-              checked={checked}
-              disabled={
-                disabled ||
-                (checked ? selected.length <= min : selected.length >= max)
-              }
-              type="checkbox"
-              onChange={(event) =>
-                onChange(
-                  event.target.checked
-                    ? [...selected, option.value]
-                    : selected.filter((item) => item !== option.value),
-                )
-              }
-            />
-            <span>{option.label}</span>
-          </label>
-        )
-      })}
-      {!options.length ? (
-        <p className="px-2 py-1 text-sm text-muted-foreground">
-          No options configured.
-        </p>
-      ) : null}
-    </div>
+            {nextMode === 'editor' ? 'Editor' : 'Source'}
+          </button>
+        ))}
+      </div>
+    )
+
+  return renderField(
+    <ClientOnly fallback={<DeferredEditorFallback />}>
+      <Suspense fallback={<DeferredEditorFallback />}>
+        <RichTextField
+          disabled={disabled}
+          field={field}
+          id={id}
+          label={label}
+          mode={mode}
+          referenceContext={referenceContext}
+          value={value}
+          onChange={onChange}
+          onPendingUploadsChange={setPendingUploads}
+        />
+      </Suspense>
+    </ClientOnly>,
+    headerActions,
   )
 }
 
-function fieldListLimits(field: JsonObject) {
-  const list = isContentField(field.list) ? field.list : {}
-  return {
-    min: typeof list.min === 'number' ? list.min : 0,
-    max: typeof list.max === 'number' ? list.max : Number.POSITIVE_INFINITY,
-  }
+function CodeRenderer({
+  disabled,
+  field,
+  id,
+  label,
+  required,
+  value,
+  onChange,
+  renderField,
+}: FieldRendererProps) {
+  return renderField(
+    <ClientOnly fallback={<DeferredEditorFallback />}>
+      <Suspense fallback={<DeferredEditorFallback />}>
+        <CodeField
+          disabled={disabled}
+          field={field}
+          id={id}
+          label={label}
+          required={required}
+          value={value}
+          onChange={onChange}
+        />
+      </Suspense>
+    </ClientOnly>,
+  )
+}
+
+function DeferredEditorFallback() {
+  return (
+    <div className="min-h-48 animate-pulse rounded-lg border bg-muted/30" />
+  )
+}
+
+coreFieldRendererRegistry.register('rich-text', RichTextRenderer)
+coreFieldRendererRegistry.register('code', CodeRenderer)
+
+export type { ReferenceContext } from '#/features/editor/fields/field-types'
+
+export function isContentField(value: unknown): value is JsonObject {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function initialFieldValue(field: JsonObject): JsonValue {
@@ -188,19 +188,95 @@ function initialFieldValue(field: JsonObject): JsonValue {
     )
   }
   if (field.type === 'block') {
-    const block = Array.isArray(field.blocks)
-      ? field.blocks.find(isContentField)
-      : undefined
-    const blockName = typeof block?.name === 'string' ? block.name : ''
-    const key = typeof field.blockKey === 'string' ? field.blockKey : '_block'
-    return {
-      [key]: blockName,
-      ...initializeStructuredContent(
-        Array.isArray(block?.fields) ? block.fields : [],
-      ),
-    }
+    return null
   }
   return ''
+}
+
+function ConfirmRemoveButton({
+  label,
+  description,
+  disabled = false,
+  onConfirm,
+}: {
+  label: string
+  description: string
+  disabled?: boolean
+  onConfirm: () => void
+}) {
+  if (disabled) {
+    return (
+      <Button
+        aria-label={label}
+        disabled
+        size="icon-sm"
+        type="button"
+        variant="ghost"
+      >
+        <Trash2 />
+      </Button>
+    )
+  }
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button aria-label={label} size="icon-sm" type="button" variant="ghost">
+          <Trash2 />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Remove this item?</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" onClick={onConfirm}>
+            Remove
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
+function SortableListItem({
+  children,
+  id,
+  disabled,
+}: {
+  children: (handle: React.ReactNode) => React.ReactNode
+  id: string
+  disabled: boolean
+}) {
+  const sortable = useSortable({ id, disabled })
+  const handle = disabled ? null : (
+    <Button
+      aria-label="Reorder item"
+      className="cursor-grab touch-none active:cursor-grabbing"
+      size="icon-sm"
+      type="button"
+      variant="ghost"
+      {...sortable.attributes}
+      {...sortable.listeners}
+    >
+      <GripVertical className="text-muted-foreground" />
+    </Button>
+  )
+
+  return (
+    <div
+      ref={sortable.setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(sortable.transform),
+        transition: sortable.transition,
+        opacity: sortable.isDragging ? 0.5 : 1,
+      }}
+    >
+      {children(handle)}
+    </div>
+  )
 }
 
 function ListFieldControl({
@@ -217,8 +293,47 @@ function ListFieldControl({
   onChange: (value: JsonValue) => void
 }) {
   const values = Array.isArray(value) ? value : []
-  const limits = fieldListLimits(field)
+  const options = getListFieldOptions(field)
   const itemField: JsonObject = { ...field, label: false, list: false }
+  const listId = useId()
+  const nextItemId = useRef(values.length)
+  const [itemIds, setItemIds] = useState(() =>
+    values.map((_, index) => `${listId}-${index}`),
+  )
+  const [openItems, setOpenItems] = useState(() =>
+    values.map(() => !options.initiallyCollapsed),
+  )
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  )
+
+  useEffect(() => {
+    setItemIds((current) => {
+      if (current.length === values.length) return current
+      if (current.length > values.length) return current.slice(0, values.length)
+      return [
+        ...current,
+        ...Array.from(
+          { length: values.length - current.length },
+          () => `${listId}-${nextItemId.current++}`,
+        ),
+      ]
+    })
+    setOpenItems((current) => {
+      if (current.length === values.length) return current
+      if (current.length > values.length) return current.slice(0, values.length)
+      return [
+        ...current,
+        ...Array.from(
+          { length: values.length - current.length },
+          () => !options.initiallyCollapsed,
+        ),
+      ]
+    })
+  }, [listId, options.initiallyCollapsed, values.length])
 
   function update(index: number, next: JsonValue | undefined) {
     const copy = [...values]
@@ -227,72 +342,136 @@ function ListFieldControl({
     onChange(copy)
   }
 
-  function move(index: number, offset: number) {
-    const target = index + offset
-    if (target < 0 || target >= values.length) return
-    const copy = [...values]
-    const current = copy[index]
-    copy[index] = copy[target]!
-    copy[target] = current!
-    onChange(copy)
+  function remove(index: number) {
+    update(index, undefined)
+    setItemIds((current) =>
+      current.filter((_, itemIndex) => itemIndex !== index),
+    )
+    setOpenItems((current) =>
+      current.filter((_, itemIndex) => itemIndex !== index),
+    )
+  }
+
+  function reorder(activeId: string, overId: string) {
+    const from = itemIds.indexOf(activeId)
+    const to = itemIds.indexOf(overId)
+    if (from < 0 || to < 0 || from === to) return
+    onChange(arrayMove(values, from, to))
+    setItemIds((current) => arrayMove(current, from, to))
+    setOpenItems((current) => arrayMove(current, from, to))
   }
 
   return (
-    <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
-      {values.map((item, index) => (
-        <div
-          className="space-y-3 rounded-lg border bg-background p-3"
-          key={index}
-        >
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-medium text-muted-foreground">
-              Item {index + 1}
-            </span>
-            {!disabled ? (
-              <div className="flex gap-1">
-                <Button
-                  aria-label={`Move item ${index + 1} up`}
-                  disabled={index === 0}
-                  size="icon"
-                  type="button"
-                  variant="ghost"
-                  onClick={() => move(index, -1)}
-                >
-                  <ArrowUp />
-                </Button>
-                <Button
-                  aria-label={`Move item ${index + 1} down`}
-                  disabled={index === values.length - 1}
-                  size="icon"
-                  type="button"
-                  variant="ghost"
-                  onClick={() => move(index, 1)}
-                >
-                  <ArrowDown />
-                </Button>
-                <Button
-                  aria-label={`Remove item ${index + 1}`}
-                  disabled={values.length <= limits.min}
-                  size="icon"
-                  type="button"
-                  variant="ghost"
-                  onClick={() => update(index, undefined)}
-                >
-                  <Trash2 />
-                </Button>
-              </div>
-            ) : null}
-          </div>
-          <StructuredContentField
-            field={itemField}
-            referenceContext={referenceContext}
-            value={item}
-            onChange={(next) => update(index, next)}
-          />
+    <div className="space-y-2">
+      {options.collapsible && values.length > 1 ? (
+        <div className="flex justify-end">
+          <Button
+            size="sm"
+            type="button"
+            variant="ghost"
+            onClick={() =>
+              setOpenItems((current) =>
+                current.map(() => current.some((open) => !open)),
+              )
+            }
+          >
+            {openItems.every(Boolean) ? <ChevronsDownUp /> : <ChevronsUpDown />}
+            {openItems.every(Boolean) ? 'Collapse all' : 'Expand all'}
+          </Button>
         </div>
-      ))}
-      {!disabled && values.length < limits.max ? (
+      ) : null}
+      <DndContext
+        collisionDetection={closestCenter}
+        id={`${listId}-dnd`}
+        sensors={sensors}
+        onDragEnd={({ active, over }) => {
+          if (over) reorder(String(active.id), String(over.id))
+        }}
+      >
+        <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+          <div className="space-y-2">
+            {values.map((item, index) => (
+              <SortableListItem
+                disabled={disabled}
+                id={itemIds[index] ?? `${listId}-${index}`}
+                key={itemIds[index] ?? `${listId}-${index}`}
+              >
+                {(handle) =>
+                  options.collapsible ? (
+                    <Collapsible
+                      className="rounded-lg border"
+                      open={openItems[index] ?? !options.initiallyCollapsed}
+                      onOpenChange={(open) =>
+                        setOpenItems((current) =>
+                          current.map((value, itemIndex) =>
+                            itemIndex === index ? open : value,
+                          ),
+                        )
+                      }
+                    >
+                      <div className="flex min-h-10 items-center gap-1 p-1">
+                        {handle}
+                        <CollapsibleTrigger asChild>
+                          <button
+                            className="group flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm font-medium hover:bg-muted"
+                            type="button"
+                          >
+                            <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-90" />
+                            <span className="truncate">
+                              {getListItemSummary(field, item, index)}
+                            </span>
+                          </button>
+                        </CollapsibleTrigger>
+                        {!disabled ? (
+                          <ConfirmRemoveButton
+                            description="This removes the item and all of its nested fields."
+                            disabled={values.length <= options.min}
+                            label={`Remove item ${index + 1}`}
+                            onConfirm={() => remove(index)}
+                          />
+                        ) : null}
+                      </div>
+                      <CollapsibleContent>
+                        <div className="border-t p-4">
+                          <StructuredContentField
+                            field={itemField}
+                            referenceContext={referenceContext}
+                            value={item}
+                            onChange={(next) => update(index, next)}
+                          />
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  ) : (
+                    <div className="flex items-start gap-1 rounded-lg border p-2">
+                      {handle}
+                      <div className="min-w-0 flex-1">
+                        <StructuredContentField
+                          field={itemField}
+                          referenceContext={referenceContext}
+                          value={item}
+                          onChange={(next) => update(index, next)}
+                        />
+                      </div>
+                      {!disabled ? (
+                        <ConfirmRemoveButton
+                          description="This removes the item from the list."
+                          disabled={values.length <= options.min}
+                          label={`Remove item ${index + 1}`}
+                          onConfirm={() => remove(index)}
+                        />
+                      ) : null}
+                    </div>
+                  )
+                }
+              </SortableListItem>
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+      {!disabled && values.length < options.max ? (
         <Button
+          size="sm"
           type="button"
           variant="outline"
           onClick={() => onChange([...values, initialFieldValue(field)])}
@@ -311,11 +490,13 @@ function ObjectFieldControl({
   field,
   value,
   referenceContext,
+  embedded = false,
   onChange,
 }: {
   field: JsonObject
   value: JsonValue | undefined
   referenceContext?: ReferenceContext
+  embedded?: boolean
   onChange: (value: JsonValue) => void
 }) {
   const object = isContentField(value) ? value : {}
@@ -323,7 +504,7 @@ function ObjectFieldControl({
     ? field.fields.filter(isContentField)
     : []
   return (
-    <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
+    <div className={embedded ? 'space-y-4' : 'space-y-4 rounded-lg border p-4'}>
       {fields.map((child) => {
         const name = String(child.name)
         return (
@@ -364,49 +545,73 @@ function BlockFieldControl({
     ? field.blocks.filter(isContentField)
     : []
   const key = typeof field.blockKey === 'string' ? field.blockKey : '_block'
-  const object = isContentField(value) ? value : {}
-  const selectedName = typeof object[key] === 'string' ? object[key] : ''
+  const object = isContentField(value) ? value : null
+  const selectedName =
+    object && typeof object[key] === 'string' ? object[key] : ''
   const selected = blocks.find((block) => block.name === selectedName)
 
   return (
-    <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
-      <select
-        aria-label={`${String(field.name)} block type`}
-        className="h-10 w-full rounded-lg border bg-background px-3 text-sm"
-        disabled={disabled}
-        value={selectedName}
-        onChange={(event) => {
-          const block = blocks.find(
-            (candidate) => candidate.name === event.target.value,
-          )
-          onChange({
-            [key]: event.target.value,
-            ...initializeStructuredContent(
-              Array.isArray(block?.fields) ? block.fields : [],
-            ),
-          })
-        }}
-      >
-        <option value="">Select block…</option>
-        {blocks.map((block) => (
-          <option key={String(block.name)} value={String(block.name)}>
-            {typeof block.label === 'string' ? block.label : String(block.name)}
-          </option>
-        ))}
-      </select>
-      {selected ? (
-        <ObjectFieldControl
-          field={{ ...selected, readonly: disabled }}
-          referenceContext={referenceContext}
-          value={object}
-          onChange={(next) =>
-            onChange({
-              ...(isContentField(next) ? next : {}),
-              [key]: selectedName,
-            })
-          }
-        />
-      ) : null}
+    <div className="rounded-lg border">
+      {selected && object ? (
+        <>
+          <div className="flex min-h-10 items-center justify-between gap-2 p-1 pl-3">
+            <Badge variant="outline">
+              {typeof selected.label === 'string'
+                ? selected.label
+                : selectedName}
+            </Badge>
+            {!disabled ? (
+              <ConfirmRemoveButton
+                description="This removes the selected block and all of its fields."
+                label="Remove block"
+                onConfirm={() => onChange(null)}
+              />
+            ) : null}
+          </div>
+          <div className="border-t p-4">
+            <ObjectFieldControl
+              embedded
+              field={{ ...selected, readonly: disabled }}
+              referenceContext={referenceContext}
+              value={object}
+              onChange={(next) =>
+                onChange({
+                  ...(isContentField(next) ? next : {}),
+                  [key]: selectedName,
+                })
+              }
+            />
+          </div>
+        </>
+      ) : (
+        <div className="space-y-3 p-4">
+          <p className="text-sm font-medium">Choose a content block</p>
+          <div className="flex flex-wrap gap-2">
+            {blocks.map((block) => {
+              const blockName = String(block.name)
+              return (
+                <Button
+                  disabled={disabled}
+                  key={blockName}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    onChange({
+                      [key]: blockName,
+                      ...initializeStructuredContent(
+                        Array.isArray(block.fields) ? block.fields : [],
+                      ),
+                    })
+                  }
+                >
+                  {typeof block.label === 'string' ? block.label : blockName}
+                </Button>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -434,8 +639,48 @@ export function StructuredContentField({
   const required = field.required === true
   const description =
     typeof field.description === 'string' ? field.description : null
+  const controlId = useId()
 
   if (field.hidden === true) return null
+
+  const renderField = (
+    fieldControl: React.ReactNode,
+    headerActions?: React.ReactNode,
+  ) => (
+    <Field>
+      {label || required || disabled || headerActions ? (
+        <div
+          className="flex min-h-6 items-center justify-between gap-2"
+          data-slot="field-header"
+        >
+          <div className="flex min-w-0 items-center gap-2">
+            {label ? (
+              <FieldLabel htmlFor={controlId}>{label}</FieldLabel>
+            ) : null}
+            {required ? (
+              <Badge variant="secondary" className="text-muted-foreground">
+                <Asterisk className="-ml-1 -mr-0.5" />
+                Required
+              </Badge>
+            ) : null}
+            {disabled ? (
+              <Badge variant="secondary" className="text-muted-foreground">
+                <Ban className="-ml-0.5" />
+                Readonly
+              </Badge>
+            ) : null}
+          </div>
+          {headerActions ? (
+            <div className="shrink-0" data-slot="field-header-actions">
+              {headerActions}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+      {fieldControl}
+      {description ? <FieldDescription>{description}</FieldDescription> : null}
+    </Field>
+  )
 
   let control: React.ReactNode
   if (field.list) {
@@ -454,6 +699,8 @@ export function StructuredContentField({
       <PluginField
         disabled={disabled}
         field={field}
+        id={controlId}
+        label={label ?? name}
         required={required}
         value={value}
         onChange={onChange}
@@ -482,31 +729,6 @@ export function StructuredContentField({
         onChange={onChange}
       />
     )
-  } else if (type === 'uuid') {
-    const options = isContentField(field.options) ? field.options : {}
-    control = (
-      <div className="flex gap-2">
-        <Input
-          aria-label={name}
-          disabled={disabled}
-          readOnly={options.editable !== true}
-          value={typeof value === 'string' ? value : ''}
-          onChange={(event) => onChange(event.target.value)}
-        />
-        {options.generate !== false ? (
-          <Button
-            aria-label={`Generate ${name}`}
-            disabled={disabled}
-            size="icon"
-            type="button"
-            variant="outline"
-            onClick={() => onChange(crypto.randomUUID())}
-          >
-            <RefreshCw />
-          </Button>
-        ) : null}
-      </div>
-    )
   } else if (type === 'reference' && referenceContext) {
     control = (
       <ReferenceFieldControl
@@ -532,163 +754,24 @@ export function StructuredContentField({
         onChange={onChange}
       />
     )
-  } else if (type === 'boolean') {
-    control = (
-      <input
-        aria-label={name}
-        checked={value === true}
-        className="size-4 rounded border"
-        disabled={disabled}
-        type="checkbox"
-        onChange={(event) => onChange(event.target.checked)}
-      />
-    )
-  } else if (type === 'select') {
-    control = (
-      <SelectFieldControl
+  } else {
+    const CoreField = coreFieldRendererRegistry.resolve(type)
+    return (
+      <CoreField
         disabled={disabled}
         field={field}
+        id={controlId}
+        label={label ?? name}
+        referenceContext={referenceContext}
         required={required}
         value={value}
         onChange={onChange}
+        renderField={renderField}
       />
-    )
-  } else if (type === 'rich-text') {
-    control = (
-      <ClientOnly
-        fallback={
-          <div className="min-h-48 animate-pulse rounded-lg border bg-muted/30" />
-        }
-      >
-        <Suspense
-          fallback={
-            <div className="min-h-48 animate-pulse rounded-lg border bg-muted/30" />
-          }
-        >
-          <RichTextField
-            disabled={disabled}
-            field={field}
-            referenceContext={referenceContext}
-            required={required}
-            value={value}
-            onChange={onChange}
-          />
-        </Suspense>
-      </ClientOnly>
-    )
-  } else if (type === 'code') {
-    control = (
-      <ClientOnly
-        fallback={
-          <div className="min-h-48 animate-pulse rounded-lg border bg-muted/30" />
-        }
-      >
-        <Suspense
-          fallback={
-            <div className="min-h-48 animate-pulse rounded-lg border bg-muted/30" />
-          }
-        >
-          <CodeField
-            disabled={disabled}
-            field={field}
-            required={required}
-            value={value}
-            onChange={onChange}
-          />
-        </Suspense>
-      </ClientOnly>
-    )
-  } else if (type === 'text') {
-    control = (
-      <Textarea
-        aria-label={name}
-        className="min-h-32"
-        disabled={disabled}
-        required={required}
-        value={typeof value === 'string' ? value : ''}
-        onChange={(event) => onChange(event.target.value)}
-      />
-    )
-  } else {
-    const options = isContentField(field.options) ? field.options : {}
-    control = (
-      <div className="flex gap-2">
-        <Input
-          aria-label={name}
-          disabled={disabled}
-          max={
-            typeof options.max === 'number' || typeof options.max === 'string'
-              ? options.max
-              : undefined
-          }
-          min={
-            typeof options.min === 'number' || typeof options.min === 'string'
-              ? options.min
-              : undefined
-          }
-          required={required}
-          step={typeof options.step === 'number' ? options.step : undefined}
-          type={
-            type === 'number'
-              ? 'number'
-              : type === 'date'
-                ? options.time === true
-                  ? 'datetime-local'
-                  : 'date'
-                : 'text'
-          }
-          value={
-            typeof value === 'string' || typeof value === 'number' ? value : ''
-          }
-          onChange={(event) => {
-            if (type === 'number') {
-              onChange(
-                event.target.value === ''
-                  ? undefined
-                  : event.target.valueAsNumber,
-              )
-            } else {
-              onChange(event.target.value)
-            }
-          }}
-        />
-        {(type === 'image' || type === 'file') &&
-        typeof value === 'string' &&
-        value ? (
-          <Button
-            asChild
-            aria-label={`Open ${name} on GitHub`}
-            variant="outline"
-          >
-            <a
-              href={`https://github.com/${encodeURIComponent(referenceContext?.owner ?? '')}/${encodeURIComponent(referenceContext?.repo ?? '')}/blob/${encodeURIComponent(referenceContext?.branch ?? '')}/${value.split('/').map(encodeURIComponent).join('/')}`}
-              rel="noreferrer"
-              target="_blank"
-            >
-              <ExternalLink />
-            </a>
-          </Button>
-        ) : null}
-      </div>
     )
   }
 
-  return (
-    <div className="block space-y-2">
-      {label ? (
-        <span className="text-sm font-medium">
-          {label}
-          {required ? <span className="text-destructive"> *</span> : null}
-        </span>
-      ) : null}
-      {control}
-      {description ? (
-        <span className="block text-xs text-muted-foreground">
-          {description}
-        </span>
-      ) : null}
-    </div>
-  )
+  return renderField(control)
 }
 
 function mediaValues(value: JsonValue | undefined, multiple: boolean) {
@@ -700,16 +783,78 @@ function mediaValues(value: JsonValue | undefined, multiple: boolean) {
   return typeof value === 'string' && value ? [value] : []
 }
 
-function fileBase64(file: globalThis.File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onerror = () => reject(new Error(`Could not read ${file.name}`))
-    reader.onload = () => {
-      const result = String(reader.result)
-      resolve(result.slice(result.indexOf(',') + 1))
-    }
-    reader.readAsDataURL(file)
-  })
+function ImageFieldThumbnail({
+  context,
+  draggable,
+  id,
+  mediaName,
+  path,
+  readonly,
+  onRemove,
+}: {
+  context: ReferenceContext
+  draggable: boolean
+  id: string
+  mediaName: string
+  path: string
+  readonly: boolean
+  onRemove: () => void
+}) {
+  const sortable = useSortable({ id, disabled: readonly || !draggable })
+  return (
+    <div
+      className="relative size-28"
+      ref={sortable.setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(sortable.transform),
+        transition: sortable.transition,
+        opacity: sortable.isDragging ? 0.5 : 1,
+      }}
+    >
+      <div
+        className={
+          draggable && !readonly ? 'cursor-move touch-none' : undefined
+        }
+        title={path}
+        {...sortable.attributes}
+        {...sortable.listeners}
+      >
+        <MediaThumbnail
+          {...context}
+          className="size-28 rounded-md"
+          name={mediaName}
+          path={path}
+        />
+      </div>
+      <div className="absolute right-1 bottom-1 flex rounded-md bg-background/95 p-0.5 shadow-sm backdrop-blur-sm">
+        <Button
+          asChild
+          aria-label={`View ${path} on GitHub`}
+          size="icon-xs"
+          variant="ghost"
+        >
+          <a
+            href={`https://github.com/${encodeURIComponent(context.owner)}/${encodeURIComponent(context.repo)}/blob/${encodeURIComponent(context.branch)}/${path.split('/').map(encodeURIComponent).join('/')}`}
+            rel="noreferrer"
+            target="_blank"
+          >
+            <ArrowUpRight className="text-muted-foreground" />
+          </a>
+        </Button>
+        {!readonly ? (
+          <Button
+            aria-label={`Remove ${path}`}
+            size="icon-xs"
+            type="button"
+            variant="ghost"
+            onClick={onRemove}
+          >
+            <Trash2 className="text-muted-foreground" />
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  )
 }
 
 function MediaFieldControl({
@@ -740,60 +885,10 @@ function MediaFieldControl({
       : 1
   const selected = mediaValues(value, multiple)
   const [open, setOpen] = useState(false)
-  const [path, setPath] = useState('')
-  const [entries, setEntries] = useState<
-    Array<{
-      type: 'file' | 'dir'
-      name: string
-      path: string
-      sha: string | null
-      size: number | null
-    }>
-  >([])
-  const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<unknown>(null)
-
-  useEffect(() => {
-    if (!open || !media) return
-    let cancelled = false
-    setLoading(true)
-    setError(null)
-    void getMedia({
-      data: {
-        owner: context.owner,
-        repo: context.repo,
-        branch: context.branch,
-        name: media.name,
-        path: path || media.input,
-      },
-    })
-      .then((result) => {
-        if (!cancelled) {
-          setPath(result.media.path)
-          setEntries(result.entries)
-        }
-      })
-      .catch((cause: unknown) => {
-        if (!cancelled) {
-          setError(cause)
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [
-    context.branch,
-    context.owner,
-    context.repo,
-    media?.input,
-    media?.name,
-    open,
-    path,
-  ])
+  const dndId = useId()
+  const sensors = useSensors(useSensor(PointerSensor))
 
   if (!media) {
     return <p className="text-sm text-destructive">Media is not configured.</p>
@@ -808,22 +903,15 @@ function MediaFieldControl({
       ? settings.path
       : mediaInput
   const allowedExtensions = allowedMediaFieldExtensions(field, media)
-  const visibleEntries = entries.filter(
-    (entry) =>
-      entry.type === 'dir' ||
-      !allowedExtensions?.length ||
-      allowedExtensions.includes(
-        entry.name.split('.').at(-1)?.toLowerCase() ?? '',
-      ),
-  )
-
   function select(pathValue: string) {
     if (!multiple) {
       onChange(pathValue)
       setOpen(false)
       return
     }
-    const next = [...new Set([...selected, pathValue])].slice(0, max)
+    const next = selected.includes(pathValue)
+      ? selected.filter((item) => item !== pathValue)
+      : [...selected, pathValue].slice(-max)
     onChange(next)
   }
 
@@ -832,32 +920,18 @@ function MediaFieldControl({
     setUploading(true)
     setError(null)
     try {
-      const uploaded: string[] = []
-      for (const file of Array.from(files)) {
-        if (file.size > 20 * 1024 * 1024) {
-          throw new Error(`${file.name} exceeds the 20 MB limit`)
-        }
-        const extension = file.name.split('.').at(-1)?.toLowerCase() ?? ''
-        if (
-          allowedExtensions?.length &&
-          !allowedExtensions.includes(extension)
-        ) {
-          throw new Error(`${file.name} uses a disallowed file extension`)
-        }
-        const result = await createMedia({
-          data: {
-            owner: context.owner,
-            repo: context.repo,
-            branch: context.branch,
-            name: mediaName,
-            path: path || mediaInput,
-            filename: file.name,
-            content: await fileBase64(file),
-          },
-        })
-        uploaded.push(result.path)
-        if (!multiple) break
-      }
+      const uploaded = await uploadMediaFiles({
+        coordinates: {
+          owner: context.owner,
+          repo: context.repo,
+          branch: context.branch,
+          name: mediaName,
+        },
+        extensions: allowedExtensions,
+        files,
+        limit: multiple ? Math.max(0, max - selected.length) : 1,
+        path: configuredStartPath,
+      })
       if (multiple)
         onChange([...new Set([...selected, ...uploaded])].slice(0, max))
       else if (uploaded[0]) onChange(uploaded[0])
@@ -869,71 +943,102 @@ function MediaFieldControl({
   }
 
   return (
-    <div className="space-y-3">
+    <div
+      className="space-y-3"
+      onDragOver={(event) => {
+        if (!disabled && selected.length < max) event.preventDefault()
+      }}
+      onDrop={(event) => {
+        if (disabled || selected.length >= max) return
+        event.preventDefault()
+        void upload(event.dataTransfer.files)
+      }}
+    >
+      <OperationError error={error} fallback="Could not upload media." />
       {selected.length ? (
-        <ul className="space-y-2">
-          {selected.map((selectedPath) => (
-            <li
-              className="flex items-center gap-2 rounded-lg border bg-muted/20 px-3 py-2 text-sm"
-              key={selectedPath}
-            >
-              {image ? (
-                <MediaThumbnail
-                  {...context}
-                  className="size-10"
-                  name={mediaName}
-                  path={selectedPath}
-                />
-              ) : (
-                <File className="size-4" />
-              )}
-              <span className="min-w-0 flex-1 truncate">{selectedPath}</span>
-              <Button
-                asChild
-                aria-label={`Open ${selectedPath}`}
-                size="icon"
-                variant="ghost"
+        image ? (
+          <DndContext
+            id={`${dndId}-media`}
+            sensors={sensors}
+            onDragEnd={({ active, over }) => {
+              if (!over || active.id === over.id) return
+              const oldIndex = selected.indexOf(String(active.id))
+              const newIndex = selected.indexOf(String(over.id))
+              if (oldIndex >= 0 && newIndex >= 0)
+                onChange(arrayMove(selected, oldIndex, newIndex))
+            }}
+          >
+            <SortableContext items={selected} strategy={rectSortingStrategy}>
+              <div className="flex flex-wrap gap-2">
+                {selected.map((selectedPath) => (
+                  <ImageFieldThumbnail
+                    context={context}
+                    draggable={multiple}
+                    id={selectedPath}
+                    key={selectedPath}
+                    mediaName={mediaName}
+                    path={selectedPath}
+                    readonly={disabled}
+                    onRemove={() => {
+                      const next = selected.filter(
+                        (item) => item !== selectedPath,
+                      )
+                      onChange(multiple ? next : undefined)
+                    }}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        ) : (
+          <ul className="space-y-2">
+            {selected.map((selectedPath) => (
+              <li
+                className="flex items-center gap-2 rounded-lg border bg-muted/20 px-3 py-2 text-sm"
+                key={selectedPath}
               >
-                <a
-                  href={`https://github.com/${encodeURIComponent(context.owner)}/${encodeURIComponent(context.repo)}/blob/${encodeURIComponent(context.branch)}/${selectedPath.split('/').map(encodeURIComponent).join('/')}`}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  <ExternalLink />
-                </a>
-              </Button>
-              {!disabled ? (
+                <File className="size-4" />
+                <span className="min-w-0 flex-1 truncate">{selectedPath}</span>
                 <Button
-                  aria-label={`Remove ${selectedPath}`}
+                  asChild
+                  aria-label={`Open ${selectedPath}`}
                   size="icon"
-                  type="button"
                   variant="ghost"
-                  onClick={() => {
-                    const next = selected.filter(
-                      (item) => item !== selectedPath,
-                    )
-                    onChange(multiple ? next : undefined)
-                  }}
                 >
-                  <Trash2 />
+                  <a
+                    href={`https://github.com/${encodeURIComponent(context.owner)}/${encodeURIComponent(context.repo)}/blob/${encodeURIComponent(context.branch)}/${selectedPath.split('/').map(encodeURIComponent).join('/')}`}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    <ArrowUpRight className="text-muted-foreground" />
+                  </a>
                 </Button>
-              ) : null}
-            </li>
-          ))}
-        </ul>
+                {!disabled ? (
+                  <Button
+                    aria-label={`Remove ${selectedPath}`}
+                    size="icon"
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      const next = selected.filter(
+                        (item) => item !== selectedPath,
+                      )
+                      onChange(multiple ? next : undefined)
+                    }}
+                  >
+                    <Trash2 />
+                  </Button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )
       ) : (
         <p className="text-sm text-muted-foreground">No file selected.</p>
       )}
       {!disabled && selected.length < max ? (
         <div className="flex gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              setPath(configuredStartPath)
-              setOpen(true)
-            }}
-          >
+          <Button type="button" variant="outline" onClick={() => setOpen(true)}>
             <Folder /> Select
           </Button>
           <Button asChild variant="outline">
@@ -965,71 +1070,30 @@ function MediaFieldControl({
           </Button>
         </div>
       ) : null}
-      {open ? (
-        <div className="space-y-3 rounded-lg border bg-background p-3 shadow-sm">
-          <div className="flex items-center justify-between gap-2">
-            <p className="truncate text-xs text-muted-foreground">{path}</p>
-            <Button
-              aria-label="Close media browser"
-              size="icon"
-              type="button"
-              variant="ghost"
-              onClick={() => setOpen(false)}
-            >
-              <X />
-            </Button>
-          </div>
-          {path !== media.input ? (
-            <Button
-              size="sm"
-              type="button"
-              variant="outline"
-              onClick={() => {
-                const parts = path.split('/')
-                parts.pop()
-                const parent = parts.join('/')
-                setPath(parent.startsWith(media.input) ? parent : media.input)
-              }}
-            >
-              <ArrowUp /> Parent folder
-            </Button>
-          ) : null}
-          {loading ? (
-            <p className="text-sm text-muted-foreground">Loading media…</p>
-          ) : (
-            <ul className="max-h-64 divide-y overflow-auto rounded-lg border">
-              {visibleEntries.map((entry) => (
-                <li key={entry.path}>
-                  <button
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
-                    type="button"
-                    onClick={() =>
-                      entry.type === 'dir'
-                        ? setPath(entry.path)
-                        : select(entry.path)
-                    }
-                  >
-                    {entry.type === 'dir' ? (
-                      <Folder className="size-4" />
-                    ) : image ? (
-                      <MediaThumbnail
-                        {...context}
-                        className="size-8"
-                        name={mediaName}
-                        path={entry.path}
-                      />
-                    ) : (
-                      <File className="size-4" />
-                    )}
-                    <span className="truncate">{entry.name}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          <OperationError error={error} fallback="Could not load media." />
-        </div>
-      ) : null}
+      <MediaPickerDialog
+        coordinates={{
+          owner: context.owner,
+          repo: context.repo,
+          branch: context.branch,
+          name: mediaName,
+        }}
+        extensions={allowedExtensions}
+        open={open}
+        rootPath={configuredStartPath}
+        selected={selected}
+        selectionLimit={max}
+        title={image ? 'Choose images' : 'Choose files'}
+        onOpenChange={setOpen}
+        onSelect={select}
+        onSelectMany={(paths) => {
+          if (!multiple) {
+            if (paths[0]) onChange(paths[0])
+            setOpen(false)
+            return
+          }
+          onChange([...new Set([...selected, ...paths])].slice(0, max))
+        }}
+      />
     </div>
   )
 }

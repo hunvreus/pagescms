@@ -1,28 +1,85 @@
-import { useState } from 'react'
-import { Link, useRouter } from '@tanstack/react-router'
+import { Fragment, useMemo, useState } from 'react'
+import { Link, useRouter, useRouterState } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import {
+  ArrowUpRight,
+  ChevronRight,
+  ChevronsUpDown,
+  Database,
   File,
   FileStack,
   FolderOpen,
-  Database,
-  GitBranch,
+  ListVideo,
   LoaderCircle,
   Plus,
-  Play,
   Settings,
   Users,
 } from 'lucide-react'
 
-import { Button } from '#/components/ui/button'
-import { Input } from '#/components/ui/input'
 import { OperationError } from '#/components/operation-error'
+import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
+import { Button } from '#/components/ui/button'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '#/components/ui/collapsible'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '#/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '#/components/ui/dropdown-menu'
+import { Field, FieldLabel } from '#/components/ui/field'
+import { Input } from '#/components/ui/input'
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  SidebarProvider,
+  SidebarTrigger,
+} from '#/components/ui/sidebar'
+import { AccountMenu } from '#/features/account/app-header'
+import { AboutDialog } from '#/features/projects/about-dialog'
+import { readRecentProjects } from '#/features/projects/recent-projects'
 import { createRepositoryBranch } from '#/functions/repository'
-import { getConfigurationNavigation } from '#/lib/configuration-navigation'
+import {
+  isCacheEnabled,
+  isConfigurationEditingEnabled,
+} from '#/lib/configuration'
+import { getConfigurationNavigationGroups } from '#/lib/configuration-navigation'
 import { queryKeys } from '#/queries/keys'
 
+import type { ReactNode } from 'react'
+import type { AppHeaderUser } from '#/features/account/app-header'
+import type { RecentProject } from '#/features/projects/recent-projects'
+import type { ConfigurationNavigationNode } from '#/lib/configuration-navigation'
+
 interface WorkspaceProps {
-  children: React.ReactNode
+  children: ReactNode
   owner: string
   repo: string
   branch: string
@@ -30,6 +87,7 @@ interface WorkspaceProps {
   configuration: {
     object: Record<string, unknown>
   } | null
+  user: AppHeaderUser
 }
 
 export function RepositoryWorkspace({
@@ -39,20 +97,225 @@ export function RepositoryWorkspace({
   branch,
   branches,
   configuration,
+  user,
 }: WorkspaceProps) {
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  })
+  const navigation = configuration
+    ? getConfigurationNavigationGroups(configuration.object)
+    : { content: [], media: [] }
+  const canManageRepository = Boolean(user.githubUsername)
+  const adminItems = configuration
+    ? [
+        ...(canManageRepository && isCacheEnabled(configuration.object)
+          ? [{ key: 'cache', label: 'Cache', icon: <Database /> }]
+          : []),
+        ...(canManageRepository
+          ? [
+              { key: 'actions', label: 'Actions', icon: <ListVideo /> },
+              {
+                key: 'collaborators',
+                label: 'Collaborators',
+                icon: <Users />,
+              },
+            ]
+          : []),
+        ...(canManageRepository &&
+        isConfigurationEditingEnabled(configuration.object)
+          ? [
+              {
+                key: 'configuration',
+                label: 'Configuration',
+                icon: <Settings />,
+              },
+            ]
+          : []),
+      ]
+    : []
+
+  return (
+    <SidebarProvider>
+      <RepositorySidebar
+        adminItems={adminItems}
+        branch={branch}
+        branches={branches}
+        navigation={navigation}
+        owner={owner}
+        pathname={pathname}
+        repo={repo}
+        user={user}
+      />
+      <SidebarInset className="min-h-screen">
+        <header className="sticky top-0 z-30 flex h-12 items-center border-b bg-background px-3 md:hidden">
+          <SidebarTrigger />
+        </header>
+        <main className="min-w-0 flex-1 p-4 md:p-6">{children}</main>
+      </SidebarInset>
+    </SidebarProvider>
+  )
+}
+
+function RepositorySidebar({
+  adminItems,
+  branch,
+  branches,
+  navigation,
+  owner,
+  pathname,
+  repo,
+  user,
+}: {
+  adminItems: Array<{ key: string; label: string; icon: ReactNode }>
+  branch: string
+  branches: readonly string[]
+  navigation: ReturnType<typeof getConfigurationNavigationGroups>
+  owner: string
+  pathname: string
+  repo: string
+  user: AppHeaderUser
+}) {
+  return (
+    <Sidebar collapsible="offcanvas">
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <RepositorySwitcher
+              branch={branch}
+              branches={branches}
+              owner={owner}
+              repo={repo}
+            />
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+      <SidebarContent>
+        <NavigationGroup
+          branch={branch}
+          label="Content"
+          nodes={navigation.content}
+          owner={owner}
+          pathname={pathname}
+          repo={repo}
+        />
+        <NavigationGroup
+          branch={branch}
+          label="Media"
+          nodes={navigation.media}
+          owner={owner}
+          pathname={pathname}
+          repo={repo}
+        />
+        {adminItems.length ? (
+          <SidebarGroup>
+            <SidebarGroupLabel>Admin</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {adminItems.map((item) => {
+                  const href = repositoryPath(owner, repo, branch, item.key)
+                  return (
+                    <SidebarMenuItem key={item.key}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActivePath(pathname, href)}
+                      >
+                        {adminNavigationLink({
+                          branch,
+                          item,
+                          owner,
+                          repo,
+                        })}
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ) : null}
+      </SidebarContent>
+      <SidebarFooter className="border-t">
+        <div className="flex items-center justify-between gap-2">
+          <AccountMenu user={user} />
+          <AboutDialog />
+        </div>
+      </SidebarFooter>
+    </Sidebar>
+  )
+}
+
+function adminNavigationLink({
+  branch,
+  item,
+  owner,
+  repo,
+}: {
+  branch: string
+  item: { key: string; label: string; icon: ReactNode }
+  owner: string
+  repo: string
+}) {
+  const content = (
+    <>
+      {item.icon}
+      <span>{item.label}</span>
+    </>
+  )
+  const params = { owner, repo, branch }
+  switch (item.key) {
+    case 'cache':
+      return (
+        <Link params={params} to="/$owner/$repo/$branch/cache">
+          {content}
+        </Link>
+      )
+    case 'actions':
+      return (
+        <Link params={params} to="/$owner/$repo/$branch/actions">
+          {content}
+        </Link>
+      )
+    case 'collaborators':
+      return (
+        <Link params={params} to="/$owner/$repo/$branch/collaborators">
+          {content}
+        </Link>
+      )
+    default:
+      return (
+        <Link params={params} to="/$owner/$repo/$branch/configuration">
+          {content}
+        </Link>
+      )
+  }
+}
+
+function RepositorySwitcher({
+  branch,
+  branches,
+  owner,
+  repo,
+}: {
+  branch: string
+  branches: readonly string[]
+  owner: string
+  repo: string
+}) {
   const router = useRouter()
   const queryClient = useQueryClient()
-  const navigation = configuration
-    ? getConfigurationNavigation(configuration.object)
-    : []
-  const [showBranchCreator, setShowBranchCreator] = useState(false)
+  const [manageOpen, setManageOpen] = useState(false)
+  const [recentProjects, setRecentProjects] = useState<RecentProject[]>([])
   const [newBranch, setNewBranch] = useState('')
-  const [creatingBranch, setCreatingBranch] = useState(false)
-  const [branchError, setBranchError] = useState<unknown>(null)
+  const [creating, setCreating] = useState(false)
+  const [error, setError] = useState<unknown>(null)
+  const sortedBranches = useMemo(
+    () => [...branches].sort((left, right) => left.localeCompare(right)),
+    [branches],
+  )
 
   async function createBranch() {
-    setCreatingBranch(true)
-    setBranchError(null)
+    setCreating(true)
+    setError(null)
     try {
       const result = await createRepositoryBranch({
         data: { owner, repo, branch: newBranch, source: branch },
@@ -60,191 +323,350 @@ export function RepositoryWorkspace({
       await queryClient.invalidateQueries({
         queryKey: queryKeys.repository({ owner, repo }),
       })
+      setManageOpen(false)
       await router.navigate({
         to: '/$owner/$repo/$branch',
         params: { owner, repo, branch: result.branch },
       })
     } catch (cause) {
-      setBranchError(cause)
-      setCreatingBranch(false)
+      setError(cause)
+    } finally {
+      setCreating(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-muted/20 md:grid md:grid-cols-[16rem_1fr]">
-      <aside className="border-b bg-background md:min-h-screen md:border-b-0 md:border-r">
-        <div className="border-b p-4">
-          <Link
-            className="text-sm text-muted-foreground hover:text-foreground"
-            to="/"
+    <>
+      <DropdownMenu
+        onOpenChange={(open) => {
+          if (!open) return
+          setRecentProjects(
+            readRecentProjects()
+              .filter(
+                (project) =>
+                  project.owner.toLowerCase() !== owner.toLowerCase() ||
+                  project.repo.toLowerCase() !== repo.toLowerCase(),
+              )
+              .slice(0, 3),
+          )
+        }}
+      >
+        <DropdownMenuTrigger asChild>
+          <SidebarMenuButton
+            className="data-[state=open]:bg-sidebar-accent"
+            size="lg"
           >
-            Pages CMS
-          </Link>
-          <h1 className="mt-2 truncate font-semibold">{repo}</h1>
-          <p className="truncate text-xs text-muted-foreground">{owner}</p>
-        </div>
-        <div className="space-y-4 p-3">
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between gap-2 text-xs font-medium text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <GitBranch className="size-3.5" /> Branch
+            <Avatar className="size-8 rounded-md">
+              <AvatarImage
+                alt={`${owner}'s avatar`}
+                className="rounded-md"
+                src={`https://github.com/${encodeURIComponent(owner)}.png?size=64`}
+              />
+              <AvatarFallback className="rounded-md">
+                {owner.slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
+              <span className="truncate font-medium">{repo}</span>
+              <span className="truncate text-xs text-muted-foreground">
+                {branch}
               </span>
-              <button
-                className="hover:text-foreground"
-                type="button"
-                onClick={() => {
-                  setBranchError(null)
-                  setShowBranchCreator((current) => !current)
-                }}
-              >
-                New
-              </button>
             </div>
-            <select
-              aria-label="Branch"
-              className="h-9 w-full rounded-lg border bg-background px-2 text-sm text-foreground"
-              value={branch}
-              onChange={(event) => {
-                void router.navigate({
-                  to: '/$owner/$repo/$branch',
-                  params: { owner, repo, branch: event.target.value },
-                })
-              }}
+            <ChevronsUpDown className="ml-auto" />
+          </SidebarMenuButton>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="start"
+          className="w-(--radix-dropdown-menu-trigger-width) min-w-56"
+        >
+          <DropdownMenuItem asChild>
+            <a
+              href={`https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`}
+              rel="noreferrer noopener"
+              target="_blank"
             >
-              {branches.map((value) => (
-                <option key={value} value={value}>
-                  {value}
-                </option>
+              View on GitHub
+              <ArrowUpRight className="ml-auto opacity-50" />
+            </a>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel>Branches</DropdownMenuLabel>
+          <DropdownMenuRadioGroup
+            className="max-h-52 overflow-y-auto"
+            value={branch}
+            onValueChange={(nextBranch) => {
+              void router.navigate({
+                to: '/$owner/$repo/$branch',
+                params: { owner, repo, branch: nextBranch },
+              })
+            }}
+          >
+            {sortedBranches.map((value) => (
+              <DropdownMenuRadioItem key={value} value={value}>
+                <span className="truncate">{value}</span>
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={() => setManageOpen(true)}>
+            Manage branches
+          </DropdownMenuItem>
+          {recentProjects.length ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Recently visited</DropdownMenuLabel>
+              {recentProjects.map((project) => (
+                <DropdownMenuItem
+                  asChild
+                  key={`${project.owner}/${project.repo}`}
+                >
+                  <Link params={project} to="/$owner/$repo/$branch">
+                    <img
+                      alt={`${project.owner}'s avatar`}
+                      className="size-5 rounded"
+                      src={`https://github.com/${encodeURIComponent(project.owner)}.png?size=40`}
+                    />
+                    <span className="truncate">{project.repo}</span>
+                  </Link>
+                </DropdownMenuItem>
               ))}
-            </select>
-            {showBranchCreator ? (
-              <form
-                className="space-y-2 rounded-lg border bg-muted/30 p-2"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  void createBranch()
-                }}
-              >
+            </>
+          ) : null}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link to="/">All projects</Link>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <Dialog open={manageOpen} onOpenChange={setManageOpen}>
+        <DialogContent>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault()
+              void createBranch()
+            }}
+          >
+            <DialogHeader>
+              <DialogTitle>Manage branches</DialogTitle>
+              <DialogDescription>
+                Create a new branch from {branch}.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-5">
+              <Field>
+                <FieldLabel htmlFor="new-branch">Branch name</FieldLabel>
                 <Input
-                  aria-label="New branch name"
                   autoFocus
-                  className="h-8 bg-background text-xs"
+                  id="new-branch"
                   placeholder="feature/editor"
                   value={newBranch}
                   onChange={(event) => setNewBranch(event.target.value)}
                 />
-                <OperationError
-                  error={branchError}
-                  fallback="Could not create branch."
-                />
-                <div className="flex justify-end gap-1">
-                  <Button
-                    size="sm"
-                    type="button"
-                    variant="ghost"
-                    onClick={() => setShowBranchCreator(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    disabled={creatingBranch || !newBranch.trim()}
-                    size="sm"
-                    type="submit"
-                  >
-                    {creatingBranch ? (
-                      <LoaderCircle className="animate-spin" />
-                    ) : (
-                      <Plus />
-                    )}
-                    Create
-                  </Button>
-                </div>
-              </form>
-            ) : null}
-          </div>
-          <nav className="space-y-1" aria-label="Repository content">
-            {navigation.map((item) => {
-              const Icon =
-                item.type === 'collection'
-                  ? FileStack
-                  : item.type === 'file'
-                    ? File
-                    : FolderOpen
-              const params = { owner, repo, branch, name: item.name }
-              const className =
-                'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted'
-              const content = (
-                <>
-                  <Icon className="size-4 text-muted-foreground" />
-                  <span className="truncate">{item.label}</span>
-                </>
-              )
-              return (
-                <span className="block" key={`${item.type}:${item.name}`}>
-                  {item.type === 'collection' ? (
-                    <Link
-                      className={className}
-                      params={params}
-                      to="/$owner/$repo/$branch/collection/$name"
-                    >
-                      {content}
-                    </Link>
-                  ) : item.type === 'file' ? (
-                    <Link
-                      className={className}
-                      params={params}
-                      to="/$owner/$repo/$branch/file/$name"
-                    >
-                      {content}
-                    </Link>
-                  ) : (
-                    <Link
-                      className={className}
-                      params={params}
-                      to="/$owner/$repo/$branch/media/$name"
-                    >
-                      {content}
-                    </Link>
-                  )}
-                </span>
-              )
-            })}
-            <Link
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
-              params={{ owner, repo, branch }}
-              to="/$owner/$repo/$branch/configuration"
-            >
-              <Settings className="size-4 text-muted-foreground" />
-              Configuration
-            </Link>
-            <Link
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
-              params={{ owner, repo, branch }}
-              to="/$owner/$repo/$branch/collaborators"
-            >
-              <Users className="size-4 text-muted-foreground" />
-              Collaborators
-            </Link>
-            <Link
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
-              params={{ owner, repo, branch }}
-              to="/$owner/$repo/$branch/actions"
-            >
-              <Play className="size-4 text-muted-foreground" />
-              Actions
-            </Link>
-            <Link
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
-              params={{ owner, repo, branch }}
-              to="/$owner/$repo/$branch/cache"
-            >
-              <Database className="size-4 text-muted-foreground" />
-              Cache
-            </Link>
-          </nav>
-        </div>
-      </aside>
-      <main className="min-w-0 p-4 md:p-6">{children}</main>
-    </div>
+              </Field>
+              <OperationError
+                error={error}
+                fallback="Could not create branch."
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setManageOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button disabled={creating || !newBranch.trim()} type="submit">
+                {creating ? (
+                  <LoaderCircle className="animate-spin" />
+                ) : (
+                  <Plus />
+                )}
+                Create branch
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   )
+}
+
+function NavigationGroup({
+  branch,
+  label,
+  nodes,
+  owner,
+  pathname,
+  repo,
+}: {
+  branch: string
+  label: string
+  nodes: readonly ConfigurationNavigationNode[]
+  owner: string
+  pathname: string
+  repo: string
+}) {
+  if (!nodes.length) return null
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>{label}</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {nodes.map((node) => (
+            <Fragment key={`${label}:${node.name}`}>
+              <NavigationNode
+                branch={branch}
+                node={node}
+                owner={owner}
+                pathname={pathname}
+                repo={repo}
+              />
+            </Fragment>
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  )
+}
+
+function NavigationNode({
+  branch,
+  nested = false,
+  node,
+  owner,
+  pathname,
+  repo,
+}: {
+  branch: string
+  nested?: boolean
+  node: ConfigurationNavigationNode
+  owner: string
+  pathname: string
+  repo: string
+}) {
+  if (node.type === 'group') {
+    const active = node.items.some((item) =>
+      hasActiveNode(item, pathname, owner, repo, branch),
+    )
+    const children = (
+      <>
+        <CollapsibleTrigger asChild>
+          {nested ? (
+            <SidebarMenuSubButton>
+              <ChevronRight className="transition-transform group-data-[state=open]/navigation:rotate-90" />
+              <span>{node.label}</span>
+            </SidebarMenuSubButton>
+          ) : (
+            <SidebarMenuButton>
+              <ChevronRight className="transition-transform group-data-[state=open]/navigation:rotate-90" />
+              <span>{node.label}</span>
+            </SidebarMenuButton>
+          )}
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarMenuSub>
+            {node.items.map((item) => (
+              <NavigationNode
+                branch={branch}
+                key={`${node.name}:${item.name}`}
+                nested
+                node={item}
+                owner={owner}
+                pathname={pathname}
+                repo={repo}
+              />
+            ))}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </>
+    )
+    return (
+      <Collapsible className="group/navigation" defaultOpen={active} asChild>
+        {nested ? (
+          <SidebarMenuSubItem>{children}</SidebarMenuSubItem>
+        ) : (
+          <SidebarMenuItem>{children}</SidebarMenuItem>
+        )}
+      </Collapsible>
+    )
+  }
+
+  const href = navigationPath(owner, repo, branch, node.type, node.name)
+  const content = (
+    <Link
+      params={{ owner, repo, branch, name: node.name }}
+      to={
+        node.type === 'collection'
+          ? '/$owner/$repo/$branch/collection/$name'
+          : node.type === 'file'
+            ? '/$owner/$repo/$branch/file/$name'
+            : '/$owner/$repo/$branch/media/$name'
+      }
+    >
+      {node.type === 'collection' ? (
+        <FileStack />
+      ) : node.type === 'file' ? (
+        <File />
+      ) : (
+        <FolderOpen />
+      )}
+      <span>{node.label}</span>
+    </Link>
+  )
+
+  return nested ? (
+    <SidebarMenuSubItem>
+      <SidebarMenuSubButton asChild isActive={isActivePath(pathname, href)}>
+        {content}
+      </SidebarMenuSubButton>
+    </SidebarMenuSubItem>
+  ) : (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild isActive={isActivePath(pathname, href)}>
+        {content}
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  )
+}
+
+function hasActiveNode(
+  node: ConfigurationNavigationNode,
+  pathname: string,
+  owner: string,
+  repo: string,
+  branch: string,
+): boolean {
+  if (node.type === 'group') {
+    return node.items.some((item) =>
+      hasActiveNode(item, pathname, owner, repo, branch),
+    )
+  }
+  return isActivePath(
+    pathname,
+    navigationPath(owner, repo, branch, node.type, node.name),
+  )
+}
+
+function repositoryPath(
+  owner: string,
+  repo: string,
+  branch: string,
+  suffix: string,
+) {
+  return `/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(branch)}/${suffix}`
+}
+
+function navigationPath(
+  owner: string,
+  repo: string,
+  branch: string,
+  type: 'collection' | 'file' | 'media',
+  name: string,
+) {
+  return `${repositoryPath(owner, repo, branch, type)}/${encodeURIComponent(name)}`
+}
+
+function isActivePath(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`)
 }
