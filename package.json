@@ -8,7 +8,9 @@
   },
   "type": "module",
   "imports": {
-    "#/*": "./src/*"
+    "#/*": "./src/*",
+    "#pagescms/deployment/client": "./src/deployment/default/client.ts",
+    "#pagescms/deployment/server": "./src/deployment/default/server.server.ts"
   },
   "scripts": {
     "dev": "node --env-file-if-exists=.env.local ./node_modules/vite/bin/vite.js dev --port 3000",
@@ -23,6 +25,7 @@
     "format": "prettier --write . && eslint --fix",
     "format:check": "prettier --check .",
     "test": "vitest run",
+    "test:composition": "sh scripts/test-deployment-composition.sh",
     "test:watch": "vitest",
     "test:e2e": "sh scripts/test-e2e.sh",
     "test:integration": "sh scripts/test-integration.sh",

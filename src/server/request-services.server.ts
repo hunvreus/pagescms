@@ -1,4 +1,5 @@
-import { serverPluginRegistry } from '#/plugins/server-discovery.server'
+import serverDeployment from '#pagescms/deployment/server'
+import { createPagesCmsServerServices } from '#/deployment/contracts/server.server'
 
 import { createAccessPolicyGateway } from './access-policy.server'
 import { createPagesCmsAuth } from './auth.server'
@@ -19,6 +20,10 @@ export function createRequestServices(
   } = {},
 ) {
   const configuration = parseRuntimeConfiguration(environment)
+  const deploymentServices = createPagesCmsServerServices(
+    serverDeployment,
+    environment,
+  )
   const database =
     dependencies.database ??
     createDatabase({
@@ -26,7 +31,7 @@ export function createRequestServices(
     })
   const access = createAccessPolicyGateway({
     deployment: configuration.deployment,
-    policy: serverPluginRegistry.accessPolicy,
+    policy: deploymentServices.accessPolicy,
   })
   const repositoryAccess = createRepositoryAccessService(
     database,
@@ -38,7 +43,7 @@ export function createRequestServices(
     repositoryAccess,
     dependencies.githubApiFactory,
   )
-  const emailProvider = serverPluginRegistry.createEmailProvider?.(environment)
+  const emailProvider = deploymentServices.emailProvider
   const auth = createPagesCmsAuth({
     database,
     configuration: configuration.auth,

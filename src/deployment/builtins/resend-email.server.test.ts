@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createResendEmailProvider } from './server'
+import { createResendEmailProvider } from './resend-email.server'
 
-describe('Resend email plugin', () => {
+describe('Resend email deployment builtin', () => {
   it('is disabled when Resend is not configured', () => {
     expect(createResendEmailProvider({})).toBeUndefined()
   })
