@@ -1,52 +1,150 @@
-# Plugins
+# Deployment composition
 
-Pages CMS plugins are trusted modules installed before the Vite build. They are not uploaded or executed dynamically by application users.
+Pages CMS supports trusted build-time modules for optional and proprietary capabilities. We may call those modules “plugins” informally, but this is deliberately not a generic runtime plugin framework: core owns the supported boundaries, routes, validation, and lifecycle.
 
-## Current contract
+## Status
 
-Create `plugins/<id>/plugin.ts` and default-export `definePlugin(...)`. The build discovers immediate plugin directories statically. Plugin identifiers use lowercase kebab-case and must be unique. Unsupported API versions fail the build or application startup.
+The current `src/plugins` registry and `plugins/*/{plugin,server,client}.ts` discovery are provisional scaffolding. Do not add capabilities to it. The replacement first ships as a composition spike and becomes a versioned API only after the contracts and conformance tests are frozen in Wave 2 of `PLAN.md`.
 
-The client-safe manifest contains metadata only. Optional server capabilities live in `plugins/<id>/server.ts`, which is statically discovered only by the server build. The current server capabilities are an access-policy provider for hosted plans and granular enterprise permissions, plus a custom email provider. Optional custom editor fields live in `plugins/<id>/client.ts` and are discovered only by the application client.
+## Two explicit entry points
+
+The build resolves two stable aliases:
+
+- `#pagescms/deployment/server` may import secrets and server-only dependencies. It exports a factory so environment variables are validated and supplied at startup, not read during module import.
+- `#pagescms/deployment/client` contains only lazy client contributions and field editors. It must never import the server entry.
+
+The public build resolves both aliases to in-tree defaults. Hosted CI resolves them to entry points in `../pro`, or to a normal hosted-only private `file:` dependency if direct sibling source cannot satisfy Vite, TypeScript, Vitest, Wrangler, HMR, and dependency-deduplication checks. Private code is never copied or generated into the public checkout.
+
+Illustrative closed shapes:
 
 ```ts
-import { defineServerPlugin } from '#/plugins/server-contract.server'
+interface PagesCmsServerDeployment {
+  apiVersion: 1
+  create(runtime: RuntimeConfiguration): {
+    accessPolicy: AccessPolicy
+    entitlementReader?: EntitlementReader
+    email?: EmailProvider
+    media: {
+      resolveStorage(context: MediaContext): MediaStorage
+      resolveDelivery(context: MediaContext): MediaDelivery
+    }
+    billingWebhook?: BillingWebhookHandler
+    repositoryPermissionAdmin?: RepositoryPermissionAdmin
+    fieldTypes?: Record<string, ServerFieldType>
+  }
+}
 
-import { hostedAccessPolicy } from './hosted-access-policy.server'
-
-export default defineServerPlugin({
-  apiVersion: 1,
-  pluginId: 'enterprise-access',
-  accessPolicy: hostedAccessPolicy,
-})
+interface PagesCmsClientDeployment {
+  apiVersion: 1
+  fieldEditors?: Record<string, LazyFieldEditor>
+  ui?: {
+    repositoryPermissions?: LazyUiContribution<RepositoryPermissionsProps>
+  }
+}
 ```
 
-Exactly one plugin may provide the deployment access policy. A server contribution without a matching manifest, an incompatible API version, or multiple policy providers fails startup. Hosted mode also fails startup when no policy is registered; ordinary self-hosting uses the explicit core allow-all policy. A plugin can never replace GitHub authorization, override core content-operation restrictions, or authorize from client-side state.
+`definePagesCmsServerDeployment` and `definePagesCmsClientDeployment` validate closed objects and preserve inference. They do not register callbacks, discover directories, infer a plugin category, or expose an unordered hook bag.
 
-An email plugin implements the small `EmailProvider.send(message)` contract and registers `createEmailProvider(environment)` from the same server contribution. The factory returns `undefined` when its configuration is absent, so the corresponding sign-in method is not shown. Exactly one provider factory may be installed. The bundled Resend plugin uses the HTTP API without an SDK; it can be removed in favor of SMTP through a separate service or another deployment-specific provider.
+## How a module is used
 
-A client field plugin registers components by the `component` name used in `.pages.yml`:
+A module has no self-declared “type.” The deployment composition assigns a concrete implementation to a named application boundary:
 
-```tsx
-import { defineClientPlugin } from '#/plugins/client-contract'
-
-export default defineClientPlugin({
+```ts
+export default definePagesCmsServerDeployment({
   apiVersion: 1,
-  pluginId: 'brand-fields',
-  fields: {
-    color: ({ value, disabled, onChange }) => (
-      <input
-        type="color"
-        disabled={disabled}
-        value={typeof value === 'string' ? value : '#000000'}
-        onChange={(event) => onChange(event.target.value)}
-      />
-    ),
+  create(runtime) {
+    return {
+      accessPolicy: createHostedAccessPolicy(runtime.billing),
+      entitlementReader: createEntitlementReader(runtime.billing),
+      billingWebhook: createStripeWebhook(runtime.stripe),
+      repositoryPermissionAdmin: createPermissionAdmin(runtime.database),
+      media: {
+        resolveStorage: createStorageResolver({ github, s3 }),
+        resolveDelivery: createDeliveryResolver({ direct, cloudflare }),
+      },
+    }
   },
 })
 ```
 
-The `pluginId` must match an installed manifest. Duplicate field names and incompatible API versions fail startup. These plugins are trusted application code: update dependencies, review changes, and rebuild the app after changing them.
+Billing, granular permissions, S3 storage, and Cloudflare delivery remain separate private modules even when one hosted deployment wires them together. The hosted policy may coordinate billing entitlements and permissions internally, but core receives one deterministic `AccessPolicy`; a generic `composePolicies()` helper would obscure denial precedence and transactional quota behavior.
 
-## Packaging
+## Supported boundaries
 
-Private implementations should live in independent repositories or versioned private packages. Updating Pages CMS remains a normal pull/rebase of the public repository; updating a proprietary plugin updates its independently versioned package and the thin composition files under `plugins/`. Reinstall dependencies if its package version changed, then rebuild. Do not commit proprietary source into the public Pages CMS repository or use a long-lived fork to compose hosted functionality.
+| Boundary                    | Purpose                                                                                            | Initial rule                                                                        |
+| --------------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `AccessPolicy`              | Authoritative protected-operation decisions, discovery filtering, and quota reservation/settlement | OSS uses an explicit allow policy; hosted billing and permissions expose one policy |
+| `EntitlementReader`         | Non-authoritative plan/usage display state                                                         | Returns a closed safe projection; vendor IDs and raw provider state are forbidden   |
+| Media storage resolver      | Selects GitHub or S3 per tenant/repository/context                                                 | GitHub is always the OSS fallback                                                   |
+| Media delivery resolver     | Sole issuer of browser URLs/leases                                                                 | Direct GitHub delivery is the portable default; Cloudflare acceleration is optional |
+| `EmailProvider`             | Transactional server email                                                                         | HTTP provider with no SMTP requirement in the Worker                                |
+| `BillingWebhookHandler`     | Provider-specific verification and reconciliation behind one fixed core route                      | Receives untouched raw bytes and signature headers                                  |
+| Field registries            | Server metadata plus separately imported lazy client components                                    | `.pages.yml` names configured symbols, never arbitrary module paths                 |
+| `RepositoryPermissionAdmin` | Server CRUD for repository roles and grants                                                        | Required before the paired named client contribution may render                     |
+| Named UI contributions      | Route-specific, non-authoritative lazy UI                                                          | Repository permissions only initially; billing UI remains core-owned                |
+
+Pages CMS does not initially support arbitrary middleware, arbitrary route injection, route replacement, catch-all webhooks, mutation interception, universal DOM slots, or runtime-installed code. A new boundary needs a concrete product requirement, authority model, lifecycle, failure policy, and conformance suite.
+
+## Access and billing lifecycle
+
+Every server function, route, webhook, job, and command must either map to the normative operation catalog through the core policy gateway or appear in a narrow reviewed public allowlist. GitHub/collaborator membership establishes base admission; hosted policy may only narrow it. Read-only requests use authorization/discovery. Quota-consuming mutations use this gateway-owned lifecycle:
+
+```text
+authenticate -> base admission -> reserve(idempotency key)
+-> perform operation -> settle(committed | released)
+```
+
+Hosted policy outages fail closed for gated operations while sign-in, session identity, billing recovery, support contact, and health remain available. Core-owned billing UI consumes an `EntitlementSnapshot`; it never authorizes an action.
+
+The billing webhook route reads `request.arrayBuffer()` exactly once and delegates the untouched bytes. The private handler verifies signatures before parsing trusted semantics, deduplicates events, and reconciles state transactionally.
+
+## Media lifecycle
+
+Storage and delivery are separate authorities. Storage lists assets, mutates them, and returns server-only origins. Exactly one selected delivery implementation converts origins into ephemeral browser leases. Storage never mints public client URLs and delivery never chooses the storage provider.
+
+The OSS resolver always selects GitHub storage and direct delivery. Hosted resolution may select S3 storage and/or Cloudflare delivery per context. Repository content stores portable paths or URLs, never provider credentials, S3 objects, or delivery leases.
+
+S3 uploads use constrained presigned POST policies for small objects and multipart presigning above an approved threshold. A core confirmation endpoint verifies the uploaded object before quota settlement. Cloudflare delivery runs as a separately deployed Worker/hostname with short-lived signed capabilities and current/previous key rotation; it improves the baseline but is not required for Node, Vercel, or self-hosted correctness.
+
+## Trusted custom fields
+
+Custom field code is installed at build time. The server registry owns validation and serialization metadata; the client registry owns the lazy editor/view implementation. `.pages.yml` may select a known symbol but cannot import code. Startup validation rejects missing or mismatched server/client registrations.
+
+## Private repository and release flow
+
+```text
+../pro/
+  package.json
+  deployment.server.ts
+  deployment.client.ts
+  pagescms.compat.json
+  wrangler.hosted.jsonc
+  plugins/
+    billing/
+    permissions/
+    media-s3/
+    media-cloudflare/
+  database/
+    schema.ts
+    migrations/
+  tests/
+    contract/
+    integration/
+```
+
+The repositories are independently versioned. Pull/rebase Pages CMS normally, pull `../pro` separately, then run the compatibility and contract/build matrices. Public migrations run before private migrations; rollback reverses that order. Private tables initially reference public records by stable identifiers without cross-repository foreign keys. Public migration discovery never scans sibling paths.
+
+## Required validation
+
+CI must cover:
+
+- a public build with `../pro` absent;
+- a fixture-composed public build using `tests/deployment/fake-pro/`;
+- private CI against every supported public version;
+- contract tests for denial/no-side-effect behavior, quota reservation/settlement, media capabilities, webhook idempotency, and client-safe projections;
+- browser tests for named UI presence and absence;
+- bundle inspection proving private code is absent from OSS output and server-only dependencies are absent from browser chunks;
+- public and hosted Cloudflare Workers dry-runs;
+- private migration and provider integration tests.
+
+The composition spike must additionally prove sibling HMR, singleton dependency deduplication, TypeScript/Vitest/Vite resolver agreement, private Drizzle migration ownership, and Workers bundle isolation before `../pro` becomes the production integration path.

@@ -21,7 +21,7 @@ Route files own loader and page composition. Reusable product UI belongs in `src
 
 Requests receive a validated or generated correlation identifier. Server logs are structured JSON. Request-scoped state must be passed explicitly and never stored in mutable module globals. Request-triggered work is awaited. A real queue may be introduced later only for work that is deliberately asynchronous and operationally durable.
 
-PostgreSQL uses the legacy-compatible Drizzle schema and migration history. A Postgres.js client is created per request from `DATABASE_URL` with a conservative connection limit, type-fetch round trips disabled, and prepared statements enabled. Supabase remains the expected hosted PostgreSQL provider. The Drizzle release CLI separately loads `DATABASE_URL` from `.env.local`.
+PostgreSQL uses the legacy-compatible Drizzle schema and migration history. Supabase remains the expected hosted PostgreSQL provider. The production connection shape is an architecture gate: Supavisor transaction pooling requires prepared statements to be disabled; session pooling requires a deliberately bounded connection budget; Hyperdrive is adopted only after measurement. The chosen DSN, Postgres.js options, and Worker concurrency are documented and load-tested together rather than hidden behind an unconditional client default. The Drizzle release CLI separately loads `DATABASE_URL` from `.env.local`.
 
 ## Data and caching
 
@@ -41,23 +41,23 @@ Git paths use canonical repository-relative strings without a leading or trailin
 
 Configuration handling is split into source parsing, legacy normalization, product validation, and editor source mapping. The framework-neutral source parser returns plain data plus positional diagnostics; it does not import the field registry, mutate the input, apply defaults, or decide whether a draft may be saved. Invalid but recoverable YAML remains available to editor callers, while server callers must reject any result with error diagnostics before persistence.
 
-Normalization is a pure clone-and-transform step. It migrates legacy settings, media, commit, filename, component, format, and navigation forms without retaining YAML AST or UI dependencies. Repository-relative input and content paths use the canonical Git-path rules, so unlike the legacy normalizer they reject traversal above the repository root.
+Normalization is a pure clone-and-transform step. It migrates legacy settings, media, commit, filename, component, format, and navigation forms without retaining YAML AST or UI dependencies. Repository-relative input and content paths use the canonical Git-path rules. Before traversal above the repository root becomes a hard error, one compatibility release records a structured diagnostic for affected repositories so an intentional security correction does not become a silent migration break.
 
-The configuration schema remains strict and retains the legacy validation surface, but its core field-type catalog is plain metadata rather than an import of the React field registry. This prevents validation in loaders and server services from eagerly pulling editor implementations into their bundles. Custom `component` fields resolve through the independent client plugin registry.
+The configuration schema remains strict and retains the legacy validation surface, but its core field-type catalog is plain metadata rather than an import of the React field registry. This prevents validation in loaders and server services from eagerly pulling editor implementations into their bundles. Custom `component` fields resolve through an explicitly configured client field registry.
 
 Content serialization is also framework-neutral and supports raw or frontmatter YAML, JSON, and TOML. Frontmatter parsing keeps the body byte-for-byte after newline-boundary normalization. JSON frontmatter is scanned to its actual closing object boundary instead of using the legacy greedy regular expression, so braces in document bodies are safe. TOML uses the small ESM-only `smol-toml` implementation rather than the substantially larger legacy parser.
 
-## Plugins
+## Deployment composition
 
-Plugins are trusted build-time modules discovered from `plugins/*/plugin.ts`. The registry validates identifiers, API versions, and duplicates before rendering the application. Manifests are client-safe; optional capabilities are discovered independently from `plugins/*/server.ts` and guarded by `.server.ts` boundaries.
+“Plugin” describes how optional or proprietary code is packaged; it is not a generic runtime plugin framework. Pages CMS exposes a small, closed, versioned deployment configuration. The public build statically resolves that configuration to the in-tree default. The hosted build resolves the same alias to a composition file in the private sibling repository, initially `../pro`.
 
-The first server capability is the access-policy provider. Server functions authorize stable operation identifiers against principal, tenant, repository, branch, collection, media, and path targets before protected work. Hosted startup fails without a provider; self-hosted deployments select an explicit versioned allow-all policy. Quota-consuming mutations reserve atomically before their side effect and settle the reservation afterward. Billing and role logic therefore remains replaceable proprietary plugin code without becoming a client-side authority or a fork.
+The deployment uses two build-time entry points: `#pagescms/deployment/server` for authoritative factories and secrets, and `#pagescms/deployment/client` for lazy client contributions and field editors. It explicitly assigns implementations to application-owned boundaries such as `accessPolicy`, `entitlementReader`, `email`, per-context media storage/delivery resolvers, the fixed billing webhook handler, the configured field registry, and the repository-permissions server/UI pair. Core does not scan arbitrary directories, infer module categories, iterate hook bags, inject catch-all routes, or allow private modules to replace internal services indiscriminately.
 
-Email is a second isolated server capability with one small provider contract and no default SMTP dependency. Time and identifier generation use small injectable contracts where deterministic tests need them. Email delivery is awaited, and tests can supply deterministic implementations without mutable module-level request state.
+Server-only decisions and credentials remain in server entry points. Client-safe entitlement projections and named UI contributions are separate lazy entry points. Core owns routes, validation, application services, and the authorization gateway. Hosted billing and granular permissions are coordinated behind one authoritative `AccessPolicy`; quota-consuming mutations reserve and settle atomically. GitHub authorization remains an independent requirement.
 
-An optional client contribution can register custom field components by name. Client, manifest, and server entry points are discovered independently, preventing a server-only billing or email dependency from entering browser chunks. Rich-text editing is additionally client-only and lazy-loaded.
+The public composition uses the explicit allow policy, GitHub storage plus direct delivery, and configured HTTP email adapter. It builds with `../pro` absent and must contain no proprietary identifiers or packages. Hosted production validates that its required private composition and deployment API version are present. Private modules depend only on approved public deployment contracts and conformance harnesses; the public repository never imports a proprietary implementation directly. Core owns billing presentation from a safe entitlement projection. Optional repository-permission UI is accepted only with its paired authoritative server contract.
 
-The public core must build with an empty plugin directory. Hosted and proprietary packages depend on public contracts, never the reverse.
+See [Deployment composition](docs/development/plugins.md) and the detailed design in `PLAN.md` section 5.5.
 
 ## Cloudflare invariants
 
