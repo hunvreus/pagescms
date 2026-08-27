@@ -1,0 +1,16 @@
+<svg width="480" height="480" viewBox="0 0 480 480" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    :root {
+      --icon-bg: oklch(0.60 0.13 163);
+      --icon-fg: oklch(0.98 0.02 166);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --icon-bg: oklch(0.70 0.15 162);
+        --icon-fg: oklch(0.26 0.05 173);
+      }
+    }
+  </style>
+  <rect width="480" height="480" rx="96" fill="var(--icon-bg)" />
+  <path d="M60 132C60 92.2355 92.2355 60 132 60H240.177C259.272 60 277.586 67.5857 291.088 81.0883L398.912 188.912C412.414 202.414 420 220.728 420 239.823V348C420 387.764 387.764 420 348 420H132C92.2355 420 60 387.764 60 348V132Z" fill="var(--icon-fg)" />
+</svg>

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { createDatabase } from './client.server'
 
 describe('createDatabase', () => {
-  it('creates a request-scoped typed Drizzle client without connecting eagerly', () => {
+  it('creates a typed Drizzle client without connecting eagerly', () => {
     const database = createDatabase({
       connectionString: 'postgres://user:password@example.com/pagescms',
     })

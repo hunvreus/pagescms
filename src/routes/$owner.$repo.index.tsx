@@ -1,6 +1,12 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from '#/components/ui/empty'
 import { getSignInUrl } from '#/lib/auth-redirect'
 import { repositoryWorkspaceQueryOptions } from '#/queries/repository'
 
@@ -40,14 +46,16 @@ function EmptyRepository() {
     repositoryWorkspaceQueryOptions({ owner: params.owner, repo: params.repo }),
   )
   return (
-    <main className="flex min-h-screen items-center justify-center p-6 text-center">
-      <div>
-        <h1 className="text-xl font-semibold">Empty repository</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Create a branch and add a .pages.yml file to configure this
-          repository.
-        </p>
-      </div>
+    <main className="flex min-h-screen items-center justify-center p-4 md:p-6">
+      <Empty className="max-w-xs p-0">
+        <EmptyHeader>
+          <EmptyTitle>Empty repository</EmptyTitle>
+          <EmptyDescription>
+            Create a branch and add a .pages.yml file to configure this
+            repository.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     </main>
   )
 }

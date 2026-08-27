@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import {
   Link,
@@ -6,72 +6,85 @@ import {
   redirect,
   useRouter,
 } from '@tanstack/react-router'
-import {
-  FileText,
-  Folder,
-  FolderPlus,
-  ChevronDown,
-  ChevronRight,
-  LoaderCircle,
-  Plus,
-  Search,
-  X,
-} from 'lucide-react'
+import { FolderPlus, LoaderCircle, Plus, Search } from 'lucide-react'
 
-import {
-  StructuredContentField,
-  isContentField,
-} from '#/components/structured-content-field'
+import { isContentField } from '#/components/structured-content-field'
 import { RepositoryActionButtons } from '#/components/repository-action-buttons'
+import { RepositoryPageHeader } from '#/components/repository-page-header'
 import { OperationError } from '#/components/operation-error'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '#/components/ui/alert-dialog'
 import { Button } from '#/components/ui/button'
+import {
+  Breadcrumb,
+  BreadcrumbEllipsis,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '#/components/ui/breadcrumb'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '#/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '#/components/ui/dropdown-menu'
+import { Field, FieldLabel } from '#/components/ui/field'
 import { Input } from '#/components/ui/input'
-import { Textarea } from '#/components/ui/textarea'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '#/components/ui/tooltip'
+import { CollectionTable } from '#/features/collections/collection-table'
+import { collectionViewModel } from '#/features/collections/collection-model'
+import { CollectionSkeleton } from '#/features/collections/collection-skeleton'
 import type { getCollection } from '#/functions/collection'
 import {
   createCollectionFolder,
-  createRawCollectionEntry,
-  createStructuredCollectionEntry,
+  deleteEntry,
   moveEntry,
+  renameEntry,
 } from '#/functions/entry-editor'
 import { getSignInUrl } from '#/lib/auth-redirect'
-import { initializeStructuredContent } from '#/lib/field-values'
+import { getGitRelativePath, joinGitPath } from '#/lib/git-path'
 import { collectionQueryOptions } from '#/queries/content'
 import { queryKeys } from '#/queries/keys'
-
-import type { JsonObject, JsonValue } from '#/lib/json'
 
 type CollectionData = Awaited<ReturnType<typeof getCollection>>
 type CollectionItem = CollectionData['contents'][number]
 
 interface ExpandedCollection {
-  open: boolean
   loading: boolean
   contents?: CollectionItem[]
-  error?: string
 }
 
 interface CollectionSearch {
   path?: string
-  create?: boolean
-}
-
-function jsonValueAt(value: JsonValue, path: string): JsonValue | undefined {
-  let current: JsonValue | undefined = value
-  for (const segment of path.split('.')) {
-    if (!current || typeof current !== 'object' || Array.isArray(current)) {
-      return
-    }
-    current = current[segment]
-  }
-  return current
 }
 
 export const Route = createFileRoute('/$owner/$repo/$branch/collection/$name')({
   validateSearch: (search: Record<string, unknown>): CollectionSearch => ({
     path:
       typeof search.path === 'string' && search.path ? search.path : undefined,
-    create: search.create === true ? true : undefined,
   }),
   loaderDeps: ({ search }) => ({ path: search.path }),
   loader: async ({ context, params, deps }) => {
@@ -112,68 +125,42 @@ function CollectionPage() {
   const { data, isFetching } = useSuspenseQuery(
     collectionQueryOptions({ ...params, path: search.path }),
   )
-  const fields = Array.isArray(data.collection.fields)
-    ? data.collection.fields.filter(isContentField)
-    : []
-  const [creating, setCreating] = useState(search.create === true)
-  const [creationParent, setCreationParent] = useState(data.collection.path)
-  const [creatingFolder, setCreatingFolder] = useState(false)
-  const [content, setContent] = useState<JsonObject | JsonValue[]>(
-    data.collection.list ? [] : initializeStructuredContent(fields),
+  const fields = useMemo(
+    () =>
+      Array.isArray(data.collection.fields)
+        ? data.collection.fields.filter(isContentField)
+        : [],
+    [data.collection.fields],
   )
-  const [source, setSource] = useState('')
-  const [filename, setFilename] = useState('')
+  const [creatingFolder, setCreatingFolder] = useState(false)
   const [folder, setFolder] = useState('')
   const [saving, setSaving] = useState(false)
   const [createError, setCreateError] = useState<unknown>(null)
   const [expanded, setExpanded] = useState<
     Partial<Record<string, ExpandedCollection>>
   >({})
-  const [promoting, setPromoting] = useState<string | null>(null)
+  const [renaming, setRenaming] = useState<
+    Extract<CollectionItem, { type: 'file' }> | undefined
+  >()
+  const [deleting, setDeleting] = useState<
+    Extract<CollectionItem, { type: 'file' }> | undefined
+  >()
+  const [promoting, setPromoting] = useState<
+    Extract<CollectionItem, { type: 'file' }> | undefined
+  >()
+  const [renamedFilename, setRenamedFilename] = useState('')
   const view =
     data.collection.view &&
     typeof data.collection.view === 'object' &&
     !Array.isArray(data.collection.view)
       ? data.collection.view
       : {}
-  const defaults =
-    view.default &&
-    typeof view.default === 'object' &&
-    !Array.isArray(view.default)
-      ? view.default
-      : {}
-  const [query, setQuery] = useState(
-    typeof defaults.search === 'string' ? defaults.search : '',
+  const tableModel = useMemo(
+    () =>
+      collectionViewModel({ fields, filename: data.collection.filename, view }),
+    [data.collection.filename, fields, view],
   )
-  const sortFields = Array.isArray(view.sort)
-    ? view.sort.filter((value): value is string => typeof value === 'string')
-    : []
-  const [sort, setSort] = useState(
-    typeof defaults.sort === 'string'
-      ? defaults.sort
-      : (sortFields[0] ?? 'name'),
-  )
-  const [order, setOrder] = useState<'asc' | 'desc'>(
-    defaults.order === 'desc' ? 'desc' : 'asc',
-  )
-  const [page, setPage] = useState(0)
-  const primaryField = typeof view.primary === 'string' ? view.primary : 'title'
-  const viewFields = Array.isArray(view.fields)
-    ? view.fields.filter(
-        (candidate): candidate is string => typeof candidate === 'string',
-      )
-    : fields.flatMap((field) =>
-        field.hidden !== true &&
-        field.type !== 'object' &&
-        field.type !== 'block' &&
-        typeof field.name === 'string'
-          ? [field.name]
-          : [],
-      )
-  const secondaryFields = viewFields
-    .filter((field) => field !== primaryField)
-    .slice(0, 3)
-  const treeLayout = view.layout === 'tree'
+  const [tableSearch, setTableSearch] = useState(tableModel.initial.search)
   const nodeView =
     view.node && typeof view.node === 'object' && !Array.isArray(view.node)
       ? view.node
@@ -183,133 +170,35 @@ function CollectionPage() {
 
   useEffect(() => {
     setExpanded({})
-    setCreationParent(data.collection.path)
-  }, [data.collection.name, data.collection.path])
-
-  useEffect(() => {
-    setPage(0)
-  }, [data.collection.path, order, query, sort])
-  const visibleContents = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase()
-    const searchFields = Array.isArray(view.search)
-      ? view.search.filter(
-          (candidate): candidate is string => typeof candidate === 'string',
-        )
-      : []
-    const searchable = (entry: (typeof data.contents)[number]) => {
-      if (!normalizedQuery) return true
-      if (entry.type === 'dir') {
-        return entry.name.toLocaleLowerCase().includes(normalizedQuery)
-      }
-      const entryFields = entry.fields
-      const values = searchFields.length
-        ? searchFields.map((field) => jsonValueAt(entryFields, field))
-        : [entry.name, entry.path, entryFields]
-      return values.some((candidate) =>
-        (typeof candidate === 'string' || typeof candidate === 'number'
-          ? String(candidate)
-          : JSON.stringify(candidate)
-        )
-          .toLocaleLowerCase()
-          .includes(normalizedQuery),
-      )
-    }
-    const sorted = data.contents.filter(searchable).sort((left, right) => {
-      if (left.type !== right.type) {
-        const directoriesFirst = view.foldersFirst === true
-        return left.type === 'dir'
-          ? directoriesFirst
-            ? -1
-            : 1
-          : directoriesFirst
-            ? 1
-            : -1
-      }
-      const leftValue =
-        left.type === 'file' && sort !== 'name'
-          ? jsonValueAt(left.fields, sort)
-          : left.name
-      const rightValue =
-        right.type === 'file' && sort !== 'name'
-          ? jsonValueAt(right.fields, sort)
-          : right.name
-      const comparison = String(leftValue ?? '').localeCompare(
-        String(rightValue ?? ''),
-        undefined,
-        { numeric: true, sensitivity: 'base' },
-      )
-      return order === 'desc' ? -comparison : comparison
-    })
-    return sorted
-  }, [data.contents, order, query, sort, view.search])
-  const pageSize = 25
-  const pageCount = Math.max(1, Math.ceil(visibleContents.length / pageSize))
-  const currentPage = Math.min(page, pageCount - 1)
-  const displayedContents = visibleContents.slice(
-    currentPage * pageSize,
-    (currentPage + 1) * pageSize,
-  )
-
-  function displayFieldValue(value: JsonValue | undefined) {
-    if (value === undefined || value === null || value === '') return null
-    if (Array.isArray(value)) {
-      return value
-        .flatMap((item) =>
-          typeof item === 'string' || typeof item === 'number'
-            ? [String(item)]
-            : [],
-        )
-        .join(', ')
-    }
-    if (typeof value === 'boolean') return value ? 'Yes' : 'No'
-    if (typeof value === 'string' || typeof value === 'number') {
-      return String(value)
-    }
-    return null
-  }
-
-  function fieldSummary(entry: Extract<CollectionItem, { type: 'file' }>) {
-    const values = secondaryFields.flatMap((field) => {
-      const value = displayFieldValue(jsonValueAt(entry.fields, field))
-      return value ? [{ field, value }] : []
-    })
-    return values.length ? (
-      <p className="truncate text-xs text-muted-foreground">
-        {values.map(({ field, value }) => `${field}: ${value}`).join(' · ')}
-      </p>
-    ) : null
-  }
+    setTableSearch(tableModel.initial.search)
+  }, [
+    data.collection.name,
+    data.collection.path,
+    params.branch,
+    params.owner,
+    params.repo,
+    tableModel.initial.search,
+  ])
 
   function openCreator(parent = data.collection.path) {
-    setContent(data.collection.list ? [] : initializeStructuredContent(fields))
-    setSource('')
-    setFilename('')
-    setCreateError(null)
-    setCreationParent(parent)
-    setCreating(true)
+    void router.navigate({ to: creatorHref(parent) })
+  }
+
+  function creatorHref(parent = data.collection.path) {
+    const pathname = `/${encodeURIComponent(params.owner)}/${encodeURIComponent(params.repo)}/${encodeURIComponent(params.branch)}/collection/${encodeURIComponent(params.name)}/new`
+    return parent === data.collection.rootPath
+      ? pathname
+      : `${pathname}?${new URLSearchParams({ parent })}`
   }
 
   async function toggleTreeEntry(entry: CollectionItem) {
     if (entry.type !== 'dir' && !entry.isNode) return
     const key = entry.path
     const current = expanded[key]
-    if (current?.open) {
-      setExpanded((values) => ({
-        ...values,
-        [key]: { ...current, open: false },
-      }))
-      return
-    }
-    if (current?.contents) {
-      setExpanded((values) => ({
-        ...values,
-        [key]: { ...current, open: true },
-      }))
-      return
-    }
+    if (current?.contents) return
     setExpanded((values) => ({
       ...values,
-      [key]: { open: true, loading: true },
+      [key]: { loading: true },
     }))
     try {
       const result = await queryClient.ensureQueryData(
@@ -320,20 +209,15 @@ function CollectionPage() {
       )
       setExpanded((values) => ({
         ...values,
-        [key]: { open: true, loading: false, contents: result.contents },
+        [key]: { loading: false, contents: result.contents },
       }))
     } catch (cause) {
       setExpanded((values) => ({
         ...values,
-        [key]: {
-          open: true,
-          loading: false,
-          error:
-            cause instanceof Error
-              ? cause.message
-              : 'Could not load child entries',
-        },
+        [key]: { loading: false },
       }))
+      setCreateError(cause)
+      throw cause
     }
   }
 
@@ -349,14 +233,7 @@ function CollectionPage() {
         ? entry.path.slice(0, -extension.length)
         : entry.path
     const newPath = `${basePath}/${nodeFilename}`
-    if (
-      !window.confirm(
-        `Move ${entry.path} to ${newPath} before adding child entries?`,
-      )
-    ) {
-      return
-    }
-    setPromoting(entry.path)
+    setSaving(true)
     setCreateError(null)
     try {
       await moveEntry({
@@ -365,149 +242,8 @@ function CollectionPage() {
       await queryClient.invalidateQueries({
         queryKey: queryKeys.branch(params),
       })
+      setPromoting(undefined)
       openCreator(basePath)
-    } catch (cause) {
-      setCreateError(cause)
-    } finally {
-      setPromoting(null)
-    }
-  }
-
-  function treeRows(entries: CollectionItem[], depth = 0): React.ReactNode {
-    return entries.map((entry) => {
-      const state = expanded[entry.path]
-      const expandable = entry.type === 'dir' || entry.isNode
-      const promotable =
-        entry.type === 'file' &&
-        !entry.isNode &&
-        Boolean(nodeFilename) &&
-        data.collection.operations.create &&
-        data.collection.operations.rename
-      const title =
-        entry.type === 'file'
-          ? (() => {
-              const primary = jsonValueAt(entry.fields, primaryField)
-              return typeof primary === 'string' || typeof primary === 'number'
-                ? String(primary)
-                : entry.name
-            })()
-          : entry.name
-      const childParent = entry.type === 'file' ? entry.parentPath : entry.path
-      return (
-        <li className="border-b last:border-b-0" key={entry.path}>
-          <div
-            className="flex items-center gap-2 px-3 py-2.5 hover:bg-muted/60"
-            style={{ paddingLeft: `${12 + depth * 24}px` }}
-          >
-            {expandable ? (
-              <Button
-                aria-label={`${state?.open ? 'Collapse' : 'Expand'} ${title}`}
-                size="icon"
-                type="button"
-                variant="ghost"
-                onClick={() => void toggleTreeEntry(entry)}
-              >
-                {state?.loading ? (
-                  <LoaderCircle className="animate-spin" />
-                ) : state?.open ? (
-                  <ChevronDown />
-                ) : (
-                  <ChevronRight />
-                )}
-              </Button>
-            ) : (
-              <span className="size-9" />
-            )}
-            {entry.type === 'dir' ? (
-              <Folder className="size-4 text-muted-foreground" />
-            ) : (
-              <FileText className="size-4 text-muted-foreground" />
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-medium">{title}</p>
-              <p className="truncate text-xs text-muted-foreground">
-                {entry.path}
-              </p>
-              {entry.type === 'file' ? fieldSummary(entry) : null}
-            </div>
-            {data.collection.operations.create && (expandable || promotable) ? (
-              <Button
-                aria-label={`Add child to ${title}`}
-                disabled={promoting === entry.path}
-                size="icon"
-                type="button"
-                variant="outline"
-                onClick={() =>
-                  entry.type === 'file' && promotable
-                    ? void promoteToNode(entry)
-                    : openCreator(childParent)
-                }
-              >
-                {promoting === entry.path ? (
-                  <LoaderCircle className="animate-spin" />
-                ) : (
-                  <Plus />
-                )}
-              </Button>
-            ) : null}
-            {entry.type === 'file' ? (
-              <Button asChild size="sm" variant="outline">
-                <Link
-                  params={{ ...params, _splat: entry.path }}
-                  to="/$owner/$repo/$branch/collection/$name/entry/$"
-                >
-                  Edit
-                </Link>
-              </Button>
-            ) : null}
-          </div>
-          {state?.open ? (
-            state.error ? (
-              <p
-                className="border-t px-4 py-2 text-xs text-destructive"
-                style={{ paddingLeft: `${52 + depth * 24}px` }}
-              >
-                {state.error}
-              </p>
-            ) : state.contents?.length ? (
-              <ul>{treeRows(state.contents, depth + 1)}</ul>
-            ) : !state.loading ? (
-              <p
-                className="border-t px-4 py-2 text-xs text-muted-foreground"
-                style={{ paddingLeft: `${52 + depth * 24}px` }}
-              >
-                No child entries.
-              </p>
-            ) : null
-          ) : null}
-        </li>
-      )
-    })
-  }
-
-  async function createEntry() {
-    setSaving(true)
-    setCreateError(null)
-    try {
-      const coordinates = {
-        ...params,
-        parent: creationParent,
-        ...(data.collection.filenameField ? { filename } : {}),
-      }
-      const result = fields.length
-        ? await createStructuredCollectionEntry({
-            data: { ...coordinates, content },
-          })
-        : await createRawCollectionEntry({
-            data: { ...coordinates, source },
-          })
-      setCreating(false)
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.branch(params),
-      })
-      await router.navigate({
-        href: `/${encodeURIComponent(params.owner)}/${encodeURIComponent(params.repo)}/${encodeURIComponent(params.branch)}/collection/${encodeURIComponent(params.name)}/entry/${result.path.split('/').map(encodeURIComponent).join('/')}`,
-      })
     } catch (cause) {
       setCreateError(cause)
     } finally {
@@ -538,264 +274,240 @@ function CollectionPage() {
     }
   }
 
+  async function refreshCollection() {
+    await queryClient.invalidateQueries({ queryKey: queryKeys.branch(params) })
+    setExpanded({})
+  }
+
+  async function commitRename() {
+    if (!renaming?.sha || !renamedFilename.trim()) return
+    setSaving(true)
+    setCreateError(null)
+    try {
+      await renameEntry({
+        data: {
+          ...params,
+          path: renaming.path,
+          sha: renaming.sha,
+          filename: renamedFilename,
+        },
+      })
+      setRenaming(undefined)
+      await refreshCollection()
+    } catch (cause) {
+      setCreateError(cause)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleting?.sha) return
+    setSaving(true)
+    setCreateError(null)
+    try {
+      await deleteEntry({
+        data: {
+          ...params,
+          path: deleting.path,
+          sha: deleting.sha,
+        },
+      })
+      setDeleting(undefined)
+      await refreshCollection()
+    } catch (cause) {
+      setCreateError(cause)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const childRows = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(expanded).flatMap(([path, state]) =>
+          state?.contents ? [[path, state.contents]] : [],
+        ),
+      ),
+    [expanded],
+  )
+  const loadingRows = useMemo(
+    () =>
+      new Set(
+        Object.entries(expanded).flatMap(([path, state]) =>
+          state?.loading ? [path] : [],
+        ),
+      ),
+    [expanded],
+  )
+
+  function addChild(entry: CollectionItem) {
+    if (
+      entry.type === 'file' &&
+      !entry.isNode &&
+      nodeFilename &&
+      data.collection.operations.rename
+    ) {
+      setPromoting(entry)
+      return
+    }
+    openCreator(entry.type === 'file' ? entry.parentPath : entry.path)
+  }
+
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm text-muted-foreground">
-            {data.collection.path}
-          </p>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {data.collection.label}
-          </h1>
-          {isFetching ? (
-            <p className="text-xs text-muted-foreground">
-              Refreshing cached content…
-            </p>
-          ) : null}
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <RepositoryActionButtons
-            actions={data.collection.actions}
-            context={{
-              type: 'collection',
-              name: data.collection.name,
-              path: data.collection.path,
-              data: {
-                label: data.collection.label,
-                rootPath: data.collection.rootPath,
-                format: data.collection.format,
-              },
-            }}
-            coordinates={params}
-          />
-          {data.collection.subfolders ? (
-            <Button
-              disabled={!data.collection.operations.create}
-              variant="outline"
-              onClick={() => {
-                setCreating(false)
-                setFolder('')
-                setCreateError(null)
-                setCreatingFolder(true)
-              }}
-            >
-              <FolderPlus /> New folder
-            </Button>
-          ) : null}
-          <Button
-            disabled={!data.collection.operations.create}
-            onClick={() => openCreator()}
-          >
-            <Plus /> New entry
-          </Button>
-        </div>
-      </header>
-
-      {creating ? (
-        <form
-          className="space-y-5 rounded-xl border bg-card p-5 shadow-xs"
-          onSubmit={(event) => {
-            event.preventDefault()
-            void createEntry()
-          }}
-        >
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="font-semibold">New entry</h2>
-              <p className="text-xs text-muted-foreground">{creationParent}</p>
-            </div>
-            <Button
-              aria-label="Cancel entry creation"
-              size="icon"
-              type="button"
-              variant="ghost"
-              onClick={() => setCreating(false)}
-            >
-              <X />
-            </Button>
-          </div>
-          {data.collection.filenameField ? (
-            <label className="block space-y-2">
-              <span className="text-sm font-medium">Filename *</span>
+    <div className="-mt-4 space-y-5 md:-mt-6">
+      <CollectionHeader
+        actions={
+          <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
+            <label className="relative w-full sm:w-64">
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                required
-                value={filename}
-                onChange={(event) => setFilename(event.target.value)}
+                aria-label="Search collection"
+                className="pl-9"
+                placeholder="Search entries…"
+                value={tableSearch}
+                onChange={(event) => setTableSearch(event.target.value)}
               />
             </label>
-          ) : null}
-          {fields.length ? (
-            data.collection.list ? (
-              <StructuredContentField
-                field={{
-                  name: 'items',
-                  label: false,
-                  type: 'object',
-                  fields,
-                  list: data.collection.list,
-                }}
-                referenceContext={{ ...params, media: data.media }}
-                value={content}
-                onChange={(value) => {
-                  setContent(Array.isArray(value) ? value : [])
-                }}
-              />
-            ) : (
-              fields.map((field) => {
-                const name = String(field.name)
-                return (
-                  <StructuredContentField
-                    field={field}
-                    key={name}
-                    referenceContext={{ ...params, media: data.media }}
-                    value={Array.isArray(content) ? undefined : content[name]}
-                    onChange={(value: JsonValue | undefined) => {
-                      setContent((current) => {
-                        const next = Array.isArray(current)
-                          ? {}
-                          : { ...current }
-                        if (value === undefined) delete next[name]
-                        else next[name] = value
-                        return next
-                      })
-                    }}
-                  />
-                )
-              })
-            )
-          ) : (
-            <label className="block space-y-2">
-              <span className="text-sm font-medium">Content</span>
-              <Textarea
-                className="min-h-72 font-mono"
-                value={source}
-                onChange={(event) => setSource(event.target.value)}
-              />
-            </label>
-          )}
-          <OperationError
-            error={createError}
-            fallback="Could not create entry."
-          />
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setCreating(false)}
-            >
-              Cancel
-            </Button>
-            <Button disabled={saving} type="submit">
-              {saving ? <LoaderCircle className="animate-spin" /> : <Plus />}
-              {saving ? 'Creating' : 'Create entry'}
-            </Button>
-          </div>
-        </form>
-      ) : null}
-
-      {creatingFolder ? (
-        <form
-          className="space-y-4 rounded-xl border bg-card p-5 shadow-xs"
-          onSubmit={(event) => {
-            event.preventDefault()
-            void createFolder()
-          }}
-        >
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="font-semibold">New folder</h2>
-              <p className="text-xs text-muted-foreground">
-                Under {data.collection.path}
-              </p>
-            </div>
-            <Button
-              aria-label="Cancel folder creation"
-              size="icon"
-              type="button"
-              variant="ghost"
-              onClick={() => setCreatingFolder(false)}
-            >
-              <X />
-            </Button>
-          </div>
-          <label className="block space-y-2">
-            <span className="text-sm font-medium">Folder path *</span>
-            <Input
-              required
-              placeholder="drafts or 2026/launches"
-              value={folder}
-              onChange={(event) => setFolder(event.target.value)}
+            <RepositoryActionButtons
+              actions={data.collection.actions}
+              context={{
+                type: 'collection',
+                name: data.collection.name,
+                path: data.collection.path,
+                data: {
+                  label: data.collection.label,
+                  rootPath: data.collection.rootPath,
+                  format: data.collection.format,
+                },
+              }}
+              coordinates={params}
             />
-          </label>
-          <OperationError
-            error={createError}
-            fallback="Could not create folder."
-          />
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setCreatingFolder(false)}
-            >
-              Cancel
-            </Button>
-            <Button disabled={saving || !folder.trim()} type="submit">
-              {saving ? (
-                <LoaderCircle className="animate-spin" />
-              ) : (
-                <FolderPlus />
-              )}
-              {saving ? 'Creating' : 'Create folder'}
-            </Button>
+            {data.collection.subfolders ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      aria-label="New folder"
+                      disabled={!data.collection.operations.create}
+                      size="icon"
+                      variant="outline"
+                      onClick={() => {
+                        setFolder('')
+                        setCreateError(null)
+                        setCreatingFolder(true)
+                      }}
+                    >
+                      <FolderPlus />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>New folder</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : null}
+            {data.collection.operations.create ? (
+              <Button asChild>
+                <Link to={creatorHref()}>
+                  <Plus /> New entry
+                </Link>
+              </Button>
+            ) : (
+              <Button disabled>
+                <Plus /> New entry
+              </Button>
+            )}
           </div>
-        </form>
-      ) : null}
+        }
+        refreshing={isFetching}
+        title={
+          <CollectionBreadcrumb
+            collection={data.collection}
+            navigate={(path) =>
+              router.navigate({
+                params,
+                search: {
+                  path: path === data.collection.rootPath ? undefined : path,
+                },
+                to: '/$owner/$repo/$branch/collection/$name',
+              })
+            }
+          />
+        }
+      />
+
+      <Dialog
+        open={creatingFolder}
+        onOpenChange={(open) => {
+          setCreatingFolder(open)
+          if (!open) {
+            setFolder('')
+            setCreateError(null)
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create a folder</DialogTitle>
+            <DialogDescription>
+              Choose a path under {data.collection.path}.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void createFolder()
+            }}
+          >
+            <Field>
+              <FieldLabel htmlFor="new-folder-path">Folder path</FieldLabel>
+              <Input
+                autoFocus
+                id="new-folder-path"
+                required
+                placeholder="drafts or 2026/launches"
+                value={folder}
+                onChange={(event) => setFolder(event.target.value)}
+              />
+            </Field>
+            <OperationError
+              error={createError}
+              fallback="Could not create folder."
+            />
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCreatingFolder(false)}
+              >
+                Cancel
+              </Button>
+              <Button disabled={saving || !folder.trim()} type="submit">
+                {saving ? (
+                  <LoaderCircle className="animate-spin" />
+                ) : (
+                  <FolderPlus />
+                )}
+                {saving ? 'Creating' : 'Create folder'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {data.errors.length ? (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-          {data.errors.join(' ')}
-        </div>
+        <OperationError
+          error={new Error(data.errors.join(' '))}
+          fallback="Some entries could not be loaded."
+        />
       ) : null}
+      <OperationError
+        error={createError}
+        fallback="Collection action failed."
+      />
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <label className="relative min-w-0 flex-1">
-          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            aria-label="Search collection"
-            className="pl-9"
-            placeholder="Search entries…"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </label>
-        <select
-          aria-label="Sort collection"
-          className="h-10 rounded-lg border bg-background px-3 text-sm"
-          value={sort}
-          onChange={(event) => setSort(event.target.value)}
-        >
-          <option value="name">Filename</option>
-          {sortFields
-            .filter((field) => field !== 'name')
-            .map((field) => (
-              <option key={field} value={field}>
-                {field}
-              </option>
-            ))}
-        </select>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() =>
-            setOrder((current) => (current === 'asc' ? 'desc' : 'asc'))
-          }
-        >
-          {order === 'asc' ? 'Ascending' : 'Descending'}
-        </Button>
-      </div>
-
-      {!treeLayout && data.collection.path !== data.collection.rootPath ? (
+      {tableModel.layout !== 'tree' &&
+      data.collection.path !== data.collection.rootPath ? (
         <Link
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
           params={params}
@@ -813,105 +525,249 @@ function CollectionPage() {
         </Link>
       ) : null}
 
-      {displayedContents.length ? (
-        <ul className="overflow-hidden rounded-xl border bg-card shadow-xs">
-          {treeLayout
-            ? treeRows(displayedContents)
-            : displayedContents.map((entry) => (
-                <li className="border-b last:border-b-0" key={entry.path}>
-                  {entry.type === 'dir' ? (
-                    <Link
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-muted/60"
-                      params={params}
-                      search={{ path: entry.path }}
-                      to="/$owner/$repo/$branch/collection/$name"
-                    >
-                      <Folder className="size-4 text-muted-foreground" />
-                      <span className="font-medium">{entry.name}</span>
-                    </Link>
-                  ) : (
-                    <div className="flex items-center gap-3 px-4 py-3">
-                      <FileText className="size-4 text-muted-foreground" />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium">
-                          {(() => {
-                            const primary = jsonValueAt(
-                              entry.fields,
-                              primaryField,
-                            )
-                            return typeof primary === 'string' ||
-                              typeof primary === 'number'
-                              ? String(primary)
-                              : entry.name
-                          })()}
-                        </p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {entry.path}
-                        </p>
-                        {fieldSummary(entry)}
-                      </div>
-                      <Button asChild size="sm" variant="outline">
-                        <Link
-                          params={{ ...params, _splat: entry.path }}
-                          to="/$owner/$repo/$branch/collection/$name/entry/$"
-                        >
-                          Edit
-                        </Link>
-                      </Button>
-                    </div>
-                  )}
-                </li>
-              ))}
-        </ul>
-      ) : (
-        <div className="rounded-xl border bg-card p-10 text-center text-sm text-muted-foreground shadow-xs">
-          {query
-            ? 'No entries match this search.'
-            : 'This collection is empty.'}
-        </div>
-      )}
-      {visibleContents.length > pageSize ? (
-        <nav
-          aria-label="Collection pages"
-          className="flex items-center justify-between gap-3"
-        >
-          <p className="text-sm text-muted-foreground">
-            Page {currentPage + 1} of {pageCount}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              disabled={currentPage === 0}
-              type="button"
-              variant="outline"
-              onClick={() => setPage((value) => Math.max(0, value - 1))}
+      <CollectionTable
+        key={`${params.owner}:${params.repo}:${params.branch}:${data.collection.name}:${data.collection.path}`}
+        canAddChild={(entry) =>
+          tableModel.layout === 'tree' &&
+          (entry.type === 'dir' ||
+            entry.isNode ||
+            Boolean(nodeFilename && data.collection.operations.rename))
+        }
+        canCreate={data.collection.operations.create}
+        canDelete={data.collection.operations.delete}
+        canRename={data.collection.operations.rename}
+        children={childRows}
+        data={data.contents}
+        loading={loadingRows}
+        media={data.media}
+        model={tableModel}
+        repository={params}
+        search={tableSearch}
+        onSearchChange={setTableSearch}
+        onAddChild={addChild}
+        onDelete={setDeleting}
+        onExpand={toggleTreeEntry}
+        onRename={(entry) => {
+          setRenaming(entry)
+          setRenamedFilename(entry.name)
+        }}
+      />
+
+      <Dialog
+        open={Boolean(renaming)}
+        onOpenChange={(open) => {
+          if (!open) setRenaming(undefined)
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename entry</DialogTitle>
+            <DialogDescription>
+              Change the filename for {renaming?.name}.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            className="contents"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void commitRename()
+            }}
+          >
+            <Field>
+              <FieldLabel htmlFor="collection-entry-filename">
+                Filename
+              </FieldLabel>
+              <Input
+                id="collection-entry-filename"
+                required
+                value={renamedFilename}
+                onChange={(event) => setRenamedFilename(event.target.value)}
+              />
+            </Field>
+            <DialogFooter showCloseButton>
+              <Button
+                disabled={saving || !renamedFilename.trim()}
+                type="submit"
+              >
+                {saving ? <LoaderCircle className="animate-spin" /> : null}
+                Rename
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={Boolean(promoting)}
+        onOpenChange={(open) => {
+          if (!open) setPromoting(undefined)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Move this entry first?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {promoting && nodeFilename
+                ? `${promoting.path} must become a node entry before it can contain children.`
+                : 'This entry must become a node before it can contain children.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={saving}
+              onClick={() => {
+                if (promoting) void promoteToNode(promoting)
+              }}
             >
-              Previous
-            </Button>
-            <Button
-              disabled={currentPage >= pageCount - 1}
-              type="button"
-              variant="outline"
-              onClick={() =>
-                setPage((value) => Math.min(pageCount - 1, value + 1))
-              }
+              {saving ? <LoaderCircle className="animate-spin" /> : null}
+              Move and continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={Boolean(deleting)}
+        onOpenChange={(open) => {
+          if (!open) setDeleting(undefined)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete entry?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will delete {deleting?.name} from the repository. This action
+              cannot be undone from Pages CMS.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={saving}
+              variant="destructive"
+              onClick={() => void confirmDelete()}
             >
-              Next
-            </Button>
-          </div>
-        </nav>
-      ) : null}
+              {saving ? <LoaderCircle className="animate-spin" /> : null}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
 
-function CollectionSkeleton() {
+function CollectionHeader({
+  actions,
+  refreshing = false,
+  title,
+}: {
+  actions: React.ReactNode
+  refreshing?: boolean
+  title: React.ReactNode
+}) {
   return (
-    <div
-      className="mx-auto max-w-5xl animate-pulse space-y-5"
-      aria-label="Loading collection"
+    <RepositoryPageHeader
+      actions={actions}
+      className="-mx-4 md:-mx-6"
+      refreshing={refreshing}
     >
-      <div className="h-8 w-48 rounded bg-muted" />
-      <div className="h-64 rounded-xl border bg-card" />
-    </div>
+      {title}
+    </RepositoryPageHeader>
+  )
+}
+
+function CollectionBreadcrumb({
+  collection,
+  navigate,
+}: {
+  collection: CollectionData['collection']
+  navigate: (path: string) => void | Promise<unknown>
+}) {
+  const relative = getGitRelativePath(collection.path, collection.rootPath)
+  const segments = relative.split('/').filter(Boolean)
+  const entries = segments.map((name, index) => ({
+    name,
+    path: joinGitPath(collection.rootPath, ...segments.slice(0, index + 1)),
+  }))
+  const middle = entries.length > 3 ? entries.slice(1, -1) : []
+  const visible =
+    entries.length > 3 ? [entries[0], entries[entries.length - 1]] : entries
+
+  return (
+    <Breadcrumb>
+      <BreadcrumbList className="flex-nowrap text-lg font-medium">
+        {collection.groupTrail.map((group) => (
+          <Fragment key={group.name}>
+            <BreadcrumbItem>
+              <span>{group.label}</span>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+          </Fragment>
+        ))}
+        <BreadcrumbItem className={entries.length ? undefined : 'min-w-0'}>
+          {entries.length ? (
+            <BreadcrumbLink asChild>
+              <button
+                type="button"
+                onClick={() => navigate(collection.rootPath)}
+              >
+                {collection.label}
+              </button>
+            </BreadcrumbLink>
+          ) : (
+            <BreadcrumbPage className="block truncate font-medium">
+              {collection.label}
+            </BreadcrumbPage>
+          )}
+        </BreadcrumbItem>
+        {entries.length ? <BreadcrumbSeparator /> : null}
+        {entries.length > 3 ? (
+          <>
+            <BreadcrumbItem>
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center">
+                  <BreadcrumbEllipsis className="size-6" />
+                  <span className="sr-only">Show hidden folders</span>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  {middle.map((entry) => (
+                    <DropdownMenuItem
+                      key={entry.path}
+                      onSelect={() => navigate(entry.path)}
+                    >
+                      {entry.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+          </>
+        ) : null}
+        {visible.map((entry, index) => {
+          const last = index === visible.length - 1
+          return (
+            <Fragment key={entry.path}>
+              <BreadcrumbItem className={last ? 'min-w-0' : undefined}>
+                {last ? (
+                  <BreadcrumbPage className="block truncate font-medium">
+                    {entry.name}
+                  </BreadcrumbPage>
+                ) : (
+                  <BreadcrumbLink asChild>
+                    <button type="button" onClick={() => navigate(entry.path)}>
+                      {entry.name}
+                    </button>
+                  </BreadcrumbLink>
+                )}
+              </BreadcrumbItem>
+              {!last ? <BreadcrumbSeparator /> : null}
+            </Fragment>
+          )
+        })}
+      </BreadcrumbList>
+    </Breadcrumb>
   )
 }

@@ -2,6 +2,12 @@ import { Link, createFileRoute, redirect } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
 import { Button } from '#/components/ui/button'
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from '#/components/ui/empty'
 import { collaboratorInviteQueryOptions } from '#/queries/invitations'
 
 export const Route = createFileRoute('/invite/$token')({
@@ -19,16 +25,26 @@ function InvitePage() {
   const { data: state } = useSuspenseQuery(
     collaboratorInviteQueryOptions(params.token),
   )
-  return (
-    <main className="flex min-h-screen items-center justify-center px-5 py-12">
-      <div className="w-full max-w-md space-y-5 rounded-xl border bg-card p-6 text-center shadow-xs">
-        <h1 className="text-xl font-semibold">Repository invitation</h1>
-        {state.status === 'sign-in' ? (
-          <>
-            <p className="text-sm text-muted-foreground">
-              Sign in as {state.maskedEmail} to accept this invitation.
-            </p>
-            <Button asChild>
+  if (state.status === 'sign-in' || state.status === 'wrong-account') {
+    return (
+      <main className="flex min-h-screen items-center justify-center p-4 md:p-6">
+        <div className="w-full max-w-xs space-y-6 text-center">
+          <header className="space-y-2">
+            <h1 className="text-lg font-medium tracking-tight">
+              Repository invitation
+            </h1>
+            {state.status === 'sign-in' ? (
+              <p className="text-sm leading-6 text-muted-foreground">
+                Sign in as {state.maskedEmail} to accept this invitation.
+              </p>
+            ) : (
+              <p className="text-sm leading-6 text-destructive">
+                This invitation belongs to a different verified email address.
+              </p>
+            )}
+          </header>
+          {state.status === 'sign-in' ? (
+            <Button asChild className="w-full" size="lg">
               <Link
                 search={{
                   email: state.email,
@@ -39,17 +55,22 @@ function InvitePage() {
                 Sign in to accept
               </Link>
             </Button>
-          </>
-        ) : state.status === 'wrong-account' ? (
-          <p className="text-sm text-destructive">
-            This invitation belongs to a different verified email address.
-          </p>
-        ) : (
-          <p className="text-sm text-muted-foreground">
+          ) : null}
+        </div>
+      </main>
+    )
+  }
+
+  return (
+    <main className="flex min-h-screen items-center justify-center p-4 md:p-6">
+      <Empty className="max-w-xs p-0">
+        <EmptyHeader>
+          <EmptyTitle>Invitation unavailable</EmptyTitle>
+          <EmptyDescription>
             This invitation is invalid, expired, or has already been used.
-          </p>
-        )}
-      </div>
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     </main>
   )
 }

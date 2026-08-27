@@ -7,14 +7,11 @@ import {
 } from './server-registry.server'
 
 import type { AccessPolicy } from '#/server/access-policy.server'
-import type { EmailProvider } from '#/server/email.server'
 
 const policy: AccessPolicy = {
   authorize: async () => ({ allowed: true }),
 }
-const emailProvider: EmailProvider = {
-  send: async () => undefined,
-}
+const createEmailProvider = () => ({ send: async () => undefined })
 
 describe('server plugin registry', () => {
   it('registers one hosted access-policy provider', () => {
@@ -42,15 +39,34 @@ describe('server plugin registry', () => {
           default: {
             apiVersion: PLUGIN_API_VERSION,
             pluginId: 'custom-email',
-            emailProvider,
+            createEmailProvider,
           },
         },
       },
       new Set(['custom-email']),
     )
 
-    expect(registry.emailProvider).toBe(emailProvider)
+    expect(registry.createEmailProvider?.({})?.send).toBeTypeOf('function')
     expect(registry.accessPolicy).toBeUndefined()
+  })
+
+  it('rejects an invalid provider returned by a factory', () => {
+    const registry = createServerPluginRegistry(
+      {
+        '/plugins/email/server.ts': {
+          default: {
+            apiVersion: PLUGIN_API_VERSION,
+            pluginId: 'custom-email',
+            createEmailProvider: () => ({}),
+          },
+        },
+      },
+      new Set(['custom-email']),
+    )
+
+    expect(() => registry.createEmailProvider?.({})).toThrow(
+      'returned an invalid provider',
+    )
   })
 
   it('rejects server contributions without a matching manifest', () => {
@@ -117,14 +133,14 @@ describe('server plugin registry', () => {
             default: {
               apiVersion: PLUGIN_API_VERSION,
               pluginId: 'one',
-              emailProvider,
+              createEmailProvider,
             },
           },
           '/plugins/two/server.ts': {
             default: {
               apiVersion: PLUGIN_API_VERSION,
               pluginId: 'two',
-              emailProvider,
+              createEmailProvider,
             },
           },
         },

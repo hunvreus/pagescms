@@ -26,3 +26,17 @@ test('redirects guests to sign in and serves the health contract', async ({
     status: 'ok',
   })
 })
+
+test('redirects a guest opening a repository route instead of rendering an error', async ({
+  page,
+}) => {
+  await page.goto('/pagescms/fixture/main/collection/posts')
+
+  await expect(page).toHaveURL(
+    /\/sign-in\?redirect=%2Fpagescms%2Ffixture%2Fmain%2Fcollection%2Fposts$/,
+  )
+  await expect(
+    page.getByRole('heading', { name: 'Sign in to Pages CMS' }),
+  ).toBeVisible()
+  await expect(page.getByText('Something went wrong')).not.toBeVisible()
+})

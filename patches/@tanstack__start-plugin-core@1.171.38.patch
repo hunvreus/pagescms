@@ -1,0 +1,83 @@
+diff --git a/dist/esm/vite/dev-server-plugin/plugin.js b/dist/esm/vite/dev-server-plugin/plugin.js
+index a254198e794ea97e80ca69bd98cb19b3b919f0f9..6f8faf20f351dc496500d078dc0dba0062f95c94 100644
+--- a/dist/esm/vite/dev-server-plugin/plugin.js
++++ b/dist/esm/vite/dev-server-plugin/plugin.js
+@@ -3,6 +3,19 @@ import { CSS_MODULES_REGEX, collectDevStyles, normalizeCssModuleCacheKey } from
+ import { isRunnableDevEnvironment } from "vite";
+ import { NodeRequest, sendNodeResponse } from "srvx/node";
+ //#region src/vite/dev-server-plugin/plugin.ts
++function isClientDisconnect(request, webRequest, error) {
++	if (request.aborted || request.destroyed || webRequest.signal.aborted) return true;
++	let current = error;
++	const visited = new Set();
++	while (typeof current === "object" && current !== null) {
++		if (visited.has(current)) break;
++		visited.add(current);
++		const code = Reflect.get(current, "code");
++		if (code === "ECONNABORTED" || code === "ECONNRESET") return true;
++		current = Reflect.get(current, "cause");
++	}
++	return false;
++}
+ function devServerPlugin({ getConfig: _getConfig, devSsrStylesEnabled, installDevServerMiddleware }) {
+ 	let isTest = false;
+ 	const cssModulesCache = {};
+@@ -78,6 +91,7 @@ function devServerPlugin({ getConfig: _getConfig, devSsrStylesEnabled, installDe
+ 						}
+ 						return sendNodeResponse(res, await (await serverRunner.import(ENTRY_POINTS.server))["default"].fetch(webReq));
+ 					} catch (e) {
++						if (isClientDisconnect(req, webReq, e)) return;
+ 						console.error(e);
+ 						try {
+ 							viteDevServer.ssrFixStacktrace(e);
+diff --git a/src/vite/dev-server-plugin/plugin.ts b/src/vite/dev-server-plugin/plugin.ts
+index 064c7623d4bc7b7140d7b59a8801a8ee423c4f97..5694acbe6246af39ed25a47d23ee69a99fe689f4 100644
+--- a/src/vite/dev-server-plugin/plugin.ts
++++ b/src/vite/dev-server-plugin/plugin.ts
+@@ -9,6 +9,35 @@ import {
+ import type { Connect, DevEnvironment, PluginOption } from 'vite'
+ import type { GetConfigFn } from '../../types'
+ 
++function isClientDisconnect(
++  request: { aborted?: boolean; destroyed?: boolean },
++  webRequest: Request,
++  error: unknown,
++): boolean {
++  if (request.aborted || request.destroyed || webRequest.signal.aborted) {
++    return true
++  }
++
++  let current = error
++  const visited = new Set<unknown>()
++
++  while (typeof current === 'object' && current !== null) {
++    if (visited.has(current)) {
++      break
++    }
++    visited.add(current)
++
++    const code = Reflect.get(current, 'code')
++    if (code === 'ECONNABORTED' || code === 'ECONNRESET') {
++      return true
++    }
++
++    current = Reflect.get(current, 'cause')
++  }
++
++  return false
++}
++
+ export function devServerPlugin({
+   getConfig: _getConfig,
+   devSsrStylesEnabled,
+@@ -187,6 +216,10 @@ export function devServerPlugin({
+ 
+               return sendNodeResponse(res, webRes)
+             } catch (e) {
++              if (isClientDisconnect(req, webReq, e)) {
++                return
++              }
++
+               console.error(e)
+               try {
+                 viteDevServer.ssrFixStacktrace(e as Error)

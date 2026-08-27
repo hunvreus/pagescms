@@ -3,6 +3,10 @@ import type { PLUGIN_API_VERSION } from './contract'
 
 export interface PluginFieldProps {
   field: JsonObject
+  /** Stable control id for associating the host application's field label. */
+  id?: string
+  /** Resolved human-readable label for accessible custom controls. */
+  label?: string
   value: JsonValue | undefined
   disabled: boolean
   required: boolean

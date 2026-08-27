@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   initializeStructuredContent,
+  sanitizeStructuredContent,
   validateStructuredContent,
   validateStructuredList,
 } from './field-values'
@@ -140,6 +141,11 @@ describe('structured field values', () => {
       { name: 'published', type: 'boolean' },
       { name: 'id', type: 'uuid' },
       { name: 'tags', type: 'string', list: true },
+      {
+        name: 'categories',
+        type: 'string',
+        list: { default: ['general'] },
+      },
       { name: 'topics', type: 'select', options: { multiple: true } },
       {
         name: 'seo',
@@ -161,13 +167,29 @@ describe('structured field values', () => {
       title: 'Untitled',
       published: false,
       tags: [],
+      categories: ['general'],
       topics: [],
       seo: { description: 'Summary' },
-      hero: { _block: 'image', alt: 'Hero' },
+      hero: null,
     })
     expect(content.id).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     )
+  })
+
+  it('respects an explicit block default without selecting one implicitly', () => {
+    const fields = [
+      {
+        name: 'hero',
+        type: 'block',
+        default: { _block: 'image', alt: 'Configured' },
+        blocks: [{ name: 'image', fields: [{ name: 'alt', type: 'string' }] }],
+      },
+    ]
+
+    expect(initializeStructuredContent(fields)).toEqual({
+      hero: { _block: 'image', alt: 'Configured' },
+    })
   })
 
   it('validates block discriminators and nested fields', () => {
@@ -202,5 +224,66 @@ describe('structured field values', () => {
     expect(validateStructuredContent(fields, { gallery: 'one.jpg' })).toEqual([
       'gallery must be a list of file paths',
     ])
+  })
+
+  it('initializes deeply nested object, list, and block defaults', () => {
+    expect(
+      initializeStructuredContent([
+        {
+          name: 'sections',
+          type: 'object',
+          list: {
+            default: [
+              {
+                title: 'Introduction',
+                content: { kind: 'copy', body: 'Hello' },
+              },
+            ],
+          },
+          fields: [
+            { name: 'title', type: 'string' },
+            {
+              name: 'content',
+              type: 'block',
+              blockKey: 'kind',
+              blocks: [
+                {
+                  name: 'copy',
+                  fields: [{ name: 'body', type: 'text' }],
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+    ).toEqual({
+      sections: [
+        {
+          title: 'Introduction',
+          content: { kind: 'copy', body: 'Hello' },
+        },
+      ],
+    })
+  })
+
+  it('removes empty nested values without removing false, zero, or block keys', () => {
+    expect(
+      sanitizeStructuredContent({
+        title: '',
+        enabled: false,
+        weight: 0,
+        emptyObject: { label: '', nested: { value: null } },
+        sections: [
+          null,
+          '',
+          { _block: 'copy', body: '', enabled: false },
+          { title: 'Kept' },
+        ],
+      }),
+    ).toEqual({
+      enabled: false,
+      weight: 0,
+      sections: [{ _block: 'copy', enabled: false }, { title: 'Kept' }],
+    })
   })
 })

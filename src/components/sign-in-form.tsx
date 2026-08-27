@@ -38,7 +38,7 @@ export function SignInForm({
       const result = await signIn.social({
         provider: 'github',
         callbackURL: callbackUrl,
-        errorCallbackURL: '/sign-in',
+        errorCallbackURL: '/auth/error',
         disableRedirect: true,
       })
       if (result.error?.message) throw new Error(result.error.message)
@@ -186,10 +186,7 @@ export function SignInForm({
   return (
     <div className="space-y-6">
       <header className="space-y-2 text-center">
-        <div className="mx-auto flex size-10 items-center justify-center rounded-xl bg-primary text-lg font-semibold text-primary-foreground">
-          P
-        </div>
-        <h1 className="text-xl font-semibold tracking-tight">
+        <h1 className="text-lg font-medium tracking-tight">
           Sign in to Pages CMS
         </h1>
       </header>
@@ -211,7 +208,7 @@ export function SignInForm({
       ) : null}
 
       {methods.github && methods.email ? (
-        <div className="relative text-center text-xs uppercase text-muted-foreground before:absolute before:inset-x-0 before:top-1/2 before:border-t">
+        <div className="relative text-center text-xs uppercase text-muted-foreground before:absolute before:inset-x-0 before:top-1/2 before:border-t before:border-border">
           <span className="relative bg-background px-2">Or</span>
         </div>
       ) : null}

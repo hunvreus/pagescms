@@ -20,7 +20,7 @@ const files = new Map([
   [
     'content/posts/hello.md',
     {
-      content: '---\ntitle: Hello world\nbody: Welcome to Pages CMS.\n---\n',
+      content: '---\ntitle: Hello world\n---\nWelcome to Pages CMS.\n',
       sha: 'entry-sha-1',
     },
   ],

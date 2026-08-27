@@ -47,6 +47,7 @@ const accountTable = pgTable(
   {
     id: text('id').notNull().primaryKey(),
     accountId: text('account_id').notNull(),
+    issuer: text('issuer').notNull(),
     providerId: text('provider_id').notNull(),
     userId: text('user_id')
       .notNull()
@@ -66,6 +67,9 @@ const accountTable = pgTable(
     idx_account_providerId: index('idx_account_providerId').on(
       table.providerId,
     ),
+    account_issuer_accountId_uidx: uniqueIndex(
+      'account_issuer_accountId_uidx',
+    ).on(table.issuer, table.accountId),
   }),
 )
 

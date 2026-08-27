@@ -8,16 +8,22 @@ import { createRepositoryAccessService } from './repository-access.server'
 import { parseRuntimeConfiguration } from './runtime-config.server'
 
 import type { GitHubApiFactory } from './github-api.server'
+import type { Database } from './database/client.server'
 
 export function createRequestServices(
   environment: unknown,
   requestHeaders: Headers,
-  dependencies: { githubApiFactory?: GitHubApiFactory } = {},
+  dependencies: {
+    database?: Database
+    githubApiFactory?: GitHubApiFactory
+  } = {},
 ) {
   const configuration = parseRuntimeConfiguration(environment)
-  const database = createDatabase({
-    connectionString: configuration.databaseConnectionString,
-  })
+  const database =
+    dependencies.database ??
+    createDatabase({
+      connectionString: configuration.databaseConnectionString,
+    })
   const access = createAccessPolicyGateway({
     deployment: configuration.deployment,
     policy: serverPluginRegistry.accessPolicy,
@@ -32,18 +38,18 @@ export function createRequestServices(
     repositoryAccess,
     dependencies.githubApiFactory,
   )
+  const emailProvider = serverPluginRegistry.createEmailProvider?.(environment)
   const auth = createPagesCmsAuth({
     database,
     configuration: configuration.auth,
-    emailProvider: serverPluginRegistry.emailProvider,
+    emailProvider,
   })
   const getSession = createSessionReader(() =>
     auth.api.getSession({ headers: requestHeaders }),
   )
   const authenticationMethods = {
-    email: Boolean(serverPluginRegistry.emailProvider),
+    email: Boolean(emailProvider),
   } as const
-  const emailProvider = serverPluginRegistry.emailProvider
 
   return {
     access,

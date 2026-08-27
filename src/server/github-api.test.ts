@@ -81,7 +81,7 @@ describe('createGitHubApi', () => {
     expect(url.searchParams.get('q')).toBe(
       'cms tools in:name org:PagesCMS fork:true',
     )
-    expect(url.searchParams.get('per_page')).toBe('10')
+    expect(url.searchParams.get('per_page')).toBe('5')
   })
 
   it('surfaces GitHub status and retry metadata', async () => {
@@ -143,6 +143,41 @@ describe('createGitHubApi', () => {
 
     const fileUrl = new URL(String(fetcher.mock.calls[2]?.[0]))
     expect(fileUrl.searchParams.get('ref')).toBe('feature/a')
+  })
+
+  it('loads file content from the Git blob endpoint when Contents omits it', async () => {
+    const fetcher = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input))
+      if (url.pathname.includes('/contents/')) {
+        return jsonResponse({
+          type: 'file',
+          sha: 'large-image-sha',
+          content: '',
+          encoding: 'none',
+        })
+      }
+      expect(url.pathname).toBe(
+        '/repos/PagesCMS/pages-cms/git/blobs/large-image-sha',
+      )
+      return jsonResponse({
+        sha: 'large-image-sha',
+        content: 'aW1hZ2U=',
+        encoding: 'base64',
+      })
+    })
+
+    await expect(
+      createGitHubApi('token', fetcher).getFile(
+        'PagesCMS',
+        'pages-cms',
+        'public/files/photo.jpg',
+        'main',
+      ),
+    ).resolves.toEqual({
+      sha: 'large-image-sha',
+      content: 'aW1hZ2U=',
+    })
+    expect(fetcher).toHaveBeenCalledTimes(2)
   })
 
   it('creates a branch from an existing ref', async () => {
@@ -493,6 +528,42 @@ describe('createGitHubApi', () => {
         ref: 'main',
         inputs: { payload: '{"source":"pages-cms"}' },
       },
+    })
+  })
+
+  it('creates a repository from an approved template', async () => {
+    let request: { url?: string; method?: string; body?: unknown } = {}
+    const fetcher = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        request = {
+          url: String(input),
+          method: init?.method,
+          body: JSON.parse(String(init?.body)),
+        }
+        return jsonResponse({
+          owner: { login: 'PagesCMS' },
+          name: 'my-blog',
+          default_branch: 'main',
+        })
+      },
+    )
+
+    await expect(
+      createGitHubApi('token', fetcher).createRepositoryFromTemplate({
+        templateOwner: 'pagescms',
+        templateRepo: 'astro-blog-template',
+        owner: 'PagesCMS',
+        repo: 'my-blog',
+      }),
+    ).resolves.toEqual({
+      owner: 'PagesCMS',
+      repo: 'my-blog',
+      defaultBranch: 'main',
+    })
+    expect(request).toEqual({
+      url: 'https://api.github.com/repos/pagescms/astro-blog-template/generate',
+      method: 'POST',
+      body: { owner: 'PagesCMS', name: 'my-blog' },
     })
   })
 

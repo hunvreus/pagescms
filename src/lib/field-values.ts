@@ -308,8 +308,12 @@ export function initializeStructuredContent(fields: unknown[]) {
     if (!isRecord(candidate) || typeof candidate.name !== 'string') continue
     let value: unknown = candidate.default
     if (value === undefined) {
-      if (candidate.list) value = []
-      else if (validatesAsMultiple(candidate)) {
+      if (candidate.list) {
+        value =
+          isRecord(candidate.list) && candidate.list.default !== undefined
+            ? candidate.list.default
+            : []
+      } else if (validatesAsMultiple(candidate)) {
         value = []
       } else if (candidate.type === 'boolean') value = false
       else if (candidate.type === 'uuid') value = crypto.randomUUID()
@@ -317,21 +321,7 @@ export function initializeStructuredContent(fields: unknown[]) {
         value = initializeStructuredContent(
           Array.isArray(candidate.fields) ? candidate.fields : [],
         )
-      } else if (candidate.type === 'block') {
-        const block = Array.isArray(candidate.blocks)
-          ? candidate.blocks.find(isRecord)
-          : undefined
-        const blockKey =
-          typeof candidate.blockKey === 'string' ? candidate.blockKey : '_block'
-        const blockName =
-          block && typeof block.name === 'string' ? block.name : ''
-        value = {
-          [blockKey]: blockName,
-          ...initializeStructuredContent(
-            block && Array.isArray(block.fields) ? block.fields : [],
-          ),
-        }
-      }
+      } else if (candidate.type === 'block') value = null
     }
     if (
       value === null ||
@@ -345,4 +335,28 @@ export function initializeStructuredContent(fields: unknown[]) {
     }
   }
   return content
+}
+
+function sanitizedValue(value: JsonValue): JsonValue | undefined {
+  if (value === null || value === '') return undefined
+  if (Array.isArray(value)) {
+    const items = value.flatMap((item) => {
+      const sanitized = sanitizedValue(item)
+      return sanitized === undefined ? [] : [sanitized]
+    })
+    return items.length ? items : undefined
+  }
+  if (isRecord(value)) {
+    const result: JsonObject = {}
+    for (const [key, child] of Object.entries(value)) {
+      const sanitized = sanitizedValue(child)
+      if (sanitized !== undefined) result[key] = sanitized
+    }
+    return Object.keys(result).length ? result : undefined
+  }
+  return value
+}
+
+export function sanitizeStructuredContent(value: JsonValue): JsonValue {
+  return sanitizedValue(value) ?? (Array.isArray(value) ? [] : {})
 }

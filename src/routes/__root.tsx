@@ -6,9 +6,18 @@ import {
 } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
+import { FileQuestion } from 'lucide-react'
 
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
-import { OperationError } from '#/components/operation-error'
+import { Button } from '#/components/ui/button'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '#/components/ui/empty'
 
 import appCss from '../styles.css?url'
 
@@ -18,6 +27,9 @@ import type { ErrorComponentProps } from '@tanstack/react-router'
 interface MyRouterContext {
   queryClient: QueryClient
 }
+
+const description = 'The open-source CMS for GitHub repositories.'
+const socialImage = 'https://app.pagescms.org/images/social-card.png'
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   head: () => ({
@@ -34,10 +46,63 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       },
       {
         name: 'description',
-        content: 'The open-source CMS for GitHub repositories.',
+        content: description,
+      },
+      {
+        property: 'og:type',
+        content: 'website',
+      },
+      {
+        property: 'og:site_name',
+        content: 'Pages CMS',
+      },
+      {
+        property: 'og:title',
+        content: 'Pages CMS',
+      },
+      {
+        property: 'og:description',
+        content: description,
+      },
+      {
+        property: 'og:image',
+        content: socialImage,
+      },
+      {
+        property: 'og:image:width',
+        content: '1200',
+      },
+      {
+        property: 'og:image:height',
+        content: '630',
+      },
+      {
+        property: 'og:image:alt',
+        content: 'Pages CMS social card',
+      },
+      {
+        name: 'twitter:card',
+        content: 'summary_large_image',
+      },
+      {
+        name: 'twitter:title',
+        content: 'Pages CMS',
+      },
+      {
+        name: 'twitter:description',
+        content: description,
+      },
+      {
+        name: 'twitter:image',
+        content: socialImage,
       },
     ],
     links: [
+      {
+        rel: 'icon',
+        type: 'image/svg+xml',
+        href: '/favicon.svg',
+      },
       {
         rel: 'stylesheet',
         href: appCss,
@@ -51,13 +116,19 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme')||'system';var d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d)}catch(_){}})()`,
+          }}
+        />
         <HeadContent />
       </head>
       <body>
         {children}
-        {import.meta.env.DEV ? (
+        {import.meta.env.DEV &&
+        import.meta.env.VITE_DISABLE_TANSTACK_DEVTOOLS !== 'true' ? (
           <TanStackDevtools
             config={{
               position: 'bottom-right',
@@ -77,38 +148,51 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   )
 }
 
-function RootError({ error, reset }: ErrorComponentProps) {
+function RootError({ reset }: ErrorComponentProps) {
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-4 px-6">
-      <p className="text-sm font-medium text-destructive">Application error</p>
-      <h1 className="text-2xl font-semibold tracking-tight">
-        Pages CMS could not load this page.
-      </h1>
-      <OperationError error={error} fallback="An unexpected error occurred." />
-      <div className="flex gap-3">
-        <button
-          className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
-          onClick={reset}
-          type="button"
-        >
-          Try again
-        </button>
-        <Link className="px-3 py-2 text-sm font-medium text-primary" to="/">
-          Return home
-        </Link>
-      </div>
+    <main className="flex min-h-screen items-center justify-center p-4 md:p-6">
+      <Empty className="max-w-sm">
+        <EmptyHeader>
+          <EmptyTitle>Something went wrong</EmptyTitle>
+          <EmptyDescription>
+            We couldn&apos;t load this page. Try again or return to your
+            projects.
+          </EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <div className="flex items-center gap-2">
+            <Button onClick={reset} type="button">
+              Try again
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/">Back to projects</Link>
+            </Button>
+          </div>
+        </EmptyContent>
+      </Empty>
     </main>
   )
 }
 
 function NotFound() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-4 px-6">
-      <p className="text-sm font-medium text-primary">404</p>
-      <h1 className="text-2xl font-semibold tracking-tight">Page not found</h1>
-      <Link className="text-sm font-medium text-primary" to="/">
-        Return to Pages CMS
-      </Link>
+    <main className="flex min-h-screen items-center justify-center p-4 md:p-6">
+      <Empty className="max-w-xs p-0">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <FileQuestion />
+          </EmptyMedia>
+          <EmptyTitle>Page not found</EmptyTitle>
+          <EmptyDescription>
+            The page you requested does not exist or may have moved.
+          </EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Button asChild>
+            <Link to="/">Return to Pages CMS</Link>
+          </Button>
+        </EmptyContent>
+      </Empty>
     </main>
   )
 }

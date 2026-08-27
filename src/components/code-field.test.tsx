@@ -9,6 +9,8 @@ describe('CodeField', () => {
       <CodeField
         disabled={false}
         field={{ name: 'script', type: 'code', options: { format: 'js' } }}
+        id="script-field"
+        label="Script"
         required={true}
         value={'const answer = 42 // result'}
         onChange={() => undefined}

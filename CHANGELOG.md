@@ -14,6 +14,8 @@
 
 ### Changed
 
+- Restored the Pages CMS favicon and social-card metadata in the TanStack application.
+- Migrated Better Auth accounts to issuer-scoped identities required by Better Auth 1.7 and refreshed eligible dependencies.
 - Preserved the previous Next.js application under `_legacy/` as a frozen migration reference.
 - Replaced undocumented internal client REST calls with validated TanStack server functions and shared authorization services.
 - Lazy-loaded the rich-text editor and kept server-only adapters out of client bundles.
@@ -21,3 +23,5 @@
 - Separated ordinary Node/Vite development and builds from explicit Cloudflare build, preview, compatibility, and deployment commands.
 - Made Node development and Drizzle commands load the ignored local `.env.local` file consistently.
 - Unified local and deployed application services around standard environment variables, removed detached request work, and made route loaders preload feature-owned TanStack Query definitions with targeted mutation invalidation.
+- Rebuilt collection views around TanStack Table and stock shadcn/ui primitives, including configuration-driven columns, search, sorting, pagination, tree expansion, dated defaults, and entry actions.
+- Added an environment switch for disabling the TanStack development plugin and in-page debug panel.

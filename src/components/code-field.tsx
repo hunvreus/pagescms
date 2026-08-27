@@ -61,12 +61,16 @@ function highlighted(value: string, format: unknown) {
 
 export default function CodeField({
   field,
+  id,
+  label,
   value,
   disabled,
   required,
   onChange,
 }: {
   field: JsonObject
+  id: string
+  label: string
   value: JsonValue | undefined
   disabled: boolean
   required: boolean
@@ -86,8 +90,9 @@ export default function CodeField({
         <code>{tokens}</code>
       </pre>
       <textarea
-        aria-label={String(field.name)}
+        aria-label={label}
         disabled={disabled}
+        id={id}
         required={required}
         spellCheck={false}
         value={source}

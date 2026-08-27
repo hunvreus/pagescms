@@ -394,3 +394,64 @@ export async function renameMediaFile(
   )
   return result
 }
+
+export async function moveMediaFile(
+  input: MediaInput & {
+    user: ProjectUser & { name: string }
+    path: string
+    sha: string
+    destination: string
+  },
+) {
+  const { api, configuration, schema } = await context(input)
+  const path = mediaDirectoryPath(schema, input.path)
+  if (!allowedExtension(schema, path)) throw new Error('Invalid media path')
+  const destination = mediaDirectoryPath(schema, input.destination)
+  const filename = path.split('/').at(-1)
+  if (!filename) throw new Error('Invalid media path')
+  const newPath = mediaDirectoryPath(
+    schema,
+    normalizeGitPath(destination ? `${destination}/${filename}` : filename),
+  )
+  if (newPath === path) throw new Error('The file is already in this folder')
+  const commit = commitOptions(schema)
+  const identity = resolveCommitIdentity({
+    configuration: configuration.object,
+    identityOverride: commit.identity,
+  })
+  const result = await api.renameFile({
+    owner: input.owner,
+    repo: input.repo,
+    branch: input.branch,
+    path,
+    newPath,
+    sha: input.sha,
+    message: resolveCommitMessage({
+      configuration: configuration.object,
+      templatesOverride: commit.templates,
+      action: 'rename',
+      tokens: buildCommitTokens({
+        action: 'rename',
+        owner: input.owner,
+        repo: input.repo,
+        branch: input.branch,
+        oldPath: path,
+        newPath,
+        contentName: input.name,
+        user: input.user.email,
+        userName: input.user.name,
+        userEmail: input.user.email,
+      }),
+    }),
+    ...(committer(identity, input.user)
+      ? { committer: committer(identity, input.user) }
+      : {}),
+  })
+  await invalidateDirectoryCacheAfterMutation(
+    input.database,
+    input.owner,
+    input.repo,
+    input.branch,
+  )
+  return result
+}

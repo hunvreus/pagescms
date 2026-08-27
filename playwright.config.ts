@@ -51,6 +51,7 @@ export default defineConfig({
         process.env.E2E_DATABASE_URL ??
         'postgres://pagescms:pagescms@127.0.0.1:5432/pagescms_playwright',
       PAGESCMS_E2E: 'true',
+      VITE_DISABLE_UNSAVED_WARNING: 'true',
     },
     reuseExistingServer: false,
     timeout: 120_000,

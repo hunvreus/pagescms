@@ -7,6 +7,7 @@ import { schemaActions } from '#/lib/actions'
 import { isCacheEnabled } from '#/lib/configuration'
 import { parseContent } from '#/lib/content-serialization'
 import { resolveContentOperations } from '#/lib/content-operations'
+import { getConfigurationNavigationGroupTrail } from '#/lib/configuration-navigation'
 import { toJsonValue } from '#/lib/json'
 
 import { createConfigurationStore } from './configuration-store.server'
@@ -230,10 +231,15 @@ export async function loadCollection({
         typeof schema.label === 'string' && schema.label
           ? schema.label
           : schema.name,
+      groupTrail: getConfigurationNavigationGroupTrail(
+        configuration.object,
+        schema.name,
+      ),
       path: directory,
       rootPath: schema.path,
       format: typeof schema.format === 'string' ? schema.format : null,
       extension: typeof schema.extension === 'string' ? schema.extension : null,
+      filename: typeof schema.filename === 'string' ? schema.filename : null,
       subfolders: schema.subfolders !== false,
       fields: toJsonValue(Array.isArray(schema.fields) ? schema.fields : []),
       list: schema.list ? toJsonValue(schema.list) : null,

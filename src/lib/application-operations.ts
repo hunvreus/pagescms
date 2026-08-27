@@ -1,5 +1,6 @@
 export const APPLICATION_OPERATIONS = [
   'repository.list',
+  'repository.create',
   'repository.connect',
   'repository.read',
   'repository.manage',

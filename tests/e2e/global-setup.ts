@@ -16,9 +16,9 @@ export default async function globalSetup() {
   `
   await database`
     insert into account (
-      id, account_id, provider_id, user_id, access_token, created_at, updated_at
+      id, account_id, provider_id, issuer, user_id, access_token, created_at, updated_at
     ) values (
-      'playwright-github', '1', 'github', 'playwright-user',
+      'playwright-github', '1', 'github', 'local:oauth:github', 'playwright-user',
       'playwright-github-token', now(), now()
     )
   `
