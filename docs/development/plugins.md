@@ -4,7 +4,11 @@ Pages CMS supports trusted build-time modules for optional and proprietary capab
 
 ## Status
 
-The current `src/plugins` registry and `plugins/*/{plugin,server,client}.ts` discovery are provisional scaffolding. Do not add capabilities to it. The replacement first ships as a composition spike and becomes a versioned API only after the contracts and conformance tests are frozen in Wave 2 of `PLAN.md`.
+The Wave 1 composition spike is implemented. It is intentionally narrow: the
+current contract proves static server/client selection, a client field
+contribution, API-version rejection, and bundle isolation. It is not yet the
+full stable API illustrated below; those contracts and conformance suites are
+frozen in Wave 2 of `PLAN.md`.
 
 ## Two explicit entry points
 
@@ -14,6 +18,20 @@ The build resolves two stable aliases:
 - `#pagescms/deployment/client` contains only lazy client contributions and field editors. It must never import the server entry.
 
 The public build resolves both aliases to in-tree defaults. Hosted CI resolves them to entry points in `../pro`, or to a normal hosted-only private `file:` dependency if direct sibling source cannot satisfy Vite, TypeScript, Vitest, Wrangler, HMR, and dependency-deduplication checks. Private code is never copied or generated into the public checkout.
+
+Select an alternate composition by setting both entries together:
+
+```sh
+PAGESCMS_DEPLOYMENT_SERVER=../pro/deployment.server.ts \
+PAGESCMS_DEPLOYMENT_CLIENT=../pro/deployment.client.tsx \
+pnpm build
+```
+
+Setting only one entry fails configuration. Paths may be repository-relative
+or absolute environment values; absolute paths must never be committed. Vite
+allows the selected sibling directories during development and deduplicates
+React, React DOM, TanStack Query, and TanStack Router so a sibling checkout does
+not create a second runtime singleton.
 
 Illustrative closed shapes:
 

@@ -4,6 +4,7 @@
     "src/**/*.tsx",
     "plugins/**/*.ts",
     "tests/**/*.ts",
+    "tests/**/*.tsx",
     "*.ts",
     "*.js",
     "worker-configuration.d.ts"
@@ -16,7 +17,11 @@
     "module": "ESNext",
     "paths": {
       "#/*": ["./src/*"],
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "#pagescms/deployment/client": ["./src/deployment/default/client.ts"],
+      "#pagescms/deployment/server": [
+        "./src/deployment/default/server.server.ts"
+      ]
     },
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": ["vite/client", "@cloudflare/workers-types"],

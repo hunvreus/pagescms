@@ -1,5 +1,3 @@
-import { defineServerPlugin } from '#/plugins/server-contract.server'
-
 import type {
   EmailAddress,
   EmailMessage,
@@ -75,9 +73,3 @@ export function createResendEmailProvider(
     },
   }
 }
-
-export default defineServerPlugin({
-  apiVersion: 1,
-  pluginId: 'resend',
-  createEmailProvider: createResendEmailProvider,
-})

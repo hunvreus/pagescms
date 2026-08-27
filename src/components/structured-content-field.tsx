@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useId, useRef, useState } from 'react'
 import { ClientOnly } from '@tanstack/react-router'
 import { createClientOnlyFn } from '@tanstack/react-start'
+import clientDeployment from '#pagescms/deployment/client'
 import {
   closestCenter,
   DndContext,
@@ -69,7 +70,6 @@ import {
   allowedMediaFieldExtensions,
   resolveFieldMedia,
 } from '#/lib/media-field-values'
-import { clientPluginRegistry } from '#/plugins/client-discovery'
 
 import type { JsonObject, JsonValue } from '#/lib/json'
 import type { FieldRendererProps } from '#/features/editor/fields/field-renderer-registry'
@@ -694,7 +694,7 @@ export function StructuredContentField({
       />
     )
   } else if (typeof field.component === 'string') {
-    const PluginField = clientPluginRegistry.getField(field.component)
+    const PluginField = clientDeployment.fields?.[field.component]
     control = PluginField ? (
       <PluginField
         disabled={disabled}
