@@ -219,12 +219,14 @@ const mediaGridClassName =
 
 function DraggableFile({
   entry,
+  canMove,
   children,
 }: {
   entry: MediaEntry
+  canMove: boolean
   children: ReactNode
 }) {
-  const canDrag = entry.type === 'file' && Boolean(entry.sha)
+  const canDrag = canMove && entry.type === 'file' && Boolean(entry.sha)
   const draggable = useDraggable({
     id: entry.path,
     data: { entry },
@@ -232,6 +234,8 @@ function DraggableFile({
   })
   return (
     <div
+      data-media-path={entry.type === 'file' ? entry.path : undefined}
+      data-dragging={draggable.isDragging || undefined}
       ref={draggable.setNodeRef}
       style={{ transform: CSS.Translate.toString(draggable.transform) }}
       className={cn(draggable.isDragging && 'z-10 opacity-50')}
@@ -244,18 +248,22 @@ function DraggableFile({
 
 function DroppableFolder({
   entry,
+  canMove,
   children,
 }: {
   entry: MediaEntry
+  canMove: boolean
   children: ReactNode
 }) {
   const droppable = useDroppable({
     id: entry.path,
     data: { entry },
-    disabled: entry.type !== 'dir',
+    disabled: !canMove || entry.type !== 'dir',
   })
   return (
     <div
+      data-media-path={entry.type === 'dir' ? entry.path : undefined}
+      data-drop-active={droppable.isOver || undefined}
       ref={droppable.setNodeRef}
       className={cn(droppable.isOver && 'rounded-lg ring-2 ring-primary')}
     >
@@ -266,14 +274,16 @@ function DroppableFolder({
 
 function MediaTableRow({
   entry,
+  canMove,
   children,
   selected,
 }: {
   entry: MediaEntry
+  canMove: boolean
   children: ReactNode
   selected: boolean
 }) {
-  const canDrag = entry.type === 'file' && Boolean(entry.sha)
+  const canDrag = canMove && entry.type === 'file' && Boolean(entry.sha)
   const draggable = useDraggable({
     id: entry.path,
     data: { entry },
@@ -282,7 +292,7 @@ function MediaTableRow({
   const droppable = useDroppable({
     id: entry.path,
     data: { entry },
-    disabled: entry.type !== 'dir',
+    disabled: !canMove || entry.type !== 'dir',
   })
   const setNodeRef = (node: HTMLTableRowElement | null) => {
     draggable.setNodeRef(node)
@@ -291,6 +301,7 @@ function MediaTableRow({
 
   return (
     <TableRow
+      data-media-path={entry.path}
       data-state={selected ? 'selected' : undefined}
       ref={setNodeRef}
       className={cn(
@@ -308,13 +319,15 @@ function MediaTableRow({
 function EntryActions({
   coordinates,
   entry,
-  manage,
+  canDelete,
+  canRename,
   onRename,
   onDelete,
 }: {
   coordinates: MediaCoordinates
   entry: MediaEntry
-  manage: boolean
+  canDelete: boolean
+  canRename: boolean
   onRename: (entry: MediaEntry) => void
   onDelete: (entry: MediaEntry) => void
 }) {
@@ -340,11 +353,13 @@ function EntryActions({
             View on GitHub <ArrowUpRight className="ml-auto opacity-50" />
           </a>
         </DropdownMenuItem>
-        {manage ? (
+        {canRename ? (
+          <DropdownMenuItem onSelect={() => onRename(entry)}>
+            Rename
+          </DropdownMenuItem>
+        ) : null}
+        {canDelete ? (
           <>
-            <DropdownMenuItem onSelect={() => onRename(entry)}>
-              Rename
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"
@@ -549,6 +564,12 @@ export function MediaBrowser({
   const selectedPaths = useMemo(() => new Set(selected), [selected])
   const selecting = Boolean(onSelect || onSelectMany)
   const selectionFull = selecting && selected.length >= selectionLimit
+  const canCreateDirectory =
+    manage && Boolean(data?.media.capabilities.createDirectory)
+  const canUpload = manage && Boolean(data?.media.capabilities.upload)
+  const canMove = manage && Boolean(data?.media.capabilities.move)
+  const canRename = manage && Boolean(data?.media.capabilities.rename)
+  const canDelete = manage && Boolean(data?.media.capabilities.remove)
 
   function navigate(next: string) {
     setSearch('')
@@ -569,7 +590,7 @@ export function MediaBrowser({
 
   async function upload(files: FileList | File[]) {
     const values = Array.from(files)
-    if (!values.length) return
+    if (!canUpload || !values.length) return
     setBusy(true)
     setError(null)
     try {
@@ -596,6 +617,7 @@ export function MediaBrowser({
   }
 
   async function createFolder() {
+    if (!canCreateDirectory) return
     setBusy(true)
     setError(null)
     try {
@@ -613,7 +635,7 @@ export function MediaBrowser({
   }
 
   async function rename() {
-    if (!renameEntry?.sha) return
+    if (!canRename || !renameEntry?.sha) return
     setBusy(true)
     setError(null)
     try {
@@ -635,7 +657,7 @@ export function MediaBrowser({
   }
 
   async function remove() {
-    if (!deleteEntry?.sha) return
+    if (!canDelete || !deleteEntry?.sha) return
     setBusy(true)
     setError(null)
     try {
@@ -655,7 +677,12 @@ export function MediaBrowser({
     const entry = event.active.data.current?.entry as MediaEntry | undefined
     const destination = event.over?.data.current?.entry as
       MediaEntry | undefined
-    if (!entry?.sha || entry.type !== 'file' || destination?.type !== 'dir')
+    if (
+      !canMove ||
+      !entry?.sha ||
+      entry.type !== 'file' ||
+      destination?.type !== 'dir'
+    )
       return
     setBusy(true)
     setError(null)
@@ -723,9 +750,10 @@ export function MediaBrowser({
           cell: ({ row }) => (
             <div className="flex justify-end">
               <EntryActions
+                canDelete={canDelete}
+                canRename={canRename}
                 coordinates={coordinates}
                 entry={row.original}
-                manage={manage}
                 onDelete={setDeleteEntry}
                 onRename={(entry) => {
                   setRenameEntry(entry)
@@ -738,9 +766,10 @@ export function MediaBrowser({
       ]),
     [
       coordinates,
+      canDelete,
+      canRename,
       deliveryQuery.isError,
       leases,
-      manage,
       onSelect,
       renewFailedLease,
       renewingSources,
@@ -790,35 +819,41 @@ export function MediaBrowser({
       </Button>
     </ButtonGroup>
   )
-  const manageControls = manage ? (
-    <>
-      <Button
-        aria-label="New folder"
-        disabled={busy}
-        size="icon"
-        variant="outline"
-        onClick={() => setFolderOpen(true)}
-      >
-        <FolderPlus />
-      </Button>
-      <Button asChild disabled={busy || selectionFull}>
-        <label>
-          {busy ? <LoaderCircle className="animate-spin" /> : <Upload />} Upload
-          <input
-            multiple
-            className="sr-only"
-            disabled={busy || selectionFull}
-            type="file"
-            accept={extensions?.map((value) => `.${value}`).join(',')}
-            onChange={(event) => {
-              void upload(event.target.files ?? [])
-              event.target.value = ''
-            }}
-          />
-        </label>
-      </Button>
-    </>
-  ) : null
+  const manageControls =
+    canCreateDirectory || canUpload ? (
+      <>
+        {canCreateDirectory ? (
+          <Button
+            aria-label="New folder"
+            disabled={busy}
+            size="icon"
+            variant="outline"
+            onClick={() => setFolderOpen(true)}
+          >
+            <FolderPlus />
+          </Button>
+        ) : null}
+        {canUpload ? (
+          <Button asChild disabled={busy || selectionFull}>
+            <label>
+              {busy ? <LoaderCircle className="animate-spin" /> : <Upload />}{' '}
+              Upload
+              <input
+                multiple
+                className="sr-only"
+                disabled={busy || selectionFull}
+                type="file"
+                accept={extensions?.map((value) => `.${value}`).join(',')}
+                onChange={(event) => {
+                  void upload(event.target.files ?? [])
+                  event.target.value = ''
+                }}
+              />
+            </label>
+          </Button>
+        ) : null}
+      </>
+    ) : null
 
   return (
     <DndContext sensors={sensors} onDragEnd={(event) => void move(event)}>
@@ -870,7 +905,7 @@ export function MediaBrowser({
         )}
         onDragEnter={(event) => {
           if (
-            manage &&
+            canUpload &&
             !selectionFull &&
             event.dataTransfer.types.includes('Files')
           ) {
@@ -880,7 +915,7 @@ export function MediaBrowser({
         }}
         onDragOver={(event) => {
           if (
-            manage &&
+            canUpload &&
             !selectionFull &&
             event.dataTransfer.types.includes('Files')
           )
@@ -891,7 +926,7 @@ export function MediaBrowser({
             setDraggingFiles(false)
         }}
         onDrop={(event) => {
-          if (!manage || selectionFull || !event.dataTransfer.files.length)
+          if (!canUpload || selectionFull || !event.dataTransfer.files.length)
             return
           event.preventDefault()
           void upload(event.dataTransfer.files)
@@ -938,8 +973,12 @@ export function MediaBrowser({
           view === 'grid' ? (
             <div className={mediaGridClassName}>
               {visible.map((entry) => (
-                <DroppableFolder entry={entry} key={entry.path}>
-                  <DraggableFile entry={entry}>
+                <DroppableFolder
+                  canMove={canMove}
+                  entry={entry}
+                  key={entry.path}
+                >
+                  <DraggableFile canMove={canMove} entry={entry}>
                     <div
                       className={cn(
                         'relative rounded-md',
@@ -966,9 +1005,10 @@ export function MediaBrowser({
                       ) : (
                         <>
                           <button
+                            aria-disabled={!onSelect}
                             aria-pressed={selectedPaths.has(entry.path)}
-                            className="block w-full rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-default"
-                            disabled={!onSelect}
+                            className="block w-full rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                            tabIndex={onSelect ? undefined : -1}
                             type="button"
                             onClick={() => onSelect?.(entry.path)}
                           >
@@ -990,9 +1030,10 @@ export function MediaBrowser({
                           </button>
                           <div className="flex min-w-0 items-start gap-1 pt-2">
                             <button
+                              aria-disabled={!onSelect}
                               aria-pressed={selectedPaths.has(entry.path)}
-                              className="min-w-0 flex-1 text-left outline-none disabled:cursor-default"
-                              disabled={!onSelect}
+                              className="min-w-0 flex-1 text-left outline-none"
+                              tabIndex={onSelect ? undefined : -1}
                               type="button"
                               onClick={() => onSelect?.(entry.path)}
                             >
@@ -1004,9 +1045,10 @@ export function MediaBrowser({
                               </span>
                             </button>
                             <EntryActions
+                              canDelete={canDelete}
+                              canRename={canRename}
                               coordinates={coordinates}
                               entry={entry}
-                              manage={manage}
                               onDelete={setDeleteEntry}
                               onRename={(value) => {
                                 setRenameEntry(value)
@@ -1050,6 +1092,7 @@ export function MediaBrowser({
               <TableBody>
                 {mediaTable.getRowModel().rows.map((row) => (
                   <MediaTableRow
+                    canMove={canMove}
                     entry={row.original}
                     key={row.id}
                     selected={selectedPaths.has(row.original.path)}

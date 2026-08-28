@@ -94,4 +94,21 @@ describe('MediaThumbnail', () => {
       state: 'loaded',
     })
   })
+
+  it('shows a stable error placeholder when the only source fails', () => {
+    expect(
+      mediaThumbnailPresentation({
+        source: 'https://raw.example/broken.png',
+        loadingSource: false,
+        displayedSource: 'https://raw.example/broken.png',
+        loadedSource: null,
+        failedSource: 'https://raw.example/broken.png',
+      }),
+    ).toMatchObject({
+      failed: true,
+      hasUsableDisplayedImage: false,
+      loading: false,
+      state: 'error',
+    })
+  })
 })

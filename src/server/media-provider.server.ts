@@ -56,8 +56,17 @@ export interface MediaMutationResult {
   revision: string | null
 }
 
+export interface MediaStorageCapabilities {
+  createDirectory: boolean
+  upload: boolean
+  move: boolean
+  rename: boolean
+  remove: boolean
+}
+
 export interface MediaStorage {
   id: string
+  capabilities: MediaStorageCapabilities
   list: (directory: string) => Promise<MediaManifest>
   resolveOrigins: (paths: string[]) => Promise<MediaOrigin[]>
   read: (path: string) => Promise<MediaStoredFile>
@@ -109,11 +118,26 @@ export interface MediaProviderResolver {
   ) => MediaDelivery | null | undefined
 }
 
+function isStorageCapabilities(
+  value: unknown,
+): value is MediaStorageCapabilities {
+  if (typeof value !== 'object' || value === null) return false
+  const capabilities = value as Record<string, unknown>
+  return (
+    typeof capabilities.createDirectory === 'boolean' &&
+    typeof capabilities.upload === 'boolean' &&
+    typeof capabilities.move === 'boolean' &&
+    typeof capabilities.rename === 'boolean' &&
+    typeof capabilities.remove === 'boolean'
+  )
+}
+
 function isStorage(value: unknown): value is MediaStorage {
   return (
     typeof value === 'object' &&
     value !== null &&
     typeof (value as MediaStorage).id === 'string' &&
+    isStorageCapabilities((value as MediaStorage).capabilities) &&
     typeof (value as MediaStorage).list === 'function' &&
     typeof (value as MediaStorage).resolveOrigins === 'function' &&
     typeof (value as MediaStorage).read === 'function' &&
@@ -244,6 +268,13 @@ export function createGitHubMediaStorage({
 }): MediaStorage {
   return {
     id: 'github',
+    capabilities: {
+      createDirectory: true,
+      upload: true,
+      move: true,
+      rename: true,
+      remove: true,
+    },
     async list(directory) {
       const entries = await list(directory)
       return {

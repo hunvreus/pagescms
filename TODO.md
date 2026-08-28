@@ -3,7 +3,6 @@
 ## Media overhaul
 
 - Measure deployed public/private media first-useful-render p50/p95 after the portable request-count regression baseline passes in production-like builds.
-- Validate the shared headless media browser in both full-page and embedded picker layouts, including upload, drag/drop, move, rename, delete, directory navigation, and error/loading states.
 - Prove the private Pro/Enterprise S3 storage/delivery plugin without a public fork.
 - Evaluate the private Cloudflare signed-delivery and optional image-transformation plugin only after portable baseline measurements pass.
 

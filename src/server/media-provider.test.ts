@@ -115,6 +115,14 @@ describe('GitHub media storage', () => {
       clock: { now: () => now },
     })
 
+    expect(storage.capabilities).toEqual({
+      createDirectory: true,
+      upload: true,
+      move: true,
+      rename: true,
+      remove: true,
+    })
+
     const manifest = await storage.list('public/images')
     expect(manifest).toEqual({
       provider: 'github',
@@ -243,6 +251,13 @@ describe('media provider resolution', () => {
   }
   const fallbackStorage = {
     id: 'github',
+    capabilities: {
+      createDirectory: true,
+      upload: true,
+      move: true,
+      rename: true,
+      remove: true,
+    },
     list: vi.fn(),
     resolveOrigins: vi.fn(),
     read: vi.fn(),
