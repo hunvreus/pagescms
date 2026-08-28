@@ -1,3 +1,5 @@
+import { appendFileSync } from 'node:fs'
+
 const configuration = `
 media: public/images
 content:
@@ -22,6 +24,22 @@ const files = new Map([
     {
       content: '---\ntitle: Hello world\n---\nWelcome to Pages CMS.\n',
       sha: 'entry-sha-1',
+    },
+  ],
+  [
+    'public/images/hero.svg',
+    {
+      content:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="red"/></svg>',
+      sha: 'media-sha-1',
+    },
+  ],
+  [
+    'public/images/cover.svg',
+    {
+      content:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="blue"/></svg>',
+      sha: 'media-sha-2',
     },
   ],
 ])
@@ -74,6 +92,36 @@ function directEntries(path: string) {
     })
 }
 
+function restEntries(path: string) {
+  const prefix = path ? `${path}/` : ''
+  return [...files.entries()]
+    .filter(([name]) => name.startsWith(prefix))
+    .flatMap(([name, file]) => {
+      const remainder = name.slice(prefix.length)
+      if (!remainder || remainder.includes('/')) return []
+      return [
+        {
+          name: remainder,
+          path: name,
+          type: 'file',
+          sha: file.sha,
+          size: file.content.length,
+          download_url: `http://127.0.0.1:3100/favicon.svg?asset=${encodeURIComponent(name)}`,
+        },
+      ]
+    })
+}
+
+function recordRequest(method: string, url: URL) {
+  if (url.pathname !== '/repos/pagescms/fixture/contents/public/images') return
+  const metricsPath = process.env.PAGESCMS_E2E_GITHUB_METRICS_PATH
+  if (!metricsPath) return
+  appendFileSync(
+    metricsPath,
+    `${JSON.stringify({ method, path: url.pathname, search: url.search })}\n`,
+  )
+}
+
 export const githubFixtureFetch: typeof fetch = async (input, init) => {
   const url = new URL(
     typeof input === 'string'
@@ -83,6 +131,7 @@ export const githubFixtureFetch: typeof fetch = async (input, init) => {
         : input.url,
   )
   const method = init?.method ?? 'GET'
+  recordRequest(method, url)
 
   if (url.pathname === '/user/installations') {
     return json({
@@ -126,8 +175,16 @@ export const githubFixtureFetch: typeof fetch = async (input, init) => {
       .join('/')
     if (method === 'GET') {
       const file = files.get(path)
-      return file
-        ? json({ type: 'file', sha: file.sha, content: encoded(file.content) })
+      if (file) {
+        return json({
+          type: 'file',
+          sha: file.sha,
+          content: encoded(file.content),
+        })
+      }
+      const entries = restEntries(path)
+      return entries.length
+        ? json(entries)
         : json({ message: 'Not found' }, 404)
     }
     if (method === 'PUT') {

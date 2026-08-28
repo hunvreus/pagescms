@@ -8,6 +8,10 @@ const signature = createHmac('sha256', authSecret)
   .update(sessionToken)
   .digest('base64')
 const sessionCookie = encodeURIComponent(`${sessionToken}.${signature}`)
+const githubMetricsPath =
+  process.env.PAGESCMS_E2E_GITHUB_METRICS_PATH ??
+  `/tmp/pagescms-e2e-github-${process.pid}.jsonl`
+process.env.PAGESCMS_E2E_GITHUB_METRICS_PATH = githubMetricsPath
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -51,6 +55,7 @@ export default defineConfig({
         process.env.E2E_DATABASE_URL ??
         'postgres://pagescms:pagescms@127.0.0.1:5432/pagescms_playwright',
       PAGESCMS_E2E: 'true',
+      PAGESCMS_E2E_GITHUB_METRICS_PATH: githubMetricsPath,
       VITE_DISABLE_UNSAVED_WARNING: 'true',
     },
     reuseExistingServer: false,

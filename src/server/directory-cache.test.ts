@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  createExpiringLoaderCache,
   createInFlightDeduper,
   isDirectoryCacheFresh,
 } from './directory-cache.server'
@@ -63,5 +64,74 @@ describe('directory cache', () => {
     await expect(first).rejects.toThrow('failed')
     await expect(dedupe('directory', fail)).rejects.toThrow('failed')
     expect(calls).toBe(2)
+  })
+})
+
+describe('ephemeral loader cache', () => {
+  it('shares sequential and concurrent loads until expiry', async () => {
+    let currentTime = 0
+    let calls = 0
+    const cache = createExpiringLoaderCache<number>({
+      ttlMs: 30_000,
+      maximumEntries: 10,
+      now: () => currentTime,
+    })
+    const load = async () => {
+      calls += 1
+      return calls
+    }
+
+    const first = cache.getOrLoad('directory', load)
+    const concurrent = cache.getOrLoad('directory', load)
+    expect(concurrent).toBe(first)
+    await expect(first).resolves.toBe(1)
+    await expect(cache.getOrLoad('directory', load)).resolves.toBe(1)
+    expect(calls).toBe(1)
+
+    currentTime = 30_001
+    await expect(cache.getOrLoad('directory', load)).resolves.toBe(2)
+    expect(calls).toBe(2)
+  })
+
+  it('supports scoped invalidation and bounds retained entries', async () => {
+    const cache = createExpiringLoaderCache<number>({
+      ttlMs: 30_000,
+      maximumEntries: 2,
+    })
+    cache.set('repo-a:first', 1)
+    cache.set('repo-a:second', 2)
+    cache.set('repo-b:first', 3)
+    cache.clear((key) => key.startsWith('repo-a:'))
+
+    await expect(cache.getOrLoad('repo-b:first', async () => 4)).resolves.toBe(
+      3,
+    )
+    await expect(cache.getOrLoad('repo-a:second', async () => 5)).resolves.toBe(
+      5,
+    )
+    await expect(cache.getOrLoad('repo-a:first', async () => 6)).resolves.toBe(
+      6,
+    )
+  })
+
+  it('does not retain an in-flight result invalidated before completion', async () => {
+    const cache = createExpiringLoaderCache<number>({
+      ttlMs: 30_000,
+      maximumEntries: 10,
+    })
+    let resolve!: (value: number) => void
+    const first = cache.getOrLoad(
+      'repository:directory',
+      () =>
+        new Promise<number>((done) => {
+          resolve = done
+        }),
+    )
+    cache.clear((key) => key.startsWith('repository:'))
+    resolve(1)
+    await expect(first).resolves.toBe(1)
+    await expect(
+      cache.getOrLoad('repository:directory', async () => 2),
+    ).resolves.toBe(2)
   })
 })

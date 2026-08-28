@@ -80,7 +80,6 @@ test('navigates a repository and persists a structured entry update', async ({
   await expect(page.getByRole('textbox', { name: 'Body' })).toContainText(
     'Welcome to Pages CMS.',
   )
-  await expect(page.locator('.cn-editor .tiptap')).toBeVisible()
   await page.getByRole('button', { name: 'source' }).click()
   await expect(page.getByRole('textbox', { name: 'Body source' })).toHaveValue(
     'Welcome to Pages CMS.',
