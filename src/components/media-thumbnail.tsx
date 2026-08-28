@@ -4,6 +4,49 @@ import { Ban, ImageOff, LoaderCircle } from 'lucide-react'
 import { mediaAssetUrl } from '#/lib/media-assets'
 import { cn } from '#/lib/utils'
 
+export function mediaThumbnailPresentation({
+  source,
+  loadingSource,
+  displayedSource,
+  loadedSource,
+  failedSource,
+}: {
+  source: string | null
+  loadingSource: boolean
+  displayedSource: string | null
+  loadedSource: string | null
+  failedSource: string | null
+}) {
+  const failed = !!source && failedSource === source
+  const hasUsableDisplayedImage =
+    !!displayedSource &&
+    loadedSource === displayedSource &&
+    failedSource !== displayedSource
+  const loading =
+    (loadingSource && !hasUsableDisplayedImage) ||
+    (!!source &&
+      displayedSource === source &&
+      loadedSource !== source &&
+      !failed) ||
+    (!!source &&
+      displayedSource !== source &&
+      !hasUsableDisplayedImage &&
+      !failed)
+  return {
+    failed,
+    hasUsableDisplayedImage,
+    loading,
+    state:
+      !source && !loadingSource
+        ? ('empty' as const)
+        : loading
+          ? ('loading' as const)
+          : failed && !hasUsableDisplayedImage
+            ? ('error' as const)
+            : ('loaded' as const),
+  }
+}
+
 export function MediaThumbnail({
   owner,
   repo,
@@ -35,13 +78,14 @@ export function MediaThumbnail({
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null)
   const [failedSrc, setFailedSrc] = useState<string | null>(null)
   const imageRef = useRef<HTMLImageElement>(null)
-  const failed = !!src && failedSrc === src
-  const hasUsableDisplayedImage =
-    !!displayedSrc && loadedSrc === displayedSrc && failedSrc !== displayedSrc
-  const loading =
-    (loadingSource && !hasUsableDisplayedImage) ||
-    (!!src && displayedSrc === src && loadedSrc !== src && !failed) ||
-    (!!src && displayedSrc !== src && !hasUsableDisplayedImage && !failed)
+  const { failed, hasUsableDisplayedImage, loading, state } =
+    mediaThumbnailPresentation({
+      source: src,
+      loadingSource,
+      displayedSource: displayedSrc,
+      loadedSource: loadedSrc,
+      failedSource: failedSrc,
+    })
 
   useEffect(() => {
     if (!src || src === displayedSrc) return
@@ -78,15 +122,7 @@ export function MediaThumbnail({
         'relative block shrink-0 overflow-hidden rounded-md border bg-muted',
         className,
       )}
-      data-state={
-        !src && !loadingSource
-          ? 'empty'
-          : loading
-            ? 'loading'
-            : failed && !hasUsableDisplayedImage
-              ? 'error'
-              : 'loaded'
-      }
+      data-state={state}
     >
       {!src && !loadingSource ? (
         <span
