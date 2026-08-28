@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
-import { MediaThumbnail } from './media-thumbnail'
+import { MediaThumbnail, mediaThumbnailPresentation } from './media-thumbnail'
 
 const repository = {
   owner: 'pages-cms',
@@ -60,5 +60,38 @@ describe('MediaThumbnail', () => {
     expect(html).toContain('data-state="loading"')
     expect(html).toContain('title="Loading image"')
     expect(html).not.toContain('title="Could not load image"')
+  })
+
+  it('keeps a loaded thumbnail visible while a replacement lease preloads', () => {
+    expect(
+      mediaThumbnailPresentation({
+        source: 'https://raw.example/new.png?token=new',
+        loadingSource: true,
+        displayedSource: 'https://raw.example/old.png?token=old',
+        loadedSource: 'https://raw.example/old.png?token=old',
+        failedSource: null,
+      }),
+    ).toMatchObject({
+      hasUsableDisplayedImage: true,
+      loading: false,
+      state: 'loaded',
+    })
+  })
+
+  it('keeps the previous thumbnail after a replacement candidate fails', () => {
+    expect(
+      mediaThumbnailPresentation({
+        source: 'https://raw.example/new.png?token=new',
+        loadingSource: false,
+        displayedSource: 'https://raw.example/old.png?token=old',
+        loadedSource: 'https://raw.example/old.png?token=old',
+        failedSource: 'https://raw.example/new.png?token=new',
+      }),
+    ).toMatchObject({
+      failed: true,
+      hasUsableDisplayedImage: true,
+      loading: false,
+      state: 'loaded',
+    })
   })
 })
