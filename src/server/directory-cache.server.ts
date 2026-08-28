@@ -8,6 +8,8 @@ import { cacheFileMetaTable, cacheFileTable } from './database/schema'
 import { systemClock } from './runtime-ports.server'
 
 const DEFAULT_DIRECTORY_TTL_MS = 60_000
+const EPHEMERAL_MEDIA_TTL_MS = 30_000
+const EPHEMERAL_MEDIA_MAX_ENTRIES = 32
 
 type DirectoryContext = 'collection' | 'media'
 type DirectoryResult = { entries: GitHubDirectoryEntry[] }
@@ -25,6 +27,95 @@ export function createInFlightDeduper() {
     pending.set(key, request)
     return request
   }
+}
+
+export function createExpiringLoaderCache<T>({
+  ttlMs,
+  maximumEntries,
+  now = () => Date.now(),
+}: {
+  ttlMs: number
+  maximumEntries: number
+  now?: () => number
+}) {
+  const cached = new Map<string, { value: T; expiresAt: number }>()
+  const pending = new Map<string, Promise<T>>()
+  const versions = new Map<string, number>()
+
+  function set(key: string, value: T) {
+    cached.delete(key)
+    while (cached.size >= maximumEntries) {
+      const oldest = cached.keys().next().value
+      if (oldest === undefined) break
+      cached.delete(oldest)
+    }
+    cached.set(key, { value, expiresAt: now() + ttlMs })
+  }
+
+  return {
+    getOrLoad(key: string, load: () => Promise<T>) {
+      const entry = cached.get(key)
+      if (entry && entry.expiresAt > now()) return Promise.resolve(entry.value)
+      if (entry) cached.delete(key)
+      const existing = pending.get(key)
+      if (existing) return existing
+      const version = versions.get(key) ?? 0
+      const request = load()
+        .then((value) => {
+          if ((versions.get(key) ?? 0) === version) set(key, value)
+          return value
+        })
+        .finally(() => {
+          if (pending.get(key) === request) {
+            pending.delete(key)
+            versions.delete(key)
+          }
+        })
+      pending.set(key, request)
+      return request
+    },
+    set,
+    clear(predicate?: (key: string) => boolean) {
+      const keys = new Set([...cached.keys(), ...pending.keys()])
+      for (const key of keys) {
+        if (!predicate || predicate(key)) {
+          cached.delete(key)
+          if (pending.has(key)) {
+            versions.set(key, (versions.get(key) ?? 0) + 1)
+          } else {
+            versions.delete(key)
+          }
+        }
+      }
+    },
+  }
+}
+
+const ephemeralMediaDirectories = createExpiringLoaderCache<DirectoryResult>({
+  ttlMs: EPHEMERAL_MEDIA_TTL_MS,
+  maximumEntries: EPHEMERAL_MEDIA_MAX_ENTRIES,
+})
+
+function mediaDirectoryKey(
+  owner: string,
+  repo: string,
+  branch: string,
+  path: string,
+) {
+  return JSON.stringify([owner.toLowerCase(), repo.toLowerCase(), branch, path])
+}
+
+export function invalidateEphemeralMediaDirectories(
+  owner: string,
+  repo: string,
+  branch: string,
+) {
+  const prefix = JSON.stringify([
+    owner.toLowerCase(),
+    repo.toLowerCase(),
+    branch,
+  ]).slice(0, -1)
+  ephemeralMediaDirectories.clear((key) => key.startsWith(`${prefix},`))
 }
 
 const inFlightByDatabase = new WeakMap<
@@ -153,6 +244,12 @@ export function createDirectoryCache({
       context === 'media'
         ? await api.getMediaDirectory(owner, repo, branch, path)
         : await api.getDirectory(owner, repo, branch, path, nodeFilename)
+    if (context === 'media') {
+      ephemeralMediaDirectories.set(
+        mediaDirectoryKey(owner, repo, branch, path),
+        { entries },
+      )
+    }
     const checkedAt = clock.now()
     const normalizedOwner = owner.toLowerCase()
     const normalizedRepo = repo.toLowerCase()
@@ -234,13 +331,24 @@ export function createDirectoryCache({
     context: DirectoryContext,
     nodeFilename?: string,
   ) {
+    if (context === 'media') {
+      return ephemeralMediaDirectories.getOrLoad(
+        mediaDirectoryKey(owner, repo, branch, path),
+        async () => ({
+          entries: await api.getMediaDirectory(owner, repo, branch, path),
+        }),
+      )
+    }
     return dedupe(
       requestKey('direct', owner, repo, branch, path, context, nodeFilename),
       async () => ({
-        entries:
-          context === 'media'
-            ? await api.getMediaDirectory(owner, repo, branch, path)
-            : await api.getDirectory(owner, repo, branch, path, nodeFilename),
+        entries: await api.getDirectory(
+          owner,
+          repo,
+          branch,
+          path,
+          nodeFilename,
+        ),
       }),
     )
   }
@@ -329,6 +437,7 @@ export async function invalidateDirectoryCache(
   repo: string,
   branch: string,
 ) {
+  invalidateEphemeralMediaDirectories(owner, repo, branch)
   const normalizedOwner = owner.toLowerCase()
   const normalizedRepo = repo.toLowerCase()
   await database.transaction(async (transaction) => {
