@@ -35,4 +35,7 @@ published_port=$(docker port "$container_name" 5432/tcp | sed 's/.*://')
 database_url="postgres://postgres:${database_password}@127.0.0.1:${published_port}/${database_name}"
 
 DATABASE_URL="$database_url" pnpm db:migrate
-E2E_DATABASE_URL="$database_url" pnpm exec playwright test
+if [ "${PAGESCMS_E2E_PRODUCTION:-}" = "true" ]; then
+  PAGESCMS_E2E=true VITE_DISABLE_TANSTACK_DEVTOOLS=true pnpm build
+fi
+E2E_DATABASE_URL="$database_url" pnpm exec playwright test "$@"
