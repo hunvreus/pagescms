@@ -170,7 +170,12 @@ function EntryPreview({
     )
   }
   return isImageMedia(entry.path) ? (
-    <MediaThumbnail {...coordinates} className={className} path={entry.path} />
+    <MediaThumbnail
+      {...coordinates}
+      className={className}
+      path={entry.path}
+      source={entry.downloadUrl}
+    />
   ) : (
     <span
       className={cn(

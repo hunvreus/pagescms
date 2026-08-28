@@ -10,6 +10,7 @@ export function MediaThumbnail({
   branch,
   name,
   path,
+  source,
   className = 'size-12',
 }: {
   owner: string
@@ -17,9 +18,12 @@ export function MediaThumbnail({
   branch: string
   name: string
   path?: string | null
+  source?: string | null
   className?: string
 }) {
-  const src = path ? mediaAssetUrl({ owner, repo, branch, name, path }) : null
+  const src = path
+    ? source || mediaAssetUrl({ owner, repo, branch, name, path })
+    : null
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null)
   const [failedSrc, setFailedSrc] = useState<string | null>(null)
   const imageRef = useRef<HTMLImageElement>(null)
@@ -73,6 +77,7 @@ export function MediaThumbnail({
             loadedSrc === src && !failed ? 'opacity-100' : 'opacity-0',
           )}
           loading="lazy"
+          referrerPolicy="no-referrer"
           ref={imageRef}
           onError={() => setFailedSrc(src)}
           onLoad={() => setLoadedSrc(src)}

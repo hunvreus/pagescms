@@ -9,6 +9,7 @@ const entries = [
     path: 'media/z.jpg',
     sha: 'z',
     size: 10,
+    downloadUrl: 'https://raw.example/media/z.jpg',
   },
   {
     type: 'dir' as const,
@@ -16,6 +17,7 @@ const entries = [
     path: 'media/Archive',
     sha: null,
     size: null,
+    downloadUrl: null,
   },
   {
     type: 'file' as const,
@@ -23,6 +25,7 @@ const entries = [
     path: 'media/a.pdf',
     sha: 'a',
     size: 30,
+    downloadUrl: 'https://raw.example/media/a.pdf',
   },
   {
     type: 'file' as const,
@@ -30,6 +33,7 @@ const entries = [
     path: 'media/b.jpg',
     sha: 'b',
     size: 20,
+    downloadUrl: 'https://raw.example/media/b.jpg',
   },
 ]
 

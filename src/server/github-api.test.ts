@@ -262,6 +262,7 @@ describe('createGitHubApi', () => {
         sha: 'abc',
         content: '---\ntitle: Hello\n---',
         size: 24,
+        downloadUrl: null,
       },
       {
         type: 'dir',
@@ -270,6 +271,7 @@ describe('createGitHubApi', () => {
         sha: null,
         content: null,
         size: null,
+        downloadUrl: null,
       },
     ])
   })
@@ -340,8 +342,66 @@ describe('createGitHubApi', () => {
       sha: 'node-sha',
       content: '---\ntitle: Guides\n---',
       size: 24,
+      downloadUrl: null,
     })
     expect(fetcher).toHaveBeenCalledTimes(2)
+  })
+
+  it('loads a media directory and preserves GitHub download URLs', async () => {
+    const fetcher = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input))
+      expect(url.pathname).toBe(
+        '/repos/PagesCMS/pages-cms/contents/public/files',
+      )
+      expect(url.searchParams.get('ref')).toBe('feature/media')
+      return jsonResponse([
+        {
+          type: 'file',
+          name: 'photo.jpg',
+          path: 'public/files/photo.jpg',
+          sha: 'photo-sha',
+          size: 2048,
+          download_url: 'https://raw.example/photo.jpg?token=temporary',
+        },
+        {
+          type: 'dir',
+          name: 'archive',
+          path: 'public/files/archive',
+          sha: 'directory-sha',
+          size: 0,
+          download_url: null,
+        },
+      ])
+    })
+
+    await expect(
+      createGitHubApi('token', fetcher).getMediaDirectory(
+        'PagesCMS',
+        'pages-cms',
+        'feature/media',
+        'public/files',
+      ),
+    ).resolves.toEqual([
+      {
+        type: 'file',
+        name: 'photo.jpg',
+        path: 'public/files/photo.jpg',
+        sha: 'photo-sha',
+        content: null,
+        size: 2048,
+        downloadUrl: 'https://raw.example/photo.jpg?token=temporary',
+      },
+      {
+        type: 'dir',
+        name: 'archive',
+        path: 'public/files/archive',
+        sha: null,
+        content: null,
+        size: null,
+        downloadUrl: null,
+      },
+    ])
+    expect(fetcher).toHaveBeenCalledOnce()
   })
 
   it('updates files with optimistic SHA conflict protection', async () => {

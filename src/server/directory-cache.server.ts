@@ -88,6 +88,7 @@ export function createDirectoryCache({
         sha: row.sha,
         content: row.content,
         size: row.size,
+        downloadUrl: row.downloadUrl,
       })),
     }
   }
@@ -101,13 +102,10 @@ export function createDirectoryCache({
     context: DirectoryContext,
     nodeFilename?: string,
   ) {
-    const entries = await api.getDirectory(
-      owner,
-      repo,
-      branch,
-      path,
-      nodeFilename,
-    )
+    const entries =
+      context === 'media'
+        ? await api.getMediaDirectory(owner, repo, branch, path)
+        : await api.getDirectory(owner, repo, branch, path, nodeFilename)
     const checkedAt = clock.now()
     const normalizedOwner = owner.toLowerCase()
     const normalizedRepo = repo.toLowerCase()
@@ -129,6 +127,7 @@ export function createDirectoryCache({
             content: entry.content,
             sha: entry.sha,
             size: entry.size,
+            downloadUrl: entry.downloadUrl,
             updatedAt: checkedAt,
           })),
         )
@@ -178,13 +177,21 @@ export function createDirectoryCache({
     }) {
       if (!input.enabled) {
         return {
-          entries: await input.api.getDirectory(
-            input.owner,
-            input.repo,
-            input.branch,
-            input.path,
-            input.nodeFilename,
-          ),
+          entries:
+            input.context === 'media'
+              ? await input.api.getMediaDirectory(
+                  input.owner,
+                  input.repo,
+                  input.branch,
+                  input.path,
+                )
+              : await input.api.getDirectory(
+                  input.owner,
+                  input.repo,
+                  input.branch,
+                  input.path,
+                  input.nodeFilename,
+                ),
         }
       }
       const cached = await cachedDirectory(

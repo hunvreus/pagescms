@@ -31,4 +31,19 @@ describe('MediaThumbnail', () => {
     expect(html).toContain('<img')
     expect(html).toContain('loading="lazy"')
   })
+
+  it('uses a manifest download URL instead of the preview proxy', () => {
+    const source = 'https://raw.example/photo.jpg?token=temporary'
+    const html = renderToStaticMarkup(
+      <MediaThumbnail
+        {...repository}
+        path="uploads/photo.jpg"
+        source={source}
+      />,
+    )
+
+    expect(html).toContain(`src="${source.replace('&', '&amp;')}"`)
+    expect(html).toContain('referrerPolicy="no-referrer"')
+    expect(html).not.toContain('/api/media-preview/')
+  })
 })
