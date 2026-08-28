@@ -10,20 +10,24 @@ import { parseRuntimeConfiguration } from './runtime-config.server'
 
 import type { GitHubApiFactory } from './github-api.server'
 import type { Database } from './database/client.server'
+import type { PagesCmsServerServices } from '#/deployment/contracts/server.server'
+
+export function createDeploymentServices(environment: unknown) {
+  return createPagesCmsServerServices(serverDeployment, environment)
+}
 
 export function createRequestServices(
   environment: unknown,
   requestHeaders: Headers,
   dependencies: {
     database?: Database
+    deploymentServices?: PagesCmsServerServices
     githubApiFactory?: GitHubApiFactory
   } = {},
 ) {
   const configuration = parseRuntimeConfiguration(environment)
-  const deploymentServices = createPagesCmsServerServices(
-    serverDeployment,
-    environment,
-  )
+  const deploymentServices =
+    dependencies.deploymentServices ?? createDeploymentServices(environment)
   const database =
     dependencies.database ??
     createDatabase({

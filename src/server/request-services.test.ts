@@ -22,6 +22,30 @@ describe('createRequestServices', () => {
     expect(services.configuration.deployment).toBe('self-hosted')
   })
 
+  it('uses deployment-level services supplied by the bootstrap', async () => {
+    const accessPolicy = {
+      authorize: vi.fn(async () => ({ allowed: true as const })),
+    }
+    const services = createRequestServices(
+      {
+        BETTER_AUTH_SECRET: 'a-secure-auth-secret-with-32-characters',
+        BETTER_AUTH_URL: 'https://app.pagescms.org',
+        DATABASE_URL: 'postgres://user:password@example.com/pagescms',
+      },
+      new Headers(),
+      { deploymentServices: { accessPolicy } },
+    )
+
+    await services.access.authorize({
+      operation: 'repository.read',
+      principal: { type: 'anonymous' },
+      tenant: { type: 'deployment', id: 'self-hosted' },
+    })
+
+    expect(accessPolicy.authorize).toHaveBeenCalledOnce()
+    expect(services.emailProvider).toBeUndefined()
+  })
+
   it('creates services lazily and only once per request', () => {
     const factory = vi.fn(() =>
       createRequestServices(

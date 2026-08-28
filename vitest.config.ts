@@ -1,9 +1,8 @@
 import { defineConfig } from 'vitest/config'
 
 import {
-  CLIENT_DEPLOYMENT_ALIAS,
+  resolveApplicationAliases,
   resolveDeploymentEntries,
-  SERVER_DEPLOYMENT_ALIAS,
 } from './deployment.config.ts'
 
 const deploymentEntries = resolveDeploymentEntries(
@@ -16,10 +15,7 @@ const deploymentEntries = resolveDeploymentEntries(
 
 export default defineConfig({
   resolve: {
-    alias: {
-      [SERVER_DEPLOYMENT_ALIAS]: deploymentEntries.server,
-      [CLIENT_DEPLOYMENT_ALIAS]: deploymentEntries.client,
-    },
+    alias: [...resolveApplicationAliases(deploymentEntries, process.cwd())],
     dedupe: [
       'react',
       'react-dom',
