@@ -95,8 +95,33 @@ export function mediaDeliveryQueryOptions(
       input.name,
       input.path ?? '',
     ] as const,
-    queryFn: () => getMediaDelivery({ data: { ...input, paths } }),
+    queryFn: async () => {
+      if (!paths.length) throw new Error('Media delivery paths are required')
+      const responses = await Promise.all(
+        mediaDeliveryBatches(paths).map((batch) =>
+          getMediaDelivery({ data: { ...input, paths: batch } }),
+        ),
+      )
+      const first = responses[0]
+      return {
+        provider: first.provider,
+        delivery: first.delivery,
+        leases: responses.flatMap((response) => response.leases),
+        errors: responses.flatMap((response) => response.errors),
+      }
+    },
     staleTime: 30_000,
     gcTime: queryTimes.gc,
   })
+}
+
+export function mediaDeliveryBatches(paths: string[], maximum = 1000) {
+  if (!Number.isInteger(maximum) || maximum < 1) {
+    throw new Error('Media delivery batch size must be a positive integer')
+  }
+  const unique = [...new Set(paths)]
+  return Array.from(
+    { length: Math.ceil(unique.length / maximum) },
+    (_, index) => unique.slice(index * maximum, (index + 1) * maximum),
+  )
 }

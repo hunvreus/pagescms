@@ -2,6 +2,8 @@
 
 Pages CMS caches configuration and collection/media directory snapshots in PostgreSQL when `.pages.yml` sets `settings.cache: true` (the legacy top-level `cache: true` is normalized too). Directory snapshots use a 60-second freshness window: fresh data avoids a GitHub request, while an expired or cold snapshot is refreshed before the request completes. TanStack Query independently keeps previously loaded client data visible while it refetches.
 
+Media directory snapshots are URL-free manifests. Temporary GitHub or provider URLs are issued separately as authenticated, client-only delivery leases, batched at the directory level, and renewed before expiry or once after an image error. A renewal keeps the previously rendered thumbnail visible until its replacement has loaded. Temporary private URLs must not be persisted, SSR-dehydrated, or placed in a shared cache.
+
 Entry, file, media, configuration, and cache-management mutations invalidate repository snapshots. Signed GitHub webhooks cover changes made outside Pages CMS:
 
 - `push` clears the affected branch snapshots and clears configuration when `.pages.yml` changed;

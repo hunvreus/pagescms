@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { mediaDeliveryQueryOptions } from './content'
+import { mediaDeliveryBatches, mediaDeliveryQueryOptions } from './content'
 
 describe('media delivery query', () => {
   it('keeps a stable directory key when the requested path set changes', () => {
@@ -22,5 +22,16 @@ describe('media delivery query', () => {
 
     expect(first.queryKey).toEqual(second.queryKey)
     expect(first.queryKey).not.toContain('public/images/a.png')
+  })
+
+  it('bounds delivery batches without duplicating paths', () => {
+    expect(mediaDeliveryBatches(['c', 'a', 'b', 'a', 'd'], 2)).toEqual([
+      ['c', 'a'],
+      ['b', 'd'],
+    ])
+    expect(mediaDeliveryBatches([], 2)).toEqual([])
+    expect(() => mediaDeliveryBatches(['a'], 0)).toThrow(
+      'Media delivery batch size must be a positive integer',
+    )
   })
 })

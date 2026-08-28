@@ -39,16 +39,12 @@ Illustrative closed shapes:
 interface PagesCmsServerDeployment {
   apiVersion: 0
   create(runtime: RuntimeConfiguration): {
-    accessPolicy: AccessPolicy
-    entitlementReader?: EntitlementReader
-    email?: EmailProvider
-    media: {
+    accessPolicy?: AccessPolicy
+    emailProvider?: EmailProvider
+    mediaProviderResolver?: {
       resolveStorage(context: MediaContext): MediaStorage
       resolveDelivery(context: MediaContext): MediaDelivery
     }
-    billingWebhook?: BillingWebhookHandler
-    repositoryPermissionAdmin?: RepositoryPermissionAdmin
-    fieldTypes?: Record<string, ServerFieldType>
   }
 }
 
@@ -63,6 +59,8 @@ interface PagesCmsClientDeployment {
 
 `definePagesCmsServerDeployment` and `definePagesCmsClientDeployment` validate closed objects and preserve inference. They do not register callbacks, discover directories, infer a plugin category, or expose an unordered hook bag.
 
+The media resolver may replace storage, delivery, or both for one repository/media context. Core still validates configured roots and extensions, confines provider output to requested paths, and routes reads and mutations through the selected storage. Directory manifests contain stable metadata only. Browser URLs are separate delivery leases and are never stored in the directory cache or dehydrated through SSR.
+
 ## How a module is used
 
 A module has no self-declared “type.” The deployment composition assigns a concrete implementation to a named application boundary:
@@ -73,10 +71,8 @@ export default definePagesCmsServerDeployment({
   create(runtime) {
     return {
       accessPolicy: createHostedAccessPolicy(runtime.billing),
-      entitlementReader: createEntitlementReader(runtime.billing),
-      billingWebhook: createStripeWebhook(runtime.stripe),
-      repositoryPermissionAdmin: createPermissionAdmin(runtime.database),
-      media: {
+      emailProvider: createHostedEmailProvider(runtime.email),
+      mediaProviderResolver: {
         resolveStorage: createStorageResolver({ github, s3 }),
         resolveDelivery: createDeliveryResolver({ direct, cloudflare }),
       },

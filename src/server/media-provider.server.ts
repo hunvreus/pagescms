@@ -1,4 +1,5 @@
 import { getFileExtension } from '#/lib/file-types'
+import { decodeBase64Bytes } from '#/lib/media-assets'
 
 import type { GitHubApi, GitHubDirectoryEntry } from './github-api.server'
 import type { Clock } from './runtime-ports.server'
@@ -40,8 +41,8 @@ export interface MediaDeliveryLease {
 }
 
 export interface MediaStoredFile {
-  sha: string
-  content: string
+  version: string
+  bytes: Uint8Array
 }
 
 export interface MediaMutationMetadata {
@@ -207,7 +208,6 @@ export function mediaUrlExpiry(url: string, now: Date) {
     'token',
     'sig',
     'signature',
-    'sv',
     'x-amz-signature',
     'x-goog-signature',
   ])
@@ -282,20 +282,30 @@ export function createGitHubMediaStorage({
           ) {
             return []
           }
-          return [
-            {
-              assetId: entry.path,
-              path: entry.path,
-              url: entry.downloadUrl,
-              expiresAt: mediaUrlExpiry(entry.downloadUrl, now),
-              cacheKey: entry.sha ?? entry.path,
-            },
-          ]
+          try {
+            const url = new URL(entry.downloadUrl)
+            if (url.protocol !== 'https:' && url.protocol !== 'http:') return []
+            return [
+              {
+                assetId: entry.path,
+                path: entry.path,
+                url: entry.downloadUrl,
+                expiresAt: mediaUrlExpiry(entry.downloadUrl, now),
+                cacheKey: entry.sha ?? entry.path,
+              },
+            ]
+          } catch {
+            return []
+          }
         }),
       )
     },
-    read(path) {
-      return api.getFile(owner, repo, path, branch)
+    async read(path) {
+      const file = await api.getFile(owner, repo, path, branch)
+      return {
+        version: file.sha,
+        bytes: decodeBase64Bytes(file.content),
+      }
     },
     async write({ path, content, metadata }) {
       const result = await api.putFile({
@@ -326,7 +336,7 @@ export function createGitHubMediaStorage({
       })
       return {
         path,
-        version: result.sha,
+        version: null,
         revision: result.commitSha,
       }
     },
