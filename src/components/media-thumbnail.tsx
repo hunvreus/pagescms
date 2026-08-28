@@ -11,6 +11,9 @@ export function MediaThumbnail({
   name,
   path,
   source,
+  allowProxy = true,
+  loadingSource = false,
+  onSourceError,
   className = 'size-12',
 }: {
   owner: string
@@ -19,23 +22,55 @@ export function MediaThumbnail({
   name: string
   path?: string | null
   source?: string | null
+  allowProxy?: boolean
+  loadingSource?: boolean
+  onSourceError?: (source: string) => void
   className?: string
 }) {
   const src = path
-    ? source || mediaAssetUrl({ owner, repo, branch, name, path })
+    ? (source ??
+      (allowProxy ? mediaAssetUrl({ owner, repo, branch, name, path }) : null))
     : null
+  const [displayedSrc, setDisplayedSrc] = useState<string | null>(src)
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null)
   const [failedSrc, setFailedSrc] = useState<string | null>(null)
   const imageRef = useRef<HTMLImageElement>(null)
   const failed = !!src && failedSrc === src
-  const loading = !!src && loadedSrc !== src && !failed
+  const hasUsableDisplayedImage =
+    !!displayedSrc && loadedSrc === displayedSrc && failedSrc !== displayedSrc
+  const loading =
+    loadingSource ||
+    (!!src && displayedSrc === src && loadedSrc !== src && !failed) ||
+    (!!src && displayedSrc !== src && !hasUsableDisplayedImage && !failed)
+
+  useEffect(() => {
+    if (!src || src === displayedSrc) return
+    const candidate = new Image()
+    candidate.referrerPolicy = 'no-referrer'
+    candidate.onload = () => {
+      setDisplayedSrc(src)
+      setLoadedSrc(src)
+    }
+    candidate.onerror = () => {
+      setFailedSrc(src)
+      onSourceError?.(src)
+    }
+    candidate.src = src
+    return () => {
+      candidate.onload = null
+      candidate.onerror = null
+    }
+  }, [displayedSrc, onSourceError, src])
 
   useEffect(() => {
     const image = imageRef.current
-    if (!src || !image?.complete) return
-    if (image.naturalWidth > 0) setLoadedSrc(src)
-    else setFailedSrc(src)
-  }, [src])
+    if (!displayedSrc || !image?.complete) return
+    if (image.naturalWidth > 0) setLoadedSrc(displayedSrc)
+    else {
+      setFailedSrc(displayedSrc)
+      onSourceError?.(displayedSrc)
+    }
+  }, [displayedSrc, onSourceError])
 
   return (
     <span
@@ -44,17 +79,23 @@ export function MediaThumbnail({
         className,
       )}
       data-state={
-        !src ? 'empty' : failed ? 'error' : loading ? 'loading' : 'loaded'
+        !src && !loadingSource
+          ? 'empty'
+          : failed && !hasUsableDisplayedImage
+            ? 'error'
+            : loading
+              ? 'loading'
+              : 'loaded'
       }
     >
-      {!src ? (
+      {!src && !loadingSource ? (
         <span
           className="absolute inset-0 flex items-center justify-center"
           title="No image"
         >
           <ImageOff className="size-4 text-muted-foreground" />
         </span>
-      ) : failed ? (
+      ) : failed && !hasUsableDisplayedImage ? (
         <span
           className="absolute inset-0 flex items-center justify-center"
           title="Could not load image"
@@ -69,19 +110,24 @@ export function MediaThumbnail({
           <LoaderCircle className="size-4 animate-spin text-muted-foreground" />
         </span>
       ) : null}
-      {src ? (
+      {displayedSrc ? (
         <img
           alt=""
           className={cn(
             'absolute inset-0 size-full object-cover',
-            loadedSrc === src && !failed ? 'opacity-100' : 'opacity-0',
+            loadedSrc === displayedSrc && failedSrc !== displayedSrc
+              ? 'opacity-100'
+              : 'opacity-0',
           )}
           loading="lazy"
           referrerPolicy="no-referrer"
           ref={imageRef}
-          onError={() => setFailedSrc(src)}
-          onLoad={() => setLoadedSrc(src)}
-          src={src}
+          onError={() => {
+            setFailedSrc(displayedSrc)
+            onSourceError?.(displayedSrc)
+          }}
+          onLoad={() => setLoadedSrc(displayedSrc)}
+          src={displayedSrc}
         />
       ) : null}
     </span>

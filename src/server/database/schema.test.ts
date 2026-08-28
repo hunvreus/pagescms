@@ -38,12 +38,13 @@ describe('legacy-compatible database schema', () => {
   })
 
   it('preserves cache and action column names used by existing migrations', () => {
-    expect(getTableColumns(schema.cacheFileTable)).toMatchObject({
+    const cacheFileColumns = getTableColumns(schema.cacheFileTable)
+    expect(cacheFileColumns).toMatchObject({
       parentPath: { name: 'parent_path' },
       commitSha: { name: 'commit_sha' },
       commitTimestamp: { name: 'commit_timestamp' },
-      downloadUrl: { name: 'download_url' },
     })
+    expect(cacheFileColumns).not.toHaveProperty('downloadUrl')
     expect(getTableColumns(schema.actionRunTable)).toMatchObject({
       workflowRunId: { name: 'workflow_run_id' },
       triggeredBy: { name: 'triggered_by' },

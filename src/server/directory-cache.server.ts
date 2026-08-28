@@ -133,7 +133,9 @@ export function createDirectoryCache({
         sha: row.sha,
         content: row.content,
         size: row.size,
-        downloadUrl: row.downloadUrl,
+        // Delivery URLs are short-lived capabilities. They must never be read
+        // from the durable manifest cache.
+        downloadUrl: null,
       })),
     }
   }
@@ -172,7 +174,6 @@ export function createDirectoryCache({
             content: entry.content,
             sha: entry.sha,
             size: entry.size,
-            downloadUrl: entry.downloadUrl,
             updatedAt: checkedAt,
           })),
         )

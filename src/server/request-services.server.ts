@@ -48,6 +48,7 @@ export function createRequestServices(
     dependencies.githubApiFactory,
   )
   const emailProvider = deploymentServices.emailProvider
+  const mediaProviderResolver = deploymentServices.mediaProviderResolver
   const auth = createPagesCmsAuth({
     database,
     configuration: configuration.auth,
@@ -68,6 +69,7 @@ export function createRequestServices(
     database,
     emailProvider,
     getSession,
+    mediaProviderResolver,
     projects,
     repositoryAccess,
   }

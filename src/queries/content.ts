@@ -4,7 +4,7 @@ import { getCollection } from '#/functions/collection'
 import { getConfigurationEditor } from '#/functions/configuration-editor'
 import { getRawEntry } from '#/functions/entry-editor'
 import { getFixedFile } from '#/functions/file-editor'
-import { getMedia } from '#/functions/media'
+import { getMedia, getMediaDelivery } from '#/functions/media'
 
 import { queryKeys, queryTimes } from './keys'
 
@@ -79,6 +79,23 @@ export function mediaQueryOptions(
       input.path ?? '',
     ] as const,
     queryFn: () => getMedia({ data: input }),
+    staleTime: 30_000,
+    gcTime: queryTimes.gc,
+  })
+}
+
+export function mediaDeliveryQueryOptions(
+  input: NamedBranchResource & { path?: string; paths: string[] },
+) {
+  const paths = [...new Set(input.paths)].sort()
+  return queryOptions({
+    queryKey: [
+      ...queryKeys.branch(input),
+      'media-delivery',
+      input.name,
+      input.path ?? '',
+    ] as const,
+    queryFn: () => getMediaDelivery({ data: { ...input, paths } }),
     staleTime: 30_000,
     gcTime: queryTimes.gc,
   })

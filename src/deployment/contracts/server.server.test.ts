@@ -40,4 +40,32 @@ describe('server deployment contract', () => {
       /invalid access policy/,
     )
   })
+
+  it('preserves a valid media provider resolver', () => {
+    const mediaProviderResolver = {
+      resolveStorage: () => null,
+      resolveDelivery: () => null,
+    }
+    const deployment = definePagesCmsServerDeployment({
+      apiVersion: DEPLOYMENT_API_VERSION,
+      create: () => ({ mediaProviderResolver }),
+    })
+
+    expect(
+      createPagesCmsServerServices(deployment, {}).mediaProviderResolver,
+    ).toBe(mediaProviderResolver)
+  })
+
+  it('rejects an incomplete media provider resolver', () => {
+    const deployment = definePagesCmsServerDeployment({
+      apiVersion: DEPLOYMENT_API_VERSION,
+      create: (() => ({
+        mediaProviderResolver: { resolveStorage: () => null },
+      })) as never,
+    })
+
+    expect(() => createPagesCmsServerServices(deployment, {})).toThrow(
+      /invalid media provider resolver/,
+    )
+  })
 })

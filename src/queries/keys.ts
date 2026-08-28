@@ -35,6 +35,14 @@ export const queryKeys = {
       'media',
       input.name,
     ] as const,
+  mediaDelivery: (input: BranchRef & { name: string }) =>
+    [
+      'pagescms',
+      'repositories',
+      ...branchKey(input),
+      'media-delivery',
+      input.name,
+    ] as const,
 }
 
 export const queryTimes = {

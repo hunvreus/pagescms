@@ -22,4 +22,22 @@ describe('query keys', () => {
       '',
     ])
   })
+
+  it('groups every directory lease below one media-delivery prefix', () => {
+    const media = {
+      owner: 'PagesCMS',
+      repo: 'Demo',
+      branch: 'main',
+      name: 'images',
+    }
+    expect(queryKeys.mediaDelivery(media)).toEqual([
+      'pagescms',
+      'repositories',
+      'pagescms',
+      'demo',
+      'main',
+      'media-delivery',
+      'images',
+    ])
+  })
 })
