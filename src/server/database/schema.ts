@@ -208,9 +208,9 @@ const cacheFileTable = pgTable(
     idx_cache_file_owner_repo_branch_parentPath: index(
       'idx_cache_file_owner_repo_branch_parentPath',
     ).on(table.owner, table.repo, table.branch, table.parentPath),
-    idx_cache_file_owner_repo_branch_path: uniqueIndex(
-      'idx_cache_file_owner_repo_branch_path',
-    ).on(table.owner, table.repo, table.branch, table.path),
+    idx_cache_file_owner_repo_branch_path_context: uniqueIndex(
+      'idx_cache_file_owner_repo_branch_path_context',
+    ).on(table.owner, table.repo, table.branch, table.path, table.context),
   }),
 )
 
