@@ -32,7 +32,7 @@
     "db:migrate": "drizzle-kit migrate",
     "cf:typegen": "wrangler types --include-runtime false",
     "cf:typecheck": "wrangler types --include-runtime false --check",
-    "cf:dry-run": "pnpm cf:build && node scripts/clean-wrangler-dry-run.mjs && wrangler deploy --dry-run --outdir .wrangler/dry-run --metafile",
+    "cf:dry-run": "pnpm cf:build && node scripts/clean-wrangler-dry-run.mjs && wrangler deploy --dry-run --outdir .wrangler/dry-run --metafile && node scripts/assert-public-artifact.mjs .wrangler/dry-run",
     "validate": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm cf:typecheck && pnpm cf:dry-run",
     "deploy": "pnpm cf:build && wrangler deploy"
   },
