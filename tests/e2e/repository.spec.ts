@@ -11,7 +11,9 @@ test('navigates a repository and persists a structured entry update', async ({
   await expect(page.getByText('fixture', { exact: true })).toBeVisible({
     timeout: 15_000,
   })
-  await page.getByRole('link', { name: 'Open' }).click()
+  await page
+    .locator('a[href="/pagescms/fixture/main"]', { hasText: 'Open' })
+    .click()
 
   await expect(page).toHaveURL(/\/pagescms\/fixture\/main\/collection\/posts$/)
   await expect(page.getByRole('columnheader', { name: /Title/ })).toBeVisible()

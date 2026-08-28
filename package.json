@@ -26,6 +26,7 @@
     "test:composition": "node scripts/test-deployment-composition.mjs",
     "test:watch": "vitest",
     "test:e2e": "sh scripts/test-e2e.sh",
+    "test:e2e:media-performance": "PAGESCMS_E2E_PRODUCTION=true sh scripts/test-e2e.sh tests/e2e/media-performance.spec.ts",
     "test:integration": "sh scripts/test-integration.sh",
     "db:check": "drizzle-kit check",
     "db:generate": "drizzle-kit generate",

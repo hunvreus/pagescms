@@ -12,6 +12,7 @@ const githubMetricsPath =
   process.env.PAGESCMS_E2E_GITHUB_METRICS_PATH ??
   `/tmp/pagescms-e2e-github-${process.pid}.jsonl`
 process.env.PAGESCMS_E2E_GITHUB_METRICS_PATH = githubMetricsPath
+const productionE2E = process.env.PAGESCMS_E2E_PRODUCTION === 'true'
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -46,7 +47,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm exec vite dev --host 127.0.0.1 --port 3100 --strictPort',
+    command: productionE2E
+      ? 'pnpm exec vite preview --host 127.0.0.1 --port 3100 --strictPort'
+      : 'pnpm exec vite dev --host 127.0.0.1 --port 3100 --strictPort',
     env: {
       ...process.env,
       BETTER_AUTH_SECRET: authSecret,

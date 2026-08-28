@@ -51,11 +51,19 @@ function json(value: unknown, status = 200) {
   })
 }
 
-function repository() {
+const fixtureRepositories = ['fixture', 'private-fixture'] as const
+
+function isFixtureRepository(value: string) {
+  return fixtureRepositories.includes(
+    value as (typeof fixtureRepositories)[number],
+  )
+}
+
+function repository(name = 'fixture') {
   return {
-    id: 1,
-    name: 'fixture',
-    private: false,
+    id: name === 'private-fixture' ? 2 : 1,
+    name,
+    private: name === 'private-fixture',
     default_branch: 'main',
     updated_at: '2026-08-20T00:00:00Z',
     owner: { id: 1, login: 'pagescms' },
@@ -92,7 +100,19 @@ function directEntries(path: string) {
     })
 }
 
-function restEntries(path: string) {
+function restEntries(path: string, repositoryName: string) {
+  const performanceDirectory = /^public\/images\/perf-\d+$/.test(path)
+  if (performanceDirectory) {
+    return ['hero.svg', 'cover.svg'].map((name, index) => ({
+      name,
+      path: `${path}/${name}`,
+      type: 'file',
+      sha: `performance-media-sha-${index + 1}`,
+      size: 128,
+      download_url: `http://127.0.0.1:3100/favicon.svg?asset=${encodeURIComponent(`${repositoryName}/${path}/${name}`)}`,
+    }))
+  }
+
   const prefix = path ? `${path}/` : ''
   return [...files.entries()]
     .filter(([name]) => name.startsWith(prefix))
@@ -106,14 +126,19 @@ function restEntries(path: string) {
           type: 'file',
           sha: file.sha,
           size: file.content.length,
-          download_url: `http://127.0.0.1:3100/favicon.svg?asset=${encodeURIComponent(name)}`,
+          download_url: `http://127.0.0.1:3100/favicon.svg?asset=${encodeURIComponent(`${repositoryName}/${name}`)}`,
         },
       ]
     })
 }
 
 function recordRequest(method: string, url: URL) {
-  if (url.pathname !== '/repos/pagescms/fixture/contents/public/images') return
+  if (
+    !/^\/repos\/pagescms\/(?:fixture|private-fixture)\/contents\/public\/images(?:\/|$)/.test(
+      url.pathname,
+    )
+  )
+    return
   const metricsPath = process.env.PAGESCMS_E2E_GITHUB_METRICS_PATH
   if (!metricsPath) return
   appendFileSync(
@@ -146,10 +171,28 @@ export const githubFixtureFetch: typeof fetch = async (input, init) => {
     })
   }
   if (url.pathname === '/user/installations/1/repositories') {
-    return json({ total_count: 1, repositories: [repository()] })
+    return json({
+      total_count: fixtureRepositories.length,
+      repositories: fixtureRepositories.map((name) => repository(name)),
+    })
   }
-  if (url.pathname === '/repos/pagescms/fixture') return json(repository())
-  if (url.pathname === '/repos/pagescms/fixture/branches') {
+  const repositoryMatch = url.pathname.match(
+    /^\/repos\/pagescms\/([^/]+)(?:\/(.*))?$/,
+  )
+  const repositoryName = repositoryMatch?.[1]
+  const repositoryRoute = repositoryMatch?.[2] ?? ''
+  if (
+    repositoryName &&
+    isFixtureRepository(repositoryName) &&
+    repositoryRoute === ''
+  ) {
+    return json(repository(repositoryName))
+  }
+  if (
+    repositoryName &&
+    isFixtureRepository(repositoryName) &&
+    repositoryRoute === 'branches'
+  ) {
     return json([{ name: 'main' }])
   }
   if (url.pathname === '/graphql' && method === 'POST') {
@@ -166,10 +209,13 @@ export const githubFixtureFetch: typeof fetch = async (input, init) => {
     })
   }
 
-  const contentPrefix = '/repos/pagescms/fixture/contents/'
-  if (url.pathname.startsWith(contentPrefix)) {
+  if (
+    repositoryName &&
+    isFixtureRepository(repositoryName) &&
+    repositoryRoute.startsWith('contents/')
+  ) {
     const path = url.pathname
-      .slice(contentPrefix.length)
+      .slice(`/repos/pagescms/${repositoryName}/contents/`.length)
       .split('/')
       .map(decodeURIComponent)
       .join('/')
@@ -182,7 +228,7 @@ export const githubFixtureFetch: typeof fetch = async (input, init) => {
           content: encoded(file.content),
         })
       }
-      const entries = restEntries(path)
+      const entries = restEntries(path, repositoryName)
       return entries.length
         ? json(entries)
         : json({ message: 'Not found' }, 404)
@@ -200,7 +246,12 @@ export const githubFixtureFetch: typeof fetch = async (input, init) => {
       })
     }
   }
-  if (url.pathname === '/repos/pagescms/fixture/commits' && method === 'GET') {
+  if (
+    repositoryName &&
+    isFixtureRepository(repositoryName) &&
+    repositoryRoute === 'commits' &&
+    method === 'GET'
+  ) {
     return json([])
   }
 
