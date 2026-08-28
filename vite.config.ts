@@ -9,9 +9,8 @@ import tailwindcss from '@tailwindcss/vite'
 import { cloudflare } from '@cloudflare/vite-plugin'
 
 import {
-  CLIENT_DEPLOYMENT_ALIAS,
+  resolveApplicationAliases,
   resolveDeploymentEntries,
-  SERVER_DEPLOYMENT_ALIAS,
 } from './deployment.config.ts'
 
 const cloudflareBuild = process.env.PAGESCMS_CLOUDFLARE === 'true'
@@ -46,22 +45,23 @@ const config = defineConfig(({ mode }) => {
       },
     },
     resolve: {
-      tsconfigPaths: true,
       dedupe: [
         'react',
         'react-dom',
         '@tanstack/react-query',
         '@tanstack/react-router',
       ],
-      alias: {
-        [SERVER_DEPLOYMENT_ALIAS]: deploymentEntries.server,
-        [CLIENT_DEPLOYMENT_ALIAS]: deploymentEntries.client,
+      alias: [
         ...(process.env.PAGESCMS_E2E === 'true'
-          ? {
-              '#/server/request-services-bootstrap.server': e2eRequestServices,
-            }
-          : {}),
-      },
+          ? [
+              {
+                find: '#/server/request-services-bootstrap.server',
+                replacement: e2eRequestServices,
+              },
+            ]
+          : []),
+        ...resolveApplicationAliases(deploymentEntries, process.cwd()),
+      ],
     },
     plugins: [
       ...(!tanStackDevtoolsDisabled ? devtools() : []),

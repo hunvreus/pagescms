@@ -5,7 +5,7 @@ Pages CMS supports trusted build-time modules for optional and proprietary capab
 ## Status
 
 The Wave 1 composition spike is implemented. It is intentionally narrow: the
-current contract proves static server/client selection, a client field
+current experimental API version is `0` and proves static server/client selection, a client field
 contribution, API-version rejection, and bundle isolation. It is not yet the
 full stable API illustrated below; those contracts and conformance suites are
 frozen in Wave 2 of `PLAN.md`.
@@ -14,7 +14,7 @@ frozen in Wave 2 of `PLAN.md`.
 
 The build resolves two stable aliases:
 
-- `#pagescms/deployment/server` may import secrets and server-only dependencies. It exports a factory so environment variables are validated and supplied at startup, not read during module import.
+- `#pagescms/deployment/server` may import secrets and server-only dependencies. It exports a factory so environment variables are validated and supplied at startup, not read during module import. Core invokes that factory once per runtime instance (for example, once per Worker isolate or Node process), and reuses the returned deployment services across requests. Those services must therefore be concurrency-safe and must not retain request, session, or user state.
 - `#pagescms/deployment/client` contains only lazy client contributions and field editors. It must never import the server entry.
 
 The public build resolves both aliases to in-tree defaults. Hosted CI resolves them to entry points in `../pro`, or to a normal hosted-only private `file:` dependency if direct sibling source cannot satisfy Vite, TypeScript, Vitest, Wrangler, HMR, and dependency-deduplication checks. Private code is never copied or generated into the public checkout.
@@ -37,7 +37,7 @@ Illustrative closed shapes:
 
 ```ts
 interface PagesCmsServerDeployment {
-  apiVersion: 1
+  apiVersion: 0
   create(runtime: RuntimeConfiguration): {
     accessPolicy: AccessPolicy
     entitlementReader?: EntitlementReader
@@ -53,7 +53,7 @@ interface PagesCmsServerDeployment {
 }
 
 interface PagesCmsClientDeployment {
-  apiVersion: 1
+  apiVersion: 0
   fieldEditors?: Record<string, LazyFieldEditor>
   ui?: {
     repositoryPermissions?: LazyUiContribution<RepositoryPermissionsProps>
@@ -69,7 +69,7 @@ A module has no self-declared “type.” The deployment composition assigns a c
 
 ```ts
 export default definePagesCmsServerDeployment({
-  apiVersion: 1,
+  apiVersion: 0,
   create(runtime) {
     return {
       accessPolicy: createHostedAccessPolicy(runtime.billing),

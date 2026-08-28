@@ -10,6 +10,11 @@ export interface DeploymentEntries {
   allowedDirectories: readonly string[]
 }
 
+export interface ApplicationAlias {
+  find: string | RegExp
+  replacement: string
+}
+
 interface DeploymentSelectorEnvironment {
   PAGESCMS_DEPLOYMENT_CLIENT?: string
   PAGESCMS_DEPLOYMENT_SERVER?: string
@@ -49,4 +54,18 @@ export function resolveDeploymentEntries(
       ...new Set([dirname(client), dirname(server)]),
     ]),
   }
+}
+
+export function resolveApplicationAliases(
+  entries: DeploymentEntries,
+  rootDirectory: string,
+): readonly ApplicationAlias[] {
+  const sourceDirectory = `${resolve(rootDirectory, 'src')}/`
+
+  return Object.freeze([
+    { find: SERVER_DEPLOYMENT_ALIAS, replacement: entries.server },
+    { find: CLIENT_DEPLOYMENT_ALIAS, replacement: entries.client },
+    { find: /^#\//, replacement: sourceDirectory },
+    { find: /^@\//, replacement: sourceDirectory },
+  ])
 }

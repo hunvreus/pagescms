@@ -1,4 +1,5 @@
 import {
+  createDeploymentServices,
   createRequestServices,
   createRequestServicesAccessor,
 } from './request-services.server'
@@ -6,8 +7,15 @@ import { createDatabase } from './database/client.server'
 import { parseRuntimeConfiguration } from './runtime-config.server'
 
 import type { Database } from './database/client.server'
+import type { PagesCmsServerServices } from '#/deployment/contracts/server.server'
 
 const databases = new Map<string, Database>()
+let deploymentServices: PagesCmsServerServices | undefined
+
+function getDeploymentServices(environment: unknown) {
+  deploymentServices ??= createDeploymentServices(environment)
+  return deploymentServices
+}
 
 function getDatabase(environment: unknown) {
   const connectionString =
@@ -23,6 +31,7 @@ function getDatabase(environment: unknown) {
 export function createRequestServicesForRequest(request: Request) {
   return createRequestServices(process.env, request.headers, {
     database: getDatabase(process.env),
+    deploymentServices: getDeploymentServices(process.env),
   })
 }
 

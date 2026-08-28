@@ -4,15 +4,15 @@ import {
   createPagesCmsServerServices,
   definePagesCmsServerDeployment,
 } from './server.server'
-import { DeploymentConfigurationError } from './version'
+import { DEPLOYMENT_API_VERSION, DeploymentConfigurationError } from './version'
 
 describe('server deployment contract', () => {
-  it('creates and validates request-scoped server services', () => {
+  it('creates and validates deployment-scoped server services', () => {
     const accessPolicy = {
       authorize: async () => ({ allowed: true as const }),
     }
     const deployment = definePagesCmsServerDeployment({
-      apiVersion: 1,
+      apiVersion: DEPLOYMENT_API_VERSION,
       create: () => ({ accessPolicy }),
     })
 
@@ -24,7 +24,7 @@ describe('server deployment contract', () => {
   it('rejects an incompatible API version', () => {
     expect(() =>
       definePagesCmsServerDeployment({
-        apiVersion: 2,
+        apiVersion: DEPLOYMENT_API_VERSION + 1,
         create: () => ({}),
       }),
     ).toThrow(DeploymentConfigurationError)
@@ -32,7 +32,7 @@ describe('server deployment contract', () => {
 
   it('rejects invalid services returned by the factory', () => {
     const deployment = definePagesCmsServerDeployment({
-      apiVersion: 1,
+      apiVersion: DEPLOYMENT_API_VERSION,
       create: () => ({ accessPolicy: {} }) as never,
     })
 
