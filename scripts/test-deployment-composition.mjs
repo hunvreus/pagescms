@@ -1,14 +1,20 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { dirname, extname, join, resolve } from 'node:path'
+import {
+  existsSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+} from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 const rootDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const outputDirectory = join(rootDirectory, 'dist')
 const serverEntry = 'tests/deployment/fake-pro/server.server.ts'
 const clientEntry = 'tests/deployment/fake-pro/client.tsx'
 const clientSentinel = 'PAGESCMS_FAKE_CLIENT_DEPLOYMENT'
 const serverSentinel = 'PAGESCMS_SERVER_ONLY_SENTINEL'
-const javascriptExtensions = new Set(['.cjs', '.js', '.mjs'])
 
 function environmentWithoutSelection() {
   const environment = { ...process.env }
@@ -18,6 +24,7 @@ function environmentWithoutSelection() {
 }
 
 function build(environment) {
+  rmSync(outputDirectory, { force: true, recursive: true })
   const result = spawnSync('pnpm', ['build'], {
     cwd: rootDirectory,
     env: environment,
@@ -29,19 +36,24 @@ function build(environment) {
   }
 }
 
-function javascriptFiles(directory) {
+function artifactFiles(directory) {
+  if (!existsSync(directory)) {
+    throw new Error(`Expected build artifact directory '${directory}' to exist`)
+  }
+
   const files = []
   for (const entry of readdirSync(directory)) {
     const path = join(directory, entry)
-    if (statSync(path).isDirectory()) files.push(...javascriptFiles(path))
-    else if (javascriptExtensions.has(extname(path))) files.push(path)
+    if (statSync(path).isDirectory()) files.push(...artifactFiles(path))
+    else files.push(path)
   }
   return files
 }
 
 function contains(directory, sentinel) {
-  return javascriptFiles(directory).some((path) =>
-    readFileSync(path, 'utf8').includes(sentinel),
+  const sentinelBytes = Buffer.from(sentinel)
+  return artifactFiles(directory).some((path) =>
+    readFileSync(path).includes(sentinelBytes),
   )
 }
 
@@ -78,6 +90,8 @@ try {
     // Always leave the normal public artifact behind, including after failure.
     build(publicEnvironment)
   } catch (restoreError) {
+    // Never leave a partial selected-deployment artifact behind.
+    rmSync(outputDirectory, { force: true, recursive: true })
     failure = failure
       ? new AggregateError(
           [failure, restoreError],
