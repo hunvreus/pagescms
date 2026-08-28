@@ -10,6 +10,27 @@ import { systemClock } from './runtime-ports.server'
 const DEFAULT_DIRECTORY_TTL_MS = 60_000
 
 type DirectoryContext = 'collection' | 'media'
+type DirectoryResult = { entries: GitHubDirectoryEntry[] }
+
+export function createInFlightDeduper() {
+  const pending = new Map<string, Promise<DirectoryResult>>()
+
+  return (key: string, load: () => Promise<DirectoryResult>) => {
+    const existing = pending.get(key)
+    if (existing) return existing
+
+    const request = load().finally(() => {
+      if (pending.get(key) === request) pending.delete(key)
+    })
+    pending.set(key, request)
+    return request
+  }
+}
+
+const inFlightByDatabase = new WeakMap<
+  Database,
+  ReturnType<typeof createInFlightDeduper>
+>()
 
 export function isDirectoryCacheFresh(
   lastCheckedAt: Date | null,
@@ -30,6 +51,30 @@ export function createDirectoryCache({
   clock?: Clock
   ttlMs?: number
 }) {
+  const existingDeduper = inFlightByDatabase.get(database)
+  const dedupe = existingDeduper ?? createInFlightDeduper()
+  if (!existingDeduper) inFlightByDatabase.set(database, dedupe)
+
+  function requestKey(
+    mode: 'direct' | 'refresh',
+    owner: string,
+    repo: string,
+    branch: string,
+    path: string,
+    context: DirectoryContext,
+    nodeFilename?: string,
+  ) {
+    return JSON.stringify([
+      mode,
+      owner.toLowerCase(),
+      repo.toLowerCase(),
+      branch,
+      path,
+      context,
+      nodeFilename ?? null,
+    ])
+  }
+
   function conditions(
     owner: string,
     repo: string,
@@ -164,6 +209,41 @@ export function createDirectoryCache({
     return { entries }
   }
 
+  function dedupedRefresh(
+    api: GitHubApi,
+    owner: string,
+    repo: string,
+    branch: string,
+    path: string,
+    context: DirectoryContext,
+    nodeFilename?: string,
+  ) {
+    return dedupe(
+      requestKey('refresh', owner, repo, branch, path, context, nodeFilename),
+      () => refresh(api, owner, repo, branch, path, context, nodeFilename),
+    )
+  }
+
+  function loadDirect(
+    api: GitHubApi,
+    owner: string,
+    repo: string,
+    branch: string,
+    path: string,
+    context: DirectoryContext,
+    nodeFilename?: string,
+  ) {
+    return dedupe(
+      requestKey('direct', owner, repo, branch, path, context, nodeFilename),
+      async () => ({
+        entries:
+          context === 'media'
+            ? await api.getMediaDirectory(owner, repo, branch, path)
+            : await api.getDirectory(owner, repo, branch, path, nodeFilename),
+      }),
+    )
+  }
+
   return {
     async get(input: {
       api: GitHubApi
@@ -176,23 +256,15 @@ export function createDirectoryCache({
       nodeFilename?: string
     }) {
       if (!input.enabled) {
-        return {
-          entries:
-            input.context === 'media'
-              ? await input.api.getMediaDirectory(
-                  input.owner,
-                  input.repo,
-                  input.branch,
-                  input.path,
-                )
-              : await input.api.getDirectory(
-                  input.owner,
-                  input.repo,
-                  input.branch,
-                  input.path,
-                  input.nodeFilename,
-                ),
-        }
+        return loadDirect(
+          input.api,
+          input.owner,
+          input.repo,
+          input.branch,
+          input.path,
+          input.context,
+          input.nodeFilename,
+        )
       }
       const cached = await cachedDirectory(
         input.owner,
@@ -208,7 +280,7 @@ export function createDirectoryCache({
         return { entries: cached.entries }
       }
       if (cached) {
-        return refresh(
+        return dedupedRefresh(
           input.api,
           input.owner,
           input.repo,
@@ -218,7 +290,7 @@ export function createDirectoryCache({
           input.nodeFilename,
         )
       }
-      return refresh(
+      return dedupedRefresh(
         input.api,
         input.owner,
         input.repo,
@@ -237,7 +309,7 @@ export function createDirectoryCache({
       context: DirectoryContext
       nodeFilename?: string
     }) {
-      return refresh(
+      return dedupedRefresh(
         input.api,
         input.owner,
         input.repo,

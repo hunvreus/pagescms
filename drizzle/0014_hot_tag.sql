@@ -1,0 +1,2 @@
+DROP INDEX "idx_cache_file_owner_repo_branch_path";--> statement-breakpoint
+CREATE UNIQUE INDEX "idx_cache_file_owner_repo_branch_path_context" ON "cache_file" USING btree ("owner","repo","branch","path","context");
