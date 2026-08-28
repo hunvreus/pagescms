@@ -984,6 +984,10 @@ Validation:
 
 ### Wave 6A — Portable media parity and performance baseline
 
+Status: implemented and verified locally. The deterministic public/private
+request-count regression, media mutation workflow, and embedded-picker browser
+tests pass. Deployed p50/p95 measurements remain an operational follow-up.
+
 Scope:
 
 - port media browsing and mutations through the canonical manifest and public GitHub storage/delivery providers;
@@ -1022,6 +1026,11 @@ Validation:
 
 ### Wave 6C — Private S3 media storage
 
+Status: implemented in `../pro` and verified against the public conformance
+suite through a deterministic S3 transport, including POST, multipart,
+pagination, collision, abort, tampering, and copy/delete failure cases. A live
+disposable S3-compatible target remains an environment-level release check.
+
 Scope:
 
 - implement the private S3-compatible storage provider against the public contract;
@@ -1039,6 +1048,9 @@ Validation:
 - the open-source GitHub path is behaviorally unchanged when the provider is absent.
 
 ### Wave 6D — Optional Cloudflare media delivery
+
+Status: intentionally deferred until deployed portable-media measurements show
+that an additional delivery provider is justified.
 
 Scope:
 

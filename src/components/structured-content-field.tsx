@@ -421,8 +421,8 @@ function ListFieldControl({
                       open={openItems[index] ?? !options.initiallyCollapsed}
                       onOpenChange={(open) =>
                         setOpenItems((current) =>
-                          current.map((value, itemIndex) =>
-                            itemIndex === index ? open : value,
+                          current.map((itemOpen, itemIndex) =>
+                            itemIndex === index ? open : itemOpen,
                           ),
                         )
                       }

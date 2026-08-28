@@ -7,7 +7,8 @@ const metricsPath = (() => {
   if (!value) throw new Error('GitHub fixture metrics path is required')
   return value
 })()
-const mediaDirectoryPath = '/repos/pagescms/fixture/contents/public/images'
+const mediaDirectoryPath =
+  '/repos/pagescms/performance-fixture/contents/public/images'
 const productionBenchmark = process.env.PAGESCMS_E2E_PRODUCTION === 'true'
 
 test.describe.configure({ mode: 'serial' })
@@ -49,7 +50,9 @@ test('loads a media manifest and its image sources from one GitHub directory req
   await writeFile(metricsPath, '')
   const coldStartedAt = performance.now()
 
-  await page.goto('/pagescms/fixture/main/media/default?path=public%2Fimages')
+  await page.goto(
+    '/pagescms/performance-fixture/main/media/default?path=public%2Fimages',
+  )
   await expect(page.locator('[data-state="loaded"]')).toHaveCount(2, {
     timeout: 15_000,
   })
@@ -97,7 +100,10 @@ test('measures production media first-useful-render for public and private repos
     }
   > = {}
 
-  for (const repository of ['fixture', 'private-fixture']) {
+  for (const repository of [
+    'performance-fixture',
+    'private-performance-fixture',
+  ]) {
     await writeFile(metricsPath, '')
     const cold: Array<number> = []
 

@@ -5,6 +5,8 @@ import {
   parseMediaDeliveryRequest,
   parseMediaMove,
   parseMediaRename,
+  parseMediaUploadCompletion,
+  parseMediaUploadInitiation,
 } from './media'
 
 describe('media folder requests', () => {
@@ -104,5 +106,62 @@ describe('media delivery requests', () => {
         paths: Array.from({ length: 1001 }, () => 'public/images/a.png'),
       }),
     ).toThrow()
+  })
+})
+
+describe('direct media upload requests', () => {
+  const base = {
+    owner: 'PagesCMS',
+    repo: 'pages-cms',
+    branch: 'main',
+    name: 'images',
+  }
+
+  it('validates initiation metadata without accepting file bytes', () => {
+    expect(
+      parseMediaUploadInitiation({
+        ...base,
+        path: '/public/images/',
+        filename: 'hero.png',
+        size: 42,
+        contentType: 'image/png',
+        idempotencyKey: 'upload-1',
+      }),
+    ).toMatchObject({
+      parent: 'public/images',
+      filename: 'hero.png',
+      size: 42,
+    })
+    expect(() =>
+      parseMediaUploadInitiation({
+        ...base,
+        filename: 'hero.png',
+        size: -1,
+        contentType: 'image/png',
+        idempotencyKey: 'upload-1',
+      }),
+    ).toThrow('Invalid media upload initiation')
+  })
+
+  it('bounds and validates multipart completion data', () => {
+    expect(
+      parseMediaUploadCompletion({
+        ...base,
+        path: 'public/images/hero.png',
+        ticket: 'opaque-ticket',
+        parts: [{ number: 1, etag: '"etag"' }],
+      }),
+    ).toMatchObject({
+      path: 'public/images/hero.png',
+      parts: [{ number: 1, etag: '"etag"' }],
+    })
+    expect(() =>
+      parseMediaUploadCompletion({
+        ...base,
+        path: 'public/images/hero.png',
+        ticket: 'opaque-ticket',
+        parts: [{ number: 0, etag: '' }],
+      }),
+    ).toThrow('Invalid media upload completion')
   })
 })

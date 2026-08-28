@@ -59,7 +59,12 @@ function json(value: unknown, status = 200) {
   })
 }
 
-const fixtureRepositories = ['fixture', 'private-fixture'] as const
+const fixtureRepositories = [
+  'fixture',
+  'private-fixture',
+  'performance-fixture',
+  'private-performance-fixture',
+] as const
 
 function isFixtureRepository(value: string) {
   return fixtureRepositories.includes(
@@ -68,10 +73,13 @@ function isFixtureRepository(value: string) {
 }
 
 function repository(name = 'fixture') {
+  const id = fixtureRepositories.indexOf(
+    name as (typeof fixtureRepositories)[number],
+  )
   return {
-    id: name === 'private-fixture' ? 2 : 1,
+    id: id + 1,
     name,
-    private: name === 'private-fixture',
+    private: name.startsWith('private-'),
     default_branch: 'main',
     updated_at: '2026-08-20T00:00:00Z',
     owner: { id: 1, login: 'pagescms' },
@@ -172,7 +180,7 @@ function restEntries(path: string, repositoryName: string) {
 
 function recordRequest(method: string, url: URL) {
   if (
-    !/^\/repos\/pagescms\/(?:fixture|private-fixture)\/contents\/public\/images(?:\/|$)/.test(
+    !/^\/repos\/pagescms\/(?:fixture|private-fixture|performance-fixture|private-performance-fixture)\/contents\/public\/images(?:\/|$)/.test(
       url.pathname,
     )
   )

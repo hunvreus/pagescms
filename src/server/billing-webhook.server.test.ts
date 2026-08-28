@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import { BillingWebhookRequestError } from '#/deployment/contracts/hosted.server'
 import { handleBillingWebhookRequest } from './billing-webhook.server'
 
 describe('handleBillingWebhookRequest', () => {
@@ -51,5 +52,24 @@ describe('handleBillingWebhookRequest', () => {
 
     expect(response.status).toBe(413)
     expect(handle).not.toHaveBeenCalled()
+  })
+
+  it('returns a bounded client error for invalid signed requests', async () => {
+    const response = await handleBillingWebhookRequest(
+      new Request('https://app.pagescms.org/api/webhooks/billing', {
+        method: 'POST',
+        body: '{}',
+      }),
+      {
+        handle: async () => {
+          throw new BillingWebhookRequestError(400)
+        },
+      },
+    )
+
+    expect(response.status).toBe(400)
+    await expect(response.json()).resolves.toEqual({
+      error: 'Invalid billing webhook',
+    })
   })
 })

@@ -7,6 +7,16 @@
     "node": ">=22"
   },
   "type": "module",
+  "exports": {
+    "./deployment/contracts/client": "./src/deployment/contracts/client.ts",
+    "./deployment/contracts/hosted.server": "./src/deployment/contracts/hosted.server.ts",
+    "./deployment/contracts/server.server": "./src/deployment/contracts/server.server.ts",
+    "./deployment/contracts/version": "./src/deployment/contracts/version.ts",
+    "./deployment/conformance/media-storage": "./src/deployment/conformance/media-storage.ts",
+    "./lib/application-operations": "./src/lib/application-operations.ts",
+    "./server/access-policy.server": "./src/server/access-policy.server.ts",
+    "./server/media-provider.server": "./src/server/media-provider.server.ts"
+  },
   "imports": {
     "#/*": "./src/*"
   },

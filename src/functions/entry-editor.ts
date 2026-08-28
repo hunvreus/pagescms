@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 
 import { normalizeGitPath } from '#/lib/git-path'
 import { repositoryRef } from '#/lib/repository'
+import { resolveRepositoryPrincipal } from '#/server/repository-policy.server'
 
 function parseEntryRequest(input: unknown) {
   if (typeof input !== 'object' || input === null)
@@ -182,7 +183,11 @@ export const getRawEntry = createServerFn({ method: 'GET' })
     return services.access.execute(
       {
         operation: 'entry.read',
-        principal: { type: 'user', id: user.id },
+        principal: await resolveRepositoryPrincipal(
+          services.repositoryAccess,
+          user,
+          data,
+        ),
         tenant: {
           type: 'repository',
           id: `${data.owner}/${data.repo}`.toLowerCase(),
@@ -220,7 +225,11 @@ export const getEntryHistory = createServerFn({ method: 'GET' })
     return services.access.execute(
       {
         operation: 'entry.history',
-        principal: { type: 'user', id: user.id },
+        principal: await resolveRepositoryPrincipal(
+          services.repositoryAccess,
+          user,
+          data,
+        ),
         tenant: {
           type: 'repository',
           id: `${data.owner}/${data.repo}`.toLowerCase(),
@@ -260,7 +269,11 @@ export const updateRawEntry = createServerFn({ method: 'POST' })
     return services.access.execute(
       {
         operation: data.sha ? 'entry.update' : 'entry.create',
-        principal: { type: 'user', id: user.id },
+        principal: await resolveRepositoryPrincipal(
+          services.repositoryAccess,
+          user,
+          data,
+        ),
         tenant: {
           type: 'repository',
           id: `${data.owner}/${data.repo}`.toLowerCase(),
@@ -300,7 +313,11 @@ export const updateStructuredEntry = createServerFn({ method: 'POST' })
     return services.access.execute(
       {
         operation: data.sha ? 'entry.update' : 'entry.create',
-        principal: { type: 'user', id: user.id },
+        principal: await resolveRepositoryPrincipal(
+          services.repositoryAccess,
+          user,
+          data,
+        ),
         tenant: {
           type: 'repository',
           id: `${data.owner}/${data.repo}`.toLowerCase(),
@@ -343,7 +360,11 @@ export const createStructuredCollectionEntry = createServerFn({
     return services.access.execute(
       {
         operation: 'entry.create',
-        principal: { type: 'user', id: user.id },
+        principal: await resolveRepositoryPrincipal(
+          services.repositoryAccess,
+          user,
+          data,
+        ),
         tenant: {
           type: 'repository',
           id: `${data.owner}/${data.repo}`.toLowerCase(),
@@ -383,7 +404,11 @@ export const createRawCollectionEntry = createServerFn({ method: 'POST' })
     return services.access.execute(
       {
         operation: 'entry.create',
-        principal: { type: 'user', id: user.id },
+        principal: await resolveRepositoryPrincipal(
+          services.repositoryAccess,
+          user,
+          data,
+        ),
         tenant: {
           type: 'repository',
           id: `${data.owner}/${data.repo}`.toLowerCase(),
@@ -422,7 +447,11 @@ export const createCollectionFolder = createServerFn({ method: 'POST' })
     return services.access.execute(
       {
         operation: 'entry.create',
-        principal: { type: 'user', id: user.id },
+        principal: await resolveRepositoryPrincipal(
+          services.repositoryAccess,
+          user,
+          data,
+        ),
         tenant: {
           type: 'repository',
           id: `${data.owner}/${data.repo}`.toLowerCase(),
@@ -462,7 +491,11 @@ export const deleteEntry = createServerFn({ method: 'POST' })
     return services.access.execute(
       {
         operation: 'entry.delete',
-        principal: { type: 'user', id: user.id },
+        principal: await resolveRepositoryPrincipal(
+          services.repositoryAccess,
+          user,
+          data,
+        ),
         tenant: {
           type: 'repository',
           id: `${data.owner}/${data.repo}`.toLowerCase(),
@@ -502,7 +535,11 @@ export const renameEntry = createServerFn({ method: 'POST' })
     return services.access.execute(
       {
         operation: 'entry.rename',
-        principal: { type: 'user', id: user.id },
+        principal: await resolveRepositoryPrincipal(
+          services.repositoryAccess,
+          user,
+          data,
+        ),
         tenant: {
           type: 'repository',
           id: `${data.owner}/${data.repo}`.toLowerCase(),
@@ -542,7 +579,11 @@ export const moveEntry = createServerFn({ method: 'POST' })
     return services.access.execute(
       {
         operation: 'entry.rename',
-        principal: { type: 'user', id: user.id },
+        principal: await resolveRepositoryPrincipal(
+          services.repositoryAccess,
+          user,
+          data,
+        ),
         tenant: {
           type: 'repository',
           id: `${data.owner}/${data.repo}`.toLowerCase(),

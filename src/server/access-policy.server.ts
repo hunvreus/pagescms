@@ -57,8 +57,31 @@ export type AccessDecision =
       upgradeUrl?: string
     }>
 
+export type AccessDiscoveryResource = Readonly<{
+  type: 'collection' | 'media' | 'action'
+  name: string
+}>
+
+export type AccessDiscoveryRequest = Readonly<{
+  principal: AccessPrincipal
+  tenant: AccessTenant
+  target?: AccessTarget
+  resources: readonly AccessDiscoveryResource[]
+}>
+
+export type AccessDiscoveryDecision =
+  | Readonly<{ visibility: 'all' }>
+  | Readonly<{ visibility: 'none' }>
+  | Readonly<{
+      visibility: 'filtered'
+      resources: readonly AccessDiscoveryResource[]
+    }>
+
 export interface AccessPolicy {
   authorize: (request: AccessRequest) => Promise<AccessDecision>
+  discover?: (
+    request: AccessDiscoveryRequest,
+  ) => Promise<AccessDiscoveryDecision>
   reserve?: (
     request: AccessRequest,
     idempotencyKey: string,
@@ -78,6 +101,7 @@ export const allowAllAccessPolicy: AccessPolicy = Object.freeze({
     allowed: true as const,
     grant: { policyVersion: 'self-hosted-allow-all-v1' },
   }),
+  discover: async () => ({ visibility: 'all' as const }),
 })
 
 export class AccessDeniedError extends Error {
@@ -99,8 +123,18 @@ export class AccessPolicyConfigurationError extends Error {
   }
 }
 
+const SETTLEMENT_RETRY_DELAYS_MS = [0, 100, 400] as const
+
+async function wait(milliseconds: number) {
+  if (milliseconds <= 0) return
+  await new Promise<void>((resolve) => setTimeout(resolve, milliseconds))
+}
+
 export interface AccessPolicyGateway {
   authorize: (request: AccessRequest) => Promise<AccessGrant | undefined>
+  discover: (
+    request: AccessDiscoveryRequest,
+  ) => Promise<AccessDiscoveryDecision>
   execute: <T>(
     request: AccessRequest,
     operation: () => Promise<T>,
@@ -110,6 +144,14 @@ export interface AccessPolicyGateway {
     idempotencyKey: string,
     operation: () => Promise<T>,
   ) => Promise<T>
+  reserveQuota: (
+    request: AccessRequest,
+    idempotencyKey: string,
+  ) => Promise<PolicyReservation>
+  settleQuota: (
+    reservation: PolicyReservation,
+    outcome: 'committed' | 'released',
+  ) => Promise<void>
 }
 
 function requireGrant(decision: AccessDecision) {
@@ -132,9 +174,57 @@ export function createAccessPolicyGateway({
 
   const configuredPolicy = policy ?? allowAllAccessPolicy
 
+  async function reserveQuota(request: AccessRequest, idempotencyKey: string) {
+    if (!configuredPolicy.reserve) {
+      throw new AccessPolicyConfigurationError(
+        'Quota operation requires policy reservation support',
+      )
+    }
+
+    const grant = requireGrant(
+      await configuredPolicy.reserve(request, idempotencyKey),
+    )
+    const reservation = grant?.reservation
+    if (reservation) return reservation
+    if (configuredPolicy === allowAllAccessPolicy) {
+      return { id: `unmetered:${idempotencyKey}` }
+    }
+    throw new AccessPolicyConfigurationError(
+      'Quota policy did not return a reservation',
+    )
+  }
+
+  async function settleQuota(
+    reservation: PolicyReservation,
+    outcome: 'committed' | 'released',
+  ) {
+    if (configuredPolicy === allowAllAccessPolicy) return
+    if (!configuredPolicy.settle) {
+      throw new AccessPolicyConfigurationError(
+        'Quota operation requires policy settlement support',
+      )
+    }
+    let lastError: unknown
+    for (const delay of SETTLEMENT_RETRY_DELAYS_MS) {
+      await wait(delay)
+      try {
+        await configuredPolicy.settle(reservation, outcome)
+        return
+      } catch (error) {
+        lastError = error
+      }
+    }
+    throw lastError
+  }
+
   return {
     async authorize(request) {
       return requireGrant(await configuredPolicy.authorize(request))
+    },
+
+    async discover(request) {
+      if (configuredPolicy.discover) return configuredPolicy.discover(request)
+      return { visibility: 'all' }
     },
 
     async execute(request, operation) {
@@ -143,43 +233,24 @@ export function createAccessPolicyGateway({
     },
 
     async executeQuota(request, idempotencyKey, operation) {
-      if (!configuredPolicy.reserve) {
-        throw new AccessPolicyConfigurationError(
-          'Quota operation requires policy reservation support',
-        )
-      }
-
-      const grant = requireGrant(
-        await configuredPolicy.reserve(request, idempotencyKey),
-      )
-      const reservation = grant?.reservation
-
-      if (!reservation) {
-        if (configuredPolicy === allowAllAccessPolicy) return operation()
-        throw new AccessPolicyConfigurationError(
-          'Quota policy did not return a reservation',
-        )
-      }
-      if (!configuredPolicy.settle) {
-        throw new AccessPolicyConfigurationError(
-          'Quota operation requires policy settlement support',
-        )
-      }
+      const reservation = await reserveQuota(request, idempotencyKey)
 
       let result: Awaited<ReturnType<typeof operation>>
       try {
         result = await operation()
       } catch (error) {
         try {
-          await configuredPolicy.settle(reservation, 'released')
+          await settleQuota(reservation, 'released')
         } catch {
           // The provider must reconcile idempotently. Preserve the domain error.
         }
         throw error
       }
 
-      await configuredPolicy.settle(reservation, 'committed')
+      await settleQuota(reservation, 'committed')
       return result
     },
+    reserveQuota,
+    settleQuota,
   }
 }

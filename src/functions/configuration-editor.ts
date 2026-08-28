@@ -1,6 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 
 import { repositoryRef } from '#/lib/repository'
+import { resolveRepositoryPrincipal } from '#/server/repository-policy.server'
 
 function parseCoordinates(input: unknown) {
   if (typeof input !== 'object' || input === null) {
@@ -51,7 +52,11 @@ export const getConfigurationEditor = createServerFn({ method: 'GET' })
     return services.access.execute(
       {
         operation: 'configuration.read',
-        principal: { type: 'user', id: user.id },
+        principal: await resolveRepositoryPrincipal(
+          services.repositoryAccess,
+          user,
+          data,
+        ),
         tenant: {
           type: 'repository',
           id: `${data.owner}/${data.repo}`.toLowerCase(),
@@ -84,7 +89,11 @@ export const getConfigurationHistory = createServerFn({ method: 'GET' })
     return services.access.execute(
       {
         operation: 'configuration.history',
-        principal: { type: 'user', id: user.id },
+        principal: await resolveRepositoryPrincipal(
+          services.repositoryAccess,
+          user,
+          data,
+        ),
         tenant: {
           type: 'repository',
           id: `${data.owner}/${data.repo}`.toLowerCase(),
@@ -118,7 +127,11 @@ export const updateConfiguration = createServerFn({ method: 'POST' })
     return services.access.execute(
       {
         operation: 'configuration.update',
-        principal: { type: 'user', id: user.id },
+        principal: await resolveRepositoryPrincipal(
+          services.repositoryAccess,
+          user,
+          data,
+        ),
         tenant: {
           type: 'repository',
           id: `${data.owner}/${data.repo}`.toLowerCase(),

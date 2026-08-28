@@ -1,6 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 
 import { repositoryRef } from '#/lib/repository'
+import { resolveRepositoryPrincipal } from '#/server/repository-policy.server'
 
 function parseCollectionRequest(input: unknown) {
   if (typeof input !== 'object' || input === null) {
@@ -38,11 +39,16 @@ export const getCollection = createServerFn({ method: 'GET' })
       email: session.user.email,
       githubUsername: session.user.githubUsername ?? null,
     }
+    const principal = await resolveRepositoryPrincipal(
+      services.repositoryAccess,
+      user,
+      data,
+    )
 
     return services.access.execute(
       {
         operation: 'collection.read',
-        principal: { type: 'user', id: user.id },
+        principal,
         tenant: {
           type: 'repository',
           id: `${data.owner.toLowerCase()}/${data.repo.toLowerCase()}`,

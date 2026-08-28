@@ -26,6 +26,11 @@ export interface RepositoryPermissionsContributionProps {
   disabled: boolean
   owner: string
   repo: string
+  principals: readonly Readonly<{
+    id: string
+    label: string
+    type: 'collaborator'
+  }>[]
   snapshot: RepositoryPermissionSnapshot
   onReplace: (input: {
     expectedVersion: string

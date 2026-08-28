@@ -3,7 +3,7 @@
 ## Media overhaul
 
 - Measure deployed public/private media first-useful-render p50/p95 after the portable request-count regression baseline passes in production-like builds.
-- Prove the private Pro/Enterprise S3 storage/delivery plugin without a public fork.
+- Run the public media conformance suite against a disposable live S3-compatible target. The private provider already passes the same lifecycle suite against the deterministic in-memory S3 transport.
 - Evaluate the private Cloudflare signed-delivery and optional image-transformation plugin only after portable baseline measurements pass.
 
 ## Release and cutover

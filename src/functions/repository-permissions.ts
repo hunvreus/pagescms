@@ -2,6 +2,10 @@ import { createServerFn } from '@tanstack/react-start'
 
 import { validateRepositoryPermissionSnapshot } from '#/deployment/contracts/hosted.server'
 import { repositoryRef } from '#/lib/repository'
+import { resolveRepositoryPrincipal } from '#/server/repository-policy.server'
+
+import type { ProjectUser } from '#/server/projects.server'
+import type { RequestServices } from '#/server/request-services.server'
 
 function coordinates(input: unknown) {
   if (typeof input !== 'object' || input === null) {
@@ -39,14 +43,19 @@ function replacement(input: unknown) {
   }
 }
 
-function policy(
+async function policy(
   data: ReturnType<typeof coordinates>,
   operation: 'repository.permissions.read' | 'repository.permissions.update',
-  userId: string,
+  services: RequestServices,
+  user: ProjectUser,
 ) {
   return {
     operation,
-    principal: { type: 'user' as const, id: userId },
+    principal: await resolveRepositoryPrincipal(
+      services.repositoryAccess,
+      user,
+      data,
+    ),
     tenant: {
       type: 'repository' as const,
       id: `${data.owner}/${data.repo}`.toLowerCase(),
@@ -78,7 +87,7 @@ export const getRepositoryPermissions = createServerFn({ method: 'GET' })
       data.branch,
     )
     return services.access.execute(
-      policy(data, 'repository.permissions.read', user.id),
+      await policy(data, 'repository.permissions.read', services, user),
       async () =>
         validateRepositoryPermissionSnapshot(
           await admin.read({ owner: data.owner, repo: data.repo }),
@@ -106,7 +115,7 @@ export const replaceRepositoryPermissions = createServerFn({ method: 'POST' })
       data.branch,
     )
     return services.access.execute(
-      policy(data, 'repository.permissions.update', user.id),
+      await policy(data, 'repository.permissions.update', services, user),
       async () =>
         validateRepositoryPermissionSnapshot(
           await admin.replace({

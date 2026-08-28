@@ -46,6 +46,16 @@ export interface BillingWebhookHandler {
   } | void>
 }
 
+export class BillingWebhookRequestError extends Error {
+  readonly status: 400 | 401
+
+  constructor(status: 400 | 401, message = 'Invalid billing webhook') {
+    super(message)
+    this.name = 'BillingWebhookRequestError'
+    this.status = status
+  }
+}
+
 export type RepositoryPermissionResource =
   | Readonly<{ type: 'repository' }>
   | Readonly<{ type: 'collection' | 'media' | 'action'; name: string }>

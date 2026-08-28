@@ -7,6 +7,7 @@
 - [Authentication](./development/authentication.md)
 - [Cloudflare Workers](./development/cloudflare.md)
 - [Plugins](./development/plugins.md)
+- [Hosted access and entitlements](./hosted-access.md)
 - [Webhooks and cache](./development/webhooks-and-cache.md)
 - [Parity status](./development/parity.md)
 
