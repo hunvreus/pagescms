@@ -47,6 +47,7 @@ export interface GitHubDirectoryEntry {
   sha: string | null
   content: string | null
   size: number | null
+  downloadUrl: string | null
 }
 
 export interface GitHubWorkflowRun {
@@ -515,6 +516,7 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
             type === 'file' && typeof object?.byteSize === 'number'
               ? object.byteSize
               : null,
+          downloadUrl: null,
         }
       })
       const directories = entries.filter((entry) => entry.type === 'dir')
@@ -578,9 +580,52 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
           sha: requiredString(object.oid, 'blob sha'),
           content: typeof object.text === 'string' ? object.text : null,
           size: typeof object.byteSize === 'number' ? object.byteSize : null,
+          downloadUrl: null,
         })
       })
       return entries
+    },
+
+    async getMediaDirectory(
+      owner: string,
+      repo: string,
+      branch: string,
+      path: string,
+    ): Promise<GitHubDirectoryEntry[]> {
+      const parameters = new URLSearchParams({ ref: branch })
+      let body: unknown
+      try {
+        body = await githubRequest(
+          fetcher,
+          token,
+          `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${path.split('/').map(encodeURIComponent).join('/')}?${parameters.toString()}`,
+        )
+      } catch (error) {
+        if (error instanceof GitHubApiError && error.status === 404) return []
+        throw error
+      }
+      if (!Array.isArray(body)) {
+        throw new Error(`Expected ${path} to be a directory`)
+      }
+      return body.map((value): GitHubDirectoryEntry => {
+        const entry = requiredRecord(value, 'media directory entry')
+        const type = entry.type === 'dir' ? 'dir' : 'file'
+        return {
+          type,
+          name: requiredString(entry.name, 'entry name'),
+          path: requiredString(entry.path, 'entry path'),
+          sha: type === 'file' ? requiredString(entry.sha, 'blob sha') : null,
+          content: null,
+          size:
+            type === 'file' && typeof entry.size === 'number'
+              ? entry.size
+              : null,
+          downloadUrl:
+            type === 'file' && typeof entry.download_url === 'string'
+              ? entry.download_url
+              : null,
+        }
+      })
     },
 
     async putFile(input: {
