@@ -236,6 +236,7 @@ export async function loadMediaDirectory(
       extensions: Array.isArray(schema.extensions) ? schema.extensions : [],
       actions: schemaActions(schema),
       provider: manifest.provider,
+      capabilities: storage.capabilities,
     },
     entries: entries.map((entry) => ({
       id: entry.id,

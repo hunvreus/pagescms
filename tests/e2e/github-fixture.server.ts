@@ -42,6 +42,14 @@ const files = new Map([
       sha: 'media-sha-2',
     },
   ],
+  [
+    'public/images/Library/nested.svg',
+    {
+      content:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill="green"/></svg>',
+      sha: 'media-sha-3',
+    },
+  ],
 ])
 
 function json(value: unknown, status = 200) {
@@ -80,11 +88,16 @@ function encoded(value: string) {
 
 function directEntries(path: string) {
   const prefix = path ? `${path}/` : ''
-  return [...files.entries()]
+  const directories = new Set<string>()
+  const entries = [...files.entries()]
     .filter(([name]) => name.startsWith(prefix))
     .flatMap(([name, file]) => {
       const remainder = name.slice(prefix.length)
-      if (!remainder || remainder.includes('/')) return []
+      if (!remainder) return []
+      if (remainder.includes('/')) {
+        directories.add(remainder.split('/')[0])
+        return []
+      }
       return [
         {
           name: remainder,
@@ -98,6 +111,15 @@ function directEntries(path: string) {
         },
       ]
     })
+  return [
+    ...[...directories].map((name) => ({
+      name,
+      path: `${prefix}${name}`,
+      type: 'tree',
+      object: null,
+    })),
+    ...entries,
+  ]
 }
 
 function restEntries(path: string, repositoryName: string) {
@@ -114,11 +136,16 @@ function restEntries(path: string, repositoryName: string) {
   }
 
   const prefix = path ? `${path}/` : ''
-  return [...files.entries()]
+  const directories = new Set<string>()
+  const entries = [...files.entries()]
     .filter(([name]) => name.startsWith(prefix))
     .flatMap(([name, file]) => {
       const remainder = name.slice(prefix.length)
-      if (!remainder || remainder.includes('/')) return []
+      if (!remainder) return []
+      if (remainder.includes('/')) {
+        directories.add(remainder.split('/')[0])
+        return []
+      }
       return [
         {
           name: remainder,
@@ -130,6 +157,17 @@ function restEntries(path: string, repositoryName: string) {
         },
       ]
     })
+  return [
+    ...[...directories].map((name) => ({
+      name,
+      path: `${prefix}${name}`,
+      type: 'dir',
+      sha: `directory-${name}`,
+      size: 0,
+      download_url: null,
+    })),
+    ...entries,
+  ]
 }
 
 function recordRequest(method: string, url: URL) {
@@ -245,6 +283,71 @@ export const githubFixtureFetch: typeof fetch = async (input, init) => {
         commit: { sha: `commit-${Date.now()}` },
       })
     }
+    if (method === 'DELETE') {
+      if (!files.delete(path)) return json({ message: 'Not found' }, 404)
+      return json({ commit: { sha: `commit-${Date.now()}` } })
+    }
+  }
+  if (
+    repositoryName &&
+    isFixtureRepository(repositoryName) &&
+    repositoryRoute === 'git/ref/heads/main' &&
+    method === 'GET'
+  ) {
+    return json({ object: { sha: 'fixture-head-sha' } })
+  }
+  if (
+    repositoryName &&
+    isFixtureRepository(repositoryName) &&
+    repositoryRoute.startsWith('git/trees/') &&
+    method === 'GET'
+  ) {
+    return json({
+      sha: 'fixture-tree-sha',
+      tree: [...files.entries()].map(([path, file]) => ({
+        path,
+        mode: '100644',
+        type: 'blob',
+        sha: file.sha,
+      })),
+    })
+  }
+  if (
+    repositoryName &&
+    isFixtureRepository(repositoryName) &&
+    repositoryRoute === 'git/trees' &&
+    method === 'POST'
+  ) {
+    const body = JSON.parse(String(init?.body)) as {
+      tree: Array<{ path: string; sha: string | null }>
+    }
+    const removed = body.tree.find((entry) => entry.sha === null)
+    const added = body.tree.find((entry) => entry.sha !== null)
+    const source = added
+      ? [...files.values()].find((file) => file.sha === added.sha)
+      : undefined
+    if (!removed || !added || !source) {
+      return json({ message: 'Invalid tree update' }, 422)
+    }
+    files.delete(removed.path)
+    files.set(added.path, source)
+    return json({ sha: `tree-${Date.now()}` })
+  }
+  if (
+    repositoryName &&
+    isFixtureRepository(repositoryName) &&
+    repositoryRoute === 'git/commits' &&
+    method === 'POST'
+  ) {
+    return json({ sha: `commit-${Date.now()}` })
+  }
+  if (
+    repositoryName &&
+    isFixtureRepository(repositoryName) &&
+    repositoryRoute === 'git/refs/heads/main' &&
+    method === 'PATCH'
+  ) {
+    return json({ object: { sha: `commit-${Date.now()}` } })
   }
   if (
     repositoryName &&
