@@ -43,4 +43,7 @@ pnpm cf:typecheck
 pnpm cf:dry-run
 ```
 
-The dry run builds and bundles the Worker without uploading it. `pnpm build` explicitly selects the Cloudflare production target and can be run independently when live Cloudflare validation is deferred. `pnpm dev` instead exercises the ordinary Node development runtime.
+The dry run builds and bundles the Worker without uploading it. `pnpm build`
+uses the ordinary Vite production composition; `pnpm cf:dry-run` explicitly
+selects and bundles the Cloudflare target. `pnpm dev` exercises the ordinary
+Node development runtime.

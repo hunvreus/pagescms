@@ -117,6 +117,7 @@ describe('GitHub media storage', () => {
 
     expect(storage.capabilities).toEqual({
       createDirectory: true,
+      directUpload: false,
       upload: true,
       move: true,
       rename: true,
@@ -253,6 +254,7 @@ describe('media provider resolution', () => {
     id: 'github',
     capabilities: {
       createDirectory: true,
+      directUpload: false,
       upload: true,
       move: true,
       rename: true,
@@ -291,6 +293,26 @@ describe('media provider resolution', () => {
         fallbackDelivery,
         resolver: {
           resolveStorage: () => ({ id: 'broken' }) as never,
+          resolveDelivery: () => null,
+        },
+      }),
+    ).toThrow('Invalid media storage provider')
+  })
+
+  it('rejects a provider that advertises direct upload without implementing it', () => {
+    expect(() =>
+      resolveMediaProvider({
+        selection,
+        fallbackStorage,
+        fallbackDelivery,
+        resolver: {
+          resolveStorage: () => ({
+            ...fallbackStorage,
+            capabilities: {
+              ...fallbackStorage.capabilities,
+              directUpload: true,
+            },
+          }),
           resolveDelivery: () => null,
         },
       }),

@@ -39,6 +39,20 @@ describe('server deployment contract', () => {
     expect(() => createPagesCmsServerServices(deployment, {})).toThrow(
       /invalid access policy/,
     )
+
+    const invalidDiscovery = definePagesCmsServerDeployment({
+      apiVersion: DEPLOYMENT_API_VERSION,
+      create: () =>
+        ({
+          accessPolicy: {
+            authorize: async () => ({ allowed: true }),
+            discover: true,
+          },
+        }) as never,
+    })
+    expect(() => createPagesCmsServerServices(invalidDiscovery, {})).toThrow(
+      /invalid access policy/,
+    )
   })
 
   it('preserves a valid media provider resolver', () => {

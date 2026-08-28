@@ -17,10 +17,15 @@ const RepositoryPermissions = loadContribution ? lazy(loadContribution) : null
 
 export function RepositoryPermissionsContribution({
   branch,
+  collaborators,
   owner,
   repo,
 }: {
   branch: string
+  collaborators: readonly Readonly<{
+    email: string
+    userId: string | null
+  }>[]
   owner: string
   repo: string
 }) {
@@ -69,6 +74,17 @@ export function RepositoryPermissionsContribution({
         disabled={query.isFetching}
         owner={owner}
         repo={repo}
+        principals={collaborators.flatMap((collaborator) =>
+          collaborator.userId
+            ? [
+                {
+                  id: collaborator.userId,
+                  label: collaborator.email,
+                  type: 'collaborator' as const,
+                },
+              ]
+            : [],
+        )}
         snapshot={query.data}
         onReplace={async ({ expectedVersion, grants }) => {
           const snapshot = await replaceRepositoryPermissions({

@@ -22,7 +22,7 @@ Select an alternate composition by setting both entries together:
 
 ```sh
 PAGESCMS_DEPLOYMENT_SERVER=../pro/deployment.server.ts \
-PAGESCMS_DEPLOYMENT_CLIENT=../pro/deployment.client.tsx \
+PAGESCMS_DEPLOYMENT_CLIENT=../pro/deployment-client.ts \
 pnpm build
 ```
 
@@ -117,7 +117,7 @@ Storage and delivery are separate authorities. Storage lists assets, mutates the
 
 The OSS resolver always selects GitHub storage and direct delivery. Hosted resolution may select S3 storage and/or Cloudflare delivery per context. Repository content stores portable paths or URLs, never provider credentials, S3 objects, or delivery leases.
 
-S3 uploads use constrained presigned POST policies for small objects and multipart presigning above an approved threshold. A core confirmation endpoint verifies the uploaded object before quota settlement. Cloudflare delivery runs as a separately deployed Worker/hostname with short-lived signed capabilities and current/previous key rotation; it improves the baseline but is not required for Node, Vercel, or self-hosted correctness.
+S3 uploads use constrained presigned POST policies for small objects and multipart presigning above an approved threshold. The storage binds an opaque signed upload ticket and the core quota reservation to immutable S3 metadata. A core confirmation endpoint checks that metadata and the object version before quota settlement. Transfer failures abort and release the reservation; settlement and confirmation use bounded idempotent retries, and confirmation failures preserve the completed object for a later retry. Bucket lifecycle rules clean clients that disappear. CORS must allow the application origins, `POST`/`PUT`, request headers used by the signed operation, and expose `ETag` for multipart completion. Cloudflare delivery runs as a separately deployed Worker/hostname with short-lived signed capabilities and current/previous key rotation; it improves the baseline but is not required for Node, Vercel, or self-hosted correctness.
 
 ## Trusted custom fields
 
@@ -129,7 +129,7 @@ Custom field code is installed at build time. The server registry owns validatio
 ../pro/
   package.json
   deployment.server.ts
-  deployment.client.ts
+  deployment-client.ts
   pagescms.compat.json
   wrangler.hosted.jsonc
   plugins/

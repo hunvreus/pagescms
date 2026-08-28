@@ -1,6 +1,12 @@
 import { createServerFn } from '@tanstack/react-start'
 
+import {
+  filterConfigurationForDiscovery,
+  getConfigurationActionNames,
+} from '#/lib/configuration-discovery'
+import { getConfigurationNavigation } from '#/lib/configuration-navigation'
 import { branchName, repositoryRef } from '#/lib/repository'
+import { resolveRepositoryPrincipal } from '#/server/repository-policy.server'
 
 import type { RequestServices } from '#/server/request-services.server'
 
@@ -63,26 +69,68 @@ export const getRepositoryWorkspace = createServerFn({ method: 'GET' })
   .handler(async ({ context, data }) => {
     const services = context.getServices()
     const user = authenticatedProjectUser(await services.getSession())
+    const principal = await resolveRepositoryPrincipal(
+      services.repositoryAccess,
+      user,
+      data,
+    )
+    const tenant = {
+      type: 'repository' as const,
+      id: `${data.owner.toLowerCase()}/${data.repo.toLowerCase()}`,
+    }
+    const target = {
+      repository: { owner: data.owner, repo: data.repo },
+      ...(data.branch ? { branch: data.branch } : {}),
+    }
     return services.access.execute(
       {
-        operation: data.branch ? 'configuration.read' : 'repository.read',
-        principal: { type: 'user', id: user.id },
-        tenant: {
-          type: 'repository',
-          id: `${data.owner.toLowerCase()}/${data.repo.toLowerCase()}`,
-        },
-        target: {
-          repository: { owner: data.owner, repo: data.repo },
-          ...(data.branch ? { branch: data.branch } : {}),
-        },
+        operation: 'repository.read',
+        principal,
+        tenant,
+        target,
       },
-      () =>
-        services.projects.openRepository(
+      async () => {
+        const workspace = await services.projects.openRepository(
           user,
           data.owner,
           data.repo,
           data.branch,
-        ),
+        )
+        const configuration = workspace.configuration?.object
+        if (!configuration) {
+          return { ...workspace, discovery: { visibility: 'all' as const } }
+        }
+        const navigation = getConfigurationNavigation(configuration)
+        const discovery = await services.access.discover({
+          principal,
+          tenant,
+          target,
+          resources: [
+            ...navigation.flatMap((item) =>
+              item.type === 'file'
+                ? []
+                : [{ type: item.type, name: item.name } as const],
+            ),
+            ...getConfigurationActionNames(configuration).map((name) => ({
+              type: 'action' as const,
+              name,
+            })),
+          ],
+        })
+        return {
+          ...workspace,
+          configuration: workspace.configuration
+            ? {
+                ...workspace.configuration,
+                object: filterConfigurationForDiscovery(
+                  configuration,
+                  discovery,
+                ),
+              }
+            : null,
+          discovery,
+        }
+      },
     )
   })
 
@@ -94,7 +142,11 @@ export const createRepositoryBranch = createServerFn({ method: 'POST' })
     return services.access.execute(
       {
         operation: 'branch.create',
-        principal: { type: 'user', id: user.id },
+        principal: await resolveRepositoryPrincipal(
+          services.repositoryAccess,
+          user,
+          { ...data, branch: data.source },
+        ),
         tenant: {
           type: 'repository',
           id: `${data.owner}/${data.repo}`.toLowerCase(),

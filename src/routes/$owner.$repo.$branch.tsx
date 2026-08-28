@@ -117,6 +117,7 @@ function BranchWorkspace() {
       branch={workspace.branch!}
       branches={workspace.branches}
       configuration={workspace.configuration}
+      discovery={workspace.discovery}
       user={authentication.user}
     >
       <Outlet />

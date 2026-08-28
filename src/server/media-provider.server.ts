@@ -58,15 +58,59 @@ export interface MediaMutationResult {
 
 export interface MediaStorageCapabilities {
   createDirectory: boolean
+  directUpload: boolean
   upload: boolean
   move: boolean
   rename: boolean
   remove: boolean
 }
 
+export interface MediaUploadPart {
+  number: number
+  url: string
+}
+
+export type MediaDirectUploadPlan =
+  | Readonly<{
+      kind: 'post'
+      ticket: string
+      url: string
+      fields: Readonly<Record<string, string>>
+      expiresAt: string
+    }>
+  | Readonly<{
+      kind: 'multipart'
+      ticket: string
+      partSize: number
+      parts: readonly MediaUploadPart[]
+      expiresAt: string
+    }>
+
+export interface MediaDirectUpload {
+  initiate: (input: {
+    path: string
+    size: number
+    contentType: string
+    metadata: MediaMutationMetadata
+    reservationId: string
+  }) => Promise<MediaDirectUploadPlan>
+  complete: (input: {
+    ticket: string
+    parts?: readonly { number: number; etag: string }[]
+  }) => Promise<{
+    result: MediaMutationResult
+    reservationId: string
+  }>
+  abort: (input: { ticket: string }) => Promise<{
+    path: string
+    reservationId: string
+  }>
+}
+
 export interface MediaStorage {
   id: string
   capabilities: MediaStorageCapabilities
+  directUpload?: MediaDirectUpload
   list: (directory: string) => Promise<MediaManifest>
   resolveOrigins: (paths: string[]) => Promise<MediaOrigin[]>
   read: (path: string) => Promise<MediaStoredFile>
@@ -125,6 +169,7 @@ function isStorageCapabilities(
   const capabilities = value as Record<string, unknown>
   return (
     typeof capabilities.createDirectory === 'boolean' &&
+    typeof capabilities.directUpload === 'boolean' &&
     typeof capabilities.upload === 'boolean' &&
     typeof capabilities.move === 'boolean' &&
     typeof capabilities.rename === 'boolean' &&
@@ -133,18 +178,28 @@ function isStorageCapabilities(
 }
 
 function isStorage(value: unknown): value is MediaStorage {
+  if (typeof value !== 'object' || value === null) return false
+  const storage = value as Partial<MediaStorage>
+  const directUploadValue = (value as Record<string, unknown>).directUpload
+  const directUpload =
+    typeof directUploadValue === 'object' &&
+    directUploadValue !== null &&
+    typeof (directUploadValue as Record<string, unknown>).initiate ===
+      'function' &&
+    typeof (directUploadValue as Record<string, unknown>).complete ===
+      'function' &&
+    typeof (directUploadValue as Record<string, unknown>).abort === 'function'
   return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof (value as MediaStorage).id === 'string' &&
-    isStorageCapabilities((value as MediaStorage).capabilities) &&
-    typeof (value as MediaStorage).list === 'function' &&
-    typeof (value as MediaStorage).resolveOrigins === 'function' &&
-    typeof (value as MediaStorage).read === 'function' &&
-    typeof (value as MediaStorage).write === 'function' &&
-    typeof (value as MediaStorage).createDirectory === 'function' &&
-    typeof (value as MediaStorage).remove === 'function' &&
-    typeof (value as MediaStorage).move === 'function'
+    typeof storage.id === 'string' &&
+    isStorageCapabilities(storage.capabilities) &&
+    typeof storage.list === 'function' &&
+    typeof storage.resolveOrigins === 'function' &&
+    typeof storage.read === 'function' &&
+    typeof storage.write === 'function' &&
+    typeof storage.createDirectory === 'function' &&
+    typeof storage.remove === 'function' &&
+    typeof storage.move === 'function' &&
+    storage.capabilities.directUpload === directUpload
   )
 }
 
@@ -270,6 +325,7 @@ export function createGitHubMediaStorage({
     id: 'github',
     capabilities: {
       createDirectory: true,
+      directUpload: false,
       upload: true,
       move: true,
       rename: true,

@@ -1,6 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 
 import { repositoryRef } from '#/lib/repository'
+import { resolveRepositoryPrincipal } from '#/server/repository-policy.server'
 
 export function parseReferenceRequest(input: unknown) {
   if (typeof input !== 'object' || input === null)
@@ -58,7 +59,11 @@ export const getReferenceOptions = createServerFn({ method: 'GET' })
     return services.access.execute(
       {
         operation: 'reference.read',
-        principal: { type: 'user', id: user.id },
+        principal: await resolveRepositoryPrincipal(
+          services.repositoryAccess,
+          user,
+          data,
+        ),
         tenant: {
           type: 'repository',
           id: `${data.owner}/${data.repo}`.toLowerCase(),

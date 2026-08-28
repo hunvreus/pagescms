@@ -59,6 +59,32 @@ describe('access-policy gateway', () => {
     expect(action).not.toHaveBeenCalled()
   })
 
+  it('projects batched resource discovery without authorizing the client', async () => {
+    const discover = vi.fn(async () => ({
+      visibility: 'filtered' as const,
+      resources: [{ type: 'collection' as const, name: 'posts' }],
+    }))
+    const gateway = createAccessPolicyGateway({
+      deployment: 'hosted',
+      policy: { authorize: async () => ({ allowed: true }), discover },
+    })
+    const discovery = {
+      principal: request.principal,
+      tenant: request.tenant,
+      target: request.target,
+      resources: [
+        { type: 'collection' as const, name: 'posts' },
+        { type: 'collection' as const, name: 'drafts' },
+      ],
+    }
+
+    await expect(gateway.discover(discovery)).resolves.toEqual({
+      visibility: 'filtered',
+      resources: [{ type: 'collection', name: 'posts' }],
+    })
+    expect(discover).toHaveBeenCalledWith(discovery)
+  })
+
   it('fails closed when the hosted policy throws', async () => {
     const action = vi.fn(async () => 'secret')
     const gateway = createAccessPolicyGateway({
@@ -92,6 +118,68 @@ describe('access-policy gateway', () => {
 })
 
 describe('quota-consuming operations', () => {
+  it('supports a reservation spanning separate initiate and confirm requests', async () => {
+    const settle = vi.fn(async () => undefined)
+    const gateway = createAccessPolicyGateway({
+      deployment: 'hosted',
+      policy: {
+        authorize: async () => ({ allowed: true }),
+        reserve: async () => ({
+          allowed: true,
+          grant: { reservation: { id: 'upload-reservation' } },
+        }),
+        settle,
+      },
+    })
+
+    const reservation = await gateway.reserveQuota(
+      { ...request, operation: 'media.write' },
+      'upload:1',
+    )
+    expect(reservation).toEqual({ id: 'upload-reservation' })
+    await gateway.settleQuota(reservation, 'committed')
+    expect(settle).toHaveBeenCalledWith(reservation, 'committed')
+  })
+
+  it('retries idempotent quota settlement after transient policy failures', async () => {
+    vi.useFakeTimers()
+    const settle = vi
+      .fn<NonNullable<AccessPolicy['settle']>>()
+      .mockRejectedValueOnce(new Error('database unavailable'))
+      .mockRejectedValueOnce(new Error('database reconnecting'))
+      .mockResolvedValueOnce(undefined)
+    const gateway = createAccessPolicyGateway({
+      deployment: 'hosted',
+      policy: {
+        authorize: async () => ({ allowed: true }),
+        reserve: async () => ({
+          allowed: true,
+          grant: { reservation: { id: 'upload-reservation' } },
+        }),
+        settle,
+      },
+    })
+
+    const result = gateway.settleQuota(
+      { id: 'upload-reservation' },
+      'committed',
+    )
+    await vi.runAllTimersAsync()
+
+    await expect(result).resolves.toBeUndefined()
+    expect(settle).toHaveBeenCalledTimes(3)
+    vi.useRealTimers()
+  })
+
+  it('uses an unmetered reservation for self-hosted split operations', async () => {
+    const gateway = createAccessPolicyGateway({ deployment: 'self-hosted' })
+    const reservation = await gateway.reserveQuota(request, 'upload:local')
+    expect(reservation).toEqual({ id: 'unmetered:upload:local' })
+    await expect(
+      gateway.settleQuota(reservation, 'released'),
+    ).resolves.toBeUndefined()
+  })
+
   it('atomically reserves and commits around the protected operation', async () => {
     const events: string[] = []
     const policy: AccessPolicy = {

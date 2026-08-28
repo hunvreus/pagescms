@@ -36,6 +36,7 @@ function isAccessPolicy(value: unknown): value is AccessPolicy {
   return (
     isRecord(value) &&
     typeof value.authorize === 'function' &&
+    (value.discover === undefined || typeof value.discover === 'function') &&
     (value.reserve === undefined || typeof value.reserve === 'function') &&
     (value.settle === undefined || typeof value.settle === 'function')
   )

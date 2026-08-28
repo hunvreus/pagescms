@@ -1,6 +1,10 @@
 import { createServerFn } from '@tanstack/react-start'
 
 import { repositoryRef } from '#/lib/repository'
+import { resolveRepositoryPrincipal } from '#/server/repository-policy.server'
+
+import type { ProjectUser } from '#/server/projects.server'
+import type { RequestServices } from '#/server/request-services.server'
 
 function coordinates(input: unknown) {
   if (typeof input !== 'object' || input === null) {
@@ -46,15 +50,20 @@ function removeRequest(input: unknown) {
   return { ...repository, id: value.id }
 }
 
-function policy(
+async function policy(
   data: ReturnType<typeof coordinates>,
   operation:
     'collaborator.read' | 'collaborator.invite' | 'collaborator.remove',
-  userId: string,
+  services: RequestServices,
+  user: ProjectUser,
 ) {
   return {
     operation,
-    principal: { type: 'user' as const, id: userId },
+    principal: await resolveRepositoryPrincipal(
+      services.repositoryAccess,
+      user,
+      data,
+    ),
     tenant: {
       type: 'repository' as const,
       id: `${data.owner}/${data.repo}`.toLowerCase(),
@@ -87,7 +96,7 @@ export const getCollaborators = createServerFn({ method: 'GET' })
     const session = await services.getSession()
     if (!session?.user) throw new Error('Authentication required')
     return services.access.execute(
-      policy(data, 'collaborator.read', session.user.id),
+      await policy(data, 'collaborator.read', services, manager(session.user)),
       async () => {
         const { listCollaborators } =
           await import('#/server/collaborator-service.server')
@@ -108,7 +117,12 @@ export const addCollaborators = createServerFn({ method: 'POST' })
     const session = await services.getSession()
     if (!session?.user) throw new Error('Authentication required')
     return services.access.execute(
-      policy(data, 'collaborator.invite', session.user.id),
+      await policy(
+        data,
+        'collaborator.invite',
+        services,
+        manager(session.user),
+      ),
       async () => {
         const { inviteCollaborators } =
           await import('#/server/collaborator-service.server')
@@ -133,7 +147,12 @@ export const deleteCollaborator = createServerFn({ method: 'POST' })
     const session = await services.getSession()
     if (!session?.user) throw new Error('Authentication required')
     return services.access.execute(
-      policy(data, 'collaborator.remove', session.user.id),
+      await policy(
+        data,
+        'collaborator.remove',
+        services,
+        manager(session.user),
+      ),
       async () => {
         const { removeCollaborator } =
           await import('#/server/collaborator-service.server')

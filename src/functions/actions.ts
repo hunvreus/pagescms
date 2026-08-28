@@ -1,6 +1,10 @@
 import { createServerFn } from '@tanstack/react-start'
 
 import { repositoryRef } from '#/lib/repository'
+import { resolveRepositoryPrincipal } from '#/server/repository-policy.server'
+
+import type { ProjectUser } from '#/server/projects.server'
+import type { RequestServices } from '#/server/request-services.server'
 
 type ActionContextType =
   'repository' | 'collection' | 'entry' | 'file' | 'media'
@@ -112,19 +116,27 @@ function managementRequest(input: unknown): ReturnType<typeof coordinates> & {
   }
 }
 
-function policy(
+async function policy(
   data: ReturnType<typeof coordinates>,
   operation: 'action.read' | 'action.run',
-  userId: string,
+  services: RequestServices,
+  user: ProjectUser,
 ) {
   return {
     operation,
-    principal: { type: 'user' as const, id: userId },
+    principal: await resolveRepositoryPrincipal(
+      services.repositoryAccess,
+      user,
+      data,
+    ),
     tenant: {
       type: 'repository' as const,
       id: `${data.owner}/${data.repo}`.toLowerCase(),
     },
     target: { repository: data, branch: data.branch },
+    ...('actionName' in data && typeof data.actionName === 'string'
+      ? { facts: { action: data.actionName } }
+      : {}),
   }
 }
 
@@ -150,19 +162,41 @@ export const getActions = createServerFn({ method: 'GET' })
     const services = context.getServices()
     const session = await services.getSession()
     if (!session?.user) throw new Error('Authentication required')
-    return services.access.execute(
-      policy(data, 'action.read', session.user.id),
-      async () => {
-        const { loadRepositoryActions } =
-          await import('#/server/action-service.server')
-        return loadRepositoryActions({
-          database: services.database,
-          repositoryAccess: services.repositoryAccess,
-          user: actionUser(session.user),
-          ...data,
-        })
-      },
+    const accessRequest = await policy(
+      data,
+      'action.read',
+      services,
+      actionUser(session.user),
     )
+    return services.access.execute(accessRequest, async () => {
+      const { loadRepositoryActions } =
+        await import('#/server/action-service.server')
+      const result = await loadRepositoryActions({
+        database: services.database,
+        repositoryAccess: services.repositoryAccess,
+        user: actionUser(session.user),
+        ...data,
+      })
+      const discovery = await services.access.discover({
+        principal: accessRequest.principal,
+        tenant: accessRequest.tenant,
+        target: accessRequest.target,
+        resources: result.actions.map((action) => ({
+          type: 'action',
+          name: action.name,
+        })),
+      })
+      if (discovery.visibility === 'all') return result
+      const visible = new Set(
+        discovery.visibility === 'filtered'
+          ? discovery.resources.map((resource) => resource.name)
+          : [],
+      )
+      return {
+        actions: result.actions.filter((action) => visible.has(action.name)),
+        runs: result.runs.filter((run) => visible.has(run.actionName)),
+      }
+    })
   })
 
 export const runAction = createServerFn({ method: 'POST' })
@@ -172,7 +206,7 @@ export const runAction = createServerFn({ method: 'POST' })
     const session = await services.getSession()
     if (!session?.user) throw new Error('Authentication required')
     return services.access.execute(
-      policy(data, 'action.run', session.user.id),
+      await policy(data, 'action.run', services, actionUser(session.user)),
       async () => {
         const { dispatchRepositoryAction } =
           await import('#/server/action-service.server')
@@ -193,7 +227,7 @@ export const manageAction = createServerFn({ method: 'POST' })
     const session = await services.getSession()
     if (!session?.user) throw new Error('Authentication required')
     return services.access.execute(
-      policy(data, 'action.run', session.user.id),
+      await policy(data, 'action.run', services, actionUser(session.user)),
       async () => {
         const { manageRepositoryAction } =
           await import('#/server/action-service.server')

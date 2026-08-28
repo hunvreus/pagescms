@@ -184,7 +184,10 @@ function CollaboratorsPage() {
             </EmptyHeader>
           </Empty>
         )}
-        <RepositoryPermissionsContribution {...params} />
+        <RepositoryPermissionsContribution
+          {...params}
+          collaborators={collaborators}
+        />
       </div>
     </div>
   )

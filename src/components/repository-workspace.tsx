@@ -77,6 +77,7 @@ import type { ReactNode } from 'react'
 import type { AppHeaderUser } from '#/features/account/app-header'
 import type { RecentProject } from '#/features/projects/recent-projects'
 import type { ConfigurationNavigationNode } from '#/lib/configuration-navigation'
+import type { AccessDiscoveryDecision } from '#/server/access-policy.server'
 
 interface WorkspaceProps {
   children: ReactNode
@@ -87,6 +88,7 @@ interface WorkspaceProps {
   configuration: {
     object: Record<string, unknown>
   } | null
+  discovery: AccessDiscoveryDecision
   user: AppHeaderUser
 }
 
@@ -97,23 +99,29 @@ export function RepositoryWorkspace({
   branch,
   branches,
   configuration,
+  discovery,
   user,
 }: WorkspaceProps) {
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   })
-  const navigation = configuration
-    ? getConfigurationNavigationGroups(configuration.object)
-    : { content: [], media: [] }
+  const navigation = filterRepositoryNavigation(
+    configuration
+      ? getConfigurationNavigationGroups(configuration.object)
+      : { content: [], media: [] },
+    discovery,
+  )
   const canManageRepository = Boolean(user.githubUsername)
   const adminItems = configuration
     ? [
         ...(canManageRepository && isCacheEnabled(configuration.object)
           ? [{ key: 'cache', label: 'Cache', icon: <Database /> }]
           : []),
+        ...(canManageRepository && resourceTypeVisible(discovery, 'action')
+          ? [{ key: 'actions', label: 'Actions', icon: <ListVideo /> }]
+          : []),
         ...(canManageRepository
           ? [
-              { key: 'actions', label: 'Actions', icon: <ListVideo /> },
               {
                 key: 'collaborators',
                 label: 'Collaborators',
@@ -154,6 +162,44 @@ export function RepositoryWorkspace({
       </SidebarInset>
     </SidebarProvider>
   )
+}
+
+function resourceTypeVisible(
+  discovery: AccessDiscoveryDecision,
+  type: 'collection' | 'media' | 'action',
+) {
+  if (discovery.visibility === 'all') return true
+  if (discovery.visibility === 'none') return false
+  return discovery.resources.some((resource) => resource.type === type)
+}
+
+export function filterRepositoryNavigation(
+  navigation: ReturnType<typeof getConfigurationNavigationGroups>,
+  discovery: AccessDiscoveryDecision,
+) {
+  if (discovery.visibility === 'all') return navigation
+  const visible = new Set(
+    discovery.visibility === 'filtered'
+      ? discovery.resources.map(
+          (resource) => `${resource.type}:${resource.name}`,
+        )
+      : [],
+  )
+  const filter = (
+    nodes: readonly ConfigurationNavigationNode[],
+  ): ConfigurationNavigationNode[] =>
+    nodes.flatMap((node): ConfigurationNavigationNode[] => {
+      if (node.type === 'group') {
+        const items = filter(node.items)
+        return items.length ? [{ ...node, items }] : []
+      }
+      if (node.type === 'file') return [node]
+      return visible.has(`${node.type}:${node.name}`) ? [node] : []
+    })
+  return {
+    content: filter(navigation.content),
+    media: filter(navigation.media),
+  }
 }
 
 function RepositorySidebar({

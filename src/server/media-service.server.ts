@@ -325,6 +325,28 @@ export async function uploadMedia(
   if (base64ByteLength(input.content) > 20 * 1024 * 1024) {
     throw new Error('Media file exceeds the 20 MB limit')
   }
+  const { path, storage, metadata } = await mediaUploadTarget(input)
+  const result = await storage.write({
+    path,
+    content: input.content,
+    metadata,
+  })
+  await invalidateDirectoryCacheAfterMutation(
+    input.database,
+    input.owner,
+    input.repo,
+    input.branch,
+  )
+  return result
+}
+
+async function mediaUploadTarget(
+  input: MediaInput & {
+    user: ProjectUser & { name: string }
+    parent?: string
+    filename: string
+  },
+) {
   const { configuration, schema, storage } = await context(input)
   const parent = mediaDirectoryPath(schema, input.parent)
   const filename = normalizeGitPath(input.filename.trim())
@@ -340,9 +362,9 @@ export async function uploadMedia(
     configuration: configuration.object,
     identityOverride: commit.identity,
   })
-  const result = await storage.write({
+  return {
     path,
-    content: input.content,
+    storage,
     metadata: {
       message: resolveCommitMessage({
         configuration: configuration.object,
@@ -364,14 +386,71 @@ export async function uploadMedia(
         ? { actor: committer(identity, input.user) }
         : {}),
     },
+  }
+}
+
+export async function prepareMediaUpload(
+  input: MediaInput & {
+    user: ProjectUser & { name: string }
+    parent?: string
+    filename: string
+    size: number
+    contentType: string
+  },
+) {
+  const { path, storage, metadata } = await mediaUploadTarget(input)
+  return {
+    path,
+    direct: storage.directUpload
+      ? (reservationId: string) =>
+          storage.directUpload!.initiate({
+            path,
+            size: input.size,
+            contentType: input.contentType,
+            metadata,
+            reservationId,
+          })
+      : null,
+  }
+}
+
+export async function completeMediaUpload(
+  input: MediaInput & {
+    path: string
+    ticket: string
+    parts?: readonly { number: number; etag: string }[]
+  },
+) {
+  const { schema, storage } = await context(input)
+  const expectedPath = mediaDirectoryPath(schema, input.path)
+  if (!storage.directUpload) throw new Error('Direct upload is unavailable')
+  const completed = await storage.directUpload.complete({
+    ticket: input.ticket,
+    parts: input.parts,
   })
+  if (completed.result.path !== expectedPath) {
+    throw new Error('Completed upload path does not match its request')
+  }
   await invalidateDirectoryCacheAfterMutation(
     input.database,
     input.owner,
     input.repo,
     input.branch,
   )
-  return result
+  return completed
+}
+
+export async function abortMediaUpload(
+  input: MediaInput & { path: string; ticket: string },
+) {
+  const { schema, storage } = await context(input)
+  const expectedPath = mediaDirectoryPath(schema, input.path)
+  if (!storage.directUpload) throw new Error('Direct upload is unavailable')
+  const aborted = await storage.directUpload.abort({ ticket: input.ticket })
+  if (aborted.path !== expectedPath) {
+    throw new Error('Aborted upload path does not match its request')
+  }
+  return aborted
 }
 
 export async function createMediaDirectory(

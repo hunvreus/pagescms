@@ -1,6 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 
 import { repositoryRef } from '#/lib/repository'
+import { resolveRepositoryPrincipal } from '#/server/repository-policy.server'
 
 function parseFileRequest(input: unknown) {
   if (typeof input !== 'object' || input === null) {
@@ -39,7 +40,11 @@ export const getFixedFile = createServerFn({ method: 'GET' })
     return services.access.execute(
       {
         operation: 'entry.read',
-        principal: { type: 'user', id: user.id },
+        principal: await resolveRepositoryPrincipal(
+          services.repositoryAccess,
+          user,
+          data,
+        ),
         tenant: {
           type: 'repository',
           id: `${data.owner}/${data.repo}`.toLowerCase(),

@@ -1,8 +1,11 @@
 import { createServerFn } from '@tanstack/react-start'
 
 import { repositoryRef } from '#/lib/repository'
+import { resolveRepositoryPrincipal } from '#/server/repository-policy.server'
 
 import type { CacheAction } from '#/server/cache-service.server'
+import type { ProjectUser } from '#/server/projects.server'
+import type { RequestServices } from '#/server/request-services.server'
 
 const cacheActions = new Set<CacheAction>([
   'reconcile-content',
@@ -40,14 +43,19 @@ function managementRequest(input: unknown) {
   return { ...repository, action: action as CacheAction }
 }
 
-function policy(
+async function policy(
   data: ReturnType<typeof coordinates>,
   operation: 'cache.read' | 'cache.invalidate',
-  userId: string,
+  services: RequestServices,
+  user: ProjectUser,
 ) {
   return {
     operation,
-    principal: { type: 'user' as const, id: userId },
+    principal: await resolveRepositoryPrincipal(
+      services.repositoryAccess,
+      user,
+      data,
+    ),
     tenant: {
       type: 'repository' as const,
       id: `${data.owner}/${data.repo}`.toLowerCase(),
@@ -75,7 +83,7 @@ export const getCacheStatus = createServerFn({ method: 'GET' })
     const session = await services.getSession()
     if (!session?.user) throw new Error('Authentication required')
     return services.access.execute(
-      policy(data, 'cache.read', session.user.id),
+      await policy(data, 'cache.read', services, cacheUser(session.user)),
       async () => {
         const { loadCacheStatus } =
           await import('#/server/cache-service.server')
@@ -96,7 +104,7 @@ export const updateCache = createServerFn({ method: 'POST' })
     const session = await services.getSession()
     if (!session?.user) throw new Error('Authentication required')
     return services.access.execute(
-      policy(data, 'cache.invalidate', session.user.id),
+      await policy(data, 'cache.invalidate', services, cacheUser(session.user)),
       async () => {
         const { manageCache } = await import('#/server/cache-service.server')
         return manageCache({
