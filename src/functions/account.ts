@@ -1,5 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 
+import { validateEntitlementSnapshot } from '#/deployment/contracts/hosted.server'
+
 export function parseProfileRequest(input: unknown) {
   if (typeof input !== 'object' || input === null)
     throw new Error('Invalid profile update')
@@ -31,7 +33,7 @@ export const getAccountSettings = createServerFn({ method: 'GET' }).handler(
       async () => {
         const { loadAccountSettings } =
           await import('#/server/account-service.server')
-        return loadAccountSettings({
+        const settings = await loadAccountSettings({
           database: services.database,
           projects: services.projects,
           user: {
@@ -47,6 +49,16 @@ export const getAccountSettings = createServerFn({ method: 'GET' }).handler(
             session.user.email.toLowerCase(),
           ),
         })
+        const entitlementValue = services.entitlementReader
+          ? await services.entitlementReader.read({
+              principal: { type: 'user', id: session.user.id },
+              tenant: { type: 'account', id: session.user.id },
+            })
+          : null
+        const entitlement = entitlementValue
+          ? validateEntitlementSnapshot(entitlementValue)
+          : null
+        return { ...settings, entitlement }
       },
     )
   },

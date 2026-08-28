@@ -20,6 +20,7 @@ import { Textarea } from '#/components/ui/textarea'
 import { addCollaborators, deleteCollaborator } from '#/functions/collaborators'
 import { getSignInUrl } from '#/lib/auth-redirect'
 import { collaboratorsQueryOptions } from '#/queries/repository'
+import { RepositoryPermissionsContribution } from '#/features/collaborators/repository-permissions-contribution'
 
 export const Route = createFileRoute('/$owner/$repo/$branch/collaborators')({
   loader: async ({ context, params }) => {
@@ -183,6 +184,7 @@ function CollaboratorsPage() {
             </EmptyHeader>
           </Empty>
         )}
+        <RepositoryPermissionsContribution {...params} />
       </div>
     </div>
   )

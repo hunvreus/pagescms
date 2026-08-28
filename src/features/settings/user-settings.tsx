@@ -7,6 +7,7 @@ import { OperationError } from '#/components/operation-error'
 import { PageHeader } from '#/components/page-header'
 import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
 import { Button } from '#/components/ui/button'
+import { Badge } from '#/components/ui/badge'
 import {
   Card,
   CardContent,
@@ -118,6 +119,64 @@ export function UserSettings() {
           <div className="rounded-lg border bg-card p-3 text-sm">{message}</div>
         ) : null}
         <OperationError error={error} fallback="Could not update settings." />
+
+        {data.entitlement ? (
+          <Card>
+            <CardHeader className="border-b">
+              <div className="flex items-center justify-between gap-3">
+                <div className="space-y-1.5">
+                  <CardTitle>Plan</CardTitle>
+                  <CardDescription>
+                    Subscription and usage for this account.
+                  </CardDescription>
+                </div>
+                <Badge variant="secondary">{data.entitlement.planLabel}</Badge>
+              </div>
+            </CardHeader>
+            {data.entitlement.usage.length ? (
+              <CardContent>
+                <ul>
+                  {data.entitlement.usage.map((counter) => (
+                    <li className={rowClassName} key={counter.key}>
+                      <span className="font-medium">{counter.label}</span>
+                      <span className="ml-auto text-muted-foreground">
+                        {counter.used}
+                        {counter.limit === null ? '' : ` of ${counter.limit}`}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            ) : null}
+            {data.entitlement.upgradeUrl ||
+            data.entitlement.billingPortalUrl ? (
+              <CardFooter className="justify-end gap-2">
+                {data.entitlement.billingPortalUrl ? (
+                  <Button asChild size="sm" variant="outline">
+                    <a
+                      href={data.entitlement.billingPortalUrl}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      Manage billing
+                    </a>
+                  </Button>
+                ) : null}
+                {data.entitlement.upgradeUrl ? (
+                  <Button asChild size="sm">
+                    <a
+                      href={data.entitlement.upgradeUrl}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      Upgrade
+                    </a>
+                  </Button>
+                ) : null}
+              </CardFooter>
+            ) : null}
+          </Card>
+        ) : null}
 
         <Card>
           <CardHeader className="border-b">

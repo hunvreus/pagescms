@@ -13,6 +13,21 @@ export default definePagesCmsServerDeployment({
           grant: { policyVersion: SERVER_ONLY_SENTINEL },
         }),
       },
+      entitlementReader: {
+        read: async () => ({
+          policyVersion: 'fixture-v1',
+          status: 'active' as const,
+          planLabel: 'Fixture',
+          usage: [],
+        }),
+      },
+      repositoryPermissionAdmin: {
+        read: async () => ({ version: 'fixture-v1', grants: [] }),
+        replace: async ({ expectedVersion }) => ({
+          version: `${expectedVersion}-next`,
+          grants: [],
+        }),
+      },
     }
   },
 })

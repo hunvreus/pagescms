@@ -1,4 +1,9 @@
+import type { ComponentType } from 'react'
 import type { JsonObject, JsonValue } from '#/lib/json'
+import type {
+  RepositoryPermissionGrant,
+  RepositoryPermissionSnapshot,
+} from './hosted.server'
 
 import { DEPLOYMENT_API_VERSION, DeploymentConfigurationError } from './version'
 
@@ -12,22 +17,57 @@ export interface DeploymentFieldProps {
   onChange: (value: JsonValue | undefined) => void
 }
 
-export type DeploymentFieldComponent = (
-  props: DeploymentFieldProps,
-) => React.ReactNode
+export type LazyClientContribution<TProps> = () => Promise<{
+  default: ComponentType<TProps>
+}>
+
+export interface RepositoryPermissionsContributionProps {
+  branch: string
+  disabled: boolean
+  owner: string
+  repo: string
+  snapshot: RepositoryPermissionSnapshot
+  onReplace: (input: {
+    expectedVersion: string
+    grants: readonly RepositoryPermissionGrant[]
+  }) => Promise<RepositoryPermissionSnapshot>
+}
 
 export interface PagesCmsClientDeployment {
   apiVersion: typeof DEPLOYMENT_API_VERSION
-  fields?: Readonly<Record<string, DeploymentFieldComponent>>
+  fieldEditors?: Readonly<
+    Record<string, LazyClientContribution<DeploymentFieldProps>>
+  >
+  ui?: Readonly<{
+    repositoryPermissions?: LazyClientContribution<RepositoryPermissionsContributionProps>
+  }>
 }
 
 interface PagesCmsClientDeploymentInput {
   apiVersion: number
-  fields?: Readonly<Record<string, DeploymentFieldComponent>>
+  fieldEditors?: Readonly<
+    Record<string, LazyClientContribution<DeploymentFieldProps>>
+  >
+  ui?: Readonly<{
+    repositoryPermissions?: LazyClientContribution<RepositoryPermissionsContributionProps>
+  }>
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function assertOnlyKeys(
+  value: Record<string, unknown>,
+  allowed: readonly string[],
+  label: string,
+) {
+  const unexpected = Object.keys(value).filter((key) => !allowed.includes(key))
+  if (unexpected.length > 0) {
+    throw new DeploymentConfigurationError(
+      `${label} has unsupported ${unexpected.length === 1 ? 'key' : 'keys'}: ${unexpected.join(', ')}`,
+    )
+  }
 }
 
 export function definePagesCmsClientDeployment(
@@ -38,29 +78,56 @@ export function definePagesCmsClientDeployment(
       'The client deployment must export an object',
     )
   }
+  assertOnlyKeys(
+    deployment,
+    ['apiVersion', 'fieldEditors', 'ui'],
+    'The client deployment',
+  )
   if (deployment.apiVersion !== DEPLOYMENT_API_VERSION) {
     throw new DeploymentConfigurationError(
       `The client deployment uses unsupported API version ${String(deployment.apiVersion)}`,
     )
   }
-  if (deployment.fields !== undefined && !isRecord(deployment.fields)) {
+  if (
+    deployment.fieldEditors !== undefined &&
+    !isRecord(deployment.fieldEditors)
+  ) {
     throw new DeploymentConfigurationError(
-      'The client deployment fields must be an object',
+      'The client deployment field editors must be an object',
     )
   }
 
-  for (const [name, component] of Object.entries(deployment.fields ?? {})) {
-    if (!/^[a-zA-Z0-9-_]+$/.test(name) || typeof component !== 'function') {
+  for (const [name, loader] of Object.entries(deployment.fieldEditors ?? {})) {
+    if (!/^[a-zA-Z0-9-_]+$/.test(name) || typeof loader !== 'function') {
       throw new DeploymentConfigurationError(
         `The client deployment has an invalid field ${name}`,
       )
     }
   }
+  if (deployment.ui !== undefined && !isRecord(deployment.ui)) {
+    throw new DeploymentConfigurationError(
+      'The client deployment UI contributions must be an object',
+    )
+  }
+  if (deployment.ui) {
+    assertOnlyKeys(
+      deployment.ui,
+      ['repositoryPermissions'],
+      'The client deployment UI contributions',
+    )
+  }
+  if (
+    deployment.ui?.repositoryPermissions !== undefined &&
+    typeof deployment.ui.repositoryPermissions !== 'function'
+  ) {
+    throw new DeploymentConfigurationError(
+      'The repository permissions contribution must be lazy',
+    )
+  }
 
   return Object.freeze({
     apiVersion: DEPLOYMENT_API_VERSION,
-    fields: Object.freeze({ ...deployment.fields }) as Readonly<
-      Record<string, DeploymentFieldComponent>
-    >,
+    fieldEditors: Object.freeze({ ...deployment.fieldEditors }),
+    ui: Object.freeze({ ...deployment.ui }),
   })
 }
