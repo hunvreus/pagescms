@@ -30,6 +30,9 @@ import type { Database } from './database/client.server'
 import type { ProjectUser } from './projects.server'
 import type { RepositoryAccessService } from './repository-access.server'
 import type {
+  MediaAsset,
+  MediaOrigin,
+  MediaDeliveryLease,
   MediaProviderResolver,
   MediaProviderSelection,
 } from './media-provider.server'
@@ -57,6 +60,51 @@ function allowedExtension(schema: MediaSchema, path: string) {
       .map((value) => value.toLowerCase())
       .includes(getFileExtension(path).toLowerCase())
   )
+}
+
+function immediateParent(path: string) {
+  const separator = path.lastIndexOf('/')
+  return separator === -1 ? '' : path.slice(0, separator)
+}
+
+export function confineMediaAssets(
+  schema: MediaSchema,
+  directory: string,
+  assets: MediaAsset[],
+) {
+  return assets.filter((asset) => {
+    try {
+      const path = normalizeGitPath(asset.path)
+      return (
+        mediaDirectoryPath(schema, path) === path &&
+        immediateParent(path) === directory
+      )
+    } catch {
+      return false
+    }
+  })
+}
+
+export function confineMediaDeliveryValues<
+  TValue extends MediaOrigin | MediaDeliveryLease,
+>(schema: MediaSchema, requestedPaths: string[], values: TValue[]) {
+  const requested = new Set(requestedPaths)
+  const confined = new Map<string, TValue>()
+  for (const value of values) {
+    try {
+      const path = normalizeGitPath(value.path)
+      if (
+        requested.has(path) &&
+        mediaDirectoryPath(schema, path) === path &&
+        !confined.has(path)
+      ) {
+        confined.set(path, value)
+      }
+    } catch {
+      // Provider output is untrusted at this boundary; omit invalid values.
+    }
+  }
+  return [...confined.values()]
 }
 
 async function context(input: MediaInput) {
@@ -162,7 +210,7 @@ export async function loadMediaDirectory(
   const { schema, storage } = await context(input)
   const path = mediaDirectoryPath(schema, input.path)
   const manifest = await storage.list(path)
-  const entries = manifest.assets
+  const entries = confineMediaAssets(schema, path, manifest.assets)
     .filter(
       (entry) =>
         entry.name !== '.gitkeep' &&
@@ -206,8 +254,16 @@ export async function loadMediaDelivery(
 ) {
   const { schema, storage, delivery } = await context(input)
   const { paths, errors } = partitionMediaDeliveryPaths(schema, input.paths)
-  const origins = await storage.resolveOrigins(paths)
-  const leases = await delivery.resolve(origins)
+  const origins = confineMediaDeliveryValues(
+    schema,
+    paths,
+    await storage.resolveOrigins(paths),
+  )
+  const leases = confineMediaDeliveryValues(
+    schema,
+    paths,
+    await delivery.resolve(origins),
+  )
   const resolved = new Set(leases.map((lease) => lease.path))
   for (const path of paths) {
     if (!resolved.has(path)) {

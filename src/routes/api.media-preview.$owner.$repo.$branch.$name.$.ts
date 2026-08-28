@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { decodeBase64Bytes, mediaContentType } from '#/lib/media-assets'
+import { mediaContentType } from '#/lib/media-assets'
 import { normalizeGitPath } from '#/lib/git-path'
 import { repositoryRef } from '#/lib/repository'
 
@@ -64,11 +64,11 @@ export const Route = createFileRoute(
               })
             },
           )
-          const etag = `"${file.sha}"`
+          const etag = `"${file.version}"`
           if (request.headers.get('if-none-match') === etag) {
             return new Response(null, { status: 304, headers: { etag } })
           }
-          return new Response(decodeBase64Bytes(file.content), {
+          return new Response(new Uint8Array(file.bytes).buffer, {
             headers: {
               'cache-control':
                 'private, max-age=60, stale-while-revalidate=300',

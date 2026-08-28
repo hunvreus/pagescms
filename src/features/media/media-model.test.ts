@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   mediaEntries,
   mediaLeaseRenewalDelay,
+  needsMediaDeliveryRefetch,
   parentMediaPath,
 } from './media-model'
 
@@ -85,13 +86,24 @@ describe('mediaLeaseRenewalDelay', () => {
     ).toBe(30_000)
   })
 
-  it('does not schedule immutable leases and renews expired ones immediately', () => {
+  it('does not schedule immutable leases and bounds retries for expired ones', () => {
     expect(mediaLeaseRenewalDelay([{ expiresAt: null }])).toBeNull()
     expect(
       mediaLeaseRenewalDelay(
         [{ expiresAt: '2026-08-28T00:00:00.000Z' }],
         Date.parse('2026-08-28T00:01:00.000Z'),
       ),
-    ).toBe(0)
+    ).toBe(5_000)
+  })
+})
+
+describe('needsMediaDeliveryRefetch', () => {
+  it('waits for an in-flight request before filling newly uncovered paths', () => {
+    const covered = new Set(['public/images/a.png'])
+    const paths = ['public/images/a.png', 'public/images/b.png']
+    expect(needsMediaDeliveryRefetch(paths, covered, true)).toBe(false)
+    expect(needsMediaDeliveryRefetch(paths, covered, false)).toBe(true)
+    covered.add('public/images/b.png')
+    expect(needsMediaDeliveryRefetch(paths, covered, false)).toBe(false)
   })
 })

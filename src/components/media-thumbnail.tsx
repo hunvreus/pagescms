@@ -39,7 +39,7 @@ export function MediaThumbnail({
   const hasUsableDisplayedImage =
     !!displayedSrc && loadedSrc === displayedSrc && failedSrc !== displayedSrc
   const loading =
-    loadingSource ||
+    (loadingSource && !hasUsableDisplayedImage) ||
     (!!src && displayedSrc === src && loadedSrc !== src && !failed) ||
     (!!src && displayedSrc !== src && !hasUsableDisplayedImage && !failed)
 
@@ -81,10 +81,10 @@ export function MediaThumbnail({
       data-state={
         !src && !loadingSource
           ? 'empty'
-          : failed && !hasUsableDisplayedImage
-            ? 'error'
-            : loading
-              ? 'loading'
+          : loading
+            ? 'loading'
+            : failed && !hasUsableDisplayedImage
+              ? 'error'
               : 'loaded'
       }
     >
@@ -95,19 +95,19 @@ export function MediaThumbnail({
         >
           <ImageOff className="size-4 text-muted-foreground" />
         </span>
-      ) : failed && !hasUsableDisplayedImage ? (
-        <span
-          className="absolute inset-0 flex items-center justify-center"
-          title="Could not load image"
-        >
-          <Ban className="size-4 text-muted-foreground" />
-        </span>
       ) : loading ? (
         <span
           className="absolute inset-0 flex items-center justify-center"
           title="Loading image"
         >
           <LoaderCircle className="size-4 animate-spin text-muted-foreground" />
+        </span>
+      ) : failed && !hasUsableDisplayedImage ? (
+        <span
+          className="absolute inset-0 flex items-center justify-center"
+          title="Could not load image"
+        >
+          <Ban className="size-4 text-muted-foreground" />
         </span>
       ) : null}
       {displayedSrc ? (

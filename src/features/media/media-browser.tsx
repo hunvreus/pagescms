@@ -108,6 +108,7 @@ import {
   isImageMedia,
   mediaLeaseRenewalDelay,
   mediaEntries,
+  needsMediaDeliveryRefetch,
   parentMediaPath,
 } from './media-model'
 import { uploadMediaFiles } from './media-upload'
@@ -459,6 +460,9 @@ export function MediaBrowser({
   const [renameValue, setRenameValue] = useState('')
   const [deleteEntry, setDeleteEntry] = useState<MediaEntry | null>(null)
   const [draggingFiles, setDraggingFiles] = useState(false)
+  const [renewingSources, setRenewingSources] = useState<Set<string>>(
+    () => new Set(),
+  )
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   )
@@ -485,15 +489,34 @@ export function MediaBrowser({
       ),
     [deliveryQuery.data?.leases],
   )
+  const coveredDeliveryPaths = useMemo(
+    () =>
+      new Set([
+        ...leases.keys(),
+        ...(deliveryQuery.data?.errors ?? []).map(
+          (deliveryError) => deliveryError.path,
+        ),
+      ]),
+    [deliveryQuery.data?.errors, leases],
+  )
   const renewedFailures = useRef(new Set<string>())
-  const requestedPathSet = useRef('')
 
   useEffect(() => {
-    const signature = imagePaths.join('\0')
-    if (!signature || requestedPathSet.current === signature) return
-    requestedPathSet.current = signature
-    if (deliveryQuery.data !== undefined) void deliveryQuery.refetch()
-  }, [deliveryQuery.data, deliveryQuery.refetch, imagePaths])
+    if (
+      !needsMediaDeliveryRefetch(
+        imagePaths,
+        coveredDeliveryPaths,
+        deliveryQuery.isFetching,
+      )
+    )
+      return
+    void deliveryQuery.refetch()
+  }, [
+    coveredDeliveryPaths,
+    deliveryQuery.isFetching,
+    deliveryQuery.refetch,
+    imagePaths,
+  ])
 
   useEffect(() => {
     const delay = mediaLeaseRenewalDelay([...leases.values()])
@@ -506,7 +529,14 @@ export function MediaBrowser({
     (source: string) => {
       if (renewedFailures.current.has(source)) return
       renewedFailures.current.add(source)
-      void deliveryQuery.refetch()
+      setRenewingSources((current) => new Set(current).add(source))
+      void deliveryQuery.refetch().finally(() => {
+        setRenewingSources((current) => {
+          const next = new Set(current)
+          next.delete(source)
+          return next
+        })
+      })
     },
     [deliveryQuery.refetch],
   )
@@ -672,7 +702,8 @@ export function MediaBrowser({
                   className="size-9"
                   source={leases.get(entry.path)?.url}
                   loadingSource={
-                    deliveryQuery.isFetching && !leases.has(entry.path)
+                    (!leases.has(entry.path) && !deliveryQuery.isError) ||
+                    renewingSources.has(leases.get(entry.path)?.url ?? '')
                   }
                   onSourceError={renewFailedLease}
                 />
@@ -705,7 +736,16 @@ export function MediaBrowser({
           ),
         }),
       ]),
-    [coordinates, leases, manage, onSelect, selectedPaths],
+    [
+      coordinates,
+      deliveryQuery.isError,
+      leases,
+      manage,
+      onSelect,
+      renewFailedLease,
+      renewingSources,
+      selectedPaths,
+    ],
   )
   const mediaTable = useTable(
     {
@@ -938,8 +978,11 @@ export function MediaBrowser({
                               className="aspect-video w-full"
                               source={leases.get(entry.path)?.url}
                               loadingSource={
-                                deliveryQuery.isFetching &&
-                                !leases.has(entry.path)
+                                (!leases.has(entry.path) &&
+                                  !deliveryQuery.isError) ||
+                                renewingSources.has(
+                                  leases.get(entry.path)?.url ?? '',
+                                )
                               }
                               onSourceError={renewFailedLease}
                               variant="grid"

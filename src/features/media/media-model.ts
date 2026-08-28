@@ -64,6 +64,7 @@ export function mediaLeaseRenewalDelay(
   leases: Array<{ expiresAt: string | null }>,
   now = Date.now(),
   leadMs = 30_000,
+  minimumDelayMs = 5_000,
 ) {
   const expirations = leases.flatMap((lease) => {
     if (!lease.expiresAt) return []
@@ -71,6 +72,18 @@ export function mediaLeaseRenewalDelay(
     return Number.isFinite(timestamp) ? [timestamp] : []
   })
   return expirations.length
-    ? Math.max(0, Math.min(...expirations) - leadMs - now)
+    ? Math.max(minimumDelayMs, Math.min(...expirations) - leadMs - now)
     : null
+}
+
+export function needsMediaDeliveryRefetch(
+  paths: string[],
+  coveredPaths: ReadonlySet<string>,
+  isFetching: boolean,
+) {
+  return (
+    paths.length > 0 &&
+    !isFetching &&
+    paths.some((path) => !coveredPaths.has(path))
+  )
 }

@@ -38,7 +38,10 @@ describe('media URL expiry', () => {
 
   it('does not expire unrelated query parameters', () => {
     expect(
-      mediaUrlExpiry('https://cdn.example/file.png?utm_source=pagescms', now),
+      mediaUrlExpiry(
+        'https://cdn.example/file.png?utm_source=pagescms&sv=2024-08-04',
+        now,
+      ),
     ).toBeNull()
   })
 })
@@ -70,6 +73,15 @@ describe('GitHub media storage', () => {
         size: 42,
         content: null,
         downloadUrl: 'https://raw.example/hero.png?token=temporary',
+      },
+      {
+        type: 'file',
+        name: 'broken.png',
+        path: 'public/images/broken.png',
+        sha: 'broken-sha',
+        size: 1,
+        content: null,
+        downloadUrl: 'not a URL',
       },
     ])
     const api = {
@@ -132,6 +144,7 @@ describe('GitHub media storage', () => {
 
     const origins = await storage.resolveOrigins([
       'public/images/hero.png',
+      'public/images/broken.png',
       'public/images/missing.png',
     ])
     expect(resolveDirectory).toHaveBeenCalledOnce()
@@ -146,7 +159,10 @@ describe('GitHub media storage', () => {
       },
     ])
 
-    await storage.read('public/images/hero.png')
+    await expect(storage.read('public/images/hero.png')).resolves.toEqual({
+      version: 'hero-sha',
+      bytes: Uint8Array.from([109, 171, 30, 235]),
+    })
     expect(api.getFile).toHaveBeenCalledWith(
       'Pages-CMS',
       'pagescms',
@@ -172,6 +188,15 @@ describe('GitHub media storage', () => {
         committer: metadata.actor,
       }),
     )
+    await expect(
+      storage.createDirectory({
+        path: 'public/images/archive',
+        metadata,
+      }),
+    ).resolves.toMatchObject({
+      path: 'public/images/archive',
+      version: null,
+    })
     await expect(
       storage.move({
         path: 'public/images/hero.png',

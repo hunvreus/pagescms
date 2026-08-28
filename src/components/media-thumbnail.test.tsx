@@ -46,4 +46,19 @@ describe('MediaThumbnail', () => {
     expect(html).toContain('referrerPolicy="no-referrer"')
     expect(html).not.toContain('/api/media-preview/')
   })
+
+  it('shows renewal as loading instead of replacing the tile with an error', () => {
+    const html = renderToStaticMarkup(
+      <MediaThumbnail
+        {...repository}
+        loadingSource
+        path="uploads/photo.jpg"
+        source="https://raw.example/photo.jpg?token=expired"
+      />,
+    )
+
+    expect(html).toContain('data-state="loading"')
+    expect(html).toContain('title="Loading image"')
+    expect(html).not.toContain('title="Could not load image"')
+  })
 })
