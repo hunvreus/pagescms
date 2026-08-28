@@ -199,7 +199,6 @@ const cacheFileTable = pgTable(
     content: text('content'),
     sha: text('sha'),
     size: integer('size'),
-    downloadUrl: text('download_url'),
     commitSha: text('commit_sha'),
     commitTimestamp: timestamp('commit_timestamp'),
     updatedAt: timestamp('updated_at').notNull(),

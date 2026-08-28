@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   parseMediaFolderCreate,
+  parseMediaDeliveryRequest,
   parseMediaMove,
   parseMediaRename,
 } from './media'
@@ -73,5 +74,35 @@ describe('media folder requests', () => {
         destination: '/public/images/archive/',
       }),
     ).toMatchObject({ destination: 'public/images/archive' })
+  })
+})
+
+describe('media delivery requests', () => {
+  it('normalizes a bounded set of requested paths', () => {
+    expect(
+      parseMediaDeliveryRequest({
+        owner: 'PagesCMS',
+        repo: 'pages-cms',
+        branch: 'main',
+        name: 'images',
+        paths: ['/public/images/a.png', 'public/images/b.png'],
+      }).paths,
+    ).toEqual(['public/images/a.png', 'public/images/b.png'])
+  })
+
+  it('rejects empty and unbounded delivery requests', () => {
+    const base = {
+      owner: 'PagesCMS',
+      repo: 'pages-cms',
+      branch: 'main',
+      name: 'images',
+    }
+    expect(() => parseMediaDeliveryRequest({ ...base, paths: [] })).toThrow()
+    expect(() =>
+      parseMediaDeliveryRequest({
+        ...base,
+        paths: Array.from({ length: 1001 }, () => 'public/images/a.png'),
+      }),
+    ).toThrow()
   })
 })

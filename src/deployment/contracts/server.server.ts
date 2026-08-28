@@ -1,11 +1,13 @@
 import type { AccessPolicy } from '#/server/access-policy.server'
 import type { EmailProvider } from '#/server/email.server'
+import type { MediaProviderResolver } from '#/server/media-provider.server'
 
 import { DEPLOYMENT_API_VERSION, DeploymentConfigurationError } from './version'
 
 export interface PagesCmsServerServices {
   accessPolicy?: AccessPolicy
   emailProvider?: EmailProvider
+  mediaProviderResolver?: MediaProviderResolver
 }
 
 export interface PagesCmsServerDeployment {
@@ -33,6 +35,16 @@ function isAccessPolicy(value: unknown): value is AccessPolicy {
 
 function isEmailProvider(value: unknown): value is EmailProvider {
   return isRecord(value) && typeof value.send === 'function'
+}
+
+function isMediaProviderResolver(
+  value: unknown,
+): value is MediaProviderResolver {
+  return (
+    isRecord(value) &&
+    typeof value.resolveStorage === 'function' &&
+    typeof value.resolveDelivery === 'function'
+  )
 }
 
 export function definePagesCmsServerDeployment(
@@ -85,9 +97,18 @@ export function createPagesCmsServerServices(
       'The server deployment returned an invalid email provider',
     )
   }
+  if (
+    services.mediaProviderResolver !== undefined &&
+    !isMediaProviderResolver(services.mediaProviderResolver)
+  ) {
+    throw new DeploymentConfigurationError(
+      'The server deployment returned an invalid media provider resolver',
+    )
+  }
 
   return Object.freeze({
     accessPolicy: services.accessPolicy,
     emailProvider: services.emailProvider,
+    mediaProviderResolver: services.mediaProviderResolver,
   })
 }

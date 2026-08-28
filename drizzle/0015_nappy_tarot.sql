@@ -1,0 +1,1 @@
+ALTER TABLE "cache_file" DROP COLUMN "download_url";

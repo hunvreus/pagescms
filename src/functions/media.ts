@@ -29,6 +29,23 @@ export function parseMediaRequest(input: unknown) {
   }
 }
 
+export function parseMediaDeliveryRequest(input: unknown) {
+  const media = parseMediaRequest(input)
+  const value = input as Record<string, unknown>
+  if (
+    !Array.isArray(value.paths) ||
+    value.paths.length === 0 ||
+    value.paths.length > 1000 ||
+    value.paths.some((path) => typeof path !== 'string' || !path)
+  ) {
+    throw new Error('Invalid media delivery request')
+  }
+  return {
+    ...media,
+    paths: value.paths.map((path) => normalizeGitPath(path as string)),
+  }
+}
+
 export function parseMediaFolderCreate(input: unknown) {
   const media = parseMediaRequest(input)
   const value = input as Record<string, unknown>
@@ -131,6 +148,34 @@ export const getMedia = createServerFn({ method: 'GET' })
           await import('#/server/media-service.server')
         return loadMediaDirectory({
           database: services.database,
+          mediaProviderResolver: services.mediaProviderResolver,
+          repositoryAccess: services.repositoryAccess,
+          user,
+          ...data,
+        })
+      },
+    )
+  })
+
+export const getMediaDelivery = createServerFn({ method: 'POST' })
+  .validator(parseMediaDeliveryRequest)
+  .handler(async ({ context, data }) => {
+    const services = context.getServices()
+    const session = await services.getSession()
+    if (!session?.user) throw new Error('Authentication required')
+    const user = {
+      id: session.user.id,
+      email: session.user.email,
+      githubUsername: session.user.githubUsername ?? null,
+    }
+    return services.access.execute(
+      policy(data, 'media.read', user.id),
+      async () => {
+        const { loadMediaDelivery } =
+          await import('#/server/media-service.server')
+        return loadMediaDelivery({
+          database: services.database,
+          mediaProviderResolver: services.mediaProviderResolver,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,
@@ -157,6 +202,7 @@ export const createMedia = createServerFn({ method: 'POST' })
         const { uploadMedia } = await import('#/server/media-service.server')
         return uploadMedia({
           database: services.database,
+          mediaProviderResolver: services.mediaProviderResolver,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,
@@ -184,6 +230,7 @@ export const createMediaFolder = createServerFn({ method: 'POST' })
           await import('#/server/media-service.server')
         return createMediaDirectory({
           database: services.database,
+          mediaProviderResolver: services.mediaProviderResolver,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,
@@ -210,6 +257,7 @@ export const removeMedia = createServerFn({ method: 'POST' })
         const { deleteMedia } = await import('#/server/media-service.server')
         return deleteMedia({
           database: services.database,
+          mediaProviderResolver: services.mediaProviderResolver,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,
@@ -237,6 +285,7 @@ export const renameMedia = createServerFn({ method: 'POST' })
           await import('#/server/media-service.server')
         return renameMediaFile({
           database: services.database,
+          mediaProviderResolver: services.mediaProviderResolver,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,
@@ -263,6 +312,7 @@ export const moveMedia = createServerFn({ method: 'POST' })
         const { moveMediaFile } = await import('#/server/media-service.server')
         return moveMediaFile({
           database: services.database,
+          mediaProviderResolver: services.mediaProviderResolver,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,

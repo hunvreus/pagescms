@@ -18,12 +18,21 @@ import {
   createDirectoryCache,
   invalidateDirectoryCacheAfterMutation,
 } from './directory-cache.server'
+import {
+  createDirectMediaDelivery,
+  createGitHubMediaStorage,
+  resolveMediaProvider,
+} from './media-provider.server'
 
 import type { CommitIdentity, CommitTemplates } from '#/lib/commit-message'
 import type { MediaSchema } from '#/lib/configuration-content'
 import type { Database } from './database/client.server'
 import type { ProjectUser } from './projects.server'
 import type { RepositoryAccessService } from './repository-access.server'
+import type {
+  MediaProviderResolver,
+  MediaProviderSelection,
+} from './media-provider.server'
 
 type MediaInput = {
   database: Database
@@ -33,13 +42,7 @@ type MediaInput = {
   repo: string
   branch: string
   name: string
-}
-
-function encodeBase64(value: string) {
-  const bytes = new TextEncoder().encode(value)
-  let binary = ''
-  for (const byte of bytes) binary += String.fromCharCode(byte)
-  return btoa(binary)
+  mediaProviderResolver?: MediaProviderResolver
 }
 
 function allowedExtension(schema: MediaSchema, path: string) {
@@ -69,7 +72,59 @@ async function context(input: MediaInput) {
   if (!configuration) throw new Error('Repository configuration not found')
   const schema = findMediaSchema(configuration.object, input.name)
   if (!schema) throw new Error(`Media ${input.name} was not found`)
-  return { api, configuration, schema }
+  const selection: MediaProviderSelection = {
+    owner: input.owner,
+    repo: input.repo,
+    branch: input.branch,
+    media: {
+      name: schema.name,
+      rootPath: normalizeGitPath(schema.input),
+      output: typeof schema.output === 'string' ? schema.output : null,
+      extensions: Array.isArray(schema.extensions)
+        ? schema.extensions.filter(
+            (value): value is string => typeof value === 'string',
+          )
+        : [],
+    },
+  }
+  const directoryCache = createDirectoryCache({ database: input.database })
+  const githubStorage = createGitHubMediaStorage({
+    api,
+    owner: input.owner,
+    repo: input.repo,
+    branch: input.branch,
+    list: async (path) =>
+      (
+        await directoryCache.get({
+          api,
+          owner: input.owner,
+          repo: input.repo,
+          branch: input.branch,
+          path,
+          context: 'media',
+          enabled: isCacheEnabled(configuration.object),
+        })
+      ).entries,
+    resolveDirectory: async (path) =>
+      (
+        await directoryCache.get({
+          api,
+          owner: input.owner,
+          repo: input.repo,
+          branch: input.branch,
+          path,
+          context: 'media',
+          enabled: false,
+        })
+      ).entries,
+  })
+  const { storage, delivery } = resolveMediaProvider({
+    resolver: input.mediaProviderResolver,
+    selection,
+    fallbackStorage: githubStorage,
+    fallbackDelivery: createDirectMediaDelivery(),
+  })
+  return { api, configuration, schema, selection, storage, delivery }
 }
 
 function commitOptions(schema: MediaSchema): {
@@ -104,29 +159,19 @@ function committer(
 export async function loadMediaDirectory(
   input: MediaInput & { path?: string },
 ) {
-  const { api, configuration, schema } = await context(input)
+  const { schema, storage } = await context(input)
   const path = mediaDirectoryPath(schema, input.path)
-  const directory = await createDirectoryCache({
-    database: input.database,
-  }).get({
-    api,
-    owner: input.owner,
-    repo: input.repo,
-    branch: input.branch,
-    path,
-    context: 'media',
-    enabled: isCacheEnabled(configuration.object),
-  })
-  const entries = directory.entries
+  const manifest = await storage.list(path)
+  const entries = manifest.assets
     .filter(
       (entry) =>
         entry.name !== '.gitkeep' &&
-        (entry.type === 'dir' || allowedExtension(schema, entry.path)),
+        (entry.kind === 'directory' || allowedExtension(schema, entry.path)),
     )
     .sort((left, right) =>
-      left.type === right.type
+      left.kind === right.kind
         ? left.name.localeCompare(right.name)
-        : left.type === 'dir'
+        : left.kind === 'directory'
           ? -1
           : 1,
     )
@@ -142,13 +187,66 @@ export async function loadMediaDirectory(
       output: typeof schema.output === 'string' ? schema.output : null,
       extensions: Array.isArray(schema.extensions) ? schema.extensions : [],
       actions: schemaActions(schema),
+      provider: manifest.provider,
     },
-    entries: entries.map(({ content: _content, ...entry }) => entry),
+    entries: entries.map((entry) => ({
+      id: entry.id,
+      type: entry.kind === 'directory' ? ('dir' as const) : ('file' as const),
+      name: entry.name,
+      path: entry.path,
+      sha: entry.sha,
+      size: entry.size,
+      contentType: entry.contentType,
+    })),
   }
 }
 
+export async function loadMediaDelivery(
+  input: MediaInput & { paths: string[] },
+) {
+  const { schema, storage, delivery } = await context(input)
+  const { paths, errors } = partitionMediaDeliveryPaths(schema, input.paths)
+  const origins = await storage.resolveOrigins(paths)
+  const leases = await delivery.resolve(origins)
+  const resolved = new Set(leases.map((lease) => lease.path))
+  for (const path of paths) {
+    if (!resolved.has(path)) {
+      errors.push({ path, message: 'Media delivery is unavailable' })
+    }
+  }
+  return {
+    provider: storage.id,
+    delivery: delivery.id,
+    leases,
+    errors,
+  }
+}
+
+export function partitionMediaDeliveryPaths(
+  schema: MediaSchema,
+  inputPaths: string[],
+) {
+  const paths: string[] = []
+  const errors: Array<{ path: string; message: string }> = []
+  for (const path of new Set(inputPaths)) {
+    try {
+      const normalized = mediaDirectoryPath(schema, path)
+      if (!allowedExtension(schema, normalized)) {
+        throw new Error('This file extension is not allowed')
+      }
+      paths.push(normalized)
+    } catch (error) {
+      errors.push({
+        path,
+        message: error instanceof Error ? error.message : 'Invalid media path',
+      })
+    }
+  }
+  return { paths, errors }
+}
+
 export async function loadMediaAsset(input: MediaInput & { path: string }) {
-  const { api, schema } = await context(input)
+  const { schema, storage } = await context(input)
   const path = mediaDirectoryPath(schema, input.path)
   if (path === normalizeGitPath(schema.input)) {
     throw new Error('Media asset path must identify a file')
@@ -156,7 +254,7 @@ export async function loadMediaAsset(input: MediaInput & { path: string }) {
   if (!allowedExtension(schema, path)) {
     throw new Error('This file extension is not allowed')
   }
-  return api.getFile(input.owner, input.repo, path, input.branch)
+  return storage.read(path)
 }
 
 export async function uploadMedia(
@@ -170,7 +268,7 @@ export async function uploadMedia(
   if (base64ByteLength(input.content) > 20 * 1024 * 1024) {
     throw new Error('Media file exceeds the 20 MB limit')
   }
-  const { api, configuration, schema } = await context(input)
+  const { configuration, schema, storage } = await context(input)
   const parent = mediaDirectoryPath(schema, input.parent)
   const filename = normalizeGitPath(input.filename.trim())
   if (!filename || filename.includes('/')) {
@@ -185,31 +283,30 @@ export async function uploadMedia(
     configuration: configuration.object,
     identityOverride: commit.identity,
   })
-  const result = await api.putFile({
-    owner: input.owner,
-    repo: input.repo,
-    branch: input.branch,
+  const result = await storage.write({
     path,
     content: input.content,
-    message: resolveCommitMessage({
-      configuration: configuration.object,
-      templatesOverride: commit.templates,
-      action: 'create',
-      tokens: buildCommitTokens({
+    metadata: {
+      message: resolveCommitMessage({
+        configuration: configuration.object,
+        templatesOverride: commit.templates,
         action: 'create',
-        owner: input.owner,
-        repo: input.repo,
-        branch: input.branch,
-        path,
-        contentName: input.name,
-        user: input.user.email,
-        userName: input.user.name,
-        userEmail: input.user.email,
+        tokens: buildCommitTokens({
+          action: 'create',
+          owner: input.owner,
+          repo: input.repo,
+          branch: input.branch,
+          path,
+          contentName: input.name,
+          user: input.user.email,
+          userName: input.user.name,
+          userEmail: input.user.email,
+        }),
       }),
-    }),
-    ...(committer(identity, input.user)
-      ? { committer: committer(identity, input.user) }
-      : {}),
+      ...(committer(identity, input.user)
+        ? { actor: committer(identity, input.user) }
+        : {}),
+    },
   })
   await invalidateDirectoryCacheAfterMutation(
     input.database,
@@ -227,7 +324,7 @@ export async function createMediaDirectory(
     folder: string
   },
 ) {
-  const { api, configuration, schema } = await context(input)
+  const { configuration, schema, storage } = await context(input)
   const parent = mediaDirectoryPath(schema, input.parent)
   const folder = normalizeGitPath(input.folder)
   if (!folder || folder.split('/').some((part) => part === '.gitkeep')) {
@@ -237,37 +334,35 @@ export async function createMediaDirectory(
     schema,
     normalizeGitPath(parent ? `${parent}/${folder}` : folder),
   )
-  const path = normalizeGitPath(`${directory}/.gitkeep`)
+  const markerPath = normalizeGitPath(`${directory}/.gitkeep`)
   const commit = commitOptions(schema)
   const identity = resolveCommitIdentity({
     configuration: configuration.object,
     identityOverride: commit.identity,
   })
-  const result = await api.putFile({
-    owner: input.owner,
-    repo: input.repo,
-    branch: input.branch,
-    path,
-    content: encodeBase64(''),
-    message: resolveCommitMessage({
-      configuration: configuration.object,
-      templatesOverride: commit.templates,
-      action: 'create',
-      tokens: buildCommitTokens({
+  const result = await storage.createDirectory({
+    path: directory,
+    metadata: {
+      message: resolveCommitMessage({
+        configuration: configuration.object,
+        templatesOverride: commit.templates,
         action: 'create',
-        owner: input.owner,
-        repo: input.repo,
-        branch: input.branch,
-        path,
-        contentName: input.name,
-        user: input.user.email,
-        userName: input.user.name,
-        userEmail: input.user.email,
+        tokens: buildCommitTokens({
+          action: 'create',
+          owner: input.owner,
+          repo: input.repo,
+          branch: input.branch,
+          path: markerPath,
+          contentName: input.name,
+          user: input.user.email,
+          userName: input.user.name,
+          userEmail: input.user.email,
+        }),
       }),
-    }),
-    ...(committer(identity, input.user)
-      ? { committer: committer(identity, input.user) }
-      : {}),
+      ...(committer(identity, input.user)
+        ? { actor: committer(identity, input.user) }
+        : {}),
+    },
   })
   await invalidateDirectoryCacheAfterMutation(
     input.database,
@@ -275,7 +370,7 @@ export async function createMediaDirectory(
     input.repo,
     input.branch,
   )
-  return { ...result, path: directory }
+  return result
 }
 
 export async function deleteMedia(
@@ -285,7 +380,7 @@ export async function deleteMedia(
     sha: string
   },
 ) {
-  const { api, configuration, schema } = await context(input)
+  const { configuration, schema, storage } = await context(input)
   const path = mediaDirectoryPath(schema, input.path)
   if (!allowedExtension(schema, path)) throw new Error('Invalid media path')
   const commit = commitOptions(schema)
@@ -293,31 +388,30 @@ export async function deleteMedia(
     configuration: configuration.object,
     identityOverride: commit.identity,
   })
-  const result = await api.deleteFile({
-    owner: input.owner,
-    repo: input.repo,
-    branch: input.branch,
+  const result = await storage.remove({
     path,
-    sha: input.sha,
-    message: resolveCommitMessage({
-      configuration: configuration.object,
-      templatesOverride: commit.templates,
-      action: 'delete',
-      tokens: buildCommitTokens({
+    version: input.sha,
+    metadata: {
+      message: resolveCommitMessage({
+        configuration: configuration.object,
+        templatesOverride: commit.templates,
         action: 'delete',
-        owner: input.owner,
-        repo: input.repo,
-        branch: input.branch,
-        path,
-        contentName: input.name,
-        user: input.user.email,
-        userName: input.user.name,
-        userEmail: input.user.email,
+        tokens: buildCommitTokens({
+          action: 'delete',
+          owner: input.owner,
+          repo: input.repo,
+          branch: input.branch,
+          path,
+          contentName: input.name,
+          user: input.user.email,
+          userName: input.user.name,
+          userEmail: input.user.email,
+        }),
       }),
-    }),
-    ...(committer(identity, input.user)
-      ? { committer: committer(identity, input.user) }
-      : {}),
+      ...(committer(identity, input.user)
+        ? { actor: committer(identity, input.user) }
+        : {}),
+    },
   })
   await invalidateDirectoryCacheAfterMutation(
     input.database,
@@ -336,7 +430,7 @@ export async function renameMediaFile(
     filename: string
   },
 ) {
-  const { api, configuration, schema } = await context(input)
+  const { configuration, schema, storage } = await context(input)
   const path = mediaDirectoryPath(schema, input.path)
   if (!allowedExtension(schema, path)) throw new Error('Invalid media path')
   const filename = normalizeGitPath(input.filename.trim())
@@ -358,33 +452,32 @@ export async function renameMediaFile(
     configuration: configuration.object,
     identityOverride: commit.identity,
   })
-  const result = await api.renameFile({
-    owner: input.owner,
-    repo: input.repo,
-    branch: input.branch,
+  const result = await storage.move({
     path,
-    newPath,
-    sha: input.sha,
-    message: resolveCommitMessage({
-      configuration: configuration.object,
-      templatesOverride: commit.templates,
-      action: 'rename',
-      tokens: buildCommitTokens({
+    destination: newPath,
+    version: input.sha,
+    metadata: {
+      message: resolveCommitMessage({
+        configuration: configuration.object,
+        templatesOverride: commit.templates,
         action: 'rename',
-        owner: input.owner,
-        repo: input.repo,
-        branch: input.branch,
-        oldPath: path,
-        newPath,
-        contentName: input.name,
-        user: input.user.email,
-        userName: input.user.name,
-        userEmail: input.user.email,
+        tokens: buildCommitTokens({
+          action: 'rename',
+          owner: input.owner,
+          repo: input.repo,
+          branch: input.branch,
+          oldPath: path,
+          newPath,
+          contentName: input.name,
+          user: input.user.email,
+          userName: input.user.name,
+          userEmail: input.user.email,
+        }),
       }),
-    }),
-    ...(committer(identity, input.user)
-      ? { committer: committer(identity, input.user) }
-      : {}),
+      ...(committer(identity, input.user)
+        ? { actor: committer(identity, input.user) }
+        : {}),
+    },
   })
   await invalidateDirectoryCacheAfterMutation(
     input.database,
@@ -403,7 +496,7 @@ export async function moveMediaFile(
     destination: string
   },
 ) {
-  const { api, configuration, schema } = await context(input)
+  const { configuration, schema, storage } = await context(input)
   const path = mediaDirectoryPath(schema, input.path)
   if (!allowedExtension(schema, path)) throw new Error('Invalid media path')
   const destination = mediaDirectoryPath(schema, input.destination)
@@ -419,33 +512,32 @@ export async function moveMediaFile(
     configuration: configuration.object,
     identityOverride: commit.identity,
   })
-  const result = await api.renameFile({
-    owner: input.owner,
-    repo: input.repo,
-    branch: input.branch,
+  const result = await storage.move({
     path,
-    newPath,
-    sha: input.sha,
-    message: resolveCommitMessage({
-      configuration: configuration.object,
-      templatesOverride: commit.templates,
-      action: 'rename',
-      tokens: buildCommitTokens({
+    destination: newPath,
+    version: input.sha,
+    metadata: {
+      message: resolveCommitMessage({
+        configuration: configuration.object,
+        templatesOverride: commit.templates,
         action: 'rename',
-        owner: input.owner,
-        repo: input.repo,
-        branch: input.branch,
-        oldPath: path,
-        newPath,
-        contentName: input.name,
-        user: input.user.email,
-        userName: input.user.name,
-        userEmail: input.user.email,
+        tokens: buildCommitTokens({
+          action: 'rename',
+          owner: input.owner,
+          repo: input.repo,
+          branch: input.branch,
+          oldPath: path,
+          newPath,
+          contentName: input.name,
+          user: input.user.email,
+          userName: input.user.name,
+          userEmail: input.user.email,
+        }),
       }),
-    }),
-    ...(committer(identity, input.user)
-      ? { committer: committer(identity, input.user) }
-      : {}),
+      ...(committer(identity, input.user)
+        ? { actor: committer(identity, input.user) }
+        : {}),
+    },
   })
   await invalidateDirectoryCacheAfterMutation(
     input.database,

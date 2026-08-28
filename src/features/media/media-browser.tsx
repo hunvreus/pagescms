@@ -1,4 +1,11 @@
-import { Fragment, useMemo, useState } from 'react'
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import {
   DndContext,
   PointerSensor,
@@ -93,12 +100,13 @@ import {
   renameMedia,
 } from '#/functions/media'
 import { cn } from '#/lib/utils'
-import { mediaQueryOptions } from '#/queries/content'
+import { mediaDeliveryQueryOptions, mediaQueryOptions } from '#/queries/content'
 import { queryKeys } from '#/queries/keys'
 
 import {
   formatMediaSize,
   isImageMedia,
+  mediaLeaseRenewalDelay,
   mediaEntries,
   parentMediaPath,
 } from './media-model'
@@ -141,11 +149,17 @@ function githubUrl(coordinates: MediaCoordinates, path: string) {
 function EntryPreview({
   coordinates,
   entry,
+  source,
+  loadingSource,
+  onSourceError,
   className,
   variant = 'list',
 }: {
   coordinates: MediaCoordinates
   entry: MediaEntry
+  source?: string | null
+  loadingSource?: boolean
+  onSourceError?: (source: string) => void
   className?: string
   variant?: 'grid' | 'list'
 }) {
@@ -173,8 +187,11 @@ function EntryPreview({
     <MediaThumbnail
       {...coordinates}
       className={className}
+      allowProxy={false}
+      loadingSource={loadingSource}
       path={entry.path}
-      source={entry.downloadUrl}
+      source={source}
+      onSourceError={onSourceError}
     />
   ) : (
     <span
@@ -446,6 +463,53 @@ export function MediaBrowser({
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   )
   const data = query.data
+  const imagePaths = useMemo(
+    () =>
+      (data?.entries ?? [])
+        .filter((entry) => entry.type === 'file' && isImageMedia(entry.path))
+        .map((entry) => entry.path),
+    [data?.entries],
+  )
+  const deliveryQuery = useQuery({
+    ...mediaDeliveryQueryOptions({
+      ...coordinates,
+      path: currentPath,
+      paths: imagePaths,
+    }),
+    enabled: typeof window !== 'undefined' && imagePaths.length > 0,
+  })
+  const leases = useMemo(
+    () =>
+      new Map(
+        (deliveryQuery.data?.leases ?? []).map((lease) => [lease.path, lease]),
+      ),
+    [deliveryQuery.data?.leases],
+  )
+  const renewedFailures = useRef(new Set<string>())
+  const requestedPathSet = useRef('')
+
+  useEffect(() => {
+    const signature = imagePaths.join('\0')
+    if (!signature || requestedPathSet.current === signature) return
+    requestedPathSet.current = signature
+    if (deliveryQuery.data !== undefined) void deliveryQuery.refetch()
+  }, [deliveryQuery.data, deliveryQuery.refetch, imagePaths])
+
+  useEffect(() => {
+    const delay = mediaLeaseRenewalDelay([...leases.values()])
+    if (delay === null) return
+    const timeout = window.setTimeout(() => void deliveryQuery.refetch(), delay)
+    return () => window.clearTimeout(timeout)
+  }, [deliveryQuery.refetch, leases])
+
+  const renewFailedLease = useCallback(
+    (source: string) => {
+      if (renewedFailures.current.has(source)) return
+      renewedFailures.current.add(source)
+      void deliveryQuery.refetch()
+    },
+    [deliveryQuery.refetch],
+  )
   const rootPath = data?.media.rootPath ?? currentPath ?? ''
   const directoryPath = data?.media.path ?? currentPath ?? rootPath
   const visible = useMemo(
@@ -463,9 +527,14 @@ export function MediaBrowser({
   }
 
   async function refresh() {
-    await queryClient.invalidateQueries({
-      queryKey: queryKeys.media(coordinates),
-    })
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.media(coordinates),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.mediaDelivery(coordinates),
+      }),
+    ])
   }
 
   async function upload(files: FileList | File[]) {
@@ -601,6 +670,11 @@ export function MediaBrowser({
                   coordinates={coordinates}
                   entry={entry}
                   className="size-9"
+                  source={leases.get(entry.path)?.url}
+                  loadingSource={
+                    deliveryQuery.isFetching && !leases.has(entry.path)
+                  }
+                  onSourceError={renewFailedLease}
                 />
                 <span className="truncate font-medium">{entry.name}</span>
               </button>
@@ -631,7 +705,7 @@ export function MediaBrowser({
           ),
         }),
       ]),
-    [coordinates, manage, onSelect, selectedPaths],
+    [coordinates, leases, manage, onSelect, selectedPaths],
   )
   const mediaTable = useTable(
     {
@@ -815,7 +889,7 @@ export function MediaBrowser({
           </>
         ) : null}
         <OperationError
-          error={error ?? query.error}
+          error={error ?? query.error ?? deliveryQuery.error}
           fallback="Could not load media."
         />
         {query.isPending ? (
@@ -862,6 +936,12 @@ export function MediaBrowser({
                               coordinates={coordinates}
                               entry={entry}
                               className="aspect-video w-full"
+                              source={leases.get(entry.path)?.url}
+                              loadingSource={
+                                deliveryQuery.isFetching &&
+                                !leases.has(entry.path)
+                              }
+                              onSourceError={renewFailedLease}
                               variant="grid"
                             />
                           </button>

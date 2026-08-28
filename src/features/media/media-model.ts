@@ -59,3 +59,18 @@ export function formatMediaSize(value: number | null) {
 export function isImageMedia(path: string) {
   return /\.(?:avif|gif|jpe?g|png|svg|webp)$/i.test(path)
 }
+
+export function mediaLeaseRenewalDelay(
+  leases: Array<{ expiresAt: string | null }>,
+  now = Date.now(),
+  leadMs = 30_000,
+) {
+  const expirations = leases.flatMap((lease) => {
+    if (!lease.expiresAt) return []
+    const timestamp = Date.parse(lease.expiresAt)
+    return Number.isFinite(timestamp) ? [timestamp] : []
+  })
+  return expirations.length
+    ? Math.max(0, Math.min(...expirations) - leadMs - now)
+    : null
+}
