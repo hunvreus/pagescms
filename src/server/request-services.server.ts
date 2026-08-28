@@ -48,7 +48,10 @@ export function createRequestServices(
     dependencies.githubApiFactory,
   )
   const emailProvider = deploymentServices.emailProvider
+  const billingWebhook = deploymentServices.billingWebhook
+  const entitlementReader = deploymentServices.entitlementReader
   const mediaProviderResolver = deploymentServices.mediaProviderResolver
+  const repositoryPermissionAdmin = deploymentServices.repositoryPermissionAdmin
   const auth = createPagesCmsAuth({
     database,
     configuration: configuration.auth,
@@ -65,13 +68,16 @@ export function createRequestServices(
     access,
     auth,
     authenticationMethods,
+    billingWebhook,
     configuration,
     database,
     emailProvider,
+    entitlementReader,
     getSession,
     mediaProviderResolver,
     projects,
     repositoryAccess,
+    repositoryPermissionAdmin,
   }
 }
 

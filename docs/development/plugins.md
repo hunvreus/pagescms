@@ -4,11 +4,10 @@ Pages CMS supports trusted build-time modules for optional and proprietary capab
 
 ## Status
 
-The Wave 1 composition spike is implemented. It is intentionally narrow: the
-current experimental API version is `0` and proves static server/client selection, a client field
-contribution, API-version rejection, and bundle isolation. It is not yet the
-full stable API illustrated below; those contracts and conformance suites are
-frozen in Wave 2 of `PLAN.md`.
+Deployment API version `1` is the first closed contract. It supports static
+server/client selection, lazy client field editors, the named repository
+permissions contribution, access policy, safe entitlement reads, the fixed
+billing webhook, email, and per-context media storage/delivery resolution.
 
 ## Two explicit entry points
 
@@ -37,7 +36,7 @@ Illustrative closed shapes:
 
 ```ts
 interface PagesCmsServerDeployment {
-  apiVersion: 0
+  apiVersion: 1
   create(runtime: RuntimeConfiguration): {
     accessPolicy?: AccessPolicy
     emailProvider?: EmailProvider
@@ -49,7 +48,7 @@ interface PagesCmsServerDeployment {
 }
 
 interface PagesCmsClientDeployment {
-  apiVersion: 0
+  apiVersion: 1
   fieldEditors?: Record<string, LazyFieldEditor>
   ui?: {
     repositoryPermissions?: LazyUiContribution<RepositoryPermissionsProps>
@@ -67,7 +66,7 @@ A module has no self-declared “type.” The deployment composition assigns a c
 
 ```ts
 export default definePagesCmsServerDeployment({
-  apiVersion: 0,
+  apiVersion: 1,
   create(runtime) {
     return {
       accessPolicy: createHostedAccessPolicy(runtime.billing),

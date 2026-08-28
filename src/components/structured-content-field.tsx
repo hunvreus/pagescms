@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useId, useRef, useState } from 'react'
+import type { ComponentType, LazyExoticComponent } from 'react'
 import { ClientOnly } from '@tanstack/react-router'
 import { createClientOnlyFn } from '@tanstack/react-start'
 import clientDeployment from '#pagescms/deployment/client'
@@ -74,6 +75,7 @@ import {
 import type { JsonObject, JsonValue } from '#/lib/json'
 import type { FieldRendererProps } from '#/features/editor/fields/field-renderer-registry'
 import type { ReferenceContext } from '#/features/editor/fields/field-types'
+import type { DeploymentFieldProps } from '#/deployment/contracts/client'
 
 const loadRichTextField = createClientOnlyFn(
   () => import('#/components/rich-text-field'),
@@ -83,6 +85,22 @@ const loadCodeField = createClientOnlyFn(
   () => import('#/components/code-field'),
 )
 const CodeField = lazy(loadCodeField)
+const deploymentFieldComponents = new Map<
+  string,
+  LazyExoticComponent<ComponentType<DeploymentFieldProps>>
+>()
+
+function getDeploymentFieldComponent(name: string) {
+  const cached = deploymentFieldComponents.get(name)
+  if (cached) return cached
+
+  const loader = clientDeployment.fieldEditors?.[name]
+  if (!loader) return null
+
+  const component = lazy(loader)
+  deploymentFieldComponents.set(name, component)
+  return component
+}
 
 function RichTextRenderer({
   disabled,
@@ -694,17 +712,19 @@ export function StructuredContentField({
       />
     )
   } else if (typeof field.component === 'string') {
-    const PluginField = clientDeployment.fields?.[field.component]
+    const PluginField = getDeploymentFieldComponent(field.component)
     control = PluginField ? (
-      <PluginField
-        disabled={disabled}
-        field={field}
-        id={controlId}
-        label={label ?? name}
-        required={required}
-        value={value}
-        onChange={onChange}
-      />
+      <Suspense fallback={<DeferredEditorFallback />}>
+        <PluginField
+          disabled={disabled}
+          field={field}
+          id={controlId}
+          label={label ?? name}
+          required={required}
+          value={value}
+          onChange={onChange}
+        />
+      </Suspense>
     ) : (
       <p className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
         Field component “{field.component}” is not installed.

@@ -1,13 +1,21 @@
 import type { AccessPolicy } from '#/server/access-policy.server'
 import type { EmailProvider } from '#/server/email.server'
 import type { MediaProviderResolver } from '#/server/media-provider.server'
+import type {
+  BillingWebhookHandler,
+  EntitlementReader,
+  RepositoryPermissionAdmin,
+} from './hosted.server'
 
 import { DEPLOYMENT_API_VERSION, DeploymentConfigurationError } from './version'
 
 export interface PagesCmsServerServices {
   accessPolicy?: AccessPolicy
+  billingWebhook?: BillingWebhookHandler
   emailProvider?: EmailProvider
+  entitlementReader?: EntitlementReader
   mediaProviderResolver?: MediaProviderResolver
+  repositoryPermissionAdmin?: RepositoryPermissionAdmin
 }
 
 export interface PagesCmsServerDeployment {
@@ -37,6 +45,23 @@ function isEmailProvider(value: unknown): value is EmailProvider {
   return isRecord(value) && typeof value.send === 'function'
 }
 
+function hasFunction(value: unknown, key: string) {
+  return isRecord(value) && typeof value[key] === 'function'
+}
+
+function assertOnlyKeys(
+  value: Record<string, unknown>,
+  allowed: readonly string[],
+  label: string,
+) {
+  const unexpected = Object.keys(value).filter((key) => !allowed.includes(key))
+  if (unexpected.length > 0) {
+    throw new DeploymentConfigurationError(
+      `${label} has unsupported ${unexpected.length === 1 ? 'key' : 'keys'}: ${unexpected.join(', ')}`,
+    )
+  }
+}
+
 function isMediaProviderResolver(
   value: unknown,
 ): value is MediaProviderResolver {
@@ -55,6 +80,7 @@ export function definePagesCmsServerDeployment(
       'The server deployment must export an object',
     )
   }
+  assertOnlyKeys(deployment, ['apiVersion', 'create'], 'The server deployment')
   if (deployment.apiVersion !== DEPLOYMENT_API_VERSION) {
     throw new DeploymentConfigurationError(
       `The server deployment uses unsupported API version ${String(deployment.apiVersion)}`,
@@ -81,12 +107,32 @@ export function createPagesCmsServerServices(
       'The server deployment factory must return an object',
     )
   }
+  assertOnlyKeys(
+    services,
+    [
+      'accessPolicy',
+      'billingWebhook',
+      'emailProvider',
+      'entitlementReader',
+      'mediaProviderResolver',
+      'repositoryPermissionAdmin',
+    ],
+    'The server deployment services',
+  )
   if (
     services.accessPolicy !== undefined &&
     !isAccessPolicy(services.accessPolicy)
   ) {
     throw new DeploymentConfigurationError(
       'The server deployment returned an invalid access policy',
+    )
+  }
+  if (
+    services.billingWebhook !== undefined &&
+    !hasFunction(services.billingWebhook, 'handle')
+  ) {
+    throw new DeploymentConfigurationError(
+      'The server deployment returned an invalid billing webhook handler',
     )
   }
   if (
@@ -98,6 +144,14 @@ export function createPagesCmsServerServices(
     )
   }
   if (
+    services.entitlementReader !== undefined &&
+    !hasFunction(services.entitlementReader, 'read')
+  ) {
+    throw new DeploymentConfigurationError(
+      'The server deployment returned an invalid entitlement reader',
+    )
+  }
+  if (
     services.mediaProviderResolver !== undefined &&
     !isMediaProviderResolver(services.mediaProviderResolver)
   ) {
@@ -105,10 +159,25 @@ export function createPagesCmsServerServices(
       'The server deployment returned an invalid media provider resolver',
     )
   }
+  if (
+    services.repositoryPermissionAdmin !== undefined &&
+    (!hasFunction(services.repositoryPermissionAdmin, 'read') ||
+      !hasFunction(services.repositoryPermissionAdmin, 'replace'))
+  ) {
+    throw new DeploymentConfigurationError(
+      'The server deployment returned an invalid repository permission admin',
+    )
+  }
 
   return Object.freeze({
     accessPolicy: services.accessPolicy,
+    billingWebhook: services.billingWebhook as
+      BillingWebhookHandler | undefined,
     emailProvider: services.emailProvider,
+    entitlementReader: services.entitlementReader as
+      EntitlementReader | undefined,
     mediaProviderResolver: services.mediaProviderResolver,
+    repositoryPermissionAdmin: services.repositoryPermissionAdmin as
+      RepositoryPermissionAdmin | undefined,
   })
 }

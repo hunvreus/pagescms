@@ -33,7 +33,17 @@ describe('createRequestServices', () => {
         DATABASE_URL: 'postgres://user:password@example.com/pagescms',
       },
       new Headers(),
-      { deploymentServices: { accessPolicy } },
+      {
+        deploymentServices: {
+          accessPolicy,
+          billingWebhook: { handle: async () => undefined },
+          entitlementReader: { read: async () => null },
+          repositoryPermissionAdmin: {
+            read: async () => ({ version: '1', grants: [] }),
+            replace: async () => ({ version: '2', grants: [] }),
+          },
+        },
+      },
     )
 
     await services.access.authorize({
@@ -44,6 +54,9 @@ describe('createRequestServices', () => {
 
     expect(accessPolicy.authorize).toHaveBeenCalledOnce()
     expect(services.emailProvider).toBeUndefined()
+    expect(services.billingWebhook).toBeDefined()
+    expect(services.entitlementReader).toBeDefined()
+    expect(services.repositoryPermissionAdmin).toBeDefined()
   })
 
   it('creates services lazily and only once per request', () => {

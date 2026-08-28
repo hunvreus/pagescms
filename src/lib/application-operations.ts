@@ -4,6 +4,8 @@ export const APPLICATION_OPERATIONS = [
   'repository.connect',
   'repository.read',
   'repository.manage',
+  'repository.permissions.read',
+  'repository.permissions.update',
   'branch.read',
   'branch.create',
   'configuration.read',
