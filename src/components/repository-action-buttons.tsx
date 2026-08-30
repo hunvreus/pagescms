@@ -18,6 +18,7 @@ export function RepositoryActionButtons({
   actions,
   coordinates,
   context,
+  disabled = false,
 }: {
   actions: RepositoryAction[]
   coordinates: { owner: string; repo: string; branch: string }
@@ -27,6 +28,7 @@ export function RepositoryActionButtons({
     path: string
     data: Record<string, unknown>
   }
+  disabled?: boolean
 }) {
   const queryClient = useQueryClient()
   const [selected, setSelected] = useState<RepositoryAction | null>(null)
@@ -36,6 +38,7 @@ export function RepositoryActionButtons({
   const [error, setError] = useState<unknown>(null)
 
   async function dispatch(action: RepositoryAction) {
+    if (disabled) return
     const confirmation = action.confirm
     if (confirmation !== false && !action.fields?.length) {
       const prompt =
@@ -70,6 +73,7 @@ export function RepositoryActionButtons({
   }
 
   function choose(action: RepositoryAction) {
+    if (disabled) return
     if (!action.fields?.length) {
       void dispatch(action)
       return
@@ -89,7 +93,7 @@ export function RepositoryActionButtons({
       <OperationError error={error} fallback="Could not run action." />
       {actions.map((action) => (
         <Button
-          disabled={running}
+          disabled={disabled || running}
           key={action.name}
           size="sm"
           type="button"

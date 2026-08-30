@@ -68,5 +68,18 @@ export function accessDenialFrom(error: unknown) {
 export function userFacingError(error: unknown, fallback: string) {
   const denial = accessDenialFrom(error)
   if (denial) return denial.message
-  return error instanceof Error ? error.message : fallback
+  if (!(error instanceof Error)) return fallback
+
+  const message = error.message.trim().toLowerCase()
+  const transportFailure =
+    error.name === 'AbortError' ||
+    message === 'aborted' ||
+    message === 'fetch failed' ||
+    message === 'failed to fetch' ||
+    message === 'load failed' ||
+    message === 'network request failed' ||
+    message === 'networkerror when attempting to fetch resource.' ||
+    message.includes('econnreset')
+
+  return transportFailure ? fallback : error.message
 }

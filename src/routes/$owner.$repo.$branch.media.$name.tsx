@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { MediaPage, MediaPageSkeleton } from '#/features/media/media-page'
+import { MediaPage } from '#/features/media/media-page'
 
 interface MediaSearch {
   path?: string
@@ -11,8 +11,6 @@ export const Route = createFileRoute('/$owner/$repo/$branch/media/$name')({
     path:
       typeof search.path === 'string' && search.path ? search.path : undefined,
   }),
-  pendingMs: 100,
-  pendingComponent: MediaPageSkeleton,
   component: MediaRoute,
 })
 
