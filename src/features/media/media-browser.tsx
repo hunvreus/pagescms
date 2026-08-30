@@ -15,7 +15,11 @@ import {
   useSensors,
 } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import {
   columnVisibilityFeature,
   createColumnHelper,
@@ -52,7 +56,6 @@ import {
   AlertDialogTitle,
 } from '#/components/ui/alert-dialog'
 import { Button } from '#/components/ui/button'
-import { ButtonGroup } from '#/components/ui/button-group'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -85,6 +88,7 @@ import {
 } from '#/components/ui/empty'
 import { Input } from '#/components/ui/input'
 import { Skeleton } from '#/components/ui/skeleton'
+import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import {
   Table,
   TableBody,
@@ -167,11 +171,7 @@ function EntryPreview({
   if (entry.type === 'dir') {
     return (
       <span
-        className={cn(
-          'flex shrink-0 items-center justify-center',
-          variant === 'list' && 'rounded-md border bg-muted',
-          className,
-        )}
+        className={cn('flex shrink-0 items-center justify-center', className)}
       >
         <Folder
           className={cn(
@@ -196,11 +196,7 @@ function EntryPreview({
     />
   ) : (
     <span
-      className={cn(
-        'flex shrink-0 items-center justify-center',
-        variant === 'list' && 'rounded-md border bg-muted',
-        className,
-      )}
+      className={cn('flex shrink-0 items-center justify-center', className)}
     >
       <File
         className={cn(
@@ -215,7 +211,7 @@ function EntryPreview({
 }
 
 const mediaGridClassName =
-  'grid grid-cols-[repeat(auto-fill,minmax(min(100%,9rem),12rem))] justify-start gap-x-4 gap-y-6 sm:gap-x-6 md:gap-x-8 md:gap-y-8'
+  'grid grid-cols-[repeat(auto-fill,minmax(min(100%,9rem),12rem))] justify-center gap-x-4 gap-y-6 sm:gap-x-6 md:gap-x-8 md:gap-y-8'
 
 function DraggableFile({
   entry,
@@ -238,7 +234,10 @@ function DraggableFile({
       data-dragging={draggable.isDragging || undefined}
       ref={draggable.setNodeRef}
       style={{ transform: CSS.Translate.toString(draggable.transform) }}
-      className={cn(draggable.isDragging && 'z-10 opacity-50')}
+      className={cn(
+        canDrag && 'cursor-grab',
+        draggable.isDragging && 'z-10 cursor-grabbing opacity-50',
+      )}
       {...(canDrag ? draggable.listeners : undefined)}
     >
       {children}
@@ -305,6 +304,9 @@ function MediaTableRow({
       data-state={selected ? 'selected' : undefined}
       ref={setNodeRef}
       className={cn(
+        entry.type === 'dir' && 'cursor-pointer',
+        canDrag && 'cursor-grab',
+        draggable.isDragging && 'cursor-grabbing',
         draggable.isDragging && 'z-10 opacity-50',
         droppable.isOver && 'ring-2 ring-inset ring-primary',
       )}
@@ -462,9 +464,10 @@ export function MediaBrowser({
   const queryClient = useQueryClient()
   const [localPath, setLocalPath] = useState(path)
   const currentPath = path ?? localPath
-  const query = useQuery(
-    mediaQueryOptions({ ...coordinates, path: currentPath }),
-  )
+  const query = useQuery({
+    ...mediaQueryOptions({ ...coordinates, path: currentPath }),
+    placeholderData: keepPreviousData,
+  })
   const [search, setSearch] = useState('')
   const [view, setView] = useState<MediaView>('grid')
   const [error, setError] = useState<unknown>(null)
@@ -475,6 +478,7 @@ export function MediaBrowser({
   const [renameValue, setRenameValue] = useState('')
   const [deleteEntry, setDeleteEntry] = useState<MediaEntry | null>(null)
   const [draggingFiles, setDraggingFiles] = useState(false)
+  const uploadInputRef = useRef<HTMLInputElement>(null)
   const [renewingSources, setRenewingSources] = useState<Set<string>>(
     () => new Set(),
   )
@@ -482,12 +486,15 @@ export function MediaBrowser({
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   )
   const data = query.data
+  const folderPending = query.isPending || query.isPlaceholderData
+  const manifestUnavailable = query.isError && !data
+  const entries = folderPending ? [] : (data?.entries ?? [])
   const imagePaths = useMemo(
     () =>
-      (data?.entries ?? [])
+      entries
         .filter((entry) => entry.type === 'file' && isImageMedia(entry.path))
         .map((entry) => entry.path),
-    [data?.entries],
+    [entries],
   )
   const deliveryQuery = useQuery({
     ...mediaDeliveryQueryOptions({
@@ -556,10 +563,12 @@ export function MediaBrowser({
     [deliveryQuery.refetch],
   )
   const rootPath = data?.media.rootPath ?? currentPath ?? ''
-  const directoryPath = data?.media.path ?? currentPath ?? rootPath
+  const directoryPath = query.isPlaceholderData
+    ? (currentPath ?? rootPath)
+    : (data?.media.path ?? currentPath ?? rootPath)
   const visible = useMemo(
-    () => mediaEntries(data?.entries ?? [], { search, extensions }),
-    [data?.entries, extensions, search],
+    () => mediaEntries(entries, { search, extensions }),
+    [entries, extensions, search],
   )
   const selectedPaths = useMemo(() => new Set(selected), [selected])
   const selecting = Boolean(onSelect || onSelectMany)
@@ -570,6 +579,7 @@ export function MediaBrowser({
   const canMove = manage && Boolean(data?.media.capabilities.move)
   const canRename = manage && Boolean(data?.media.capabilities.rename)
   const canDelete = manage && Boolean(data?.media.capabilities.remove)
+  const controlsDisabled = busy || folderPending
 
   function navigate(next: string) {
     setSearch('')
@@ -674,6 +684,9 @@ export function MediaBrowser({
   }
 
   async function move(event: DragEndEvent) {
+    // TODO(media): Support directory rename/move. GitHub can reattach an
+    // existing tree SHA atomically; S3/R2 require prefix copy/delete with
+    // progress and partial-failure handling.
     const entry = event.active.data.current?.entry as MediaEntry | undefined
     const destination = event.over?.data.current?.entry as
       MediaEntry | undefined
@@ -715,7 +728,14 @@ export function MediaBrowser({
             return (
               <button
                 aria-pressed={entry.type === 'file' ? isSelected : undefined}
-                className="flex min-w-0 items-center gap-3 text-left"
+                className={cn(
+                  'flex min-w-0 items-center gap-3 text-left',
+                  entry.type === 'dir'
+                    ? 'cursor-pointer'
+                    : canMove
+                      ? 'cursor-grab active:cursor-grabbing'
+                      : onSelect && 'cursor-pointer',
+                )}
                 type="button"
                 onClick={() =>
                   entry.type === 'dir'
@@ -767,6 +787,7 @@ export function MediaBrowser({
     [
       coordinates,
       canDelete,
+      canMove,
       canRename,
       deliveryQuery.isError,
       leases,
@@ -790,6 +811,7 @@ export function MediaBrowser({
     <div className="relative w-full sm:w-64">
       <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
       <Input
+        disabled={folderPending}
         className="pl-8"
         placeholder="Search media…"
         value={search}
@@ -798,34 +820,40 @@ export function MediaBrowser({
     </div>
   )
   const viewControls = (
-    <ButtonGroup aria-label="Media view">
-      <Button
+    <ToggleGroup
+      aria-label="Media view"
+      spacing={0}
+      type="single"
+      value={view}
+      variant="outline"
+      onValueChange={(value) => {
+        if (value === 'grid' || value === 'list') setView(value)
+      }}
+    >
+      <ToggleGroupItem
         aria-label="Grid view"
-        aria-pressed={view === 'grid'}
-        size="icon"
-        variant={view === 'grid' ? 'secondary' : 'outline'}
-        onClick={() => setView('grid')}
+        disabled={folderPending}
+        value="grid"
       >
         <Grid2X2 />
-      </Button>
-      <Button
+      </ToggleGroupItem>
+      <ToggleGroupItem
         aria-label="List view"
-        aria-pressed={view === 'list'}
-        size="icon"
-        variant={view === 'list' ? 'secondary' : 'outline'}
-        onClick={() => setView('list')}
+        disabled={folderPending}
+        value="list"
       >
         <List />
-      </Button>
-    </ButtonGroup>
+      </ToggleGroupItem>
+    </ToggleGroup>
   )
+  const showPendingManageControls = manage && !data
   const manageControls =
-    canCreateDirectory || canUpload ? (
+    canCreateDirectory || canUpload || showPendingManageControls ? (
       <>
-        {canCreateDirectory ? (
+        {canCreateDirectory || showPendingManageControls ? (
           <Button
             aria-label="New folder"
-            disabled={busy}
+            disabled={controlsDisabled || !canCreateDirectory}
             size="icon"
             variant="outline"
             onClick={() => setFolderOpen(true)}
@@ -833,24 +861,28 @@ export function MediaBrowser({
             <FolderPlus />
           </Button>
         ) : null}
-        {canUpload ? (
-          <Button asChild disabled={busy || selectionFull}>
-            <label>
+        {canUpload || showPendingManageControls ? (
+          <>
+            <Button
+              disabled={controlsDisabled || selectionFull || !canUpload}
+              onClick={() => uploadInputRef.current?.click()}
+            >
               {busy ? <LoaderCircle className="animate-spin" /> : <Upload />}{' '}
               Upload
-              <input
-                multiple
-                className="sr-only"
-                disabled={busy || selectionFull}
-                type="file"
-                accept={extensions?.map((value) => `.${value}`).join(',')}
-                onChange={(event) => {
-                  void upload(event.target.files ?? [])
-                  event.target.value = ''
-                }}
-              />
-            </label>
-          </Button>
+            </Button>
+            <input
+              multiple
+              className="sr-only"
+              disabled={controlsDisabled || selectionFull || !canUpload}
+              ref={uploadInputRef}
+              type="file"
+              accept={extensions?.map((value) => `.${value}`).join(',')}
+              onChange={(event) => {
+                void upload(event.target.files ?? [])
+                event.target.value = ''
+              }}
+            />
+          </>
         ) : null}
       </>
     ) : null
@@ -868,6 +900,7 @@ export function MediaBrowser({
               {data ? (
                 <RepositoryActionButtons
                   actions={data.media.actions}
+                  disabled={folderPending}
                   context={{
                     type: 'media',
                     name: data.media.name,
@@ -888,7 +921,7 @@ export function MediaBrowser({
             <MediaBreadcrumb
               title
               label={data.media.label}
-              path={data.media.path}
+              path={directoryPath}
               rootPath={data.media.rootPath}
               onNavigate={navigate}
             />
@@ -963,11 +996,22 @@ export function MediaBrowser({
             </div>
           </>
         ) : null}
-        <OperationError
-          error={error ?? query.error ?? deliveryQuery.error}
-          fallback="Could not load media."
-        />
-        {query.isPending ? (
+        <OperationError error={error} fallback="Could not update media." />
+        {manifestUnavailable ? (
+          <Empty className="min-h-64 border">
+            <EmptyHeader>
+              <EmptyTitle>Could not load media</EmptyTitle>
+              <EmptyDescription>
+                Check your connection and try again.
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button variant="outline" onClick={() => void query.refetch()}>
+                Try again
+              </Button>
+            </EmptyContent>
+          </Empty>
+        ) : folderPending ? (
           <MediaBrowserSkeleton view={view} />
         ) : visible.length ? (
           view === 'grid' ? (
@@ -988,7 +1032,7 @@ export function MediaBrowser({
                     >
                       {entry.type === 'dir' ? (
                         <button
-                          className="block w-full rounded-md p-2 text-center outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                          className="block w-full cursor-pointer rounded-md p-2 text-center outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                           type="button"
                           onClick={() => navigate(entry.path)}
                         >

@@ -31,4 +31,13 @@ describe('access denial presentation', () => {
       })?.upgradeUrl,
     ).toBeUndefined()
   })
+
+  it('does not expose browser transport errors to users', () => {
+    expect(
+      userFacingError(new TypeError('Failed to fetch'), 'Could not load media.'),
+    ).toBe('Could not load media.')
+    expect(
+      userFacingError(new Error('fetch failed'), 'Could not load media.'),
+    ).toBe('Could not load media.')
+  })
 })
