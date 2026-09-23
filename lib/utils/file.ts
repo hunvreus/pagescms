@@ -36,7 +36,7 @@ const getFileExtension = (path: string): string => {
   const filename = getFileName(path);
   if (filename.startsWith(".") && !filename.includes(".", 1)) return "";
   const extensionMatch = /(?:\.([^.]+))?$/.exec(filename);
-  return extensionMatch?.[1] ?? "";
+  return extensionMatch?.[1]?.toLowerCase() ?? "";
 }
 
 function getFileName(path: string): string {
