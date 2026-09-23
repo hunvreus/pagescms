@@ -690,12 +690,19 @@ export function Editor({
 
       const preloaded = await preloadImageSource(resolved.src);
       if (!preloaded) {
+        // The upload succeeded, so store its URL rather than the local blob:
+        // URL, which would otherwise be saved into the content. A freshly
+        // committed file can take a while to be served (e.g. private repos).
         finalizeImageUpload(uploadId, (attrs) => ({
           ...attrs,
+          src: resolved.src,
+          alt: resolved.alt ?? (typeof attrs.alt === "string" ? attrs.alt : undefined),
+          title: resolved.title ?? (typeof attrs.title === "string" ? attrs.title : undefined),
           uploading: false,
           uploadError: "Image uploaded, but preview failed to load",
+          uploadId: null,
         }));
-        cleanupUpload(uploadId, { revokeBlob: false });
+        cleanupUpload(uploadId, { revokeBlob: true });
         return;
       }
 
