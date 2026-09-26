@@ -8,13 +8,13 @@ import {
 } from 'react'
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   useDraggable,
   useDroppable,
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
-import { CSS } from '@dnd-kit/utilities'
 import {
   keepPreviousData,
   useQuery,
@@ -35,6 +35,7 @@ import {
   Folder,
   FolderPlus,
   Grid2X2,
+  House,
   List,
   LoaderCircle,
   Search,
@@ -87,6 +88,7 @@ import {
   EmptyTitle,
 } from '#/components/ui/empty'
 import { Input } from '#/components/ui/input'
+import { ScrollArea } from '#/components/ui/scroll-area'
 import { Skeleton } from '#/components/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import {
@@ -117,7 +119,7 @@ import {
 } from './media-model'
 import { uploadMediaFiles } from './media-upload'
 
-import type { DragEndEvent } from '@dnd-kit/core'
+import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
 import type { ReactNode } from 'react'
 import type { MediaEntry, MediaView } from './media-model'
 
@@ -213,6 +215,117 @@ function EntryPreview({
 const mediaGridClassName =
   'grid grid-cols-[repeat(auto-fill,minmax(min(100%,9rem),12rem))] justify-center gap-x-4 gap-y-6 sm:gap-x-6 md:gap-x-8 md:gap-y-8'
 
+function MediaGridEntry({
+  canDelete,
+  canRename,
+  coordinates,
+  deliveryError,
+  entry,
+  lease,
+  onDelete,
+  onNavigate,
+  onRename,
+  onSelect,
+  renewFailedLease,
+  renewingSources,
+  selected,
+}: {
+  canDelete: boolean
+  canRename: boolean
+  coordinates: MediaCoordinates
+  deliveryError: boolean
+  entry: MediaEntry
+  lease?: { url: string }
+  onDelete: (entry: MediaEntry) => void
+  onNavigate: (path: string) => void
+  onRename: (entry: MediaEntry) => void
+  onSelect?: (path: string) => void
+  renewFailedLease: (source: string) => void
+  renewingSources: Set<string>
+  selected: boolean
+}) {
+  return (
+    <div
+      className={cn(
+        'relative rounded-md',
+        selected && 'ring-2 ring-ring ring-offset-2 ring-offset-background',
+      )}
+    >
+      {entry.type === 'dir' ? (
+        <button
+          className="block w-full cursor-pointer rounded-md p-2 text-center outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          type="button"
+          onClick={() => onNavigate(entry.path)}
+        >
+          <EntryPreview
+            coordinates={coordinates}
+            entry={entry}
+            className="aspect-video w-full"
+            variant="grid"
+          />
+          <span className="mt-2 block truncate text-sm font-medium">
+            {entry.name}
+          </span>
+        </button>
+      ) : (
+        <>
+          <button
+            aria-disabled={!onSelect}
+            aria-pressed={selected}
+            className="block w-full rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            tabIndex={onSelect ? undefined : -1}
+            type="button"
+            onClick={() => onSelect?.(entry.path)}
+          >
+            <EntryPreview
+              coordinates={coordinates}
+              entry={entry}
+              className="aspect-video w-full"
+              source={lease?.url}
+              loadingSource={
+                (!lease && !deliveryError) ||
+                renewingSources.has(lease?.url ?? '')
+              }
+              onSourceError={renewFailedLease}
+              variant="grid"
+            />
+          </button>
+          <div className="flex min-w-0 items-start gap-1 pt-2">
+            <button
+              aria-disabled={!onSelect}
+              aria-pressed={selected}
+              className="min-w-0 flex-1 text-left outline-none"
+              tabIndex={onSelect ? undefined : -1}
+              type="button"
+              onClick={() => onSelect?.(entry.path)}
+            >
+              <span className="block truncate text-sm font-medium">
+                {entry.name}
+              </span>
+              <span className="block truncate text-xs text-muted-foreground">
+                {formatMediaSize(entry.size)}
+              </span>
+            </button>
+            <EntryActions
+              canDelete={canDelete}
+              canRename={canRename}
+              coordinates={coordinates}
+              entry={entry}
+              onDelete={onDelete}
+              onRename={onRename}
+            />
+          </div>
+        </>
+      )}
+      {entry.type === 'file' && selected ? (
+        <span className="absolute top-2 left-2 rounded-full bg-primary p-0.5 text-primary-foreground">
+          <Check className="size-3 stroke-3" />
+        </span>
+      ) : null}
+    </div>
+  )
+}
+
 function DraggableFile({
   entry,
   canMove,
@@ -233,10 +346,9 @@ function DraggableFile({
       data-media-path={entry.type === 'file' ? entry.path : undefined}
       data-dragging={draggable.isDragging || undefined}
       ref={draggable.setNodeRef}
-      style={{ transform: CSS.Translate.toString(draggable.transform) }}
       className={cn(
         canDrag && 'cursor-grab',
-        draggable.isDragging && 'z-10 cursor-grabbing opacity-50',
+        draggable.isDragging && 'cursor-grabbing',
       )}
       {...(canDrag ? draggable.listeners : undefined)}
     >
@@ -307,14 +419,52 @@ function MediaTableRow({
         entry.type === 'dir' && 'cursor-pointer',
         canDrag && 'cursor-grab',
         draggable.isDragging && 'cursor-grabbing',
-        draggable.isDragging && 'z-10 opacity-50',
         droppable.isOver && 'ring-2 ring-inset ring-primary',
       )}
-      style={{ transform: CSS.Translate.toString(draggable.transform) }}
       {...(canDrag ? draggable.listeners : undefined)}
     >
       {children}
     </TableRow>
+  )
+}
+
+function MediaDragOverlay({
+  coordinates,
+  entry,
+  lease,
+  view,
+}: {
+  coordinates: MediaCoordinates
+  entry: MediaEntry
+  lease?: { url: string }
+  view: MediaView
+}) {
+  return (
+    <div
+      data-media-drag-overlay
+      className={cn(
+        'pointer-events-none overflow-hidden rounded-md border bg-popover shadow-lg',
+        view === 'grid' ? 'w-48 p-2' : 'flex w-80 items-center gap-3 p-3',
+      )}
+    >
+      <EntryPreview
+        coordinates={coordinates}
+        entry={entry}
+        className={cn(
+          view === 'grid'
+            ? 'aspect-video w-full'
+            : 'size-10 overflow-hidden rounded-sm',
+        )}
+        source={lease?.url}
+        variant={view}
+      />
+      <div className={cn('min-w-0', view === 'grid' && 'pt-2')}>
+        <span className="block truncate text-sm font-medium">{entry.name}</span>
+        <span className="block truncate text-xs text-muted-foreground">
+          {formatMediaSize(entry.size)}
+        </span>
+      </div>
+    </div>
   )
 }
 
@@ -381,12 +531,14 @@ export function MediaBreadcrumb({
   rootPath,
   path,
   onNavigate,
+  compact = false,
   title = false,
 }: {
   label: string
   rootPath: string
   path: string
   onNavigate: (path: string) => void
+  compact?: boolean
   title?: boolean
 }) {
   const relative = path
@@ -400,18 +552,36 @@ export function MediaBreadcrumb({
   }))
 
   return (
-    <Breadcrumb>
-      <BreadcrumbList className={cn(title && 'text-lg font-medium')}>
-        <BreadcrumbItem>
+    <Breadcrumb className="min-w-0 overflow-hidden">
+      <BreadcrumbList
+        className={cn(
+          'flex-nowrap',
+          title && 'text-lg font-medium',
+          compact && 'gap-1.5 sm:gap-2.5',
+        )}
+      >
+        <BreadcrumbItem className="shrink-0">
           {entries.length ? (
             <BreadcrumbLink asChild className={cn(title && 'font-medium')}>
-              <button type="button" onClick={() => onNavigate(rootPath)}>
-                {label}
+              <button
+                aria-label={compact ? label : undefined}
+                className="cursor-pointer"
+                type="button"
+                onClick={() => onNavigate(rootPath)}
+              >
+                {compact ? <House className="size-3.5" /> : label}
               </button>
             </BreadcrumbLink>
           ) : (
             <BreadcrumbPage className={cn(title && 'font-medium')}>
-              {label}
+              {compact ? (
+                <>
+                  <House className="size-3.5" />
+                  <span className="sr-only">{label}</span>
+                </>
+              ) : (
+                label
+              )}
             </BreadcrumbPage>
           )}
         </BreadcrumbItem>
@@ -420,9 +590,11 @@ export function MediaBreadcrumb({
           return (
             <Fragment key={entry.path}>
               <BreadcrumbSeparator />
-              <BreadcrumbItem>
+              <BreadcrumbItem className={current ? 'min-w-0' : 'shrink-0'}>
                 {current ? (
-                  <BreadcrumbPage className={cn(title && 'font-medium')}>
+                  <BreadcrumbPage
+                    className={cn('block truncate', title && 'font-medium')}
+                  >
                     {entry.name}
                   </BreadcrumbPage>
                 ) : (
@@ -478,6 +650,9 @@ export function MediaBrowser({
   const [renameValue, setRenameValue] = useState('')
   const [deleteEntry, setDeleteEntry] = useState<MediaEntry | null>(null)
   const [draggingFiles, setDraggingFiles] = useState(false)
+  const [activeDragEntry, setActiveDragEntry] = useState<MediaEntry | null>(
+    null,
+  )
   const uploadInputRef = useRef<HTMLInputElement>(null)
   const [renewingSources, setRenewingSources] = useState<Set<string>>(
     () => new Set(),
@@ -572,7 +747,6 @@ export function MediaBrowser({
   )
   const selectedPaths = useMemo(() => new Set(selected), [selected])
   const selecting = Boolean(onSelect || onSelectMany)
-  const selectionFull = selecting && selected.length >= selectionLimit
   const canCreateDirectory =
     manage && Boolean(data?.media.capabilities.createDirectory)
   const canUpload = manage && Boolean(data?.media.capabilities.upload)
@@ -604,15 +778,15 @@ export function MediaBrowser({
     setBusy(true)
     setError(null)
     try {
-      const remaining = selecting
-        ? Math.max(0, selectionLimit - selected.length)
-        : undefined
-      if (remaining === 0) throw new Error('Selection limit reached')
+      const uploadLimit =
+        selecting && Number.isFinite(selectionLimit)
+          ? selectionLimit
+          : undefined
       const uploaded = await uploadMediaFiles({
         coordinates,
         extensions,
         files: values,
-        limit: remaining,
+        limit: uploadLimit,
         path: directoryPath,
       })
       if (onSelectMany) onSelectMany(uploaded)
@@ -690,6 +864,7 @@ export function MediaBrowser({
     const entry = event.active.data.current?.entry as MediaEntry | undefined
     const destination = event.over?.data.current?.entry as
       MediaEntry | undefined
+    setActiveDragEntry(null)
     if (
       !canMove ||
       !entry?.sha ||
@@ -714,6 +889,11 @@ export function MediaBrowser({
     } finally {
       setBusy(false)
     }
+  }
+
+  function startMove(event: DragStartEvent) {
+    const entry = event.active.data.current?.entry as MediaEntry | undefined
+    setActiveDragEntry(entry?.type === 'file' ? entry : null)
   }
 
   const columns = useMemo(
@@ -864,7 +1044,7 @@ export function MediaBrowser({
         {canUpload || showPendingManageControls ? (
           <>
             <Button
-              disabled={controlsDisabled || selectionFull || !canUpload}
+              disabled={controlsDisabled || !canUpload}
               onClick={() => uploadInputRef.current?.click()}
             >
               {busy ? <LoaderCircle className="animate-spin" /> : <Upload />}{' '}
@@ -873,7 +1053,7 @@ export function MediaBrowser({
             <input
               multiple
               className="sr-only"
-              disabled={controlsDisabled || selectionFull || !canUpload}
+              disabled={controlsDisabled || !canUpload}
               ref={uploadInputRef}
               type="file"
               accept={extensions?.map((value) => `.${value}`).join(',')}
@@ -886,9 +1066,149 @@ export function MediaBrowser({
         ) : null}
       </>
     ) : null
+  const repositoryActionControls = data ? (
+    <RepositoryActionButtons
+      actions={data.media.actions}
+      disabled={folderPending}
+      context={{
+        type: 'media',
+        name: data.media.name,
+        path: data.media.path,
+        data: {
+          label: data.media.label,
+          input: data.media.rootPath,
+          output: data.media.output,
+        },
+      }}
+      coordinates={coordinates}
+    />
+  ) : null
+  const tableResults = (
+    <Table>
+      <TableHeader>
+        <TableRow className="hover:bg-transparent">
+          {mediaTable.getHeaderGroups()[0]?.headers.map((header) => (
+            <TableHead
+              className={
+                header.column.id === 'actions' ? 'text-right' : undefined
+              }
+              key={header.id}
+            >
+              {header.isPlaceholder ? null : (
+                <mediaTable.FlexRender header={header} />
+              )}
+            </TableHead>
+          ))}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {mediaTable.getRowModel().rows.map((row) => (
+          <MediaTableRow
+            canMove={canMove}
+            entry={row.original}
+            key={row.id}
+            selected={selectedPaths.has(row.original.path)}
+          >
+            {row.getVisibleCells().map((cell) => (
+              <TableCell
+                className={
+                  cell.column.id === 'actions' ? 'text-right' : undefined
+                }
+                key={cell.id}
+              >
+                <mediaTable.FlexRender cell={cell} />
+              </TableCell>
+            ))}
+          </MediaTableRow>
+        ))}
+      </TableBody>
+    </Table>
+  )
+  const emptyResults = (
+    <Empty className="min-h-64 border">
+      <EmptyHeader>
+        <EmptyTitle>{search ? 'No matching media' : 'No media yet'}</EmptyTitle>
+        <EmptyDescription>
+          {search
+            ? 'Try a different search.'
+            : 'Upload a file or create a folder to get started.'}
+        </EmptyDescription>
+      </EmptyHeader>
+      {search ? (
+        <EmptyContent>
+          <Button variant="outline" onClick={() => setSearch('')}>
+            Clear search
+          </Button>
+        </EmptyContent>
+      ) : null}
+    </Empty>
+  )
+  const gridResults = (
+    <div className={mediaGridClassName}>
+      {visible.map((entry) => (
+        <DroppableFolder canMove={canMove} entry={entry} key={entry.path}>
+          <DraggableFile canMove={canMove} entry={entry}>
+            <MediaGridEntry
+              canDelete={canDelete}
+              canRename={canRename}
+              coordinates={coordinates}
+              deliveryError={deliveryQuery.isError}
+              entry={entry}
+              lease={leases.get(entry.path)}
+              onDelete={setDeleteEntry}
+              onNavigate={navigate}
+              onRename={(value) => {
+                setRenameEntry(value)
+                setRenameValue(value.name)
+              }}
+              onSelect={onSelect}
+              renewFailedLease={renewFailedLease}
+              renewingSources={renewingSources}
+              selected={selectedPaths.has(entry.path)}
+            />
+          </DraggableFile>
+        </DroppableFolder>
+      ))}
+    </div>
+  )
+  const mediaResults = (
+    <>
+      <OperationError error={error} fallback="Could not update media." />
+      {manifestUnavailable ? (
+        <Empty className="min-h-64 border">
+          <EmptyHeader>
+            <EmptyTitle>Could not load media</EmptyTitle>
+            <EmptyDescription>
+              Check your connection and try again.
+            </EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Button variant="outline" onClick={() => void query.refetch()}>
+              Try again
+            </Button>
+          </EmptyContent>
+        </Empty>
+      ) : folderPending ? (
+        <MediaBrowserSkeleton view={view} />
+      ) : visible.length ? (
+        view === 'grid' ? (
+          gridResults
+        ) : (
+          tableResults
+        )
+      ) : (
+        emptyResults
+      )}
+    </>
+  )
 
   return (
-    <DndContext sensors={sensors} onDragEnd={(event) => void move(event)}>
+    <DndContext
+      sensors={sensors}
+      onDragCancel={() => setActiveDragEntry(null)}
+      onDragEnd={(event) => void move(event)}
+      onDragStart={startMove}
+    >
       {variant === 'page' ? (
         <RepositoryPageHeader
           refreshing={query.isFetching}
@@ -897,23 +1217,7 @@ export function MediaBrowser({
               {searchControl}
               {viewControls}
               {manageControls}
-              {data ? (
-                <RepositoryActionButtons
-                  actions={data.media.actions}
-                  disabled={folderPending}
-                  context={{
-                    type: 'media',
-                    name: data.media.name,
-                    path: data.media.path,
-                    data: {
-                      label: data.media.label,
-                      input: data.media.rootPath,
-                      output: data.media.output,
-                    },
-                  }}
-                  coordinates={coordinates}
-                />
-              ) : null}
+              {repositoryActionControls}
             </>
           }
         >
@@ -932,26 +1236,20 @@ export function MediaBrowser({
       ) : null}
       <section
         className={cn(
-          'relative space-y-4',
-          variant === 'page' && 'p-4 md:p-6',
+          'relative',
+          variant === 'page'
+            ? 'space-y-4 p-4 md:p-6'
+            : 'flex min-h-0 flex-1 flex-col gap-4',
           className,
         )}
         onDragEnter={(event) => {
-          if (
-            canUpload &&
-            !selectionFull &&
-            event.dataTransfer.types.includes('Files')
-          ) {
+          if (canUpload && event.dataTransfer.types.includes('Files')) {
             event.preventDefault()
             setDraggingFiles(true)
           }
         }}
         onDragOver={(event) => {
-          if (
-            canUpload &&
-            !selectionFull &&
-            event.dataTransfer.types.includes('Files')
-          )
+          if (canUpload && event.dataTransfer.types.includes('Files'))
             event.preventDefault()
         }}
         onDragLeave={(event) => {
@@ -959,26 +1257,29 @@ export function MediaBrowser({
             setDraggingFiles(false)
         }}
         onDrop={(event) => {
-          if (!canUpload || selectionFull || !event.dataTransfer.files.length)
-            return
+          if (!canUpload || !event.dataTransfer.files.length) return
           event.preventDefault()
           void upload(event.dataTransfer.files)
         }}
       >
         {variant === 'embedded' ? (
-          <>
-            {showBreadcrumb ? (
-              <MediaBreadcrumb
-                label={data?.media.label ?? rootPath}
-                path={directoryPath}
-                rootPath={rootPath}
-                onNavigate={navigate}
-              />
-            ) : null}
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <div className="min-w-0 flex-1 overflow-hidden">
+              {showBreadcrumb ? (
+                <div className="hidden sm:block">
+                  <MediaBreadcrumb
+                    compact
+                    label={data?.media.label ?? rootPath}
+                    path={directoryPath}
+                    rootPath={rootPath}
+                    onNavigate={navigate}
+                  />
+                </div>
+              ) : null}
               {directoryPath !== rootPath ? (
                 <Button
                   aria-label="Parent folder"
+                  className="sm:hidden"
                   size="icon"
                   variant="outline"
                   onClick={() =>
@@ -988,196 +1289,21 @@ export function MediaBrowser({
                   <ArrowUp />
                 </Button>
               ) : null}
+            </div>
+            <div className="flex w-full items-center gap-2 sm:w-auto">
               {searchControl}
-              <div className="ml-auto flex items-center gap-2">
-                {viewControls}
-                {manageControls}
-              </div>
+              {viewControls}
+              {manageControls}
+              {repositoryActionControls}
             </div>
-          </>
+          </div>
         ) : null}
-        <OperationError error={error} fallback="Could not update media." />
-        {manifestUnavailable ? (
-          <Empty className="min-h-64 border">
-            <EmptyHeader>
-              <EmptyTitle>Could not load media</EmptyTitle>
-              <EmptyDescription>
-                Check your connection and try again.
-              </EmptyDescription>
-            </EmptyHeader>
-            <EmptyContent>
-              <Button variant="outline" onClick={() => void query.refetch()}>
-                Try again
-              </Button>
-            </EmptyContent>
-          </Empty>
-        ) : folderPending ? (
-          <MediaBrowserSkeleton view={view} />
-        ) : visible.length ? (
-          view === 'grid' ? (
-            <div className={mediaGridClassName}>
-              {visible.map((entry) => (
-                <DroppableFolder
-                  canMove={canMove}
-                  entry={entry}
-                  key={entry.path}
-                >
-                  <DraggableFile canMove={canMove} entry={entry}>
-                    <div
-                      className={cn(
-                        'relative rounded-md',
-                        selectedPaths.has(entry.path) &&
-                          'ring-2 ring-ring ring-offset-2 ring-offset-background',
-                      )}
-                    >
-                      {entry.type === 'dir' ? (
-                        <button
-                          className="block w-full cursor-pointer rounded-md p-2 text-center outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                          type="button"
-                          onClick={() => navigate(entry.path)}
-                        >
-                          <EntryPreview
-                            coordinates={coordinates}
-                            entry={entry}
-                            className="aspect-video w-full"
-                            variant="grid"
-                          />
-                          <span className="mt-2 block truncate text-sm font-medium">
-                            {entry.name}
-                          </span>
-                        </button>
-                      ) : (
-                        <>
-                          <button
-                            aria-disabled={!onSelect}
-                            aria-pressed={selectedPaths.has(entry.path)}
-                            className="block w-full rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                            tabIndex={onSelect ? undefined : -1}
-                            type="button"
-                            onClick={() => onSelect?.(entry.path)}
-                          >
-                            <EntryPreview
-                              coordinates={coordinates}
-                              entry={entry}
-                              className="aspect-video w-full"
-                              source={leases.get(entry.path)?.url}
-                              loadingSource={
-                                (!leases.has(entry.path) &&
-                                  !deliveryQuery.isError) ||
-                                renewingSources.has(
-                                  leases.get(entry.path)?.url ?? '',
-                                )
-                              }
-                              onSourceError={renewFailedLease}
-                              variant="grid"
-                            />
-                          </button>
-                          <div className="flex min-w-0 items-start gap-1 pt-2">
-                            <button
-                              aria-disabled={!onSelect}
-                              aria-pressed={selectedPaths.has(entry.path)}
-                              className="min-w-0 flex-1 text-left outline-none"
-                              tabIndex={onSelect ? undefined : -1}
-                              type="button"
-                              onClick={() => onSelect?.(entry.path)}
-                            >
-                              <span className="block truncate text-sm font-medium">
-                                {entry.name}
-                              </span>
-                              <span className="block truncate text-xs text-muted-foreground">
-                                {formatMediaSize(entry.size)}
-                              </span>
-                            </button>
-                            <EntryActions
-                              canDelete={canDelete}
-                              canRename={canRename}
-                              coordinates={coordinates}
-                              entry={entry}
-                              onDelete={setDeleteEntry}
-                              onRename={(value) => {
-                                setRenameEntry(value)
-                                setRenameValue(value.name)
-                              }}
-                            />
-                          </div>
-                        </>
-                      )}
-                      {entry.type === 'file' &&
-                      selectedPaths.has(entry.path) ? (
-                        <span className="absolute top-2 left-2 rounded-full bg-primary p-0.5 text-primary-foreground">
-                          <Check className="size-3 stroke-3" />
-                        </span>
-                      ) : null}
-                    </div>
-                  </DraggableFile>
-                </DroppableFolder>
-              ))}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  {mediaTable.getHeaderGroups()[0]?.headers.map((header) => (
-                    <TableHead
-                      className={
-                        header.column.id === 'actions'
-                          ? 'text-right'
-                          : undefined
-                      }
-                      key={header.id}
-                    >
-                      {header.isPlaceholder ? null : (
-                        <mediaTable.FlexRender header={header} />
-                      )}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {mediaTable.getRowModel().rows.map((row) => (
-                  <MediaTableRow
-                    canMove={canMove}
-                    entry={row.original}
-                    key={row.id}
-                    selected={selectedPaths.has(row.original.path)}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell
-                        className={
-                          cell.column.id === 'actions'
-                            ? 'text-right'
-                            : undefined
-                        }
-                        key={cell.id}
-                      >
-                        <mediaTable.FlexRender cell={cell} />
-                      </TableCell>
-                    ))}
-                  </MediaTableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )
+        {variant === 'embedded' ? (
+          <ScrollArea className="min-h-0 flex-1">
+            <div className="pr-4 pb-1">{mediaResults}</div>
+          </ScrollArea>
         ) : (
-          <Empty className="min-h-64 border">
-            <EmptyHeader>
-              <EmptyTitle>
-                {search ? 'No matching media' : 'No media yet'}
-              </EmptyTitle>
-              <EmptyDescription>
-                {search
-                  ? 'Try a different search.'
-                  : 'Upload a file or create a folder to get started.'}
-              </EmptyDescription>
-            </EmptyHeader>
-            {search ? (
-              <EmptyContent>
-                <Button variant="outline" onClick={() => setSearch('')}>
-                  Clear search
-                </Button>
-              </EmptyContent>
-            ) : null}
-          </Empty>
+          mediaResults
         )}
         {draggingFiles ? (
           <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl border-2 border-dashed border-primary bg-background/90 text-sm font-medium">
@@ -1185,6 +1311,17 @@ export function MediaBrowser({
           </div>
         ) : null}
       </section>
+
+      <DragOverlay dropAnimation={null}>
+        {activeDragEntry ? (
+          <MediaDragOverlay
+            coordinates={coordinates}
+            entry={activeDragEntry}
+            lease={leases.get(activeDragEntry.path)}
+            view={view}
+          />
+        ) : null}
+      </DragOverlay>
 
       <Dialog open={folderOpen} onOpenChange={setFolderOpen}>
         <DialogContent>

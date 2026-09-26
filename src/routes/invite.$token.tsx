@@ -1,6 +1,7 @@
 import { Link, createFileRoute, redirect } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
+import { ErrorAlert } from '#/components/error-alert'
 import { Button } from '#/components/ui/button'
 import {
   Empty,
@@ -38,9 +39,9 @@ function InvitePage() {
                 Sign in as {state.maskedEmail} to accept this invitation.
               </p>
             ) : (
-              <p className="text-sm leading-6 text-destructive">
+              <ErrorAlert>
                 This invitation belongs to a different verified email address.
-              </p>
+              </ErrorAlert>
             )}
           </header>
           {state.status === 'sign-in' ? (

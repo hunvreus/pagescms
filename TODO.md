@@ -8,6 +8,7 @@
 
 ## Release and cutover
 
+- Measure legacy/current cache behavior on matched workloads (warm reads, ordinary saves, node collections, colocated media, large pushes and concurrent instances): upstream requests, database writes and p50/p95 latency. See the documented cache parity audit; unit/integration coverage is not production performance acceptance.
 - Run the self-hosted and private hosted-plugin acceptance matrices, including free, paid, expired, quota, granular-role, provider-failure, and support-override cases.
 - Rehearse preview/production migrations, GitHub callbacks/webhooks, rollback, and monitoring.
 - Run Worker type generation/dry-run and live Cloudflare verification when deployment testing resumes. Live Cloudflare testing is intentionally deferred for the current implementation pass.

@@ -303,9 +303,20 @@ export function createGitHubMediaStorage({
   branch,
   list,
   resolveDirectory,
+  onMutation,
   clock = systemClock,
 }: {
   api: GitHubApi
+  onMutation?: (
+    result: { commitSha: string; parentCommitSha?: string },
+    changes: {
+      path: string
+      removed: boolean
+      sourcePath?: string
+      sha?: string
+    }[],
+    knownFiles?: GitHubDirectoryEntry[],
+  ) => Promise<void>
   owner: string
   repo: string
   branch: string
@@ -404,6 +415,29 @@ export function createGitHubMediaStorage({
         message: metadata.message,
         ...(metadata.actor ? { committer: metadata.actor } : {}),
       })
+      const bytes = decodeBase64Bytes(content)
+      let text: string | null = null
+      try {
+        const decoded = new TextDecoder('utf-8', { fatal: true }).decode(bytes)
+        if (!decoded.includes('\0')) text = decoded
+      } catch {
+        /* Binary uploads have metadata only, even in a colocated collection. */
+      }
+      await onMutation?.(
+        result,
+        [{ path, removed: false }],
+        [
+          {
+            path,
+            name: path.slice(path.lastIndexOf('/') + 1),
+            type: 'file',
+            sha: result.sha,
+            size: bytes.byteLength,
+            content: text,
+            downloadUrl: null,
+          },
+        ],
+      )
       return {
         path: result.path,
         version: result.sha,
@@ -421,6 +455,21 @@ export function createGitHubMediaStorage({
         message: metadata.message,
         ...(metadata.actor ? { committer: metadata.actor } : {}),
       })
+      await onMutation?.(
+        result,
+        [{ path: marker, removed: false }],
+        [
+          {
+            path: marker,
+            name: '.gitkeep',
+            type: 'file',
+            sha: result.sha,
+            content: '',
+            size: 0,
+            downloadUrl: null,
+          },
+        ],
+      )
       return {
         path,
         version: null,
@@ -437,6 +486,7 @@ export function createGitHubMediaStorage({
         message: metadata.message,
         ...(metadata.actor ? { committer: metadata.actor } : {}),
       })
+      await onMutation?.(result, [{ path, removed: true }])
       return { path, version: null, revision: result.commitSha }
     },
     async move({ path, destination, version, metadata }) {
@@ -450,6 +500,15 @@ export function createGitHubMediaStorage({
         message: metadata.message,
         ...(metadata.actor ? { committer: metadata.actor } : {}),
       })
+      await onMutation?.(result, [
+        { path, removed: true },
+        {
+          path: destination,
+          removed: false,
+          sourcePath: path,
+          sha: result.sha,
+        },
+      ])
       return {
         path: result.newPath,
         version: result.sha,

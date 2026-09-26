@@ -79,11 +79,11 @@ export function UserSettings() {
         errorCallbackURL: '/settings',
         disableRedirect: true,
       })
-      if (result.error?.message) throw new Error(result.error.message)
-      if (!result.data?.url) throw new Error('GitHub connection did not start')
+      if (result.error) throw result.error
+      if (!result.data.url) throw new Error('OAuth authorization URL missing')
       window.location.assign(result.data.url)
-    } catch (cause) {
-      setError(cause)
+    } catch {
+      setError(new Error('GitHub connection is temporarily unavailable.'))
       setConnecting(false)
     }
   }
@@ -95,16 +95,19 @@ export function UserSettings() {
     setMessage(null)
     setError(null)
     try {
-      if (!data.githubAccountId) throw new Error('GitHub account not found')
+      if (!data.githubAccountId) {
+        setError(new Error('The connected GitHub account was not found.'))
+        return
+      }
       const result = await authClient.unlinkAccount({
         accountId: data.githubAccountId,
       })
-      if (result.error?.message) throw new Error(result.error.message)
+      if (result.error) throw result.error
       setMessage('GitHub account disconnected')
       await queryClient.invalidateQueries({ queryKey: queryKeys.settings() })
       await queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() })
-    } catch (cause) {
-      setError(cause)
+    } catch {
+      setError(new Error('Could not disconnect the GitHub account.'))
     } finally {
       setDisconnecting(false)
     }

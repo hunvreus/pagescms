@@ -56,6 +56,7 @@ import {
 } from '#/components/ui/collapsible'
 import { MediaThumbnail } from '#/components/media-thumbnail'
 import { OperationError } from '#/components/operation-error'
+import { ErrorAlert } from '#/components/error-alert'
 import { Field, FieldDescription, FieldLabel } from '#/components/ui/field'
 import { Input } from '#/components/ui/input'
 import { MediaPickerDialog } from '#/features/media/media-picker-dialog'
@@ -726,9 +727,9 @@ export function StructuredContentField({
         />
       </Suspense>
     ) : (
-      <p className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+      <ErrorAlert>
         Field component “{field.component}” is not installed.
-      </p>
+      </ErrorAlert>
     )
   } else if (type === 'object') {
     control = (
@@ -911,7 +912,7 @@ function MediaFieldControl({
   const sensors = useSensors(useSensor(PointerSensor))
 
   if (!media) {
-    return <p className="text-sm text-destructive">Media is not configured.</p>
+    return <ErrorAlert>Media is not configured.</ErrorAlert>
   }
   const mediaName = media.name
   const mediaInput = media.input
@@ -1098,8 +1099,8 @@ function MediaFieldControl({
           name: mediaName,
         }}
         extensions={allowedExtensions}
+        initialPath={configuredStartPath}
         open={open}
-        rootPath={configuredStartPath}
         selected={selected}
         selectionLimit={max}
         title={image ? 'Choose images' : 'Choose files'}
@@ -1111,7 +1112,7 @@ function MediaFieldControl({
             setOpen(false)
             return
           }
-          onChange([...new Set([...selected, ...paths])].slice(0, max))
+          onChange(paths.slice(0, max))
         }}
       />
     </div>
@@ -1256,11 +1257,7 @@ function ReferenceFieldControl({
   for (const option of selectedOptions) merged.set(option.value, option)
 
   if (!collection) {
-    return (
-      <p className="text-sm text-destructive">
-        Reference collection is missing.
-      </p>
-    )
+    return <ErrorAlert>Reference collection is missing.</ErrorAlert>
   }
   return (
     <div className="space-y-2">

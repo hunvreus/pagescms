@@ -2,7 +2,10 @@ import { useState } from 'react'
 import { LoaderCircle } from 'lucide-react'
 
 import { GitHubIcon } from '#/components/github-icon'
+import { OperationError } from '#/components/operation-error'
+import { OtpVerificationForm } from '#/components/otp-verification-form'
 import { Button } from '#/components/ui/button'
+import { Field, FieldError } from '#/components/ui/field'
 import { Input } from '#/components/ui/input'
 import { emailOtp, signIn } from '#/lib/auth-client'
 
@@ -11,8 +14,18 @@ import type { AuthenticationState } from '#/functions/auth'
 type SignInStep = 'email' | 'otp'
 type PendingMethod = 'github' | 'email' | 'otp' | null
 
-function getErrorMessage(error: unknown, fallback: string) {
-  return error instanceof Error && error.message ? error.message : fallback
+function errorCode(error: unknown) {
+  if (typeof error !== 'object' || error === null || !('code' in error)) return
+  return typeof error.code === 'string' ? error.code : undefined
+}
+
+function authenticationError(error: unknown, fallback: string) {
+  const code = errorCode(error)
+  if (code === 'INVALID_OTP') return new Error('That code is incorrect.')
+  if (code === 'OTP_EXPIRED') {
+    return new Error('That code has expired. Request a new one.')
+  }
+  return new Error(fallback)
 }
 
 export function SignInForm({
@@ -28,11 +41,12 @@ export function SignInForm({
   const [otp, setOtp] = useState('')
   const [step, setStep] = useState<SignInStep>('email')
   const [pending, setPending] = useState<PendingMethod>(null)
-  const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
+  const [validationError, setValidationError] = useState<string>()
   const busy = pending !== null
 
   async function signInWithGithub() {
-    setMessage(null)
+    setError(null)
     setPending('github')
     try {
       const result = await signIn.social({
@@ -41,11 +55,16 @@ export function SignInForm({
         errorCallbackURL: '/auth/error',
         disableRedirect: true,
       })
-      if (result.error?.message) throw new Error(result.error.message)
-      if (!result.data?.url) throw new Error('GitHub sign-in did not start.')
+      if (result.error) throw result.error
+      if (!result.data.url) throw new Error('OAuth authorization URL missing')
       window.location.assign(result.data.url)
-    } catch (error) {
-      setMessage(getErrorMessage(error, 'Could not start GitHub sign-in.'))
+    } catch (cause) {
+      setError(
+        authenticationError(
+          cause,
+          'GitHub sign-in is temporarily unavailable. Try again.',
+        ),
+      )
       setPending(null)
     }
   }
@@ -53,24 +72,29 @@ export function SignInForm({
   async function sendCode() {
     const normalizedEmail = email.trim().toLowerCase()
     if (!normalizedEmail) {
-      setMessage('Enter a valid email address.')
+      setValidationError('Enter a valid email address.')
       return
     }
 
-    setMessage(null)
+    setError(null)
+    setValidationError(undefined)
     setPending('email')
     try {
       const result = await emailOtp.sendVerificationOtp({
         email: normalizedEmail,
         type: 'sign-in',
       })
-      if (result.error?.message) throw new Error(result.error.message)
+      if (result.error) throw result.error
       setEmail(normalizedEmail)
       setOtp('')
       setStep('otp')
-      setMessage('We sent you a six-digit sign-in code.')
-    } catch (error) {
-      setMessage(getErrorMessage(error, 'Could not send a sign-in code.'))
+    } catch (cause) {
+      setError(
+        authenticationError(
+          cause,
+          'Email sign-in is temporarily unavailable. Try again.',
+        ),
+      )
     } finally {
       setPending(null)
     }
@@ -78,28 +102,35 @@ export function SignInForm({
 
   async function verifyCode() {
     if (!/^\d{6}$/.test(otp)) {
-      setMessage('Enter the six-digit code.')
+      setValidationError('Enter the 6-digit code.')
       return
     }
 
-    setMessage(null)
+    setError(null)
+    setValidationError(undefined)
     setPending('otp')
     try {
       const result = await signIn.emailOtp({ email, otp })
-      if (result.error?.message) throw new Error(result.error.message)
+      if (result.error) throw result.error
       window.location.assign(callbackUrl)
-    } catch (error) {
-      setMessage(getErrorMessage(error, 'Could not verify the sign-in code.'))
+    } catch (cause) {
+      setError(
+        authenticationError(
+          cause,
+          'Could not verify the sign-in code. Try again.',
+        ),
+      )
       setPending(null)
     }
   }
 
   const legalCopy = (
     <p className="text-sm leading-6 text-muted-foreground">
-      By continuing, you agree to our{' '}
+      By clicking continue, you agree to our{' '}
       <a
         className="underline underline-offset-4"
         href="https://pagescms.org/terms"
+        target="_blank"
       >
         Terms of Service
       </a>{' '}
@@ -107,6 +138,7 @@ export function SignInForm({
       <a
         className="underline underline-offset-4"
         href="https://pagescms.org/privacy"
+        target="_blank"
       >
         Privacy Policy
       </a>
@@ -117,67 +149,30 @@ export function SignInForm({
   if (step === 'otp') {
     return (
       <div className="space-y-6">
-        <header className="space-y-2 text-center">
-          <h1 className="text-xl font-semibold tracking-tight">
-            Check your email
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Enter the code sent to {email}.
-          </p>
-        </header>
-        <form
-          className="space-y-3"
+        <OtpVerificationForm
+          busy={busy}
+          email={email}
+          error={error}
+          otp={otp}
+          pending={pending === 'otp'}
+          resendPending={pending === 'email'}
+          onChange={(value) => {
+            setOtp(value)
+            setValidationError(undefined)
+          }}
+          onResend={() => void sendCode()}
+          onSignInAnotherWay={() => {
+            setStep('email')
+            setOtp('')
+            setError(null)
+            setValidationError(undefined)
+          }}
           onSubmit={(event) => {
             event.preventDefault()
             void verifyCode()
           }}
-        >
-          <Input
-            aria-label="Six-digit code"
-            autoComplete="one-time-code"
-            autoFocus
-            className="h-12 text-center font-mono text-xl tracking-[0.35em]"
-            disabled={busy}
-            inputMode="numeric"
-            maxLength={6}
-            pattern="[0-9]{6}"
-            value={otp}
-            onChange={(event) => setOtp(event.target.value.replace(/\D/g, ''))}
-          />
-          <Button className="w-full" disabled={busy} size="lg" type="submit">
-            Verify and sign in
-            {pending === 'otp' ? (
-              <LoaderCircle className="animate-spin" />
-            ) : null}
-          </Button>
-        </form>
-        <div className="flex justify-between gap-4 text-sm">
-          <button
-            className="text-primary hover:underline"
-            disabled={busy}
-            onClick={() => void sendCode()}
-            type="button"
-          >
-            Resend code
-          </button>
-          <button
-            className="text-muted-foreground hover:text-foreground"
-            disabled={busy}
-            onClick={() => {
-              setStep('email')
-              setOtp('')
-              setMessage(null)
-            }}
-            type="button"
-          >
-            Sign in another way
-          </button>
-        </div>
-        {message ? (
-          <p aria-live="polite" className="text-sm text-muted-foreground">
-            {message}
-          </p>
-        ) : null}
+          validationError={validationError}
+        />
         {legalCopy}
       </div>
     )
@@ -191,12 +186,16 @@ export function SignInForm({
         </h1>
       </header>
 
+      <OperationError
+        error={error}
+        fallback="Sign-in is temporarily unavailable. Try again."
+      />
+
       {methods.github ? (
         <Button
           className="w-full"
           disabled={busy}
           onClick={() => void signInWithGithub()}
-          size="lg"
           type="button"
         >
           <GitHubIcon />
@@ -215,23 +214,30 @@ export function SignInForm({
 
       {methods.email ? (
         <form
-          className="space-y-3"
+          className="space-y-2"
           onSubmit={(event) => {
             event.preventDefault()
             void sendCode()
           }}
         >
-          <Input
-            autoComplete="email"
-            disabled={busy}
-            name="email"
-            placeholder="Email address"
-            required
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-          <Button className="w-full" disabled={busy} size="lg" type="submit">
+          <Field data-invalid={Boolean(validationError)}>
+            <Input
+              aria-invalid={Boolean(validationError)}
+              autoComplete="email"
+              disabled={busy}
+              name="email"
+              placeholder="Email"
+              required
+              type="email"
+              value={email}
+              onChange={(event) => {
+                setEmail(event.target.value)
+                setValidationError(undefined)
+              }}
+            />
+            <FieldError>{validationError}</FieldError>
+          </Field>
+          <Button className="w-full" disabled={busy} type="submit">
             Continue with email
             {pending === 'email' ? (
               <LoaderCircle className="animate-spin" />
@@ -247,11 +253,6 @@ export function SignInForm({
         </p>
       ) : null}
 
-      {message ? (
-        <p aria-live="polite" className="text-sm text-destructive">
-          {message}
-        </p>
-      ) : null}
       {legalCopy}
     </div>
   )

@@ -1,6 +1,10 @@
 import { and, eq, isNull, sql } from 'drizzle-orm'
 
 import { createGitHubApi } from './github-api.server'
+import {
+  createCollaboratorAddedEmail,
+  createCollaboratorInviteEmail,
+} from './email-templates.server'
 
 import type { Database } from './database/client.server'
 import type { EmailProvider } from './email.server'
@@ -21,15 +25,6 @@ function normalizeEmail(value: string) {
     throw new Error(`Invalid email address: ${value}`)
   }
   return email
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;')
 }
 
 function inviteToken() {
@@ -129,6 +124,10 @@ export async function inviteCollaborators(input: {
     input.owner,
     input.repo,
   )
+  const githubUsername = input.user.githubUsername
+  if (!githubUsername) {
+    throw new Error('Only GitHub users can manage collaborators')
+  }
   const emails = [...new Set(input.emails.map(normalizeEmail))]
   if (!emails.length) throw new Error('At least one email address is required')
   const created = []
@@ -166,6 +165,9 @@ export async function inviteCollaborators(input: {
       })
       .returning()
     const collaborator = rows[0]
+    const repoName = `${input.owner}/${input.repo}`
+    const invitedByName = input.user.name || input.user.email
+    const invitedByUrl = `https://github.com/${encodeURIComponent(githubUsername)}`
 
     if (!verifiedUser) {
       const token = inviteToken()
@@ -188,12 +190,16 @@ export async function inviteCollaborators(input: {
       })
       const inviteUrl = new URL(`/invite/${token}`, input.baseUrl).toString()
       try {
-        await input.emailProvider!.send({
-          to: email,
-          subject: `Join "${input.owner}/${input.repo}" on Pages CMS`,
-          text: `${input.user.name || input.user.email} invited you to edit ${input.owner}/${input.repo} on Pages CMS. Accept the invitation: ${inviteUrl}`,
-          html: `<p>${escapeHtml(input.user.name || input.user.email)} invited you to edit <strong>${escapeHtml(`${input.owner}/${input.repo}`)}</strong> on Pages CMS.</p><p><a href="${escapeHtml(inviteUrl)}">Accept invitation</a></p>`,
-        })
+        await input.emailProvider!.send(
+          createCollaboratorInviteEmail({
+            baseUrl: input.baseUrl,
+            email,
+            repoName,
+            inviteUrl,
+            invitedByName,
+            invitedByUrl,
+          }),
+        )
       } catch (error) {
         await Promise.all([
           input.database
@@ -204,6 +210,24 @@ export async function inviteCollaborators(input: {
             .where(eq(collaboratorTable.id, collaborator.id)),
         ])
         throw error
+      }
+    } else if (input.emailProvider) {
+      const repositoryPath = input.branch
+        ? `/${input.owner}/${input.repo}/${encodeURIComponent(input.branch)}`
+        : `/${input.owner}/${input.repo}`
+      try {
+        await input.emailProvider.send(
+          createCollaboratorAddedEmail({
+            baseUrl: input.baseUrl,
+            email,
+            repoName,
+            repoUrl: new URL(repositoryPath, input.baseUrl).toString(),
+            invitedByName,
+            invitedByUrl,
+          }),
+        )
+      } catch (error) {
+        console.error(`Failed to notify collaborator ${email}`, error)
       }
     }
     created.push({

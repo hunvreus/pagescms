@@ -172,8 +172,8 @@ export default function RichTextField({
             name: media.name,
           }}
           extensions={pickerExtensions}
+          initialPath={pickerPath}
           open={pickerOpen}
-          rootPath={pickerPath}
           title="Choose an image"
           onOpenChange={(open) => {
             if (!open) closePicker()

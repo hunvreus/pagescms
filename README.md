@@ -19,7 +19,7 @@ pnpm db:migrate
 pnpm dev
 ```
 
-Set a random `BETTER_AUTH_SECRET`, a disposable/local PostgreSQL `DATABASE_URL`, and at least one sign-in method in `.env.local`. Database commands automatically load that file. Verify that `DATABASE_URL` does not identify production before running `pnpm db:migrate`. `pnpm dev` runs ordinary TanStack Start/Vite under Node at `http://localhost:3000`; its health endpoint is `GET /api/health`. See [`docs/development/authentication.md`](./docs/development/authentication.md).
+Set a random `BETTER_AUTH_SECRET`, a disposable/local PostgreSQL `DATABASE_URL`, and at least one sign-in method in `.env.local`. Database commands automatically load that file. Verify that `DATABASE_URL` does not identify production before running `pnpm db:migrate`. `pnpm dev` runs ordinary TanStack Start/Vite under Node at `http://localhost:3000`; its `GET /api/health` readiness endpoint returns `503` when PostgreSQL is unavailable. See [`docs/development/authentication.md`](./docs/development/authentication.md).
 
 ## Verification
 

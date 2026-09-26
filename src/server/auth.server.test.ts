@@ -9,12 +9,19 @@ import { createDatabase } from './database/client.server'
 
 describe('createLoginCodeEmail', () => {
   it('escapes user-controlled values in the HTML body', () => {
-    const message = createLoginCodeEmail('han+test@example.com', '<123456>')
+    const message = createLoginCodeEmail({
+      baseUrl: 'https://app.pagescms.org',
+      email: 'han+test@example.com',
+      otp: '<123456>',
+    })
 
     expect(message.subject).toContain('<123456>')
     expect(message.html).not.toContain('<123456>')
     expect(message.html).toContain('&lt;123456&gt;')
     expect(message.html).toContain('han+test@example.com')
+    expect(message.html).toContain(
+      'https://app.pagescms.org/images/email-logo.png',
+    )
   })
 })
 

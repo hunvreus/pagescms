@@ -16,6 +16,8 @@
 
 ### Changed
 
+- Audited non-webhook legacy cache paths and restored configuration write-through, upload/move source reuse, colocated media reads, node-file enrichment reuse, configurable TTL/push limits, bounded repository-read caching and cache-coordinate preservation on renames; documented intentional differences and their rationale.
+- Restored incremental directory-cache updates for GitHub pushes and CMS writes, with batched retrieval, unchanged-row preservation, revision checks, and stale-data reconciliation instead of branch-wide cache deletion.
 - Restored the Pages CMS favicon and social-card metadata in the TanStack application.
 - Migrated Better Auth accounts to issuer-scoped identities required by Better Auth 1.7 and refreshed eligible dependencies.
 - Preserved the previous Next.js application under `_legacy/` as a frozen migration reference.
@@ -30,3 +32,7 @@
 - Added an environment switch for disabling the TanStack development plugin and in-page debug panel.
 - Coalesced media directory requests across collection and media consumers, retained stale browser data during refresh, and isolated performance fixtures from concurrent mutation tests.
 - Added idempotent quota reservation/settlement, bounded settlement and confirmation retries, staged direct uploads, and audited expiry of abandoned hosted reservations.
+- Restored the branded sign-in, collaborator invitation, and existing-collaborator notification email templates with shared HTML styling and plain-text fallbacks.
+- Restored the six-slot OTP sign-in control and full-width resend and alternate-sign-in actions from the legacy authentication flow.
+- Standardized validation, operation, and route error presentation around semantic shadcn/ui states, with safe authentication fallbacks instead of raw infrastructure errors.
+- Made the health endpoint verify PostgreSQL readiness and return a structured `503` response while the database is unavailable.

@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
+import { OperationError } from '#/components/operation-error'
 import { SignInForm } from '#/components/sign-in-form'
 import { getSafeRedirect } from '#/lib/auth-redirect'
 import { authenticationQueryOptions } from '#/queries/session'
@@ -41,11 +42,12 @@ function SignInPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center p-4 md:p-6">
-      <div className="w-full max-w-xs">
+      <div className="w-full max-w-[340px] space-y-6">
         {search.error ? (
-          <p className="mb-6 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-            {search.error}
-          </p>
+          <OperationError
+            error={true}
+            fallback="Sign-in could not be completed. Try again."
+          />
         ) : null}
         <SignInForm
           callbackUrl={callbackUrl}
@@ -63,7 +65,7 @@ function SignInSkeleton() {
       className="flex min-h-screen items-center justify-center p-4 md:p-6"
       aria-label="Loading sign in"
     >
-      <div className="w-full max-w-xs animate-pulse space-y-6">
+      <div className="w-full max-w-[340px] animate-pulse space-y-6">
         <div className="mx-auto h-6 w-48 rounded bg-muted" />
         <div className="h-10 rounded-lg bg-muted" />
         <div className="h-10 rounded-lg bg-muted" />

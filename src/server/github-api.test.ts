@@ -19,6 +19,62 @@ const repository = {
 }
 
 describe('createGitHubApi', () => {
+  it('fetches 1,000 changed files in 20 revision-pinned GraphQL batches', async () => {
+    const fetcher = vi.fn(
+      async (_url: RequestInfo | URL, init?: RequestInit) => {
+        const { variables } = JSON.parse(String(init?.body))
+        const files = Object.entries(variables).filter(([key]) =>
+          key.startsWith('exp'),
+        )
+        expect(files.length).toBeLessThanOrEqual(50)
+        expect(
+          files.every(([, expression]) =>
+            String(expression).startsWith('commit-sha:'),
+          ),
+        ).toBe(true)
+        return jsonResponse({
+          data: {
+            repository: Object.fromEntries(
+              files.map(([key]) => [
+                key.replace('exp', 'file'),
+                { text: 'body', oid: 'blob-sha', byteSize: 4 },
+              ]),
+            ),
+          },
+        })
+      },
+    )
+    const files = await createGitHubApi('token', fetcher).getFiles(
+      'owner',
+      'repo',
+      'commit-sha',
+      Array.from({ length: 1_000 }, (_, i) => `posts/${i}.md`),
+    )
+    expect(fetcher).toHaveBeenCalledTimes(20)
+    expect(files).toHaveLength(1_000)
+    expect(files[0]).toMatchObject({
+      path: 'posts/0.md',
+      content: 'body',
+      sha: 'blob-sha',
+    })
+  })
+
+  it('rejects partial GraphQL batches instead of publishing an incomplete cache', async () => {
+    const fetcher = vi.fn(async () =>
+      jsonResponse({
+        data: {
+          repository: { file0: { text: 'body', oid: 'blob', byteSize: 4 } },
+        },
+        errors: [{ message: 'Rate limit exceeded' }],
+      }),
+    )
+    await expect(
+      createGitHubApi('token', fetcher).getFiles('owner', 'repo', 'commit', [
+        'post.md',
+      ]),
+    ).rejects.toThrow('Rate limit exceeded')
+  })
+
   it('uses one installation endpoint page until the reported total is met', async () => {
     const fetcher = vi.fn(async () =>
       jsonResponse({

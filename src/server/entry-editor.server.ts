@@ -34,7 +34,7 @@ import {
 } from '#/lib/media-field-values'
 
 import { createConfigurationStore } from './configuration-store.server'
-import { invalidateDirectoryCacheAfterMutation } from './directory-cache.server'
+import { updateRepositoryCacheAfterMutation } from './repository-cache.server'
 import { GitHubApiError } from './github-api.server'
 
 import type { CommitIdentity, CommitTemplates } from '#/lib/commit-message'
@@ -483,11 +483,25 @@ export async function saveRawEntry(input: {
         }
       : {}),
   })
-  await invalidateDirectoryCacheAfterMutation(
+  await updateRepositoryCacheAfterMutation(
     input.database,
+    context.api,
     input.owner,
     input.repo,
     input.branch,
+    result,
+    [{ path: context.path, removed: false }],
+    [
+      {
+        path: context.path,
+        name: context.path.slice(context.path.lastIndexOf('/') + 1),
+        type: 'file',
+        sha: result.sha,
+        content: input.source,
+        size: new TextEncoder().encode(input.source).byteLength,
+        downloadUrl: null,
+      },
+    ],
   )
   return result
 }
@@ -672,11 +686,25 @@ export async function createContentFolder(
         }
       : {}),
   })
-  await invalidateDirectoryCacheAfterMutation(
+  await updateRepositoryCacheAfterMutation(
     input.database,
+    context.api,
     input.owner,
     input.repo,
     input.branch,
+    result,
+    [{ path, removed: false }],
+    [
+      {
+        path,
+        name: '.gitkeep',
+        type: 'file',
+        sha: result.sha,
+        content: '',
+        size: 0,
+        downloadUrl: null,
+      },
+    ],
   )
   return { ...result, path: directory }
 }
@@ -742,11 +770,14 @@ export async function deleteContentEntry(input: {
         }
       : {}),
   })
-  await invalidateDirectoryCacheAfterMutation(
+  await updateRepositoryCacheAfterMutation(
     input.database,
+    context.api,
     input.owner,
     input.repo,
     input.branch,
+    result,
+    [{ path: context.path, removed: true }],
   )
   return result
 }
@@ -841,11 +872,22 @@ export async function moveContentEntry(
         }
       : {}),
   })
-  await invalidateDirectoryCacheAfterMutation(
+  await updateRepositoryCacheAfterMutation(
     input.database,
+    context.api,
     input.owner,
     input.repo,
     input.branch,
+    result,
+    [
+      { path: context.path, removed: true },
+      {
+        path: newPath,
+        removed: false,
+        sourcePath: context.path,
+        sha: result.sha,
+      },
+    ],
   )
   return result
 }
