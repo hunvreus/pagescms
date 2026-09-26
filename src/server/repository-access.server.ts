@@ -139,6 +139,9 @@ export function createRepositoryAccessService(
   }
 
   return {
+    async forInstallation(installationId: number) {
+      return githubApiFactory(await getInstallationToken(installationId))
+    },
     resolve(user: ProjectUser, owner: string, repo: string, branch?: string) {
       const key = [
         user.id,
@@ -158,6 +161,7 @@ export function createRepositoryAccessService(
   }
 }
 
-export type RepositoryAccessService = ReturnType<
-  typeof createRepositoryAccessService
+export type RepositoryAccessService = Pick<
+  ReturnType<typeof createRepositoryAccessService>,
+  'resolve'
 >

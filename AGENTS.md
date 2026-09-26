@@ -1,7 +1,9 @@
 # Agent rules
 
 ## Communication
-- Keep answers concise, technical, and direct.
+- Keep answers concise, technical, and focused on the job.
+- Do not extend your answers with apologies or superfluous explanations of what you did wrong.
+- Use common language, avoid vocabulary that sounds unnecessarily forced or elaborate.
 - If scope is partial, state exactly what is not included.
 
 ## Architecture
@@ -19,6 +21,7 @@
 ## UI
 - Add UI primitives through the shadcn registry: `pnpm dlx shadcn@latest add ...`.
 - Prefer standard shadcn composition patterns.
+- Use `FieldError` for validation, `OperationError` for action failures, and route error states for failed pages; never render caught errors directly or hard-code error colors.
 - Keep feature UI in its feature folder; promote to shared components only when reused.
 - Compose vanilla shadcn primitives with Tailwind layout classes. Do not invent design-system wrappers until repeated usage proves they remove real duplication.
 - Do not use shadcn block code blindly. Adapt blocks into the project structure first: thin route, feature/domain component, shadcn primitives, explicit state flow.

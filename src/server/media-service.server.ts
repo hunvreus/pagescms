@@ -14,6 +14,7 @@ import { getFileExtension } from '#/lib/file-types'
 import { normalizeGitPath } from '#/lib/git-path'
 
 import { createConfigurationStore } from './configuration-store.server'
+import { updateRepositoryCacheAfterMutation } from './repository-cache.server'
 import {
   createDirectoryCache,
   invalidateDirectoryCacheAfterMutation,
@@ -141,6 +142,17 @@ async function context(input: MediaInput) {
     owner: input.owner,
     repo: input.repo,
     branch: input.branch,
+    onMutation: (result, changes, knownFiles) =>
+      updateRepositoryCacheAfterMutation(
+        input.database,
+        api,
+        input.owner,
+        input.repo,
+        input.branch,
+        result,
+        changes,
+        knownFiles,
+      ),
     list: async (path) =>
       (
         await directoryCache.get({
@@ -336,6 +348,8 @@ export async function uploadMedia(
     input.owner,
     input.repo,
     input.branch,
+    [path],
+    result.revision,
   )
   return result
 }
@@ -436,6 +450,8 @@ export async function completeMediaUpload(
     input.owner,
     input.repo,
     input.branch,
+    [expectedPath],
+    completed.result.revision,
   )
   return completed
 }
@@ -505,6 +521,8 @@ export async function createMediaDirectory(
     input.owner,
     input.repo,
     input.branch,
+    [markerPath],
+    result.revision,
   )
   return result
 }
@@ -554,6 +572,8 @@ export async function deleteMedia(
     input.owner,
     input.repo,
     input.branch,
+    [path],
+    result.revision,
   )
   return result
 }
@@ -620,6 +640,8 @@ export async function renameMediaFile(
     input.owner,
     input.repo,
     input.branch,
+    [path, newPath],
+    result.revision,
   )
   return result
 }
@@ -680,6 +702,8 @@ export async function moveMediaFile(
     input.owner,
     input.repo,
     input.branch,
+    [path, newPath],
+    result.revision,
   )
   return result
 }

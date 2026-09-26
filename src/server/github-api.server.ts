@@ -1,3 +1,9 @@
+import {
+  registerRepositoryReader,
+  readRepositoryCached,
+  invalidateRepositoryReads,
+} from './repository-read-cache.server'
+
 const GITHUB_API_URL = 'https://api.github.com'
 const MAX_PAGES = 20
 
@@ -100,6 +106,13 @@ function requiredNumber(value: unknown, field: string) {
     throw new Error(`GitHub returned an invalid ${field}`)
   }
   return value
+}
+
+function commitParent(commit: Record<string, unknown>) {
+  const parent = Array.isArray(commit.parents) ? commit.parents[0] : null
+  return isRecord(parent) && typeof parent.sha === 'string'
+    ? { parentCommitSha: parent.sha }
+    : {}
 }
 
 function parseInstallation(value: unknown): GitHubInstallation {
@@ -215,10 +228,14 @@ async function githubRequest(
   return body
 }
 
-export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
+export function createGitHubApi(
+  token: string,
+  fetcher: typeof fetch = fetch,
+  repositoryTtlMs = 15_000,
+) {
   if (!token.trim()) throw new Error('A GitHub access token is required')
 
-  return {
+  const api = {
     async listInstallations(): Promise<GitHubInstallation[]> {
       const installations: GitHubInstallation[] = []
       for (let page = 1; page <= MAX_PAGES; page += 1) {
@@ -438,6 +455,80 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
         sha,
         content,
       }
+    },
+
+    async getFiles(
+      owner: string,
+      repo: string,
+      revision: string,
+      paths: string[],
+      includeContent = true,
+    ): Promise<GitHubDirectoryEntry[]> {
+      const uniquePaths = [...new Set(paths)]
+      const entries: GitHubDirectoryEntry[] = []
+      for (let offset = 0; offset < uniquePaths.length; offset += 50) {
+        const chunk = uniquePaths.slice(offset, offset + 50)
+        const variables: Record<string, string> = { owner, repo }
+        chunk.forEach((path, index) => {
+          variables[`exp${index}`] = `${revision}:${path}`
+        })
+        const response = await fetcher(`${GITHUB_API_URL}/graphql`, {
+          method: 'POST',
+          headers: {
+            accept: 'application/vnd.github+json',
+            authorization: `Bearer ${token}`,
+            'content-type': 'application/json',
+            'user-agent': 'pagescms',
+          },
+          body: JSON.stringify({
+            query: `query PagesCmsChangedFiles($owner: String!, $repo: String!, ${chunk.map((_, i) => `$exp${i}: String!`).join(', ')}) {
+              repository(owner: $owner, name: $repo) {
+                ${chunk.map((_, i) => `file${i}: object(expression: $exp${i}) { ... on Blob { oid byteSize ${includeContent ? 'text' : ''} } }`).join('\n')}
+              }
+            }`,
+            variables,
+          }),
+        })
+        const payload = requiredRecord(
+          await response.json(),
+          'GraphQL response',
+        )
+        if (
+          !response.ok ||
+          (Array.isArray(payload.errors) && payload.errors.length)
+        ) {
+          const first = Array.isArray(payload.errors) ? payload.errors[0] : null
+          throw new GitHubApiError(
+            isRecord(first) && typeof first.message === 'string'
+              ? first.message
+              : 'Could not retrieve changed files',
+            response.ok ? 400 : response.status,
+          )
+        }
+        const repository = requiredRecord(
+          requiredRecord(payload.data, 'GraphQL data').repository,
+          'GraphQL repository',
+        )
+        for (const [index, path] of chunk.entries()) {
+          const blob = repository[`file${index}`]
+          // Missing/non-blob paths require directory reconciliation; never invent a deletion.
+          if (blob === null || (isRecord(blob) && !blob.oid)) continue
+          const file = requiredRecord(blob, 'GraphQL blob')
+          entries.push({
+            type: 'file',
+            name: path.slice(path.lastIndexOf('/') + 1),
+            path,
+            sha: requiredString(file.oid, 'blob sha'),
+            size: typeof file.byteSize === 'number' ? file.byteSize : null,
+            content:
+              includeContent && typeof file.text === 'string'
+                ? file.text
+                : null,
+            downloadUrl: null,
+          })
+        }
+      }
+      return entries
     },
 
     async getDirectory(
@@ -663,6 +754,7 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
         path: requiredString(content.path, 'updated file path'),
         sha: requiredString(content.sha, 'updated file sha'),
         commitSha: requiredString(commit.sha, 'file commit sha'),
+        ...commitParent(commit),
       }
     },
 
@@ -694,7 +786,10 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
         'file delete response',
       )
       const commit = requiredRecord(body.commit, 'file delete commit')
-      return { commitSha: requiredString(commit.sha, 'file delete commit sha') }
+      return {
+        commitSha: requiredString(commit.sha, 'file delete commit sha'),
+        ...commitParent(commit),
+      }
     },
 
     async renameFile(input: {
@@ -807,6 +902,7 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
         newPath: input.newPath,
         sha: input.sha,
         commitSha,
+        parentCommitSha: headSha,
       }
     },
 
@@ -915,6 +1011,24 @@ export function createGitHubApi(token: string, fetcher: typeof fetch = fetch) {
       return body.map(parseCommit)
     },
   }
+  registerRepositoryReader(api, token, fetcher)
+  const repository = api.getRepository
+  const branches = api.listBranches
+  api.getRepository = (owner, repo) =>
+    readRepositoryCached(api, owner, repo, 'repository', repositoryTtlMs, () =>
+      repository(owner, repo),
+    )
+  api.listBranches = (owner, repo) =>
+    readRepositoryCached(api, owner, repo, 'branches', repositoryTtlMs, () =>
+      branches(owner, repo),
+    )
+  const createBranch = api.createBranch
+  api.createBranch = async (...args) => {
+    const result = await createBranch(...args)
+    invalidateRepositoryReads(args[0], args[1])
+    return result
+  }
+  return api
 }
 
 export type GitHubApi = ReturnType<typeof createGitHubApi>

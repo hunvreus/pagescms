@@ -1,8 +1,18 @@
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 
 import { normalizeGitPath } from '#/lib/git-path'
 
 import type { Database } from './database/client.server'
+import type { GitHubApi } from './github-api.server'
+import type { RepositoryChange } from './repository-cache.server'
+import { applyRepositoryPush } from './repository-cache.server'
+import { createConfigurationStore } from './configuration-store.server'
+import { cachePolicy } from './cache-policy.server'
+import { invalidateRepositoryReads } from './repository-read-cache.server'
+import {
+  staleDirectoryCache,
+  invalidateEphemeralMediaDirectories,
+} from './directory-cache.server'
 
 import {
   actionRunTable,
@@ -69,6 +79,7 @@ async function clearBranch(
   branch: string,
   clearConfiguration = true,
 ) {
+  invalidateEphemeralMediaDirectories(owner, repo, branch)
   const coordinates = and(
     eq(cacheFileTable.owner, owner.toLowerCase()),
     eq(cacheFileTable.repo, repo.toLowerCase()),
@@ -94,6 +105,7 @@ async function clearBranch(
 }
 
 async function clearOwner(database: Database, owner: string) {
+  invalidateRepositoryReads(owner)
   const normalizedOwner = owner.toLowerCase()
   await database.transaction(async (transaction) => {
     await transaction
@@ -113,6 +125,7 @@ async function clearRepository(
   owner: string,
   repo: string,
 ) {
+  invalidateRepositoryReads(owner, repo)
   const normalizedOwner = owner.toLowerCase()
   const normalizedRepo = repo.toLowerCase()
   await database.transaction(async (transaction) => {
@@ -143,24 +156,128 @@ async function clearRepository(
   })
 }
 
+async function renameCachedCoordinates(
+  database: Database,
+  oldOwner: string,
+  newOwner: string,
+  oldRepo?: string,
+  newRepo?: string,
+) {
+  invalidateRepositoryReads(oldOwner, oldRepo)
+  invalidateRepositoryReads(newOwner, newRepo)
+  if (
+    oldOwner.toLowerCase() === newOwner.toLowerCase() &&
+    oldRepo?.toLowerCase() === newRepo?.toLowerCase()
+  )
+    return
+  await database.transaction(async (transaction) => {
+    for (const [name, keys] of [
+      ['cache_file', ['branch', 'path', 'context']],
+      ['cache_file_meta', ['branch', 'path', 'context']],
+      ['config', ['branch']],
+    ] as const) {
+      const table = sql.identifier(name)
+      const source = sql`source.owner = ${oldOwner.toLowerCase()} ${oldRepo ? sql`and source.repo = ${oldRepo.toLowerCase()}` : sql``}`
+      // A replay or a concurrently opened destination may already have rows.
+      // Keep those, then move the remaining source rows without copying content.
+      await transaction.execute(sql`delete from ${table} as source where ${source} and exists (
+        select 1 from ${table} as destination where destination.owner = ${newOwner.toLowerCase()}
+        and destination.repo = ${newRepo ? sql`${newRepo.toLowerCase()}` : sql`source.repo`}
+        and ${sql.join(
+          keys.map(
+            (key) =>
+              sql`destination.${sql.identifier(key)} = source.${sql.identifier(key)}`,
+          ),
+          sql` and `,
+        )}
+      )`)
+      await transaction.execute(
+        sql`update ${table} as source set owner = ${newOwner.toLowerCase()} ${newRepo ? sql`, repo = ${newRepo.toLowerCase()}` : sql``} where ${source}`,
+      )
+    }
+  })
+}
+
 async function handlePush(
   database: Database,
   payload: Record<string, unknown>,
+  resolveApi?: (installationId: number) => Promise<GitHubApi>,
 ) {
   const coordinates = repositoryCoordinates(payload)
   const ref = string(payload.ref)
   if (!coordinates || !ref?.startsWith('refs/heads/')) return
   const branch = ref.slice('refs/heads/'.length)
   if (!branch) return
-  // Directory snapshots are deliberately invalidated atomically. The next
-  // navigation repopulates them via SWR, avoiding large webhook fetches.
-  await clearBranch(
-    database,
-    coordinates.owner,
-    coordinates.repo,
-    branch,
-    changedWebhookPaths(payload).includes('.pages.yml'),
-  )
+  if (payload.deleted === true)
+    return clearBranch(database, coordinates.owner, coordinates.repo, branch)
+  const changes = repositoryPushChanges(payload)
+  const before = string(payload.before)
+  const after = string(payload.after)
+  const installationId = number(record(payload.installation)?.id)
+  const configurationChanged =
+    changes === null || changes.some((change) => change.path === '.pages.yml')
+  if (configurationChanged) {
+    await database
+      .delete(configTable)
+      .where(
+        and(
+          eq(configTable.owner, coordinates.owner.toLowerCase()),
+          eq(configTable.repo, coordinates.repo.toLowerCase()),
+          eq(configTable.branch, branch),
+        ),
+      )
+  }
+  if (!changes || !before || !after || !resolveApi || installationId === null) {
+    return staleDirectoryCache(
+      database,
+      coordinates.owner,
+      coordinates.repo,
+      branch,
+    )
+  }
+  try {
+    const api = await resolveApi(installationId)
+    if (configurationChanged) {
+      // Rehydrate the normalized configuration during the webhook, as legacy did.
+      // Read the current branch, so a delayed delivery cannot restore an old config.
+      await createConfigurationStore({ database }).refresh(
+        api,
+        coordinates.owner,
+        coordinates.repo,
+        branch,
+      )
+    }
+    const policy = cachePolicy(database)
+    if (
+      (policy.scopedMax > 0 && changes.length > policy.scopedMax) ||
+      (policy.incrementalMax > 0 && changes.length > policy.incrementalMax)
+    ) {
+      return staleDirectoryCache(
+        database,
+        coordinates.owner,
+        coordinates.repo,
+        branch,
+        policy.scopedMax > 0 && changes.length > policy.scopedMax
+          ? undefined
+          : changes.map((change) => change.path),
+      )
+    }
+    await applyRepositoryPush(database, api, {
+      ...coordinates,
+      branch,
+      before,
+      after,
+      changes,
+    })
+  } catch (error) {
+    await staleDirectoryCache(
+      database,
+      coordinates.owner,
+      coordinates.repo,
+      branch,
+    )
+    throw error
+  }
 }
 
 async function handleWorkflowRun(
@@ -259,12 +376,13 @@ export async function handleGitHubWebhook(
   database: Database,
   event: string,
   payload: unknown,
+  resolveApi?: (installationId: number) => Promise<GitHubApi>,
 ) {
   const data = record(payload)
   if (!data) throw new Error('Invalid GitHub webhook payload')
   switch (event) {
     case 'push':
-      return handlePush(database, data)
+      return handlePush(database, data, resolveApi)
     case 'workflow_run':
       return handleWorkflowRun(database, data)
     case 'installation':
@@ -283,7 +401,13 @@ export async function handleGitHubWebhook(
         const oldName = string(record(repositoryChanges?.name)?.from)
         if (!coordinates || !oldName || repositoryId === null) return
         await Promise.all([
-          clearRepository(database, coordinates.owner, oldName),
+          renameCachedCoordinates(
+            database,
+            coordinates.owner,
+            coordinates.owner,
+            oldName,
+            coordinates.repo,
+          ),
           database
             .update(collaboratorTable)
             .set({ repo: coordinates.repo })
@@ -318,7 +442,7 @@ export async function handleGitHubWebhook(
       const ownerId = number(account?.id)
       if (!oldOwner || !newOwner || ownerId === null) return
       await Promise.all([
-        clearOwner(database, oldOwner),
+        renameCachedCoordinates(database, oldOwner, newOwner),
         database
           .update(collaboratorTable)
           .set({ owner: newOwner })
@@ -329,6 +453,39 @@ export async function handleGitHubWebhook(
     default:
       return
   }
+}
+
+export function repositoryPushChanges(
+  payload: Record<string, unknown>,
+): RepositoryChange[] | null {
+  if (
+    payload.forced === true ||
+    payload.created === true ||
+    !Array.isArray(payload.commits)
+  )
+    return null
+  const commits = payload.commits
+  // GitHub caps the embedded commit list. An incomplete list cannot establish a complete snapshot.
+  if (
+    commits.length >= 2048 ||
+    (typeof payload.size === 'number' && payload.size > commits.length)
+  )
+    return null
+  const changes = new Map<string, RepositoryChange>()
+  for (const value of commits) {
+    const commit = record(value)
+    if (!commit) return null
+    for (const kind of ['added', 'modified', 'removed']) {
+      if (!Array.isArray(commit[kind])) return null
+      for (const changedPath of commit[kind]) {
+        if (typeof changedPath !== 'string') return null
+        const path = normalizeGitPath(changedPath)
+        changes.set(path, { path, removed: kind === 'removed' })
+      }
+    }
+  }
+  if (!commits.length && payload.before !== payload.after) return null
+  return [...changes.values()]
 }
 
 export function changedWebhookPaths(payload: unknown) {

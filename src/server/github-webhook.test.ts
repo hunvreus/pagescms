@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   changedWebhookPaths,
+  repositoryPushChanges,
   verifyGitHubWebhookSignature,
 } from './github-webhook.server'
 
@@ -12,6 +13,35 @@ function toHex(value: ArrayBuffer) {
 }
 
 describe('GitHub webhooks', () => {
+  it('reduces multiple commits to the final operation for each path', () => {
+    expect(
+      repositoryPushChanges({
+        commits: [
+          { added: ['posts/new.md'], modified: ['posts/old.md'], removed: [] },
+          { added: [], modified: [], removed: ['posts/new.md'] },
+          { added: ['posts/new.md'], modified: [], removed: [] },
+        ],
+      }),
+    ).toEqual([
+      { path: 'posts/new.md', removed: false },
+      { path: 'posts/old.md', removed: false },
+    ])
+  })
+
+  it('reconciles force pushes and incomplete payloads rather than trusting their file list', () => {
+    const commit = { added: [], modified: [], removed: [] }
+    expect(
+      repositoryPushChanges({ forced: true, commits: [commit] }),
+    ).toBeNull()
+    expect(repositoryPushChanges({ size: 2, commits: [commit] })).toBeNull()
+    expect(
+      repositoryPushChanges({ commits: [{ modified: ['post.md'] }] }),
+    ).toBeNull()
+    expect(
+      repositoryPushChanges({ commits: [], before: 'old', after: 'new' }),
+    ).toBeNull()
+  })
+
   it('verifies HMAC signatures with Web Crypto', async () => {
     const body = JSON.stringify({ ref: 'refs/heads/main' })
     const key = await crypto.subtle.importKey(

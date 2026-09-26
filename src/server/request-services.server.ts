@@ -4,6 +4,8 @@ import { createPagesCmsServerServices } from '#/deployment/contracts/server.serv
 import { createAccessPolicyGateway } from './access-policy.server'
 import { createPagesCmsAuth } from './auth.server'
 import { createDatabase } from './database/client.server'
+import { configureCachePolicy, parseCachePolicy } from './cache-policy.server'
+import { createGitHubApi } from './github-api.server'
 import { createProjectService } from './projects.server'
 import { createRepositoryAccessService } from './repository-access.server'
 import { parseRuntimeConfiguration } from './runtime-config.server'
@@ -37,15 +39,21 @@ export function createRequestServices(
     deployment: configuration.deployment,
     policy: deploymentServices.accessPolicy,
   })
+  const cacheSettings = parseCachePolicy(environment)
+  configureCachePolicy(database, cacheSettings)
+  const githubApiFactory =
+    dependencies.githubApiFactory ??
+    ((token: string) =>
+      createGitHubApi(token, fetch, cacheSettings.repositoryMs))
   const repositoryAccess = createRepositoryAccessService(
     database,
     configuration.githubApp,
-    dependencies.githubApiFactory,
+    githubApiFactory,
   )
   const projects = createProjectService(
     database,
     repositoryAccess,
-    dependencies.githubApiFactory,
+    githubApiFactory,
   )
   const emailProvider = deploymentServices.emailProvider
   const billingWebhook = deploymentServices.billingWebhook

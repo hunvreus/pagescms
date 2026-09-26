@@ -5,7 +5,7 @@ import { tanstackStartCookies } from 'better-auth/tanstack-start'
 
 import type { AuthRuntimeConfiguration } from './runtime-config.server'
 import type { Database } from './database/client.server'
-import type { EmailMessage, EmailProvider } from './email.server'
+import type { EmailProvider } from './email.server'
 
 import {
   accountTable,
@@ -13,25 +13,9 @@ import {
   userTable,
   verificationTable,
 } from './database/schema'
+import { createLoginCodeEmail } from './email-templates.server'
 
-function escapeHtml(value: string) {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;')
-}
-
-export function createLoginCodeEmail(email: string, otp: string): EmailMessage {
-  const subject = `Your Pages CMS temporary code is ${otp}`
-  return {
-    to: email,
-    subject,
-    text: `Your Pages CMS temporary sign-in code is ${otp}. It expires in five minutes.`,
-    html: `<p>Your Pages CMS temporary sign-in code for ${escapeHtml(email)} is:</p><p><strong>${escapeHtml(otp)}</strong></p><p>It expires in five minutes.</p>`,
-  }
-}
+export { createLoginCodeEmail } from './email-templates.server'
 
 export function authBaseUrl(baseUrl: string) {
   const url = new URL(baseUrl)
@@ -115,7 +99,13 @@ export function createPagesCmsAuth({
         sendVerificationOTP: async ({ email, otp, type }) => {
           if (type !== 'sign-in') return
           if (!emailProvider) throw new Error('Email provider is unavailable')
-          await emailProvider.send(createLoginCodeEmail(email, otp))
+          await emailProvider.send(
+            createLoginCodeEmail({
+              baseUrl: configuration.baseUrl,
+              email,
+              otp,
+            }),
+          )
         },
       }),
       tanstackStartCookies(),

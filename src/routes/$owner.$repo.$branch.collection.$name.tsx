@@ -497,14 +497,10 @@ function CollectionPage() {
 
       {data.errors.length ? (
         <OperationError
-          error={new Error(data.errors.join(' '))}
+          error={true}
           fallback="Some entries could not be loaded."
         />
       ) : null}
-      <OperationError
-        error={createError}
-        fallback="Collection action failed."
-      />
 
       {tableModel.layout !== 'tree' &&
       data.collection.path !== data.collection.rootPath ? (

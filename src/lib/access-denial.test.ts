@@ -34,10 +34,25 @@ describe('access denial presentation', () => {
 
   it('does not expose browser transport errors to users', () => {
     expect(
-      userFacingError(new TypeError('Failed to fetch'), 'Could not load media.'),
+      userFacingError(
+        new TypeError('Failed to fetch'),
+        'Could not load media.',
+      ),
     ).toBe('Could not load media.')
     expect(
       userFacingError(new Error('fetch failed'), 'Could not load media.'),
     ).toBe('Could not load media.')
+    expect(
+      userFacingError(
+        new Error('connect ECONNREFUSED'),
+        'Could not load media.',
+      ),
+    ).toBe('Could not load media.')
+  })
+
+  it('does not expose generic server errors to users', () => {
+    expect(
+      userFacingError(new Error('Internal Server Error'), 'Try again later.'),
+    ).toBe('Try again later.')
   })
 })

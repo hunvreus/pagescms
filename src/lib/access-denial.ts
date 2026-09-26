@@ -79,7 +79,14 @@ export function userFacingError(error: unknown, fallback: string) {
     message === 'load failed' ||
     message === 'network request failed' ||
     message === 'networkerror when attempting to fetch resource.' ||
-    message.includes('econnreset')
+    message.includes('econnreset') ||
+    message.includes('econnrefused')
 
-  return transportFailure ? fallback : error.message
+  const internalFailure =
+    message === 'internal server error' ||
+    message === 'server error' ||
+    message === 'unknown error' ||
+    /^request failed with status (?:5\d\d|0)$/.test(message)
+
+  return transportFailure || internalFailure ? fallback : error.message
 }

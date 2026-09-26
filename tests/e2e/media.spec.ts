@@ -115,6 +115,10 @@ test('supports the full-page media browsing and mutation workflow', async ({
     { steps: 12 },
   )
   await expect(source).toHaveAttribute('data-dragging', 'true')
+  await expect(page.locator('[data-media-drag-overlay]')).toBeVisible()
+  const sourceBoxWhileDragging = await source.boundingBox()
+  expect(sourceBoxWhileDragging).toEqual(sourceBox)
+  await expect(source).toHaveCSS('opacity', '1')
   await expect(destination).toHaveAttribute('data-drop-active', 'true')
   await page.mouse.up()
   await expect(page.getByText('renamed.svg', { exact: true })).toHaveCount(0)
@@ -145,11 +149,22 @@ test('uses the same media browser inside the rich-text image picker', async ({
 
   const picker = page.getByRole('dialog', { name: 'Choose an image' })
   await expect(picker).toBeVisible()
+  await expect(page.getByText('Image', { exact: true })).toHaveCount(0)
+  await expect(picker).toHaveCSS('overflow', 'hidden')
+  await expect(
+    picker.locator('[data-slot="scroll-area-viewport"]'),
+  ).toBeVisible()
   await expect(picker.getByRole('radio', { name: 'Grid view' })).toBeChecked()
+  await picker.getByRole('button', { name: /Library/ }).click()
+  await expect(picker.getByText('Library', { exact: true })).toBeVisible()
+  await picker.getByRole('button', { name: 'Media' }).click()
   await picker
     .getByRole('button', { name: /hero.svg/ })
     .first()
     .click()
+  await expect(picker).toBeVisible()
+  await expect(picker.getByRole('button', { name: 'Select' })).toBeEnabled()
+  await picker.getByRole('button', { name: 'Select' }).click()
   await expect(picker).toHaveCount(0)
   await expect(body.locator('img')).toHaveCount(1)
 })

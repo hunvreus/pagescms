@@ -1,5 +1,3 @@
-import { and, eq, sql } from 'drizzle-orm'
-
 import {
   buildCommitTokens,
   resolveCommitIdentity,
@@ -7,16 +5,15 @@ import {
 } from '#/lib/commit-message'
 import { normalizeConfiguration } from '#/lib/configuration'
 import { parseConfigurationSource } from '#/lib/configuration-source'
+import { toJsonObject } from '#/lib/json'
 
 import { createConfigurationStore } from './configuration-store.server'
-import { invalidateDirectoryCacheAfterMutation } from './directory-cache.server'
+import { updateRepositoryCacheAfterMutation } from './repository-cache.server'
 import { GitHubApiError } from './github-api.server'
 
 import type { Database } from './database/client.server'
 import type { ProjectUser } from './projects.server'
 import type { RepositoryAccessService } from './repository-access.server'
-
-import { configTable } from './database/schema'
 
 function decodeBase64Utf8(value: string) {
   const binary = atob(value.replace(/\s/g, ''))
@@ -102,7 +99,7 @@ export async function saveConfigurationSource({
   }
   const { ConfigurationSchema } = await import('#/lib/configuration-schema')
   ConfigurationSchema.parse(parsed.configuration)
-  normalizeConfiguration(parsed.configuration)
+  const normalized = toJsonObject(normalizeConfiguration(parsed.configuration))
 
   const { api } = await repositoryAccess.resolve(user, owner, repo, branch)
   const cached = await createConfigurationStore({
@@ -137,15 +134,33 @@ export async function saveConfigurationSource({
       ? { committer: { name: user.name || user.email, email: user.email } }
       : {}),
   })
-  await database
-    .delete(configTable)
-    .where(
-      and(
-        sql`lower(${configTable.owner}) = lower(${owner})`,
-        sql`lower(${configTable.repo}) = lower(${repo})`,
-        eq(configTable.branch, branch),
-      ),
-    )
-  await invalidateDirectoryCacheAfterMutation(database, owner, repo, branch)
+  const store = createConfigurationStore({ database })
+  try {
+    await store.save(owner, repo, branch, result.sha, normalized)
+  } catch (error) {
+    // The remote commit succeeded; a cache failure must not invite a duplicate save.
+    console.error('Could not cache saved configuration', error)
+    await store.remove(owner, repo, branch).catch(() => {})
+  }
+  await updateRepositoryCacheAfterMutation(
+    database,
+    api,
+    owner,
+    repo,
+    branch,
+    result,
+    [{ path: '.pages.yml', removed: false }],
+    [
+      {
+        path: '.pages.yml',
+        name: '.pages.yml',
+        type: 'file',
+        sha: result.sha,
+        content: source,
+        size: new TextEncoder().encode(source).byteLength,
+        downloadUrl: null,
+      },
+    ],
+  )
   return result
 }
