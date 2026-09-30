@@ -127,7 +127,8 @@ const configTable = pgTable("config", {
   object: text("object").notNull(),
   lastCheckedAt: timestamp("last_checked_at").notNull().defaultNow()
 }, table => ({
-  idx_config_owner_repo_branch: uniqueIndex("idx_config_owner_repo_branch").on(table.owner, table.repo, table.branch)
+  idx_config_owner_repo_branch: uniqueIndex("idx_config_owner_repo_branch").on(table.owner, table.repo, table.branch),
+  idx_config_owner_repo_branch_ci: index("idx_config_owner_repo_branch_ci").on(sql`lower(${table.owner})`, sql`lower(${table.repo})`, table.branch)
 }));
 
 const cacheFileTable = pgTable("cache_file", {
@@ -166,7 +167,8 @@ const cacheFileMetaTable = pgTable("cache_file_meta", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   lastCheckedAt: timestamp("last_checked_at").notNull().defaultNow(),
 }, table => ({
-  idx_cache_file_meta_owner_repo_branch_path_context: uniqueIndex("idx_cache_file_meta_owner_repo_branch_path_context").on(table.owner, table.repo, table.branch, table.path, table.context)
+  idx_cache_file_meta_owner_repo_branch_path_context: uniqueIndex("idx_cache_file_meta_owner_repo_branch_path_context").on(table.owner, table.repo, table.branch, table.path, table.context),
+  idx_cache_file_meta_owner_repo_branch_path_context_ci: index("idx_cache_file_meta_owner_repo_branch_path_context_ci").on(sql`lower(${table.owner})`, sql`lower(${table.repo})`, table.branch, table.path, table.context)
 }));
 
 const cachePermissionTable = pgTable("cache_permission", {
