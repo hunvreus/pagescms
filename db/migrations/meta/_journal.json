@@ -92,6 +92,13 @@
       "when": 1778731770759,
       "tag": "0012_collaborator_invites",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790758996325,
+      "tag": "0013_case_insensitive_lookup_indexes",
+      "breakpoints": true
     }
   ]
 }
