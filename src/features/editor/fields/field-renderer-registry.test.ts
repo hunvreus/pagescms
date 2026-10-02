@@ -10,11 +10,11 @@ describe('field renderer registry', () => {
     expect(registry.get('string')).toBe(stringRenderer)
   })
 
-  it('uses the string renderer for an unknown core field type', () => {
+  it('rejects an unknown field instead of silently using a string renderer', () => {
     const stringRenderer = vi.fn(() => null)
     const registry = createFieldRendererRegistry({ string: stringRenderer })
 
-    expect(registry.resolve('future-field')).toBe(stringRenderer)
+    expect(() => registry.resolve('future-field')).toThrow(/No renderer/)
   })
 
   it('allows a trusted renderer to be added without changing editor code', () => {

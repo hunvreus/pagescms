@@ -58,10 +58,11 @@ describe('repository access', () => {
       account: { accessToken: 'ghu_user' },
     })
 
-    const access = await createRepositoryAccessService(
+    const access = await createRepositoryAccessService({
       database,
-      undefined,
-    ).resolve(user, 'pagescms', 'pagescms', 'main')
+      cacheDatabase: database,
+      githubApp: undefined,
+    }).resolve(user, 'pagescms', 'pagescms', 'main')
 
     expect(access.tokenSource).toBe('user')
     expect(collaboratorFind).not.toHaveBeenCalled()
@@ -87,10 +88,14 @@ describe('repository access', () => {
       },
     })
 
-    const access = await createRepositoryAccessService(database, {
-      appId: '123',
-      privateKey: 'unused-for-a-cached-token',
-      cryptoKey,
+    const access = await createRepositoryAccessService({
+      database,
+      cacheDatabase: database,
+      githubApp: {
+        appId: '123',
+        privateKey: 'unused-for-a-cached-token',
+        cryptoKey,
+      },
     }).resolve(
       { ...user, githubUsername: null },
       'pagescms',
@@ -108,11 +113,11 @@ describe('repository access', () => {
   it('denies users with neither direct nor collaborator access', async () => {
     const { database } = databaseWith({ account: null, collaborator: null })
     await expect(
-      createRepositoryAccessService(database, undefined).resolve(
-        user,
-        'private-owner',
-        'private-repo',
-      ),
+      createRepositoryAccessService({
+        database,
+        cacheDatabase: database,
+        githubApp: undefined,
+      }).resolve(user, 'private-owner', 'private-repo'),
     ).rejects.toThrow('do not have permission')
   })
 })

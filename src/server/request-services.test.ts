@@ -5,16 +5,19 @@ import {
   createRequestServicesAccessor,
   createSessionReader,
 } from './request-services.server'
+import { createDatabase } from './database/client.server'
 
 describe('createRequestServices', () => {
   it('builds isolated request services from explicit bindings', () => {
+    const database = createDatabase({ url: 'file::memory:' })
     const services = createRequestServices(
       {
         BETTER_AUTH_SECRET: 'a-secure-auth-secret-with-32-characters',
         BETTER_AUTH_URL: 'https://app.pagescms.org',
-        DATABASE_URL: 'postgres://user:password@example.com/pagescms',
+        DATABASE_URL: 'file::memory:',
       },
       new Headers(),
+      { database, cacheDatabase: database },
     )
 
     expect(services.auth.handler).toBeTypeOf('function')
@@ -23,6 +26,7 @@ describe('createRequestServices', () => {
   })
 
   it('uses deployment-level services supplied by the bootstrap', async () => {
+    const database = createDatabase({ url: 'file::memory:' })
     const accessPolicy = {
       authorize: vi.fn(async () => ({ allowed: true as const })),
     }
@@ -30,10 +34,12 @@ describe('createRequestServices', () => {
       {
         BETTER_AUTH_SECRET: 'a-secure-auth-secret-with-32-characters',
         BETTER_AUTH_URL: 'https://app.pagescms.org',
-        DATABASE_URL: 'postgres://user:password@example.com/pagescms',
+        DATABASE_URL: 'file::memory:',
       },
       new Headers(),
       {
+        database,
+        cacheDatabase: database,
         deploymentServices: {
           accessPolicy,
           billingWebhook: { handle: async () => undefined },
@@ -60,14 +66,16 @@ describe('createRequestServices', () => {
   })
 
   it('creates services lazily and only once per request', () => {
+    const database = createDatabase({ url: 'file::memory:' })
     const factory = vi.fn(() =>
       createRequestServices(
         {
           BETTER_AUTH_SECRET: 'a-secure-auth-secret-with-32-characters',
           BETTER_AUTH_URL: 'https://app.pagescms.org',
-          DATABASE_URL: 'postgres://user:password@example.com/pagescms',
+          DATABASE_URL: 'file::memory:',
         },
         new Headers(),
+        { database, cacheDatabase: database },
       ),
     )
     const getServices = createRequestServicesAccessor(factory)

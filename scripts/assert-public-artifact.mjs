@@ -7,6 +7,8 @@ const artifactArgument = process.argv[2]
 const forbiddenSentinels = [
   'PAGESCMS_FAKE_CLIENT_DEPLOYMENT',
   'PAGESCMS_SERVER_ONLY_SENTINEL',
+  'from "@libsql/client"',
+  'from "drizzle-orm/libsql"',
 ]
 
 if (!artifactArgument) {

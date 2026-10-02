@@ -7,6 +7,7 @@
 import { z } from 'zod/v3'
 
 import { normalizeGitPath } from './git-path'
+import { customFieldDefinition } from '#/fields/registry'
 
 const fieldTypes = new Set([
   'boolean',
@@ -441,7 +442,10 @@ const generateFieldObjectSchema = (
           })
           .min(1, { message: "'type' cannot be empty." })
           .refine(
-            (val) => fieldTypes.has(val) || ['object', 'block'].includes(val),
+            (val) =>
+              fieldTypes.has(val) ||
+              ['object', 'block'].includes(val) ||
+              Boolean(customFieldDefinition(val)),
             {
               message: "'type' must be a valid field type.",
               path: ['type'],

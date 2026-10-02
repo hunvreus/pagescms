@@ -1,7 +1,10 @@
 import { and, eq, inArray } from 'drizzle-orm'
 
 import type { Database } from './database/client.server'
-import type { GitHubApi, GitHubDirectoryEntry } from './github-api.server'
+import type {
+  RepositoryApi,
+  RepositoryDirectoryEntry,
+} from './repository-provider.server'
 import type { Clock } from './runtime-ports.server'
 
 import { cacheFileMetaTable, cacheFileTable } from './database/schema'
@@ -15,19 +18,23 @@ import {
   affectsDirectory,
   cacheBranch,
   cacheScope,
-  markCacheStale,
-  nextCacheVersion,
   parentDirectory,
-  withCacheLock,
-  writeCacheEntries,
+  publishCacheSnapshot,
+  staleSnapshotStatement,
 } from './directory-cache-store.server'
+import { databaseStatement, executeAtomic } from './database/core.server'
+import { logServerEvent, serverErrorDetails } from './http'
+import {
+  DEFAULT_REPOSITORY_SOURCE,
+  repositorySource,
+} from './repository-provider.server'
 
 const EPHEMERAL_MEDIA_TTL_MS = 30_000
 const EPHEMERAL_MEDIA_MAX_ENTRIES = 32
 
 type DirectoryContext = 'collection' | 'media'
 type DirectoryResult = {
-  entries: GitHubDirectoryEntry[]
+  entries: RepositoryDirectoryEntry[]
   revision?: string | null
 }
 
@@ -114,21 +121,30 @@ const ephemeralMediaDirectories = createExpiringLoaderCache<DirectoryResult>({
 })
 
 function mediaDirectoryKey(
+  source: string,
   owner: string,
   repo: string,
   branch: string,
   path: string,
 ) {
-  return JSON.stringify([owner.toLowerCase(), repo.toLowerCase(), branch, path])
+  return JSON.stringify([
+    source,
+    owner.toLowerCase(),
+    repo.toLowerCase(),
+    branch,
+    path,
+  ])
 }
 
 export function invalidateEphemeralMediaDirectories(
   owner: string,
   repo: string,
   branch: string,
+  source = DEFAULT_REPOSITORY_SOURCE,
 ) {
-  invalidateRepositoryReads(owner, repo)
+  invalidateRepositoryReads(owner, repo, source)
   const prefix = JSON.stringify([
+    source,
     owner.toLowerCase(),
     repo.toLowerCase(),
     branch,
@@ -172,9 +188,11 @@ export function createDirectoryCache({
     path: string,
     context: DirectoryContext,
     nodeFilename?: string,
+    source = DEFAULT_REPOSITORY_SOURCE,
   ) {
     return JSON.stringify([
       mode,
+      source,
       owner.toLowerCase(),
       repo.toLowerCase(),
       branch,
@@ -185,6 +203,7 @@ export function createDirectoryCache({
   }
 
   function conditions(
+    source: string,
     owner: string,
     repo: string,
     branch: string,
@@ -192,6 +211,7 @@ export function createDirectoryCache({
     context: DirectoryContext,
   ) {
     return and(
+      eq(cacheFileTable.source, source),
       eq(cacheFileTable.owner, owner.toLowerCase()),
       eq(cacheFileTable.repo, repo.toLowerCase()),
       eq(cacheFileTable.branch, branch),
@@ -201,6 +221,7 @@ export function createDirectoryCache({
   }
 
   function metaConditions(
+    source: string,
     owner: string,
     repo: string,
     branch: string,
@@ -208,6 +229,7 @@ export function createDirectoryCache({
     context: DirectoryContext,
   ) {
     return and(
+      eq(cacheFileMetaTable.source, source),
       eq(cacheFileMetaTable.owner, owner.toLowerCase()),
       eq(cacheFileMetaTable.repo, repo.toLowerCase()),
       eq(cacheFileMetaTable.branch, branch),
@@ -217,6 +239,7 @@ export function createDirectoryCache({
   }
 
   async function cachedDirectory(
+    source: string,
     owner: string,
     repo: string,
     branch: string,
@@ -225,12 +248,12 @@ export function createDirectoryCache({
   ) {
     const [meta, rows] = await Promise.all([
       database.query.cacheFileMetaTable.findFirst({
-        where: metaConditions(owner, repo, branch, path, context),
+        where: metaConditions(source, owner, repo, branch, path, context),
       }),
       database
         .select()
         .from(cacheFileTable)
-        .where(conditions(owner, repo, branch, path, context)),
+        .where(conditions(source, owner, repo, branch, path, context)),
     ])
     if (!meta) return null
     return {
@@ -238,7 +261,7 @@ export function createDirectoryCache({
       revision: meta.commitSha,
       filledAt: meta.commitTimestamp ?? meta.updatedAt,
       lastCheckedAt: meta.lastCheckedAt,
-      entries: rows.map((row): GitHubDirectoryEntry => ({
+      entries: rows.map((row): RepositoryDirectoryEntry => ({
         type: row.type === 'dir' ? 'dir' : 'file',
         name: row.name,
         path: row.path,
@@ -253,7 +276,7 @@ export function createDirectoryCache({
   }
 
   async function refresh(
-    api: GitHubApi,
+    api: RepositoryApi,
     owner: string,
     repo: string,
     branch: string,
@@ -261,7 +284,9 @@ export function createDirectoryCache({
     context: DirectoryContext,
     nodeFilename?: string,
   ) {
+    const source = repositorySource(api)
     const scope = {
+      source,
       owner: owner.toLowerCase(),
       repo: repo.toLowerCase(),
       branch,
@@ -269,22 +294,16 @@ export function createDirectoryCache({
       context,
     }
     for (let attempt = 0; attempt < 3; attempt++) {
-      const snapshot = await withCacheLock(
-        database,
-        scope,
-        async (transaction) => {
-          await transaction
-            .insert(cacheFileMetaTable)
-            .values({ ...scope, status: 'stale' })
-            .onConflictDoNothing()
-          return (
-            await transaction
-              .select()
-              .from(cacheFileMetaTable)
-              .where(cacheScope(scope))
-          ).at(0)!
-        },
-      )
+      await database
+        .insert(cacheFileMetaTable)
+        .values({ ...scope, status: 'stale' })
+        .onConflictDoNothing()
+      const snapshot = (
+        await database
+          .select()
+          .from(cacheFileMetaTable)
+          .where(cacheScope(scope))
+      ).at(0)!
       try {
         const revision = await readRepositoryCached(
           api,
@@ -302,7 +321,7 @@ export function createDirectoryCache({
             clock.now().getTime() - filledAt.getTime() <=
               cachePolicy(database).fileMs)
         const entries = unchanged
-          ? ((await cachedDirectory(owner, repo, branch, path, context))
+          ? ((await cachedDirectory(source, owner, repo, branch, path, context))
               ?.entries ?? [])
           : context === 'media'
             ? await api.getMediaDirectory(owner, repo, revision, path)
@@ -314,84 +333,57 @@ export function createDirectoryCache({
                 0,
                 () => api.getDirectory(owner, repo, revision, path),
               )
-        const published = await withCacheLock(
-          database,
+        const existing = unchanged
+          ? []
+          : await database
+              .select({ path: cacheFileTable.path })
+              .from(cacheFileTable)
+              .where(conditions(source, owner, repo, branch, path, context))
+        const present = new Set(entries.map((entry) => entry.path))
+        const published = await publishCacheSnapshot(database, {
           scope,
-          async (transaction) => {
-            const current = (
-              await transaction
-                .select()
-                .from(cacheFileMetaTable)
-                .where(cacheScope(scope))
-            ).at(0)
-            if (
-              !current ||
-              current.id !== snapshot.id ||
-              current.updatedAt.getTime() !== snapshot.updatedAt.getTime()
-            )
-              return false
-            if (!unchanged) {
-              const existing = await transaction
-                .select({ path: cacheFileTable.path })
-                .from(cacheFileTable)
-                .where(conditions(owner, repo, branch, path, context))
-              const present = new Set(entries.map((entry) => entry.path))
-              await writeCacheEntries(
-                transaction,
-                scope,
-                entries,
-                existing
-                  .filter((entry) => !present.has(entry.path))
-                  .map((entry) => entry.path),
-                revision,
-                clock.now(),
-              )
-            }
-            await transaction
-              .update(cacheFileMetaTable)
-              .set({
-                commitSha: revision,
-                status: 'ok',
-                error: null,
-                lastCheckedAt: clock.now(),
-                ...(!unchanged ? { commitTimestamp: clock.now() } : {}),
-                updatedAt: nextCacheVersion,
-              })
-              .where(cacheScope(scope))
-            return true
-          },
-        )
+          snapshot,
+          entries,
+          removed: existing
+            .filter((entry) => !present.has(entry.path))
+            .map((entry) => entry.path),
+          revision,
+          now: clock.now(),
+          unchanged,
+        })
         if (published) {
           // Only origin-bearing directory results belong in the delivery cache.
           if (context === 'media' && !unchanged)
             ephemeralMediaDirectories.set(
-              mediaDirectoryKey(owner, repo, branch, path),
+              mediaDirectoryKey(source, owner, repo, branch, path),
               { entries },
             )
           return { entries, revision }
         }
       } catch (error) {
         // A failed old refresh must not overwrite a newer successful publication.
-        await withCacheLock(database, scope, async (transaction) => {
-          const current = (
-            await transaction
-              .select()
-              .from(cacheFileMetaTable)
-              .where(cacheScope(scope))
-          ).at(0)
-          if (
-            current?.id === snapshot.id &&
-            current.updatedAt.getTime() === snapshot.updatedAt.getTime()
-          )
-            await transaction
+        await executeAtomic(database, [
+          databaseStatement(
+            database
               .update(cacheFileMetaTable)
               .set({
                 status: 'error',
                 error: 'Directory refresh failed. Retry to update the cache.',
-                updatedAt: nextCacheVersion,
+                updatedAt: new Date(
+                  Math.max(
+                    clock.now().getTime(),
+                    snapshot.updatedAt.getTime() + 1,
+                  ),
+                ),
               })
-              .where(cacheScope(scope))
-        }).catch(() => {})
+              .where(
+                and(
+                  eq(cacheFileMetaTable.id, snapshot.id),
+                  eq(cacheFileMetaTable.updatedAt, snapshot.updatedAt),
+                ),
+              ),
+          ),
+        ]).catch(() => {})
         throw error
       }
     }
@@ -400,7 +392,7 @@ export function createDirectoryCache({
   }
 
   function dedupedRefresh(
-    api: GitHubApi,
+    api: RepositoryApi,
     owner: string,
     repo: string,
     branch: string,
@@ -408,14 +400,24 @@ export function createDirectoryCache({
     context: DirectoryContext,
     nodeFilename?: string,
   ) {
+    const source = repositorySource(api)
     return dedupe(
-      requestKey('refresh', owner, repo, branch, path, context, nodeFilename),
+      requestKey(
+        'refresh',
+        owner,
+        repo,
+        branch,
+        path,
+        context,
+        nodeFilename,
+        source,
+      ),
       () => refresh(api, owner, repo, branch, path, context, nodeFilename),
     )
   }
 
   function loadDirect(
-    api: GitHubApi,
+    api: RepositoryApi,
     owner: string,
     repo: string,
     branch: string,
@@ -423,16 +425,26 @@ export function createDirectoryCache({
     context: DirectoryContext,
     nodeFilename?: string,
   ) {
+    const source = repositorySource(api)
     if (context === 'media') {
       return ephemeralMediaDirectories.getOrLoad(
-        mediaDirectoryKey(owner, repo, branch, path),
+        mediaDirectoryKey(source, owner, repo, branch, path),
         async () => ({
           entries: await api.getMediaDirectory(owner, repo, branch, path),
         }),
       )
     }
     return dedupe(
-      requestKey('direct', owner, repo, branch, path, context, nodeFilename),
+      requestKey(
+        'direct',
+        owner,
+        repo,
+        branch,
+        path,
+        context,
+        nodeFilename,
+        source,
+      ),
       async () => ({
         entries: await api.getDirectory(
           owner,
@@ -447,7 +459,7 @@ export function createDirectoryCache({
 
   const cache = {
     async get(input: {
-      api: GitHubApi
+      api: RepositoryApi
       owner: string
       repo: string
       branch: string
@@ -467,7 +479,9 @@ export function createDirectoryCache({
           input.nodeFilename,
         )
       }
+      const source = repositorySource(input.api)
       const cached = await cachedDirectory(
+        source,
         input.owner,
         input.repo,
         input.branch,
@@ -483,6 +497,7 @@ export function createDirectoryCache({
           !isDirectoryCacheFresh(cached.lastCheckedAt, clock.now(), ttlMs))
       ) {
         const collection = await cachedDirectory(
+          source,
           input.owner,
           input.repo,
           input.branch,
@@ -542,7 +557,7 @@ export function createDirectoryCache({
       )
     },
     refresh(input: {
-      api: GitHubApi
+      api: RepositoryApi
       owner: string
       repo: string
       branch: string
@@ -550,7 +565,11 @@ export function createDirectoryCache({
       context: DirectoryContext
       nodeFilename?: string
     }) {
-      invalidateRepositoryReads(input.owner, input.repo)
+      invalidateRepositoryReads(
+        input.owner,
+        input.repo,
+        repositorySource(input.api),
+      )
       return dedupedRefresh(
         input.api,
         input.owner,
@@ -568,6 +587,7 @@ export function createDirectoryCache({
       input: Parameters<typeof cache.get>[0],
     ): Promise<DirectoryResult> {
       const result = await cache.get(input)
+      const source = repositorySource(input.api)
       if (!input.enabled || input.context !== 'collection') return result
       // Node files are configuration-dependent enrichment, not members of the
       // parent directory. Reuse verified child snapshots, then batch only misses.
@@ -584,7 +604,7 @@ export function createDirectoryCache({
         .from(cacheFileMetaTable)
         .where(
           and(
-            cacheBranch(input),
+            cacheBranch({ source, ...input }),
             eq(cacheFileMetaTable.context, 'collection'),
             eq(cacheFileMetaTable.status, 'ok'),
           ),
@@ -595,13 +615,14 @@ export function createDirectoryCache({
         .where(
           and(
             eq(cacheFileTable.owner, input.owner.toLowerCase()),
+            eq(cacheFileTable.source, repositorySource(input.api)),
             eq(cacheFileTable.repo, input.repo.toLowerCase()),
             eq(cacheFileTable.branch, input.branch),
             eq(cacheFileTable.context, 'collection'),
             inArray(cacheFileTable.path, paths),
           ),
         )
-      const nodes: GitHubDirectoryEntry[] = rows
+      const nodes: RepositoryDirectoryEntry[] = rows
         .filter(
           (row) =>
             result.revision &&
@@ -641,34 +662,37 @@ export async function invalidateDirectoryCache(
   owner: string,
   repo: string,
   branch: string,
+  source = DEFAULT_REPOSITORY_SOURCE,
 ) {
-  invalidateEphemeralMediaDirectories(owner, repo, branch)
+  invalidateEphemeralMediaDirectories(owner, repo, branch, source)
   const normalizedOwner = owner.toLowerCase()
   const normalizedRepo = repo.toLowerCase()
-  await withCacheLock(
-    database,
-    { owner, repo, branch },
-    async (transaction) => {
-      await transaction
+  await executeAtomic(database, [
+    databaseStatement(
+      database
         .delete(cacheFileTable)
         .where(
           and(
             eq(cacheFileTable.owner, normalizedOwner),
+            eq(cacheFileTable.source, source),
             eq(cacheFileTable.repo, normalizedRepo),
             eq(cacheFileTable.branch, branch),
           ),
-        )
-      await transaction
+        ),
+    ),
+    databaseStatement(
+      database
         .delete(cacheFileMetaTable)
         .where(
           and(
             eq(cacheFileMetaTable.owner, normalizedOwner),
+            eq(cacheFileMetaTable.source, source),
             eq(cacheFileMetaTable.repo, normalizedRepo),
             eq(cacheFileMetaTable.branch, branch),
           ),
-        )
-    },
-  )
+        ),
+    ),
+  ])
 }
 
 export async function invalidateDirectoryCacheAfterMutation(
@@ -678,6 +702,7 @@ export async function invalidateDirectoryCacheAfterMutation(
   branch: string,
   paths?: string[],
   preservedRevision?: string | null,
+  source = DEFAULT_REPOSITORY_SOURCE,
 ) {
   try {
     await staleDirectoryCache(
@@ -687,11 +712,18 @@ export async function invalidateDirectoryCacheAfterMutation(
       branch,
       paths,
       preservedRevision,
+      source,
     )
   } catch (error) {
     // The GitHub write has already succeeded; never encourage a duplicate retry
     // because a derived cache could not be cleared.
-    console.error('Could not invalidate directory cache after mutation', error)
+    logServerEvent('error', {
+      event: 'directory_cache_invalidation_failed',
+      owner,
+      repo,
+      branch,
+      ...serverErrorDetails(error),
+    })
   }
 }
 
@@ -702,26 +734,25 @@ export async function staleDirectoryCache(
   branch: string,
   paths?: string[],
   preservedRevision?: string | null,
+  source = DEFAULT_REPOSITORY_SOURCE,
 ) {
-  invalidateEphemeralMediaDirectories(owner, repo, branch)
-  await withCacheLock(
-    database,
-    { owner, repo, branch },
-    async (transaction) => {
-      const scopes = await transaction
-        .select()
-        .from(cacheFileMetaTable)
-        .where(cacheBranch({ owner, repo, branch }))
-      for (const scope of scopes) {
-        if (
+  invalidateEphemeralMediaDirectories(owner, repo, branch, source)
+  const scopes = await database
+    .select()
+    .from(cacheFileMetaTable)
+    .where(cacheBranch({ source, owner, repo, branch }))
+  const statements = scopes
+    .filter(
+      (scope) =>
+        !(
           preservedRevision &&
           scope.status === 'ok' &&
           scope.commitSha === preservedRevision
-        )
-          continue
-        if (!paths || affectsDirectory(scope.path, paths))
-          await markCacheStale(transaction, scope)
-      }
-    },
-  )
+        ) &&
+        (!paths || affectsDirectory(scope.path, paths)),
+    )
+    .map((scope) => staleSnapshotStatement(database, scope, scope))
+  for (let offset = 0; offset < statements.length; offset += 100) {
+    await executeAtomic(database, statements.slice(offset, offset + 100))
+  }
 }

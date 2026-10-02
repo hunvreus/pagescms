@@ -3,7 +3,12 @@ import { createFileRoute } from '@tanstack/react-router'
 import type {} from '@tanstack/react-start'
 
 import { checkDatabaseReadiness } from '#/server/health.server'
-import { getRequestId, logServerEvent, withRequestId } from '#/server/http'
+import {
+  getRequestId,
+  logServerEvent,
+  serverErrorDetails,
+  withRequestId,
+} from '#/server/http'
 
 export const Route = createFileRoute('/api/health')({
   server: {
@@ -16,12 +21,14 @@ export const Route = createFileRoute('/api/health')({
           const services = context.getServices()
           dependency = 'database'
           await checkDatabaseReadiness(services.database)
+          dependency = 'cacheDatabase'
+          await checkDatabaseReadiness(services.cacheDatabase)
           return withRequestId(
             Response.json(
               {
                 service: 'pagescms',
                 status: 'ok',
-                checks: { database: 'ok' },
+                checks: { database: 'ok', cacheDatabase: 'ok' },
               },
               { headers: { 'cache-control': 'no-store' } },
             ),
@@ -32,7 +39,7 @@ export const Route = createFileRoute('/api/health')({
             event: 'health_check_failed',
             requestId,
             dependency,
-            error: error instanceof Error ? error.message : 'unknown error',
+            ...serverErrorDetails(error),
           })
           return withRequestId(
             Response.json(

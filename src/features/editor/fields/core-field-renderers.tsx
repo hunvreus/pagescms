@@ -14,6 +14,7 @@ import { Switch } from '#/components/ui/switch'
 import { Textarea } from '#/components/ui/textarea'
 
 import { createFieldRendererRegistry } from './field-renderer-registry'
+import { selectOptions } from '#/lib/select-options'
 
 import type { FieldRendererProps } from './field-renderer-registry'
 import type { JsonObject } from '#/lib/json'
@@ -24,35 +25,6 @@ function isRecord(value: unknown): value is JsonObject {
 
 function options(field: JsonObject) {
   return isRecord(field.options) ? field.options : {}
-}
-
-function optionValues(field: JsonObject) {
-  const values = options(field).values
-  if (!Array.isArray(values)) return []
-  return values.flatMap((option) => {
-    if (
-      typeof option === 'string' ||
-      typeof option === 'number' ||
-      typeof option === 'boolean'
-    ) {
-      return [{ label: String(option), value: String(option) }]
-    }
-    if (!isRecord(option)) return []
-    const value = option.value
-    if (
-      typeof value !== 'string' &&
-      typeof value !== 'number' &&
-      typeof value !== 'boolean'
-    ) {
-      return []
-    }
-    return [
-      {
-        label: typeof option.label === 'string' ? option.label : String(value),
-        value: String(value),
-      },
-    ]
-  })
 }
 
 function StringRenderer({
@@ -140,6 +112,7 @@ function DateRenderer({
       id={id}
       max={typeof settings.max === 'string' ? settings.max : undefined}
       min={typeof settings.min === 'string' ? settings.min : undefined}
+      step={typeof settings.step === 'number' ? settings.step : undefined}
       required={required}
       type={settings.time === true ? 'datetime-local' : 'date'}
       value={typeof value === 'string' ? value : ''}
@@ -208,8 +181,8 @@ function SelectRenderer({
   renderField,
 }: FieldRendererProps) {
   const settings = options(field)
-  const choices = optionValues(field)
-  if (settings.multiple !== true) {
+  const choices = selectOptions(field)
+  if (!settings.multiple) {
     return renderField(
       <Select
         disabled={disabled}
@@ -217,7 +190,13 @@ function SelectRenderer({
         onValueChange={(next) => onChange(next || undefined)}
       >
         <SelectTrigger className="w-full" id={id}>
-          <SelectValue placeholder="Select…" />
+          <SelectValue
+            placeholder={
+              typeof settings.placeholder === 'string'
+                ? settings.placeholder
+                : 'Select…'
+            }
+          />
         </SelectTrigger>
         <SelectContent>
           {choices.map((choice) => (

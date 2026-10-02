@@ -1,6 +1,6 @@
 # Authentication
 
-Pages CMS uses Better Auth with the existing PostgreSQL user, session, account, and verification tables. Authentication is request-scoped: configuration, database, and session services are initialized lazily and reused for the duration of one request.
+Pages CMS uses Better Auth's SQLite adapter with the existing user, session, account, and verification identities. Authentication is request-scoped: configuration, database, and session services are initialized lazily and reused for the duration of one request.
 
 ## Local setup
 
@@ -12,7 +12,7 @@ pnpm db:migrate
 pnpm dev
 ```
 
-`BETTER_AUTH_SECRET` must contain at least 32 characters. `BETTER_AUTH_URL` is the canonical local origin and fallback; local development also accepts the active `localhost` port selected by Vite. `DATABASE_URL` supplies the PostgreSQL connection in every environment. Local development and `db:*` package scripts load `.env.local` automatically. Confirm that the URL points to a disposable or development database before applying migrations.
+`BETTER_AUTH_SECRET` must contain at least 32 characters. `BETTER_AUTH_URL` is the canonical local origin and fallback; local development also accepts the active `localhost` port selected by Vite. `DATABASE_URL` supplies local SQLite or remote libSQL/Turso application storage. Local development and `db:*` package scripts load `.env.local` automatically. Confirm that the target is disposable or backed up before applying migrations.
 
 GitHub sign-in is enabled when both `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIENT_SECRET` are present. Configure the GitHub callback URL as:
 

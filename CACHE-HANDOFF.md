@@ -2,6 +2,13 @@
 
 2026-09-26 · Branch: `overhaul/tanstack-start`
 
+> **Superseded database note:** the incremental cache behavior described here
+> remains current, but the subsequent SQLite migration replaced PostgreSQL with
+> local/libSQL, Turso, and D1 adapters. Publication now uses explicit versions,
+> compare-and-swap tokens, and adapter-atomic batches. See
+> [Database](docs/development/database.md) and
+> [Webhooks and cache](docs/development/webhooks-and-cache.md).
+
 ## Decision
 
 Restore incremental caching first. Keep PostgreSQL and API-based repository access for now. Do not introduce a whole-repository Git-tree cache or server-side Git mirrors as part of this fix. This is a scope decision, not proof that those alternatives cannot be faster.
@@ -19,7 +26,7 @@ Legacy already cached file paths, SHAs and content and fetched changes in GraphQ
 
 Main files: `src/server/{directory-cache,directory-cache-store,repository-cache,github-api,github-webhook}.server.ts`; editor/media mutation integration; `tests/integration/database.test.ts`.
 
-The follow-up [legacy behavior audit](docs/development/webhooks-and-cache.md#legacy-cache-behavior-audit) covers CMS writes, configuration write-through, colocation, node-file reuse, TTL/read caches, rename preservation and explicit differences with reasons. Treat that audit—not the earlier abbreviated claim of restoration—as the detailed record. Validation commands: `pnpm typecheck`, `pnpm test`, `pnpm test:integration`, `pnpm build`. These are not production load tests. Changes are uncommitted, unpushed and undeployed; unrelated working-tree edits must be preserved.
+The follow-up [legacy behavior audit](docs/development/webhooks-and-cache.md#legacy-cache-behavior-audit) covers CMS writes, configuration write-through, colocation, node-file reuse, TTL/read caches, rename preservation and explicit differences with reasons. Treat that audit—not the earlier abbreviated claim of restoration—as the detailed record. The current validation and database-conformance commands are documented in [Testing](docs/development/testing.md). These are not production load tests.
 
 ## Alternatives considered
 

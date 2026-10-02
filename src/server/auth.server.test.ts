@@ -43,9 +43,7 @@ describe('authBaseUrl', () => {
 
 describe('createPagesCmsAuth', () => {
   it('constructs the request-scoped Better Auth handler without connecting eagerly', () => {
-    const database = createDatabase({
-      connectionString: 'postgres://user:password@example.com/pagescms',
-    })
+    const database = createDatabase({ url: 'file::memory:' })
     const auth = createPagesCmsAuth({
       database,
       configuration: {

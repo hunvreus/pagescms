@@ -11,11 +11,13 @@
 - Typed paid-plan, quota, permission, and policy-unavailable errors with safe plugin-provided upgrade links.
 - Shared full-page and embedded media browsers with responsive grid/list layouts, folders-first navigation, drag upload and move, folder creation, rename/delete operations, private previews, and batched delivery leases.
 - Lazy rich-text Markdown/HTML editing with embedded media browsing, upload, private previews, and repository/public path round-tripping.
-- Lazy syntax-aware code fields for YAML, JavaScript/TypeScript, JSON, HTML, and Markdown without bundling the full CodeMirror language catalog.
+- Shared CodeMirror editing for code fields and configuration, with YAML, JavaScript/TypeScript, JSON, HTML, Markdown/MDX, lazily loaded fenced-code languages, and configuration diagnostics.
 - Vitest coverage and Playwright guest/health smoke coverage.
 
 ### Changed
 
+- Restored field parity: named select options and placeholders, formatted date read/write/defaults/steps, custom regex messages, schema-controlled rewrite/merge behavior, custom field registration and behavior hooks, upload rename policies, and sortable multi-file fields.
+- Restored collaborator CSV export/import for SQLite/libSQL, with atomic validated imports, email-based user relinking, and case-insensitive upserts.
 - Audited non-webhook legacy cache paths and restored configuration write-through, upload/move source reuse, colocated media reads, node-file enrichment reuse, configurable TTL/push limits, bounded repository-read caching and cache-coordinate preservation on renames; documented intentional differences and their rationale.
 - Restored incremental directory-cache updates for GitHub pushes and CMS writes, with batched retrieval, unchanged-row preservation, revision checks, and stale-data reconciliation instead of branch-wide cache deletion.
 - Restored the Pages CMS favicon and social-card metadata in the TanStack application.

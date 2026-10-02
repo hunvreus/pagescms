@@ -9,6 +9,7 @@ import {
 import { MediaPickerDialog } from '#/features/media/media-picker-dialog'
 import { uploadMediaFiles } from '#/features/media/media-upload'
 import { mediaAssetUrl } from '#/lib/media-assets'
+import { parseUploadRename } from '#/lib/media-upload-name'
 import {
   allowedMediaFieldExtensions,
   resolveFieldMedia,
@@ -97,6 +98,7 @@ export default function RichTextField({
         ? options.path
         : media.input
     const [path] = await uploadMediaFiles({
+      rename: parseUploadRename(options.rename),
       coordinates: {
         owner: referenceContext.owner,
         repo: referenceContext.repo,

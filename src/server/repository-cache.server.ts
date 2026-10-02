@@ -1,7 +1,11 @@
 import { and, eq, inArray } from 'drizzle-orm'
 
 import type { Database } from './database/client.server'
-import type { GitHubApi, GitHubDirectoryEntry } from './github-api.server'
+import type {
+  RepositoryApi,
+  RepositoryDirectoryEntry,
+} from './repository-provider.server'
+import { executeAtomic } from './database/core.server'
 import { cacheFileMetaTable, cacheFileTable } from './database/schema'
 import {
   invalidateEphemeralMediaDirectories,
@@ -9,13 +13,14 @@ import {
 } from './directory-cache.server'
 import {
   affectsDirectory,
+  buildCachePublication,
   cacheBranch,
-  markCacheStale,
-  nextCacheVersion,
+  executeCachePublications,
   parentDirectory,
-  withCacheLock,
-  writeCacheEntries,
+  staleSnapshotStatement,
 } from './directory-cache-store.server'
+import { logServerEvent, serverErrorDetails } from './http'
+import { repositorySource } from './repository-provider.server'
 
 export type RepositoryChange = {
   path: string
@@ -34,14 +39,15 @@ export type RepositoryPush = {
 
 export async function updateRepositoryCacheAfterMutation(
   database: Database,
-  api: GitHubApi,
+  api: RepositoryApi,
   owner: string,
   repo: string,
   branch: string,
   result: { commitSha: string; parentCommitSha?: string },
   changes: RepositoryChange[],
-  knownFiles?: GitHubDirectoryEntry[],
+  knownFiles?: RepositoryDirectoryEntry[],
 ) {
+  const source = repositorySource(api)
   try {
     if (!result.parentCommitSha) {
       await staleDirectoryCache(
@@ -50,6 +56,8 @@ export async function updateRepositoryCacheAfterMutation(
         repo,
         branch,
         changes.map((change) => change.path),
+        undefined,
+        source,
       )
       return
     }
@@ -73,25 +81,53 @@ export async function updateRepositoryCacheAfterMutation(
         repo,
         branch,
         changes.map((change) => change.path),
+        undefined,
+        source,
       )
   } catch (error) {
     // GitHub already accepted the write. A cache error must not turn success into a retryable save failure.
-    console.error('Could not update repository cache after mutation', error)
+    logServerEvent('error', {
+      event: 'repository_cache_update_failed',
+      owner,
+      repo,
+      branch,
+      ...serverErrorDetails(error),
+    })
     try {
-      await staleDirectoryCache(database, owner, repo, branch)
+      await staleDirectoryCache(
+        database,
+        owner,
+        repo,
+        branch,
+        undefined,
+        undefined,
+        source,
+      )
     } catch (invalidationError) {
-      console.error('Could not mark repository cache stale', invalidationError)
+      logServerEvent('error', {
+        event: 'repository_cache_invalidation_failed',
+        owner,
+        repo,
+        branch,
+        ...serverErrorDetails(invalidationError),
+      })
     }
   }
 }
 
 export async function applyRepositoryPush(
   database: Database,
-  api: GitHubApi,
+  api: RepositoryApi,
   input: RepositoryPush,
-  knownFiles?: GitHubDirectoryEntry[],
+  knownFiles?: RepositoryDirectoryEntry[],
 ) {
-  invalidateEphemeralMediaDirectories(input.owner, input.repo, input.branch)
+  const source = repositorySource(api)
+  invalidateEphemeralMediaDirectories(
+    input.owner,
+    input.repo,
+    input.branch,
+    source,
+  )
   // An old delivery must never roll a cache back after a newer push (including force pushes).
   if (
     (await api.getRefSha(input.owner, input.repo, input.branch)) !== input.after
@@ -100,7 +136,7 @@ export async function applyRepositoryPush(
   const snapshots = await database
     .select()
     .from(cacheFileMetaTable)
-    .where(cacheBranch(input))
+    .where(cacheBranch({ source, ...input }))
   const eligible = snapshots.filter(
     (scope) => scope.status === 'ok' && scope.commitSha === input.before,
   )
@@ -139,6 +175,7 @@ export async function applyRepositoryPush(
         .where(
           and(
             eq(cacheFileTable.owner, input.owner.toLowerCase()),
+            eq(cacheFileTable.source, source),
             eq(cacheFileTable.repo, input.repo.toLowerCase()),
             eq(cacheFileTable.branch, input.branch),
             inArray(
@@ -192,68 +229,65 @@ export async function applyRepositoryPush(
       input.after
     )
       return false
-    await withCacheLock(database, input, async (transaction) => {
-      const scopes = await transaction
-        .select()
-        .from(cacheFileMetaTable)
-        .where(cacheBranch(input))
-      for (const scope of scopes) {
-        if (scope.status === 'ok' && scope.commitSha === input.after) continue
-        const snapshot = snapshots.find((value) => value.id === scope.id)
-        // A refresh or invalidation completed during the download; leave its decision intact.
-        if (
-          !snapshot ||
-          snapshot.updatedAt.getTime() !== scope.updatedAt.getTime()
+    const publications = []
+    const staleStatements = []
+    const now = new Date()
+    for (const scope of snapshots) {
+      if (scope.status === 'ok' && scope.commitSha === input.after) continue
+      if (scope.status !== 'ok' || scope.commitSha !== input.before) {
+        staleStatements.push(
+          staleSnapshotStatement(database, scope, scope, now),
         )
-          continue
-        if (scope.status !== 'ok' || scope.commitSha !== input.before) {
-          await markCacheStale(transaction, scope)
-          continue
-        }
-        const affected = input.changes.filter((change) =>
-          affectsDirectory(scope.path, [change.path]),
-        )
-        // Parent directory rows can contain node-file data; reconcile them rather than guessing.
-        if (
-          affected.some(
-            (change) =>
-              parentDirectory(change.path) !== scope.path ||
-              (!change.removed && !files.has(change.path)),
-          )
-        ) {
-          await markCacheStale(transaction, scope)
-          continue
-        }
-        if (affected.length) {
-          await writeCacheEntries(
-            transaction,
-            scope,
-            affected
-              .filter((change) => !change.removed)
-              .map((change) => files.get(change.path)!),
-            affected
-              .filter((change) => change.removed)
-              .map((change) => change.path),
-            input.after,
-            new Date(),
-          )
-        }
-        await transaction
-          .update(cacheFileMetaTable)
-          .set({
-            commitSha: input.after,
-            status: 'ok',
-            error: null,
-            lastCheckedAt: new Date(),
-            updatedAt: nextCacheVersion,
-          })
-          .where(eq(cacheFileMetaTable.id, scope.id))
+        continue
       }
-    })
+      const affected = input.changes.filter((change) =>
+        affectsDirectory(scope.path, [change.path]),
+      )
+      // Parent directory rows can contain node-file data; reconcile them rather than guessing.
+      if (
+        affected.some(
+          (change) =>
+            parentDirectory(change.path) !== scope.path ||
+            (!change.removed && !files.has(change.path)),
+        )
+      ) {
+        staleStatements.push(
+          staleSnapshotStatement(database, scope, scope, now),
+        )
+        continue
+      }
+      publications.push(
+        await buildCachePublication(database, {
+          scope,
+          snapshot: scope,
+          entries: affected
+            .filter((change) => !change.removed)
+            .map((change) => files.get(change.path)!),
+          removed: affected
+            .filter((change) => change.removed)
+            .map((change) => change.path),
+          revision: input.after,
+          now,
+          unchanged: affected.length === 0,
+        }),
+      )
+    }
+    await executeCachePublications(database, publications)
+    for (let offset = 0; offset < staleStatements.length; offset += 100) {
+      await executeAtomic(database, staleStatements.slice(offset, offset + 100))
+    }
     return true
   } catch (error) {
     // Keep the old data, but make it ineligible until a complete revision can be read.
-    await staleDirectoryCache(database, input.owner, input.repo, input.branch)
+    await staleDirectoryCache(
+      database,
+      input.owner,
+      input.repo,
+      input.branch,
+      undefined,
+      undefined,
+      source,
+    )
     throw error
   }
 }

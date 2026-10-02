@@ -61,7 +61,11 @@ export const getAdminDashboard = createServerFn({ method: 'GET' })
     const services = context.getServices()
     const user = await requireAdmin(services)
     const { loadAdminDashboard } = await import('#/server/admin-service.server')
-    const dashboard = await loadAdminDashboard(services.database, data)
+    const dashboard = await loadAdminDashboard(
+      services.database,
+      services.cacheDatabase,
+      data,
+    )
     return {
       ...dashboard,
       user: {
@@ -81,7 +85,7 @@ export const runAdminAction = createServerFn({ method: 'POST' })
     const { resetGlobalCache, revokeAllSessions, revokeUserSessions } =
       await import('#/server/admin-service.server')
     if (data.action === 'reset-cache') {
-      await resetGlobalCache(services.database)
+      await resetGlobalCache(services.cacheDatabase)
       return { message: 'Global cache reset', signedOut: false }
     }
     if (data.action === 'revoke-all') {

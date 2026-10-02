@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseConfigurationSource } from './configuration-source'
+import {
+  parseConfigurationSource,
+  validateConfigurationSource,
+} from './configuration-source'
 
 describe('parseConfigurationSource', () => {
   it('parses Pages CMS YAML into plain data', () => {
@@ -79,5 +82,30 @@ field:
     expect(result.diagnostics[0]).toEqual(
       expect.objectContaining({ code: 'MULTIPLE_DOCS', from: 9, to: 18 }),
     )
+  })
+})
+
+describe('validateConfigurationSource', () => {
+  it('reports configuration schema errors at the related YAML node', () => {
+    const result = validateConfigurationSource('content: nope\n')
+
+    expect(result.diagnostics).toEqual([
+      expect.objectContaining({
+        severity: 'error',
+        from: 9,
+        message: expect.stringContaining('array'),
+      }),
+    ])
+  })
+
+  it('reports unknown top-level keys as warnings', () => {
+    const result = validateConfigurationSource('surprise: true\n')
+
+    expect(result.diagnostics).toEqual([
+      expect.objectContaining({
+        severity: 'warning',
+        message: expect.stringContaining('Unrecognized key'),
+      }),
+    ])
   })
 })

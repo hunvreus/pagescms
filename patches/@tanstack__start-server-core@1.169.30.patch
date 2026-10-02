@@ -1,0 +1,28 @@
+diff --git a/dist/esm/request-response.js b/dist/esm/request-response.js
+index 4ce23fae2de3772646a2380a9e64c3f468b051f6..f00ec80d4a664311b08715799cb2c1a46ecbfd26 100644
+--- a/dist/esm/request-response.js
++++ b/dist/esm/request-response.js
+@@ -43,7 +43,7 @@ function requestHandler(handler) {
+ 			});
+ 			throw error;
+ 		}
+-		return toResponse(attachResponseHeaders(eventStorage.run({ h3Event }, () => handler(request, requestOpts)), h3Event), h3Event);
++		return toResponse(attachResponseHeaders(eventStorage.run({ h3Event }, () => handler(request, requestOpts)), h3Event), h3Event, { silent: true });
+ 	};
+ }
+ function getH3Event() {
+diff --git a/src/request-response.ts b/src/request-response.ts
+index e0ad8a336a37bc29ccdff48d87dfb5b360b633f1..66ab1414e66a55e26e2e1327684494a8489b4b73 100644
+--- a/src/request-response.ts
++++ b/src/request-response.ts
+@@ -138,7 +138,9 @@ export function requestHandler<TRegister = unknown>(
+     const response = eventStorage.run({ h3Event }, () =>
+       handler(request, requestOpts),
+     )
+-    return h3_toResponse(attachResponseHeaders(response, h3Event), h3Event)
++    return h3_toResponse(attachResponseHeaders(response, h3Event), h3Event, {
++      silent: true,
++    })
+   }
+ }
+ 

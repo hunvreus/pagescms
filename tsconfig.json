@@ -21,6 +21,9 @@
       "#pagescms/deployment/client": ["./src/deployment/default/client.ts"],
       "#pagescms/deployment/server": [
         "./src/deployment/default/server.server.ts"
+      ],
+      "virtual:pagescms-request-services-bootstrap": [
+        "./src/server/request-services-bootstrap.server.ts"
       ]
     },
     "lib": ["ES2022", "DOM", "DOM.Iterable"],

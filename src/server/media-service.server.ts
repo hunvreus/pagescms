@@ -12,6 +12,8 @@ import {
 } from '#/lib/configuration-content'
 import { getFileExtension } from '#/lib/file-types'
 import { normalizeGitPath } from '#/lib/git-path'
+import { mediaUploadFilename, parseUploadRename } from '#/lib/media-upload-name'
+import type { UploadRename } from '#/lib/media-upload-name'
 
 import { createConfigurationStore } from './configuration-store.server'
 import { updateRepositoryCacheAfterMutation } from './repository-cache.server'
@@ -47,6 +49,8 @@ type MediaInput = {
   branch: string
   name: string
   mediaProviderResolver?: MediaProviderResolver
+  rename?: UploadRename
+  idempotencyKey?: string
 }
 
 function allowedExtension(schema: MediaSchema, path: string) {
@@ -363,10 +367,15 @@ async function mediaUploadTarget(
 ) {
   const { configuration, schema, storage } = await context(input)
   const parent = mediaDirectoryPath(schema, input.parent)
-  const filename = normalizeGitPath(input.filename.trim())
-  if (!filename || filename.includes('/')) {
+  const original = normalizeGitPath(input.filename.trim())
+  if (!original || original.includes('/')) {
     throw new Error('Media filename must be a non-empty file name')
   }
+  const filename = await mediaUploadFilename(
+    original,
+    input.rename ?? parseUploadRename(schema.rename),
+    input.idempotencyKey ?? '',
+  )
   const path = normalizeGitPath(parent ? `${parent}/${filename}` : filename)
   if (!allowedExtension(schema, path)) {
     throw new Error('This file extension is not allowed')

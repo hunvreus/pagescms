@@ -22,6 +22,7 @@
 - Add UI primitives through the shadcn registry: `pnpm dlx shadcn@latest add ...`.
 - Prefer standard shadcn composition patterns.
 - Use `FieldError` for validation, `OperationError` for action failures, and route error states for failed pages; never render caught errors directly or hard-code error colors.
+- Log server failures as structured events; treat client disconnects as cancellations, not application errors.
 - Keep feature UI in its feature folder; promote to shared components only when reused.
 - Compose vanilla shadcn primitives with Tailwind layout classes. Do not invent design-system wrappers until repeated usage proves they remove real duplication.
 - Do not use shadcn block code blindly. Adapt blocks into the project structure first: thin route, feature/domain component, shadcn primitives, explicit state flow.

@@ -1,4 +1,6 @@
 // Bounded and credential-scoped. Tokens are hashed, never retained in keys.
+import { repositorySource } from './repository-provider.server'
+
 const identities = new WeakMap<object, Promise<string>>()
 const entries = new Map<string, { value: unknown; expires: number }>()
 const pending = new Map<string, Promise<unknown>>()
@@ -40,6 +42,7 @@ export async function readRepositoryCached<T>(
     identities.set(api, identity)
   }
   const key = JSON.stringify([
+    repositorySource(api),
     owner.toLowerCase(),
     repo.toLowerCase(),
     await identity,
@@ -65,12 +68,17 @@ export async function readRepositoryCached<T>(
   return request
 }
 
-export function invalidateRepositoryReads(owner: string, repo?: string) {
+export function invalidateRepositoryReads(
+  owner: string,
+  repo?: string,
+  source?: string,
+) {
   for (const key of new Set([...entries.keys(), ...pending.keys()])) {
     const coordinates = JSON.parse(key) as string[]
     if (
-      coordinates[0] === owner.toLowerCase() &&
-      (!repo || coordinates[1] === repo.toLowerCase())
+      (!source || coordinates[0] === source) &&
+      coordinates[1] === owner.toLowerCase() &&
+      (!repo || coordinates[2] === repo.toLowerCase())
     ) {
       entries.delete(key)
       pending.delete(key)

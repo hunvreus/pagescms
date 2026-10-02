@@ -1,5 +1,5 @@
 import { getTableColumns, getTableName } from 'drizzle-orm'
-import { getTableConfig } from 'drizzle-orm/pg-core'
+import { getTableConfig } from 'drizzle-orm/sqlite-core'
 import { describe, expect, it } from 'vitest'
 
 import * as schema from './schema'
@@ -52,12 +52,21 @@ describe('legacy-compatible database schema', () => {
     })
   })
 
-  it('retains the repository and invitation uniqueness constraints', () => {
+  it('namespaces repository caches and retains invitation uniqueness', () => {
     expect(
       getTableConfig(schema.configTable).indexes.map(
         (index) => index.config.name,
       ),
-    ).toContain('idx_config_owner_repo_branch')
+    ).toContain('idx_config_source_owner_repo_branch')
+    expect(getTableColumns(schema.configTable)).toMatchObject({
+      source: { name: 'source', notNull: true },
+    })
+    expect(getTableColumns(schema.cacheFileTable)).toMatchObject({
+      source: { name: 'source', notNull: true },
+    })
+    expect(getTableColumns(schema.cacheFileMetaTable)).toMatchObject({
+      source: { name: 'source', notNull: true },
+    })
     expect(
       getTableConfig(schema.collaboratorInviteTable).indexes.map(
         (index) => index.config.name,

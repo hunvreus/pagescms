@@ -64,6 +64,22 @@ describe('repository read caching', () => {
     ).toBe('new')
   })
 
+  it('does not share reads between repository sources', async () => {
+    const github = { source: 'github.com' }
+    const local = { source: 'local:/workspace/site' }
+    const load = vi.fn().mockResolvedValue('revision')
+
+    await readRepositoryCached(github, 'owner', 'repo', 'head', 15_000, load)
+    await readRepositoryCached(local, 'owner', 'repo', 'head', 15_000, load)
+
+    expect(load).toHaveBeenCalledTimes(2)
+    invalidateRepositoryReads('owner', 'repo', 'github.com')
+    await readRepositoryCached(github, 'owner', 'repo', 'head', 15_000, load)
+    await readRepositoryCached(local, 'owner', 'repo', 'head', 15_000, load)
+    expect(load).toHaveBeenCalledTimes(3)
+    invalidateRepositoryReads('owner', 'repo')
+  })
+
   it('restores legacy defaults and TTL/threshold overrides', () => {
     expect(parseCachePolicy({})).toEqual(defaultCachePolicy)
     expect(

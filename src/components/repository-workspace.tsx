@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 
 import { OperationError } from '#/components/operation-error'
+import { RepositoryActionButtons } from '#/components/repository-action-buttons'
 import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
 import { Button } from '#/components/ui/button'
 import {
@@ -71,6 +72,7 @@ import {
   isConfigurationEditingEnabled,
 } from '#/lib/configuration'
 import { getConfigurationNavigationGroups } from '#/lib/configuration-navigation'
+import { repositoryActions } from '#/lib/actions'
 import { queryKeys } from '#/queries/keys'
 
 import type { ReactNode } from 'react'
@@ -78,6 +80,7 @@ import type { AppHeaderUser } from '#/features/account/app-header'
 import type { RecentProject } from '#/features/projects/recent-projects'
 import type { ConfigurationNavigationNode } from '#/lib/configuration-navigation'
 import type { AccessDiscoveryDecision } from '#/server/access-policy.server'
+import type { RepositoryAction } from '#/lib/actions'
 
 interface WorkspaceProps {
   children: ReactNode
@@ -112,6 +115,10 @@ export function RepositoryWorkspace({
     discovery,
   )
   const canManageRepository = Boolean(user.githubUsername)
+  const actions = filterRepositoryActions(
+    configuration ? repositoryActions(configuration.object) : [],
+    discovery,
+  )
   const adminItems = configuration
     ? [
         ...(canManageRepository && isCacheEnabled(configuration.object)
@@ -149,6 +156,7 @@ export function RepositoryWorkspace({
         branch={branch}
         branches={branches}
         navigation={navigation}
+        actions={actions}
         owner={owner}
         pathname={pathname}
         repo={repo}
@@ -202,7 +210,22 @@ export function filterRepositoryNavigation(
   }
 }
 
+export function filterRepositoryActions(
+  actions: readonly RepositoryAction[],
+  discovery: AccessDiscoveryDecision,
+) {
+  if (discovery.visibility === 'all') return [...actions]
+  if (discovery.visibility === 'none') return []
+  const visible = new Set(
+    discovery.resources
+      .filter((resource) => resource.type === 'action')
+      .map((resource) => resource.name),
+  )
+  return actions.filter((action) => visible.has(action.name))
+}
+
 function RepositorySidebar({
+  actions,
   adminItems,
   branch,
   branches,
@@ -212,6 +235,7 @@ function RepositorySidebar({
   repo,
   user,
 }: {
+  actions: RepositoryAction[]
   adminItems: Array<{ key: string; label: string; icon: ReactNode }>
   branch: string
   branches: readonly string[]
@@ -252,6 +276,24 @@ function RepositorySidebar({
           pathname={pathname}
           repo={repo}
         />
+        {actions.length ? (
+          <SidebarGroup>
+            <SidebarGroupLabel>Actions</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <RepositoryActionButtons
+                actions={actions}
+                context={{
+                  type: 'repository',
+                  name: null,
+                  path: null,
+                  data: {},
+                }}
+                coordinates={{ owner, repo, branch }}
+                layout="sidebar"
+              />
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ) : null}
         {adminItems.length ? (
           <SidebarGroup>
             <SidebarGroupLabel>Admin</SidebarGroupLabel>

@@ -1,9 +1,14 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
+  createProjectService,
   mergeProjectAccounts,
   mergeProjectRepositories,
 } from './projects.server'
+
+import type { Database } from './database/client.server'
+import type { GitHubApi, GitHubApiFactory } from './github-api.server'
+import type { RepositoryAccessService } from './repository-access.server'
 
 describe('mergeProjectAccounts', () => {
   it('deduplicates collaborator access behind GitHub installations', () => {
@@ -33,6 +38,47 @@ describe('mergeProjectAccounts', () => {
         installationId: 42,
       },
     ])
+  })
+})
+
+describe('createProjectService', () => {
+  it('uses a linked GitHub token even when the cached username is missing', async () => {
+    const where = vi.fn(async () => [])
+    const database = {
+      query: {
+        accountTable: {
+          findFirst: vi.fn(async () => ({ accessToken: 'github-token' })),
+        },
+      },
+      selectDistinct: vi.fn(() => ({
+        from: vi.fn(() => ({ where })),
+      })),
+    } as unknown as Database
+    const listInstallations = vi.fn(async () => [
+      {
+        id: 42,
+        repositorySelection: 'all' as const,
+        account: { login: 'PagesCMS', type: 'Organization' as const },
+      },
+    ])
+    const githubApiFactory = vi.fn(
+      () => ({ listInstallations }) as unknown as GitHubApi,
+    ) as unknown as GitHubApiFactory
+    const service = createProjectService(
+      database,
+      database,
+      {} as RepositoryAccessService,
+      githubApiFactory,
+    )
+
+    await expect(
+      service.listAccounts({
+        id: 'user-1',
+        email: 'user@example.com',
+        githubUsername: null,
+      }),
+    ).resolves.toMatchObject([{ login: 'PagesCMS', installationId: 42 }])
+    expect(listInstallations).toHaveBeenCalledOnce()
   })
 })
 

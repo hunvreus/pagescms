@@ -6,6 +6,7 @@ import {
 } from '#/functions/media'
 
 import type { MediaCoordinates } from './media-browser'
+import type { UploadRename } from '#/lib/media-upload-name'
 
 export const MEDIA_UPLOAD_LIMIT = 20 * 1024 * 1024
 
@@ -139,12 +140,14 @@ export async function uploadMediaFiles({
   files,
   limit,
   path,
+  rename,
 }: {
   coordinates: MediaCoordinates
   extensions?: string[]
   files: FileList | File[]
   limit?: number
   path: string
+  rename?: UploadRename
 }) {
   const values = Array.from(files).slice(0, limit)
   const paths: string[] = []
@@ -160,6 +163,7 @@ export async function uploadMediaFiles({
         size: file.size,
         contentType: file.type || 'application/octet-stream',
         idempotencyKey,
+        rename,
       },
     })
     if (initiation.kind === 'server') {
@@ -170,6 +174,7 @@ export async function uploadMediaFiles({
           filename: file.name,
           content: await mediaFileBase64(file),
           idempotencyKey,
+          rename,
         },
       })
       paths.push(result.path)

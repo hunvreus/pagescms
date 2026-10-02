@@ -63,6 +63,7 @@ body {
 }
 
 :root {
+  color-scheme: light;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -95,9 +96,15 @@ body {
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.6 0.13 163);
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: var(--border);
+  --scrollbar-width: 0.625rem;
+  --scrollbar-sm-width: 0.375rem;
+  --scrollbar-radius: 9999px;
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
@@ -143,79 +150,53 @@ body {
   }
 }
 
-.pagescms-code-field {
-  position: relative;
-  min-height: 12rem;
-  overflow: hidden;
-  border: 1px solid var(--input);
-  border-radius: var(--radius);
-  background: var(--background);
-  color: var(--foreground);
+@layer utilities {
+  .scrollbar {
+    scrollbar-width: auto;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
+
+  .scrollbar::-webkit-scrollbar {
+    width: var(--scrollbar-width);
+    height: var(--scrollbar-width);
+  }
+
+  .scrollbar-sm {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
+
+  .scrollbar-sm::-webkit-scrollbar {
+    width: var(--scrollbar-sm-width);
+    height: var(--scrollbar-sm-width);
+  }
+
+  .scrollbar::-webkit-scrollbar-track,
+  .scrollbar-sm::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
+
+  .scrollbar::-webkit-scrollbar-thumb,
+  .scrollbar-sm::-webkit-scrollbar-thumb {
+    border: 1px solid transparent;
+    border-radius: var(--scrollbar-radius);
+    background: var(--scrollbar-thumb);
+    background-clip: padding-box;
+  }
+
+  .scrollbar::-webkit-scrollbar-corner,
+  .scrollbar-sm::-webkit-scrollbar-corner {
+    background: var(--scrollbar-track);
+  }
 }
 
-.pagescms-code-field:focus-within {
-  border-color: var(--ring);
-  outline: 3px solid color-mix(in oklab, var(--ring) 50%, transparent);
+.pagescms-code-editor .cm-editor {
+  background: transparent !important;
 }
 
-.pagescms-code-field pre,
-.pagescms-code-field textarea {
-  position: absolute;
-  inset: 0;
-  min-height: 12rem;
-  margin: 0;
-  overflow: auto;
-  border: 0;
+.pagescms-code-editor .cm-scroller,
+.pagescms-code-editor .cm-gutters {
   background: transparent;
-  padding: 0.75rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.875rem;
-  line-height: 1.5rem;
-  tab-size: 2;
-  white-space: pre;
-}
-
-.pagescms-code-field pre {
-  pointer-events: none;
-  overflow: visible;
-}
-
-.pagescms-code-field textarea {
-  z-index: 1;
-  resize: none;
-  color: transparent;
-  caret-color: var(--foreground);
-  outline: none;
-}
-
-.pagescms-code-field textarea:disabled {
-  cursor: not-allowed;
-  opacity: 0.65;
-}
-
-.pagescms-code-field textarea::selection {
-  background: color-mix(in oklab, var(--primary) 30%, transparent);
-  color: transparent;
-}
-
-.code-token-comment {
-  color: var(--muted-foreground);
-}
-
-.code-token-keyword {
-  color: var(--primary);
-}
-
-.code-token-number {
-  color: oklch(0.6 0.15 55);
-}
-
-.code-token-punctuation {
-  color: var(--muted-foreground);
-}
-
-.code-token-string {
-  color: oklch(0.55 0.13 145);
 }
 
 @layer components {

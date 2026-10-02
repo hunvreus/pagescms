@@ -4,6 +4,7 @@
 
 - [Testing](./development/testing.md)
 - [Database](./development/database.md)
+- [PostgreSQL migration](./development/postgresql-migration.md)
 - [Authentication](./development/authentication.md)
 - [Cloudflare Workers](./development/cloudflare.md)
 - [Plugins](./development/plugins.md)

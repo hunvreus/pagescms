@@ -17,6 +17,8 @@ Put local secrets in `.env.local`; it is ignored by Git. Keep only documented pl
 
 The ordinary `pnpm build` command remains provider-neutral. `pnpm cf:build` adds the Cloudflare Vite integration to the deployment artifact without changing application modules or request services.
 
+The Worker adapter requires a D1 binding named `DATABASE`; `CACHE_DATABASE` is optional and should normally point to a separate rebuildable cache database. Database creation, account-specific IDs, and `wrangler d1 migrations apply` remain deployment-owned. Apply every migration under `drizzle/` to each distinct binding before starting the Worker. The checked-in `wrangler.jsonc` deliberately contains no production database IDs.
+
 ## Validation and deployment
 
 ```bash

@@ -20,6 +20,16 @@ export interface CollectionViewModel {
   }
 }
 
+const compactColumnTypes = new Set(['image', 'boolean', 'date', 'datetime'])
+
+export function collectionFluidColumn(model: CollectionViewModel) {
+  return (
+    model.columns.find(({ path }) => path === model.primary)?.path ??
+    model.columns.find(({ type }) => !compactColumnTypes.has(type))?.path ??
+    model.columns[0]?.path
+  )
+}
+
 function isObject(value: unknown): value is JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

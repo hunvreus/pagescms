@@ -3,12 +3,16 @@ import { createPagesCmsServerServices } from '#/deployment/contracts/server.serv
 
 import { createAccessPolicyGateway } from './access-policy.server'
 import { createPagesCmsAuth } from './auth.server'
-import { createDatabase } from './database/client.server'
 import { configureCachePolicy, parseCachePolicy } from './cache-policy.server'
 import { createGitHubApi } from './github-api.server'
+import { syncGitHubProfile } from './github-account.server'
+import { logServerEvent, serverErrorDetails } from './http'
 import { createProjectService } from './projects.server'
 import { createRepositoryAccessService } from './repository-access.server'
-import { parseRuntimeConfiguration } from './runtime-config.server'
+import {
+  parseRuntimeConfiguration,
+  sameDatabaseSource,
+} from './runtime-config.server'
 
 import type { GitHubApiFactory } from './github-api.server'
 import type { Database } from './database/client.server'
@@ -23,6 +27,7 @@ export function createRequestServices(
   requestHeaders: Headers,
   dependencies: {
     database?: Database
+    cacheDatabase?: Database
     deploymentServices?: PagesCmsServerServices
     githubApiFactory?: GitHubApiFactory
   } = {},
@@ -30,28 +35,33 @@ export function createRequestServices(
   const configuration = parseRuntimeConfiguration(environment)
   const deploymentServices =
     dependencies.deploymentServices ?? createDeploymentServices(environment)
-  const database =
-    dependencies.database ??
-    createDatabase({
-      connectionString: configuration.databaseConnectionString,
-    })
+  const database = dependencies.database
+  if (!database) throw new Error('Application database is required')
+  const cacheDatabase =
+    dependencies.cacheDatabase ??
+    (sameDatabaseSource(configuration.cacheDatabase, configuration.database)
+      ? database
+      : undefined)
+  if (!cacheDatabase) throw new Error('Cache database is required')
   const access = createAccessPolicyGateway({
     deployment: configuration.deployment,
     policy: deploymentServices.accessPolicy,
   })
   const cacheSettings = parseCachePolicy(environment)
-  configureCachePolicy(database, cacheSettings)
+  configureCachePolicy(cacheDatabase, cacheSettings)
   const githubApiFactory =
     dependencies.githubApiFactory ??
     ((token: string) =>
       createGitHubApi(token, fetch, cacheSettings.repositoryMs))
-  const repositoryAccess = createRepositoryAccessService(
+  const repositoryAccess = createRepositoryAccessService({
     database,
-    configuration.githubApp,
+    cacheDatabase,
+    githubApp: configuration.githubApp,
     githubApiFactory,
-  )
+  })
   const projects = createProjectService(
     database,
+    cacheDatabase,
     repositoryAccess,
     githubApiFactory,
   )
@@ -65,9 +75,29 @@ export function createRequestServices(
     configuration: configuration.auth,
     emailProvider,
   })
-  const getSession = createSessionReader(() =>
-    auth.api.getSession({ headers: requestHeaders }),
-  )
+  const getSession = createSessionReader(async () => {
+    const session = await auth.api.getSession({ headers: requestHeaders })
+    if (!session?.user || session.user.githubUsername) return session
+
+    try {
+      const profile = await syncGitHubProfile(database, session.user.id)
+      if (!profile) return session
+      return {
+        ...session,
+        user: {
+          ...session.user,
+          ...profile,
+        },
+      }
+    } catch (error) {
+      logServerEvent('error', {
+        event: 'github_profile_sync_failed',
+        userId: session.user.id,
+        ...serverErrorDetails(error),
+      })
+      return session
+    }
+  })
   const authenticationMethods = {
     email: Boolean(emailProvider),
   } as const
@@ -79,9 +109,11 @@ export function createRequestServices(
     billingWebhook,
     configuration,
     database,
+    cacheDatabase,
     emailProvider,
     entitlementReader,
     getSession,
+    githubApiFactory,
     mediaProviderResolver,
     projects,
     repositoryAccess,

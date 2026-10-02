@@ -7,7 +7,7 @@ export async function checkDatabaseReadiness(
   timeoutMs = 2_000,
 ) {
   let timeout: ReturnType<typeof setTimeout> | undefined
-  const query = database.execute(sql`select 1`)
+  const query = database.run(sql`select 1`)
   const deadline = new Promise<never>((_, reject) => {
     timeout = setTimeout(
       () => reject(new Error('Database readiness check timed out')),

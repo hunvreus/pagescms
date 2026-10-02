@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { mediaDeliveryBatches, mediaDeliveryQueryOptions } from './content'
+import {
+  collectionQueryOptions,
+  mediaDeliveryBatches,
+  mediaDeliveryQueryOptions,
+  mediaQueryOptions,
+} from './content'
+import { queryTimes } from './keys'
 
 describe('media delivery query', () => {
   it('keeps a stable directory key when the requested path set changes', () => {
@@ -33,5 +39,21 @@ describe('media delivery query', () => {
     expect(() => mediaDeliveryBatches(['a'], 0)).toThrow(
       'Media delivery batch size must be a positive integer',
     )
+  })
+})
+
+const coordinates = {
+  owner: 'pagescms',
+  repo: 'test',
+  branch: 'main',
+  name: 'posts',
+}
+
+describe('content query caching', () => {
+  it('keeps visited collection and media folders fresh for navigation', () => {
+    expect(collectionQueryOptions(coordinates).staleTime).toBe(
+      queryTimes.directory,
+    )
+    expect(mediaQueryOptions(coordinates).staleTime).toBe(queryTimes.directory)
   })
 })

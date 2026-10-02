@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { getRequestId, withRequestId } from './http'
+import {
+  getRequestId,
+  isClientDisconnect,
+  serverErrorDetails,
+  withRequestId,
+} from './http'
 
 describe('request correlation', () => {
   it('preserves a valid incoming request id', () => {
@@ -31,5 +36,29 @@ describe('request correlation', () => {
     expect(response.headers.get('content-type')).toContain('application/json')
     expect(response.headers.get('x-request-id')).toBe('request-123')
     await expect(response.json()).resolves.toEqual({ status: 'ok' })
+  })
+})
+
+describe('server errors', () => {
+  it('recognizes request cancellation without classifying ordinary failures', () => {
+    const reset = Object.assign(new Error('socket closed'), {
+      code: 'ECONNRESET',
+    })
+    expect(isClientDisconnect(new Error('aborted', { cause: reset }))).toBe(
+      true,
+    )
+    expect(isClientDisconnect(new Error('database unavailable'))).toBe(false)
+  })
+
+  it('returns structured details without serializing arbitrary error fields', () => {
+    const error = Object.assign(new Error('request failed'), {
+      code: 'EFAIL',
+      token: 'secret',
+    })
+    expect(serverErrorDetails(error)).toEqual({
+      error: 'request failed',
+      errorCode: 'EFAIL',
+      errorName: 'Error',
+    })
   })
 })

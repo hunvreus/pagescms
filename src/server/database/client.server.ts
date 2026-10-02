@@ -1,31 +1,49 @@
-import { drizzle } from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
+import { createClient } from '@libsql/client'
+import { drizzle as drizzleLibSql } from 'drizzle-orm/libsql'
+
+import type { Client } from '@libsql/client'
+import type { Database, DatabaseSource } from './core.server'
 
 import * as schema from './schema'
+import { registerAtomicExecutor } from './core.server'
+
+export * from './core.server'
 
 export interface DatabaseOptions {
-  connectionString: string
-  maxConnections?: number
+  url: string
+  authToken?: string
 }
 
-export function createDatabase({
-  connectionString,
-  maxConnections = 5,
-}: DatabaseOptions) {
-  if (!connectionString.trim()) {
-    throw new Error('A database connection string is required')
-  }
-  if (!Number.isInteger(maxConnections) || maxConnections < 1) {
-    throw new Error('Database maxConnections must be a positive integer')
+export function createDatabase({ url, authToken }: DatabaseOptions): Database {
+  if (!url.trim()) throw new Error('A database URL is required')
+  if (url.startsWith('file:') && authToken) {
+    throw new Error('Local SQLite databases do not accept an auth token')
   }
 
-  const client = postgres(connectionString, {
-    fetch_types: false,
-    max: maxConnections,
-    prepare: true,
+  return createLibSqlDatabase(createClient({ url, authToken }))
+}
+
+export function createLibSqlDatabase(client: Client): Database {
+  const database = drizzleLibSql(client, { schema })
+  registerAtomicExecutor(database, async (statements) => {
+    const results = await client.batch(
+      statements.map((statement) => ({
+        sql: statement.sql,
+        args: statement.args ? [...statement.args] : [],
+      })),
+      'write',
+    )
+    return results.map((result) => ({
+      rowsAffected: result.rowsAffected,
+      rows: result.rows,
+    }))
   })
-
-  return drizzle(client, { schema })
+  return database
 }
 
-export type Database = ReturnType<typeof createDatabase>
+export function createDatabaseFromSource(source: DatabaseSource): Database {
+  if (source.kind !== 'libsql') {
+    throw new Error('D1 bindings require the Cloudflare database adapter')
+  }
+  return createDatabase(source)
+}

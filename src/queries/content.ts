@@ -29,7 +29,7 @@ export function collectionQueryOptions(
       input.path ?? '',
     ] as const,
     queryFn: () => getCollection({ data: input }),
-    staleTime: 30_000,
+    staleTime: queryTimes.directory,
     gcTime: queryTimes.gc,
   })
 }
@@ -79,7 +79,7 @@ export function mediaQueryOptions(
       input.path ?? '',
     ] as const,
     queryFn: () => getMedia({ data: input }),
-    staleTime: 30_000,
+    staleTime: queryTimes.directory,
     gcTime: queryTimes.gc,
   })
 }

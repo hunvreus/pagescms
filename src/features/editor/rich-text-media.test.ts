@@ -21,11 +21,11 @@ const context = {
 describe('rich-text media paths', () => {
   it('uses preview URLs in Markdown without changing external images', () => {
     const value =
-      '![Local](</images/photo one.png>)\n\n![Remote](https://example.com/photo.png)'
+      '![Local](</images/photo one (1).png>)\n\n![Remote](https://example.com/photo.png)'
     const editorValue = richTextValueForEditor(value, media, context)
 
     expect(editorValue).toContain(
-      '/api/media-preview/pages%20cms/website/feature%2Feditor/images/public/images/photo%20one.png',
+      '/api/media-preview/pages%20cms/website/feature%2Feditor/images/public/images/photo%20one%20(1).png',
     )
     expect(editorValue).toContain('https://example.com/photo.png')
     expect(richTextValueForStorage(editorValue, media, context)).toBe(value)

@@ -3,6 +3,16 @@ import {
   readRepositoryCached,
   invalidateRepositoryReads,
 } from './repository-read-cache.server'
+import {
+  DEFAULT_REPOSITORY_SOURCE,
+  RepositoryProviderError,
+} from './repository-provider.server'
+
+import type {
+  RepositoryCommitSummary,
+  RepositoryDirectoryEntry,
+  RepositoryFile,
+} from './repository-provider.server'
 
 const GITHUB_API_URL = 'https://api.github.com'
 const MAX_PAGES = 20
@@ -41,20 +51,8 @@ export interface GitHubCreatedRepository {
   defaultBranch: string
 }
 
-export interface GitHubFile {
-  sha: string
-  content: string
-}
-
-export interface GitHubDirectoryEntry {
-  type: 'file' | 'dir'
-  name: string
-  path: string
-  sha: string | null
-  content: string | null
-  size: number | null
-  downloadUrl: string | null
-}
+export type GitHubFile = RepositoryFile
+export type GitHubDirectoryEntry = RepositoryDirectoryEntry
 
 export interface GitHubWorkflowRun {
   id: number
@@ -65,22 +63,11 @@ export interface GitHubWorkflowRun {
   updatedAt: string
 }
 
-export interface GitHubCommitSummary {
-  sha: string
-  url: string
-  message: string
-  authorName: string
-  authorLogin: string | null
-  authoredAt: string | null
-}
+export type GitHubCommitSummary = RepositoryCommitSummary
 
-export class GitHubApiError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-    readonly retryAfter?: string,
-  ) {
-    super(message)
+export class GitHubApiError extends RepositoryProviderError {
+  constructor(message: string, status: number, retryAfter?: string) {
+    super(message, status, retryAfter)
     this.name = 'GitHubApiError'
   }
 }
@@ -236,6 +223,7 @@ export function createGitHubApi(
   if (!token.trim()) throw new Error('A GitHub access token is required')
 
   const api = {
+    source: DEFAULT_REPOSITORY_SOURCE,
     async listInstallations(): Promise<GitHubInstallation[]> {
       const installations: GitHubInstallation[] = []
       for (let page = 1; page <= MAX_PAGES; page += 1) {
@@ -1025,7 +1013,7 @@ export function createGitHubApi(
   const createBranch = api.createBranch
   api.createBranch = async (...args) => {
     const result = await createBranch(...args)
-    invalidateRepositoryReads(args[0], args[1])
+    invalidateRepositoryReads(args[0], args[1], DEFAULT_REPOSITORY_SOURCE)
     return result
   }
   return api

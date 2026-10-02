@@ -6,7 +6,7 @@ describe('parseRuntimeConfiguration', () => {
   const base = {
     BETTER_AUTH_SECRET: 'a-secure-auth-secret-with-32-characters',
     BETTER_AUTH_URL: 'https://app.pagescms.org',
-    DATABASE_URL: 'postgres://supabase.example/pagescms',
+    DATABASE_URL: 'file:.data/pagescms.db',
   }
 
   it('uses DATABASE_URL and defaults deployments to self-hosted', () => {
@@ -16,7 +16,11 @@ describe('parseRuntimeConfiguration', () => {
         baseUrl: 'https://app.pagescms.org',
         secret: base.BETTER_AUTH_SECRET,
       },
-      databaseConnectionString: 'postgres://supabase.example/pagescms',
+      database: { kind: 'libsql', url: 'file:.data/pagescms.db' },
+      cacheDatabase: {
+        kind: 'libsql',
+        url: 'file:.data/pagescms-cache.db',
+      },
       deployment: 'self-hosted',
     })
   })
@@ -46,13 +50,18 @@ describe('parseRuntimeConfiguration', () => {
     })
   })
 
-  it('accepts a local PostgreSQL connection string', () => {
+  it('accepts a remote libSQL URL and auth token', () => {
     expect(
       parseRuntimeConfiguration({
         ...base,
-        DATABASE_URL: 'postgres://localhost/pagescms',
-      }).databaseConnectionString,
-    ).toBe('postgres://localhost/pagescms')
+        DATABASE_URL: 'libsql://pagescms.turso.io',
+        DATABASE_AUTH_TOKEN: 'token',
+      }).database,
+    ).toEqual({
+      kind: 'libsql',
+      url: 'libsql://pagescms.turso.io',
+      authToken: 'token',
+    })
   })
 
   it('accepts complete GitHub App server credentials', () => {
@@ -94,7 +103,7 @@ describe('parseRuntimeConfiguration', () => {
   it.each([
     [{ ...base, BETTER_AUTH_SECRET: 'short' }, 'at least 32'],
     [{ ...base, BETTER_AUTH_URL: 'not-a-url' }, 'valid HTTP'],
-    [{ ...base, DATABASE_URL: undefined }, 'database connection'],
+    [{ ...base, DATABASE_URL: undefined }, 'database URL or D1 binding'],
     [{ ...base, GITHUB_APP_CLIENT_ID: 'only-one' }, 'provided together'],
     [{ ...base, GITHUB_APP_ID: '123' }, 'must be provided together'],
     [

@@ -14,6 +14,8 @@ import {
   verificationTable,
 } from './database/schema'
 import { createLoginCodeEmail } from './email-templates.server'
+import { syncGitHubProfile } from './github-account.server'
+import { logServerEvent, serverErrorDetails } from './http'
 
 export { createLoginCodeEmail } from './email-templates.server'
 
@@ -69,8 +71,10 @@ export function createPagesCmsAuth({
             clientSecret: configuration.github.clientSecret,
             overrideUserInfoOnSignIn: false,
             mapProfileToUser: (profile) => ({
-              name: profile.name,
-              image: profile.avatar_url,
+              name: (profile as { name?: string | null }).name ?? profile.login,
+              image:
+                (profile as { avatar_url?: string | null }).avatar_url ??
+                undefined,
               githubUsername: profile.login,
             }),
             scope: ['repo', 'user:email'],
@@ -78,7 +82,7 @@ export function createPagesCmsAuth({
         }
       : {},
     database: drizzleAdapter(database, {
-      provider: 'pg',
+      provider: 'sqlite',
       schema: {
         user: userTable,
         session: sessionTable,
@@ -86,6 +90,23 @@ export function createPagesCmsAuth({
         verification: verificationTable,
       },
     }),
+    databaseHooks: {
+      session: {
+        create: {
+          after: async (session) => {
+            try {
+              await syncGitHubProfile(database, session.userId)
+            } catch (error) {
+              logServerEvent('error', {
+                event: 'github_profile_sync_failed',
+                userId: session.userId,
+                ...serverErrorDetails(error),
+              })
+            }
+          },
+        },
+      },
+    },
     onAPIError: {
       errorURL: '/auth/error',
     },

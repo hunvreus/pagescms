@@ -3,7 +3,7 @@ import {
   createRequestServices,
   createRequestServicesAccessor,
 } from './request-services.server'
-import { createDatabase } from './database/client.server'
+import { createDatabaseFromSource } from './database/client.server'
 import { parseRuntimeConfiguration } from './runtime-config.server'
 
 import type { Database } from './database/client.server'
@@ -18,12 +18,29 @@ function getDeploymentServices(environment: unknown) {
 }
 
 function getDatabase(environment: unknown) {
-  const connectionString =
-    parseRuntimeConfiguration(environment).databaseConnectionString
-  let database = databases.get(connectionString)
+  const source = parseRuntimeConfiguration(environment).database
+  if (source.kind !== 'libsql') {
+    throw new Error('D1 bindings require the Cloudflare request bootstrap')
+  }
+  const key = JSON.stringify([source.url, source.authToken ?? ''])
+  let database = databases.get(key)
   if (!database) {
-    database = createDatabase({ connectionString })
-    databases.set(connectionString, database)
+    database = createDatabaseFromSource(source)
+    databases.set(key, database)
+  }
+  return database
+}
+
+function getCacheDatabase(environment: unknown) {
+  const source = parseRuntimeConfiguration(environment).cacheDatabase
+  if (source.kind !== 'libsql') {
+    throw new Error('D1 bindings require the Cloudflare request bootstrap')
+  }
+  const key = JSON.stringify([source.url, source.authToken ?? ''])
+  let database = databases.get(key)
+  if (!database) {
+    database = createDatabaseFromSource(source)
+    databases.set(key, database)
   }
   return database
 }
@@ -31,6 +48,7 @@ function getDatabase(environment: unknown) {
 export function createRequestServicesForRequest(request: Request) {
   return createRequestServices(process.env, request.headers, {
     database: getDatabase(process.env),
+    cacheDatabase: getCacheDatabase(process.env),
     deploymentServices: getDeploymentServices(process.env),
   })
 }

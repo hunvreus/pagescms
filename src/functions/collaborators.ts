@@ -105,6 +105,7 @@ export const getCollaborators = createServerFn({ method: 'GET' })
           manager(session.user),
           data.owner,
           data.repo,
+          services.githubApiFactory,
         )
       },
     )
@@ -135,6 +136,7 @@ export const addCollaborators = createServerFn({ method: 'POST' })
           repo: data.repo,
           branch: data.branch,
           emails: data.emails,
+          githubApiFactory: services.githubApiFactory,
         })
       },
     )
@@ -162,6 +164,7 @@ export const deleteCollaborator = createServerFn({ method: 'POST' })
           owner: data.owner,
           repo: data.repo,
           id: data.id,
+          githubApiFactory: services.githubApiFactory,
         })
       },
     )

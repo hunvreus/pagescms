@@ -3,6 +3,7 @@ import { and, eq, sql } from 'drizzle-orm'
 import { isCacheEnabled } from '#/lib/configuration'
 
 import { createConfigurationStore } from './configuration-store.server'
+import { DEFAULT_REPOSITORY_SOURCE } from './repository-provider.server'
 import {
   createDirectoryCache,
   invalidateDirectoryCache,
@@ -61,6 +62,7 @@ async function cacheContext(input: CacheInput) {
 
 function branchConditions(input: CacheInput) {
   return and(
+    eq(cacheFileTable.source, DEFAULT_REPOSITORY_SOURCE),
     eq(cacheFileTable.owner, input.owner.toLowerCase()),
     eq(cacheFileTable.repo, input.repo.toLowerCase()),
     eq(cacheFileTable.branch, input.branch),
@@ -74,11 +76,11 @@ export async function loadCacheStatus(input: CacheInput) {
   const [fileCountRows, permissionCountRows, metaRows, config] =
     await Promise.all([
       input.database
-        .select({ count: sql<number>`count(*)::int` })
+        .select({ count: sql<number>`count(*)` })
         .from(cacheFileTable)
         .where(branchConditions(input)),
       input.database
-        .select({ count: sql<number>`count(*)::int` })
+        .select({ count: sql<number>`count(*)` })
         .from(cachePermissionTable)
         .where(
           and(
@@ -91,6 +93,7 @@ export async function loadCacheStatus(input: CacheInput) {
         .from(cacheFileMetaTable)
         .where(
           and(
+            eq(cacheFileMetaTable.source, DEFAULT_REPOSITORY_SOURCE),
             eq(cacheFileMetaTable.owner, normalizedOwner),
             eq(cacheFileMetaTable.repo, normalizedRepo),
             eq(cacheFileMetaTable.branch, input.branch),
@@ -98,6 +101,7 @@ export async function loadCacheStatus(input: CacheInput) {
         ),
       input.database.query.configTable.findFirst({
         where: and(
+          eq(configTable.source, DEFAULT_REPOSITORY_SOURCE),
           sql`lower(${configTable.owner}) = lower(${input.owner})`,
           sql`lower(${configTable.repo}) = lower(${input.repo})`,
           eq(configTable.branch, input.branch),
@@ -145,6 +149,7 @@ export async function manageCache(input: CacheInput & { action: CacheAction }) {
       .from(cacheFileMetaTable)
       .where(
         and(
+          eq(cacheFileMetaTable.source, DEFAULT_REPOSITORY_SOURCE),
           eq(cacheFileMetaTable.owner, normalizedOwner),
           eq(cacheFileMetaTable.repo, normalizedRepo),
           eq(cacheFileMetaTable.branch, input.branch),

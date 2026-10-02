@@ -142,7 +142,7 @@ export const updateConfiguration = createServerFn({ method: 'POST' })
         const { saveConfigurationSource } =
           await import('#/server/configuration-editor.server')
         return saveConfigurationSource({
-          database: services.database,
+          database: services.cacheDatabase,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,

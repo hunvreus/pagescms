@@ -114,6 +114,7 @@ async function findGitHubToken(database: Database, userId: string) {
 
 export function createProjectService(
   database: Database,
+  cacheDatabase: Database,
   repositoryAccess: RepositoryAccessService,
   githubApiFactory: GitHubApiFactory = createGitHubApi,
 ) {
@@ -130,10 +131,9 @@ export function createProjectService(
           .from(collaboratorTable)
           .where(collaboratorMatchesUser(user)),
       ])
-      const installations =
-        token && user.githubUsername
-          ? await githubApiFactory(token).listInstallations()
-          : []
+      const installations = token
+        ? await githubApiFactory(token).listInstallations()
+        : []
       const collaboratorAccounts: ProjectAccount[] = collaboratorRows.map(
         (row) => ({
           login: row.login,
@@ -164,7 +164,7 @@ export function createProjectService(
           ),
         }),
       ])
-      const api = token && user.githubUsername ? githubApiFactory(token) : null
+      const api = token ? githubApiFactory(token) : null
       const githubRepositories = api
         ? account.repositorySelection === 'selected'
           ? await api.listInstallationRepositories(account.installationId)
@@ -205,7 +205,7 @@ export function createProjectService(
       },
     ) {
       const token = await findGitHubToken(database, user.id)
-      if (!token || !user.githubUsername) {
+      if (!token) {
         throw new Error('GitHub authentication is required')
       }
       const api = githubApiFactory(token)
@@ -229,7 +229,7 @@ export function createProjectService(
       const configurationPromise = branch
         ? import('./configuration-store.server').then(
             ({ createConfigurationStore }) =>
-              createConfigurationStore({ database }).get(
+              createConfigurationStore({ database: cacheDatabase }).get(
                 api,
                 owner,
                 repo,

@@ -68,6 +68,8 @@ import {
 } from '#/features/editor/fields/structured-field-options'
 import { getReferenceOptions } from '#/functions/references'
 import { initializeStructuredContent } from '#/lib/field-values'
+import { parseUploadRename } from '#/lib/media-upload-name'
+import { customFieldEditors } from '#/features/editor/fields/custom-field-components'
 import {
   allowedMediaFieldExtensions,
   resolveFieldMedia,
@@ -197,10 +199,11 @@ export function isContentField(value: unknown): value is JsonObject {
 }
 
 function initialFieldValue(field: JsonObject): JsonValue {
-  if ('default' in field) return field.default
-  if (field.type === 'boolean') return false
+  const initialized = initializeStructuredContent([
+    { ...field, name: 'value', list: false },
+  ])
+  if ('value' in initialized) return initialized.value
   if (field.type === 'number') return 0
-  if (field.type === 'uuid') return crypto.randomUUID()
   if (field.type === 'object') {
     return initializeStructuredContent(
       Array.isArray(field.fields) ? field.fields : [],
@@ -776,7 +779,28 @@ export function StructuredContentField({
       />
     )
   } else {
-    const CoreField = coreFieldRendererRegistry.resolve(type)
+    const CustomField = customFieldEditors.get(type)
+    if (CustomField)
+      return renderField(
+        <ClientOnly fallback={<DeferredEditorFallback />}>
+          <Suspense fallback={<DeferredEditorFallback />}>
+            <CustomField
+              disabled={disabled}
+              field={field}
+              id={controlId}
+              label={label ?? name}
+              referenceContext={referenceContext}
+              required={required}
+              value={value}
+              onChange={onChange}
+              renderField={(node) => node}
+            />
+          </Suspense>
+        </ClientOnly>,
+      )
+    const CoreField = coreFieldRendererRegistry.get(type)
+    if (!CoreField)
+      return renderField(<ErrorAlert>Unknown field type: {type}</ErrorAlert>)
     return (
       <CoreField
         disabled={disabled}
@@ -802,6 +826,14 @@ function mediaValues(value: JsonValue | undefined, multiple: boolean) {
       : []
   }
   return typeof value === 'string' && value ? [value] : []
+}
+
+export function keyedMediaValues(values: readonly string[]) {
+  return values.map((path, index) => ({
+    id: `${index}:${path}`,
+    index,
+    path,
+  }))
 }
 
 function ImageFieldThumbnail({
@@ -909,7 +941,12 @@ function MediaFieldControl({
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<unknown>(null)
   const dndId = useId()
-  const sensors = useSensors(useSensor(PointerSensor))
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  )
 
   if (!media) {
     return <ErrorAlert>Media is not configured.</ErrorAlert>
@@ -924,6 +961,7 @@ function MediaFieldControl({
       ? settings.path
       : mediaInput
   const allowedExtensions = allowedMediaFieldExtensions(field, media)
+  const selectedItems = keyedMediaValues(selected)
   function select(pathValue: string) {
     if (!multiple) {
       onChange(pathValue)
@@ -950,6 +988,7 @@ function MediaFieldControl({
         },
         extensions: allowedExtensions,
         files,
+        rename: parseUploadRename(settings.rename),
         limit: multiple ? Math.max(0, max - selected.length) : 1,
         path: configuredStartPath,
       })
@@ -983,26 +1022,33 @@ function MediaFieldControl({
             sensors={sensors}
             onDragEnd={({ active, over }) => {
               if (!over || active.id === over.id) return
-              const oldIndex = selected.indexOf(String(active.id))
-              const newIndex = selected.indexOf(String(over.id))
+              const oldIndex = selectedItems.findIndex(
+                (item) => item.id === active.id,
+              )
+              const newIndex = selectedItems.findIndex(
+                (item) => item.id === over.id,
+              )
               if (oldIndex >= 0 && newIndex >= 0)
                 onChange(arrayMove(selected, oldIndex, newIndex))
             }}
           >
-            <SortableContext items={selected} strategy={rectSortingStrategy}>
+            <SortableContext
+              items={selectedItems.map((item) => item.id)}
+              strategy={rectSortingStrategy}
+            >
               <div className="flex flex-wrap gap-2">
-                {selected.map((selectedPath) => (
+                {selectedItems.map((item) => (
                   <ImageFieldThumbnail
                     context={context}
                     draggable={multiple}
-                    id={selectedPath}
-                    key={selectedPath}
+                    id={item.id}
+                    key={item.id}
                     mediaName={mediaName}
-                    path={selectedPath}
+                    path={item.path}
                     readonly={disabled}
                     onRemove={() => {
                       const next = selected.filter(
-                        (item) => item !== selectedPath,
+                        (_selectedPath, index) => index !== item.index,
                       )
                       onChange(multiple ? next : undefined)
                     }}
@@ -1012,47 +1058,75 @@ function MediaFieldControl({
             </SortableContext>
           </DndContext>
         ) : (
-          <ul className="space-y-2">
-            {selected.map((selectedPath) => (
-              <li
-                className="flex items-center gap-2 rounded-lg border bg-muted/20 px-3 py-2 text-sm"
-                key={selectedPath}
-              >
-                <File className="size-4" />
-                <span className="min-w-0 flex-1 truncate">{selectedPath}</span>
-                <Button
-                  asChild
-                  aria-label={`Open ${selectedPath}`}
-                  size="icon"
-                  variant="ghost"
-                >
-                  <a
-                    href={`https://github.com/${encodeURIComponent(context.owner)}/${encodeURIComponent(context.repo)}/blob/${encodeURIComponent(context.branch)}/${selectedPath.split('/').map(encodeURIComponent).join('/')}`}
-                    rel="noreferrer"
-                    target="_blank"
+          <DndContext
+            id={`${dndId}-files`}
+            collisionDetection={closestCenter}
+            sensors={sensors}
+            onDragEnd={({ active, over }) => {
+              if (disabled || !multiple || !over || active.id === over.id)
+                return
+              const from = selectedItems.findIndex(
+                (item) => item.id === active.id,
+              )
+              const to = selectedItems.findIndex((item) => item.id === over.id)
+              if (from >= 0 && to >= 0) onChange(arrayMove(selected, from, to))
+            }}
+          >
+            <SortableContext
+              items={selectedItems.map((item) => item.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-2">
+                {selectedItems.map((item) => (
+                  <SortableListItem
+                    key={item.id}
+                    id={item.id}
+                    disabled={disabled || !multiple}
                   >
-                    <ArrowUpRight className="text-muted-foreground" />
-                  </a>
-                </Button>
-                {!disabled ? (
-                  <Button
-                    aria-label={`Remove ${selectedPath}`}
-                    size="icon"
-                    type="button"
-                    variant="ghost"
-                    onClick={() => {
-                      const next = selected.filter(
-                        (item) => item !== selectedPath,
-                      )
-                      onChange(multiple ? next : undefined)
-                    }}
-                  >
-                    <Trash2 />
-                  </Button>
-                ) : null}
-              </li>
-            ))}
-          </ul>
+                    {(handle) => (
+                      <div className="flex items-center gap-2 rounded-lg border bg-muted/20 px-3 py-2 text-sm">
+                        {multiple && !disabled ? handle : null}
+                        <File className="size-4" />
+                        <span className="min-w-0 flex-1 truncate">
+                          {item.path}
+                        </span>
+                        <Button
+                          asChild
+                          aria-label={`Open ${item.path}`}
+                          size="icon"
+                          variant="ghost"
+                        >
+                          <a
+                            href={`https://github.com/${encodeURIComponent(context.owner)}/${encodeURIComponent(context.repo)}/blob/${encodeURIComponent(context.branch)}/${item.path.split('/').map(encodeURIComponent).join('/')}`}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            <ArrowUpRight className="text-muted-foreground" />
+                          </a>
+                        </Button>
+                        {!disabled ? (
+                          <Button
+                            aria-label={`Remove ${item.path}`}
+                            size="icon"
+                            type="button"
+                            variant="ghost"
+                            onClick={() => {
+                              const next = selected.filter(
+                                (_selectedPath, index) => index !== item.index,
+                              )
+                              onChange(multiple ? next : undefined)
+                            }}
+                          >
+                            <Trash2 />
+                          </Button>
+                        ) : null}
+                      </div>
+                    )}
+                  </SortableListItem>
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )
       ) : (
         <p className="text-sm text-muted-foreground">No file selected.</p>
