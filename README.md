@@ -8,7 +8,6 @@ The replacement is being built in reviewable migration waves. It currently inclu
 
 - Node.js 22
 - pnpm 10
-- Docker for the isolated PostgreSQL integration and browser suites
 
 ## Development
 
@@ -19,7 +18,7 @@ pnpm db:migrate
 pnpm dev
 ```
 
-Set a random `BETTER_AUTH_SECRET`, a disposable/local PostgreSQL `DATABASE_URL`, and at least one sign-in method in `.env.local`. Database commands automatically load that file. Verify that `DATABASE_URL` does not identify production before running `pnpm db:migrate`. `pnpm dev` runs ordinary TanStack Start/Vite under Node at `http://localhost:3000`; its `GET /api/health` readiness endpoint returns `503` when PostgreSQL is unavailable. See [`docs/development/authentication.md`](./docs/development/authentication.md).
+Set a random `BETTER_AUTH_SECRET` and at least one sign-in method in `.env.local`. The default `DATABASE_URL=file:.data/pagescms.db` and derived `.data/pagescms-cache.db` keep durable application data separate from rebuildable repository caches. Database commands automatically load that file. `pnpm dev` runs ordinary TanStack Start/Vite under Node at `http://localhost:3000`; its `GET /api/health` readiness endpoint checks both databases. See [`docs/development/database.md`](./docs/development/database.md) and [`docs/development/authentication.md`](./docs/development/authentication.md).
 
 ## Verification
 
@@ -36,7 +35,7 @@ pnpm cf:dry-run
 
 `pnpm validate` runs every non-browser verification above, including a local Worker dry run. Browser binaries are installed separately with `pnpm exec playwright install chromium`. Live Cloudflare deployment verification is intentionally separate.
 
-`pnpm test:e2e` and `pnpm test:integration` create and remove their own PostgreSQL containers. They do not read `.env.local` or use a real GitHub account.
+`pnpm test:e2e` and `pnpm test:integration` create and remove isolated SQLite databases. The integration suite also runs its persistence contract against a local D1 runtime. Neither command reads `.env.local` or uses a real GitHub account.
 
 ## UI components
 

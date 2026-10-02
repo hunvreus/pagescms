@@ -10,10 +10,13 @@ import { githubFixtureFetch } from './github-fixture.server'
 let database: ReturnType<typeof createDatabase> | undefined
 
 function testEnvironment() {
+  const databaseUrl = process.env.DATABASE_URL
+  if (!databaseUrl)
+    throw new Error('DATABASE_URL is required for browser tests')
   return {
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
     BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
-    DATABASE_URL: process.env.DATABASE_URL,
+    DATABASE_URL: databaseUrl,
     DEPLOYMENT_MODE: 'self-hosted',
   }
 }
@@ -21,10 +24,11 @@ function testEnvironment() {
 export function createRequestServicesForRequest(request: Request) {
   const environment = testEnvironment()
   database ??= createDatabase({
-    connectionString: environment.DATABASE_URL,
+    url: environment.DATABASE_URL,
   })
   return createRequestServices(environment, request.headers, {
     database,
+    cacheDatabase: database,
     githubApiFactory: (token) => createGitHubApi(token, githubFixtureFetch),
   })
 }

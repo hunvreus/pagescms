@@ -33,11 +33,9 @@ export function createFieldRendererRegistry(
       renderers.set(type, renderer)
     },
     resolve: (type) => {
-      const renderer = renderers.get(type) ?? renderers.get('string')
+      const renderer = renderers.get(type)
       if (!renderer) {
-        throw new Error(
-          'The field renderer registry requires a string renderer',
-        )
+        throw new Error(`No renderer is registered for field type "${type}"`)
       }
       return renderer
     },

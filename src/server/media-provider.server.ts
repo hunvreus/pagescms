@@ -1,7 +1,10 @@
 import { getFileExtension } from '#/lib/file-types'
 import { decodeBase64Bytes } from '#/lib/media-assets'
 
-import type { GitHubApi, GitHubDirectoryEntry } from './github-api.server'
+import type {
+  RepositoryApi,
+  RepositoryDirectoryEntry,
+} from './repository-provider.server'
 import type { Clock } from './runtime-ports.server'
 
 import { systemClock } from './runtime-ports.server'
@@ -306,7 +309,7 @@ export function createGitHubMediaStorage({
   onMutation,
   clock = systemClock,
 }: {
-  api: GitHubApi
+  api: RepositoryApi
   onMutation?: (
     result: { commitSha: string; parentCommitSha?: string },
     changes: {
@@ -315,7 +318,7 @@ export function createGitHubMediaStorage({
       sourcePath?: string
       sha?: string
     }[],
-    knownFiles?: GitHubDirectoryEntry[],
+    knownFiles?: RepositoryDirectoryEntry[],
   ) => Promise<void>
   owner: string
   repo: string
@@ -329,7 +332,7 @@ export function createGitHubMediaStorage({
       size: number | null
     }>
   >
-  resolveDirectory?: (directory: string) => Promise<GitHubDirectoryEntry[]>
+  resolveDirectory?: (directory: string) => Promise<RepositoryDirectoryEntry[]>
   clock?: Clock
 }): MediaStorage {
   return {

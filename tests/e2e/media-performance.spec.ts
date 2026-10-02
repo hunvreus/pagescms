@@ -106,9 +106,21 @@ test('measures production media first-useful-render for public and private repos
   ]) {
     await writeFile(metricsPath, '')
     const cold: Array<number> = []
+    const warm: Array<number> = []
+    let coldDirectoryRequests = 0
+    let warmDirectoryRequests = 0
+    const directoryRequests = async () =>
+      (await fixtureRequests()).filter(
+        (request) =>
+          request.method === 'GET' &&
+          request.path.startsWith(
+            `/repos/pagescms/${repository}/contents/public/images/perf-`,
+          ),
+      ).length
 
     for (let sample = 0; sample < 20; sample += 1) {
       const path = `public/images/perf-${sample}`
+      const beforeCold = await directoryRequests()
       const startedAt = performance.now()
       await page.goto(
         `/pagescms/${repository}/main/media/default?path=${encodeURIComponent(path)}`,
@@ -117,41 +129,28 @@ test('measures production media first-useful-render for public and private repos
         timeout: 15_000,
       })
       cold.push(performance.now() - startedAt)
-    }
+      const afterCold = await directoryRequests()
+      coldDirectoryRequests += afterCold - beforeCold
 
-    const coldRequests = (await fixtureRequests()).filter(
-      (request) =>
-        request.method === 'GET' &&
-        request.path.startsWith(
-          `/repos/pagescms/${repository}/contents/public/images/perf-`,
-        ),
-    )
-    expect(coldRequests).toHaveLength(20)
-
-    await writeFile(metricsPath, '')
-    const warm: Array<number> = []
-    for (let sample = 0; sample < 20; sample += 1) {
-      const startedAt = performance.now()
+      // Reload immediately while this directory's cache entry is fresh.
+      // Twenty consecutive reloads of the last folder can exceed its TTL.
+      const warmStartedAt = performance.now()
       await page.reload()
       await expect(page.locator('[data-state="loaded"]')).toHaveCount(2, {
         timeout: 15_000,
       })
-      warm.push(performance.now() - startedAt)
+      warm.push(performance.now() - warmStartedAt)
+      warmDirectoryRequests += (await directoryRequests()) - afterCold
     }
-    const warmRequests = (await fixtureRequests()).filter(
-      (request) =>
-        request.method === 'GET' &&
-        request.path.startsWith(
-          `/repos/pagescms/${repository}/contents/public/images/perf-`,
-        ),
-    )
-    expect(warmRequests).toHaveLength(0)
+
+    expect(coldDirectoryRequests).toBe(20)
+    expect(warmDirectoryRequests).toBe(0)
 
     results[repository] = {
       cold: summary(cold),
       warm: summary(warm),
-      coldDirectoryRequests: coldRequests.length,
-      warmDirectoryRequests: warmRequests.length,
+      coldDirectoryRequests,
+      warmDirectoryRequests,
     }
   }
 

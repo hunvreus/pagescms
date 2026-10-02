@@ -64,7 +64,7 @@ export const getCollection = createServerFn({ method: 'GET' })
         const { loadCollection } =
           await import('#/server/collection-service.server')
         return loadCollection({
-          database: services.database,
+          database: services.cacheDatabase,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,

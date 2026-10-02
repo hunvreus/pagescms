@@ -16,6 +16,7 @@ export function RepositoryPageHeader({
   refreshing?: boolean
 }) {
   const [scrolled, setScrolled] = useState(false)
+  const [announcedRefreshing, setAnnouncedRefreshing] = useState(false)
 
   useEffect(() => {
     const update = () => setScrolled(window.scrollY > 0)
@@ -23,6 +24,10 @@ export function RepositoryPageHeader({
     window.addEventListener('scroll', update, { passive: true })
     return () => window.removeEventListener('scroll', update)
   }, [])
+
+  useEffect(() => {
+    setAnnouncedRefreshing(refreshing)
+  }, [refreshing])
 
   return (
     <header
@@ -40,7 +45,7 @@ export function RepositoryPageHeader({
         </div>
       ) : null}
       <span className="sr-only" aria-live="polite">
-        {refreshing ? 'Refreshing page' : ''}
+        {announcedRefreshing ? 'Refreshing page' : ''}
       </span>
     </header>
   )

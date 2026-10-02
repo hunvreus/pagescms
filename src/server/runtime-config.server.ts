@@ -1,3 +1,6 @@
+import type { AnyD1Database } from 'drizzle-orm/d1'
+import type { DatabaseSource } from './database/client.server'
+
 export type AuthRuntimeConfiguration = Readonly<{
   baseUrl: string
   secret: string
@@ -10,7 +13,8 @@ export type AuthRuntimeConfiguration = Readonly<{
 export type RuntimeConfiguration = Readonly<{
   adminEmails: readonly string[]
   auth: AuthRuntimeConfiguration
-  databaseConnectionString: string
+  database: DatabaseSource
+  cacheDatabase: DatabaseSource
   deployment: 'self-hosted' | 'hosted'
   githubWebhookSecret?: string
   githubAppName?: string
@@ -27,6 +31,71 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function optionalString(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+function d1Binding(value: unknown): AnyD1Database | undefined {
+  if (!isRecord(value)) return undefined
+  return typeof value.prepare === 'function' &&
+    typeof value.batch === 'function' &&
+    typeof value.exec === 'function'
+    ? (value as unknown as AnyD1Database)
+    : undefined
+}
+
+function localCacheUrl(url: string) {
+  if (!url.startsWith('file:')) return url
+  if (url === 'file::memory:') return url
+  return url.endsWith('.db') ? `${url.slice(0, -3)}-cache.db` : `${url}-cache`
+}
+
+export function sameDatabaseSource(
+  left: DatabaseSource,
+  right: DatabaseSource,
+) {
+  if (left.kind !== right.kind) return false
+  return left.kind === 'd1'
+    ? left.binding ===
+        (right as Extract<DatabaseSource, { kind: 'd1' }>).binding
+    : left.url === (right as Extract<DatabaseSource, { kind: 'libsql' }>).url &&
+        left.authToken ===
+          (right as Extract<DatabaseSource, { kind: 'libsql' }>).authToken
+}
+
+function databaseSources(environment: Record<string, unknown>) {
+  const databaseBinding = d1Binding(environment.DATABASE)
+  const cacheBinding = d1Binding(environment.CACHE_DATABASE)
+  if (databaseBinding) {
+    return {
+      database: { kind: 'd1', binding: databaseBinding } as const,
+      cacheDatabase: {
+        kind: 'd1',
+        binding: cacheBinding ?? databaseBinding,
+      } as const,
+    }
+  }
+  if (cacheBinding) {
+    throw new Error('DATABASE binding is required with CACHE_DATABASE')
+  }
+
+  const url = optionalString(environment.DATABASE_URL)
+  if (!url) throw new Error('A database URL or D1 binding is required')
+  const authToken = optionalString(environment.DATABASE_AUTH_TOKEN)
+  const cacheUrl =
+    optionalString(environment.CACHE_DATABASE_URL) ?? localCacheUrl(url)
+  const cacheAuthToken =
+    optionalString(environment.CACHE_DATABASE_AUTH_TOKEN) ?? authToken
+  return {
+    database: {
+      kind: 'libsql',
+      url,
+      ...(authToken ? { authToken } : {}),
+    } as const,
+    cacheDatabase: {
+      kind: 'libsql',
+      url: cacheUrl,
+      ...(cacheAuthToken ? { authToken: cacheAuthToken } : {}),
+    } as const,
+  }
 }
 
 function parseBaseUrl(value: unknown) {
@@ -69,10 +138,7 @@ export function parseRuntimeConfiguration(
     throw new Error('BETTER_AUTH_SECRET must contain at least 32 characters')
   }
 
-  const databaseConnectionString = optionalString(environment.DATABASE_URL)
-  if (!databaseConnectionString) {
-    throw new Error('A database connection is required')
-  }
+  const databases = databaseSources(environment)
 
   const clientId = optionalString(environment.GITHUB_APP_CLIENT_ID)
   const clientSecret = optionalString(environment.GITHUB_APP_CLIENT_SECRET)
@@ -125,7 +191,7 @@ export function parseRuntimeConfiguration(
         ? { github: { clientId, clientSecret } }
         : {}),
     },
-    databaseConnectionString,
+    ...databases,
     deployment: deploymentValue,
     ...(githubWebhookSecret ? { githubWebhookSecret } : {}),
     ...(githubAppName ? { githubAppName } : {}),

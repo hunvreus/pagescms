@@ -47,5 +47,6 @@ export const queryKeys = {
 
 export const queryTimes = {
   minute: 60_000,
+  directory: 5 * 60_000,
   gc: 15 * 60_000,
 } as const

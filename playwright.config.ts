@@ -19,6 +19,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
+  expect: { timeout: 15_000 },
   reporter: process.env.CI ? 'github' : 'list',
   globalSetup: './tests/e2e/global-setup.ts',
   use: {
@@ -55,8 +56,7 @@ export default defineConfig({
       BETTER_AUTH_SECRET: authSecret,
       BETTER_AUTH_URL: 'http://127.0.0.1:3100',
       DATABASE_URL:
-        process.env.E2E_DATABASE_URL ??
-        'postgres://pagescms:pagescms@127.0.0.1:5432/pagescms_playwright',
+        process.env.E2E_DATABASE_URL ?? 'file:.data/pagescms-playwright.db',
       PAGESCMS_E2E: 'true',
       PAGESCMS_E2E_GITHUB_METRICS_PATH: githubMetricsPath,
       VITE_DISABLE_UNSAVED_WARNING: 'true',

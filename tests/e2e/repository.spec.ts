@@ -34,7 +34,7 @@ test('navigates a repository and persists a structured entry update', async ({
 
   const search = page.getByRole('textbox', { name: 'Search collection' })
   await search.fill('missing entry')
-  await expect(page.getByText('No entries found.')).toBeVisible()
+  await expect(page.getByText('No results.')).toBeVisible()
   await search.clear()
   await expect(page.getByText('Hello world', { exact: true })).toBeVisible()
 
@@ -50,6 +50,8 @@ test('navigates a repository and persists a structured entry update', async ({
   await expect(page).toHaveURL(
     /\/pagescms\/fixture\/main\/collection\/posts\/entry\/content\/posts\/hello\.md$/,
   )
+
+  await expect(page.getByLabel('Title')).toHaveValue('Hello world')
 
   const editorHeader = page.locator('[data-slot="repository-page-header"]')
   await expect(editorHeader).toBeVisible()
@@ -84,7 +86,7 @@ test('navigates a repository and persists a structured entry update', async ({
   )
   await page.getByRole('button', { name: 'source' }).click()
   await expect(page.getByRole('textbox', { name: 'Body source' })).toHaveValue(
-    'Welcome to Pages CMS.',
+    'Welcome to Pages CMS.\n',
   )
   await page.getByRole('button', { name: 'editor' }).click()
   await expect(page.getByRole('textbox', { name: 'Body' })).toBeVisible()

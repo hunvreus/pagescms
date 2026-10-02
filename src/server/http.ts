@@ -32,3 +32,21 @@ export function logServerEvent(
 
   console.log(message)
 }
+
+export function serverErrorDetails(error: unknown): Record<string, unknown> {
+  if (!(error instanceof Error)) return { error: String(error) }
+  const code =
+    'code' in error && typeof error.code === 'string' ? error.code : undefined
+  return {
+    error: error.message,
+    errorName: error.name,
+    ...(code ? { errorCode: code } : {}),
+  }
+}
+
+export function isClientDisconnect(error: unknown): boolean {
+  if (!(error instanceof Error)) return false
+  if (error.name === 'AbortError') return true
+  if ('code' in error && error.code === 'ECONNRESET') return true
+  return isClientDisconnect(error.cause)
+}

@@ -1,4 +1,9 @@
-import { defineConfig, loadEnv, searchForWorkspaceRoot } from 'vite'
+import {
+  createLogger,
+  defineConfig,
+  loadEnv,
+  searchForWorkspaceRoot,
+} from 'vite'
 import { fileURLToPath } from 'node:url'
 import { devtools } from '@tanstack/devtools-vite'
 
@@ -17,6 +22,32 @@ const cloudflareBuild = process.env.PAGESCMS_CLOUDFLARE === 'true'
 const e2eRequestServices = fileURLToPath(
   new URL('./tests/e2e/request-services.server.ts', import.meta.url),
 )
+const nodeRequestServices = fileURLToPath(
+  new URL('./src/server/request-services-bootstrap.server.ts', import.meta.url),
+)
+const cloudflareRequestServices = fileURLToPath(
+  new URL(
+    './src/server/request-services-bootstrap.cloudflare.server.ts',
+    import.meta.url,
+  ),
+)
+
+function isClientDisconnect(error: unknown): boolean {
+  if (!(error instanceof Error)) return false
+  if (error.name === 'AbortError') return true
+  if ('code' in error && error.code === 'ECONNRESET') return true
+  return isClientDisconnect(error.cause)
+}
+
+function createDevelopmentLogger() {
+  const logger = createLogger()
+  const logError = logger.error.bind(logger)
+  logger.error = (message, options) => {
+    if (isClientDisconnect(options?.error)) return
+    logError(message, options)
+  }
+  return logger
+}
 
 const config = defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_')
@@ -28,8 +59,15 @@ const config = defineConfig(({ mode }) => {
     },
     process.cwd(),
   )
+  const requestServicesBootstrap =
+    process.env.PAGESCMS_E2E === 'true'
+      ? e2eRequestServices
+      : cloudflareBuild
+        ? cloudflareRequestServices
+        : nodeRequestServices
 
   return {
+    customLogger: createDevelopmentLogger(),
     envDir: process.env.PAGESCMS_E2E === 'true' ? false : undefined,
     server: {
       // Vite enables browser-console forwarding automatically when it detects an
@@ -52,14 +90,10 @@ const config = defineConfig(({ mode }) => {
         '@tanstack/react-router',
       ],
       alias: [
-        ...(process.env.PAGESCMS_E2E === 'true'
-          ? [
-              {
-                find: '#/server/request-services-bootstrap.server',
-                replacement: e2eRequestServices,
-              },
-            ]
-          : []),
+        {
+          find: 'virtual:pagescms-request-services-bootstrap',
+          replacement: requestServicesBootstrap,
+        },
         ...resolveApplicationAliases(deploymentEntries, process.cwd()),
       ],
     },

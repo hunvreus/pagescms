@@ -1,4 +1,7 @@
 import type { JsonObject, JsonValue } from './json'
+import { selectOptions } from './select-options'
+import { defaultDateValue, transformDateValue } from './date-field'
+import { customFieldDefinition } from '#/fields/registry'
 
 type Field = Record<string, unknown> & { name?: unknown; type?: unknown }
 
@@ -25,28 +28,7 @@ function listLimits(value: unknown) {
 }
 
 function selectValues(field: Field) {
-  if (!isRecord(field.options) || !Array.isArray(field.options.values))
-    return []
-  return field.options.values.flatMap((value): JsonValue[] => {
-    if (
-      typeof value === 'string' ||
-      typeof value === 'number' ||
-      typeof value === 'boolean'
-    ) {
-      return [String(value)]
-    }
-    if (isRecord(value) && 'value' in value) {
-      const option = value.value
-      if (
-        typeof option === 'string' ||
-        typeof option === 'number' ||
-        typeof option === 'boolean'
-      ) {
-        return [String(option)]
-      }
-    }
-    return []
-  })
+  return selectOptions(field).map((option) => option.value)
 }
 
 function optionLimits(field: Field) {
@@ -96,6 +78,36 @@ function isValidCalendarDate(value: string) {
 }
 
 function validateScalar(field: Field, value: JsonValue, path: string) {
+  // Deployment-provided component fields are a separate, trusted UI contract.
+  // Their JSON values must not be rejected as an unknown type "undefined".
+  if (typeof field.component === 'string' && field.type === undefined) return
+  const custom = customFieldDefinition(String(field.type))
+  if (custom?.schema) {
+    const result = custom.schema(field as JsonObject).safeParse(value)
+    return result.success
+      ? undefined
+      : `${path}: ${result.error?.issues[0]?.message ?? 'Invalid value'}`
+  }
+  if (
+    !custom &&
+    ![
+      'string',
+      'text',
+      'number',
+      'boolean',
+      'object',
+      'block',
+      'uuid',
+      'date',
+      'select',
+      'reference',
+      'image',
+      'file',
+      'rich-text',
+      'code',
+    ].includes(String(field.type))
+  )
+    return `${path} uses an unregistered field type: ${String(field.type)}`
   if (field.type === 'number') {
     if (typeof value !== 'number' || !Number.isFinite(value)) {
       return `${path} must be a number`
@@ -177,7 +189,7 @@ function validateScalar(field: Field, value: JsonValue, path: string) {
   }
   if (field.type === 'select') {
     const allowed = selectValues(field)
-    if (allowed.length && !allowed.includes(value)) {
+    if (!allowed.includes(String(value))) {
       return `${path} must use a configured option`
     }
   }
@@ -189,7 +201,10 @@ function validateScalar(field: Field, value: JsonValue, path: string) {
           ? field.pattern.regex
           : undefined
     if (pattern && !new RegExp(pattern).test(value)) {
-      return `${path} has an invalid format`
+      return isRecord(field.pattern) &&
+        typeof field.pattern.message === 'string'
+        ? `${path}: ${field.pattern.message}`
+        : `${path} has an invalid format`
     }
   }
   if (typeof value === 'string' && isRecord(field.options)) {
@@ -307,6 +322,8 @@ export function initializeStructuredContent(fields: unknown[]) {
   for (const candidate of fields) {
     if (!isRecord(candidate) || typeof candidate.name !== 'string') continue
     let value: unknown = candidate.default
+    if (value !== undefined && candidate.type === 'date' && !candidate.list)
+      value = transformDateValue(value, candidate, 'read')
     if (value === undefined) {
       if (candidate.list) {
         value =
@@ -317,11 +334,16 @@ export function initializeStructuredContent(fields: unknown[]) {
         value = []
       } else if (candidate.type === 'boolean') value = false
       else if (candidate.type === 'uuid') value = crypto.randomUUID()
+      else if (candidate.type === 'date') value = defaultDateValue(candidate)
       else if (candidate.type === 'object') {
         value = initializeStructuredContent(
           Array.isArray(candidate.fields) ? candidate.fields : [],
         )
       } else if (candidate.type === 'block') value = null
+      else
+        value = customFieldDefinition(String(candidate.type))?.defaultValue?.(
+          candidate as JsonObject,
+        )
     }
     if (
       value === null ||

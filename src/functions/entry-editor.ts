@@ -202,7 +202,7 @@ export const getRawEntry = createServerFn({ method: 'GET' })
       async () => {
         const { loadRawEntry } = await import('#/server/entry-editor.server')
         return loadRawEntry({
-          database: services.database,
+          database: services.cacheDatabase,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,
@@ -245,7 +245,7 @@ export const getEntryHistory = createServerFn({ method: 'GET' })
         const { loadEntryHistory } =
           await import('#/server/entry-editor.server')
         return loadEntryHistory({
-          database: services.database,
+          database: services.cacheDatabase,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,
@@ -288,7 +288,7 @@ export const updateRawEntry = createServerFn({ method: 'POST' })
       async () => {
         const { saveRawEntry } = await import('#/server/entry-editor.server')
         return saveRawEntry({
-          database: services.database,
+          database: services.cacheDatabase,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,
@@ -333,7 +333,7 @@ export const updateStructuredEntry = createServerFn({ method: 'POST' })
         const { saveStructuredEntry } =
           await import('#/server/entry-editor.server')
         return saveStructuredEntry({
-          database: services.database,
+          database: services.cacheDatabase,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,
@@ -380,7 +380,7 @@ export const createStructuredCollectionEntry = createServerFn({
         const { createStructuredEntry } =
           await import('#/server/entry-editor.server')
         return createStructuredEntry({
-          database: services.database,
+          database: services.cacheDatabase,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,
@@ -423,7 +423,7 @@ export const createRawCollectionEntry = createServerFn({ method: 'POST' })
       async () => {
         const { createRawEntry } = await import('#/server/entry-editor.server')
         return createRawEntry({
-          database: services.database,
+          database: services.cacheDatabase,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,
@@ -467,7 +467,7 @@ export const createCollectionFolder = createServerFn({ method: 'POST' })
         const { createContentFolder } =
           await import('#/server/entry-editor.server')
         return createContentFolder({
-          database: services.database,
+          database: services.cacheDatabase,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,
@@ -511,7 +511,7 @@ export const deleteEntry = createServerFn({ method: 'POST' })
         const { deleteContentEntry } =
           await import('#/server/entry-editor.server')
         return deleteContentEntry({
-          database: services.database,
+          database: services.cacheDatabase,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,
@@ -555,7 +555,7 @@ export const renameEntry = createServerFn({ method: 'POST' })
         const { renameContentEntry } =
           await import('#/server/entry-editor.server')
         return renameContentEntry({
-          database: services.database,
+          database: services.cacheDatabase,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,
@@ -600,7 +600,7 @@ export const moveEntry = createServerFn({ method: 'POST' })
         const { moveContentEntry } =
           await import('#/server/entry-editor.server')
         return moveContentEntry({
-          database: services.database,
+          database: services.cacheDatabase,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,

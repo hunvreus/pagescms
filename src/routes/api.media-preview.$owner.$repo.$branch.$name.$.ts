@@ -52,7 +52,7 @@ export const Route = createFileRoute(
               const { loadMediaAsset } =
                 await import('#/server/media-service.server')
               return loadMediaAsset({
-                database: services.database,
+                database: services.cacheDatabase,
                 mediaProviderResolver: services.mediaProviderResolver,
                 repositoryAccess: services.repositoryAccess,
                 user: {

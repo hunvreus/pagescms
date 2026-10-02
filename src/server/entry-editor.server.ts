@@ -26,6 +26,11 @@ import {
   validateStructuredList,
 } from '#/lib/field-values'
 import { getFileExtension } from '#/lib/file-types'
+import {
+  transformContentFields,
+  projectContentFields,
+  mergeContent,
+} from '#/lib/content-field-values'
 import { getGitFileName, normalizeGitPath } from '#/lib/git-path'
 import { toJsonObject, toJsonValue } from '#/lib/json'
 import {
@@ -35,7 +40,7 @@ import {
 
 import { createConfigurationStore } from './configuration-store.server'
 import { updateRepositoryCacheAfterMutation } from './repository-cache.server'
-import { GitHubApiError } from './github-api.server'
+import { isRepositoryProviderError } from './repository-provider.server'
 
 import type { CommitIdentity, CommitTemplates } from '#/lib/commit-message'
 import type {
@@ -234,15 +239,18 @@ function structuredContent(
     }
     return {
       mode: 'structured-list' as const,
-      content: transformMediaFieldValues(fields, value, media, 'read'),
+      content: transformContentFields(
+        fields,
+        transformMediaFieldValues(fields, value, media, 'read'),
+        'read',
+      ),
     }
   }
   return {
     mode: 'structured' as const,
-    content: transformMediaFieldValues(
+    content: transformContentFields(
       fields,
-      toJsonObject(value),
-      media,
+      transformMediaFieldValues(fields, toJsonObject(value), media, 'read'),
       'read',
     ),
   }
@@ -296,7 +304,7 @@ export async function loadFixedFile(
   try {
     return await loadRawEntry({ ...input, path: schema.path })
   } catch (error) {
-    if (!(error instanceof GitHubApiError) || error.status !== 404) throw error
+    if (!isRepositoryProviderError(error, 404)) throw error
   }
   if (!isContentOperationAllowed('create', { schema })) {
     throw new Error('This file does not exist and creating it is disabled')
@@ -374,7 +382,8 @@ export async function saveStructuredEntry(
         : 'Content must be an object',
     )
   }
-  const sanitizedValue = sanitizeStructuredContent(content)
+  const managedContent = projectContentFields(fields, content)
+  const sanitizedValue = sanitizeStructuredContent(managedContent)
   const sanitizedContent = Array.isArray(content)
     ? Array.isArray(sanitizedValue)
       ? sanitizedValue
@@ -397,13 +406,38 @@ export async function saveStructuredEntry(
   ) {
     throw new Error('This content schema does not use a structured format')
   }
-  const persistedContent = transformMediaFieldValues(
+  const settings = toJsonObject(context.configuration.object.settings ?? {})
+  const contentSettings = toJsonObject(settings.content ?? {})
+  const merge =
+    contentSettings.merge === true &&
+    Boolean(input.sha) &&
+    !Array.isArray(sanitizedContent)
+  const persistedContent = transformContentFields(
     fields,
-    sanitizedContent,
-    configuredMediaSchemas(context.configuration.object),
+    transformMediaFieldValues(
+      fields,
+      merge ? managedContent : sanitizedContent,
+      configuredMediaSchemas(context.configuration.object),
+      'write',
+    ),
     'write',
   )
-  const source = serializeContent(persistedContent, {
+  let finalContent = persistedContent
+  if (merge && !Array.isArray(persistedContent)) {
+    const existing = await context.api.getFile(
+      input.owner,
+      input.repo,
+      input.branch,
+      context.path,
+    )
+    const parsed = parseContent(decodeBase64(existing.content), {
+      format: context.schema.format as ContentFormat,
+      delimiters: context.schema.delimiters as
+        FrontmatterDelimiters | undefined,
+    })
+    finalContent = mergeContent(toJsonObject(parsed), persistedContent)
+  }
+  const source = serializeContent(finalContent, {
     format: context.schema.format as ContentFormat,
     delimiters: context.schema.delimiters as FrontmatterDelimiters | undefined,
   })
@@ -831,7 +865,7 @@ export async function moveContentEntry(
     await context.api.getFile(input.owner, input.repo, newPath, input.branch)
     throw new Error(`An entry already exists at ${newPath}`)
   } catch (error) {
-    if (!(error instanceof GitHubApiError) || error.status !== 404) throw error
+    if (!isRepositoryProviderError(error, 404)) throw error
   }
   const commit = schemaCommitOptions(context.schema)
   const identity = resolveCommitIdentity({

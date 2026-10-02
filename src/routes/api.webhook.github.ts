@@ -53,6 +53,7 @@ export const Route = createFileRoute('/api/webhook/github')({
           event,
           payload,
           services.repositoryAccess.forInstallation,
+          services.cacheDatabase,
         )
         return Response.json({ accepted: true })
       },

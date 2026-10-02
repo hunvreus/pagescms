@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { useRouter } from '@tanstack/react-router'
+import { lazy, Suspense, useState } from 'react'
+import { ClientOnly, useRouter } from '@tanstack/react-router'
+import { createClientOnlyFn } from '@tanstack/react-start'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   ArrowUpRight,
@@ -53,7 +54,6 @@ import {
 import { Field, FieldGroup, FieldLabel } from '#/components/ui/field'
 import { Input } from '#/components/ui/input'
 import { Skeleton } from '#/components/ui/skeleton'
-import { Textarea } from '#/components/ui/textarea'
 import { buildEntryBreadcrumb } from '#/features/editor/entry-breadcrumb'
 import { EntryPageHeader } from '#/features/editor/entry-page-header'
 import { getEntryDisplayTitle } from '#/features/editor/entry-title'
@@ -67,6 +67,14 @@ import {
 } from '#/functions/entry-editor'
 import type { getRawEntry } from '#/functions/entry-editor'
 import { queryKeys } from '#/queries/keys'
+
+const CodeEditor = lazy(
+  createClientOnlyFn(() =>
+    import('#/components/code-editor').then((module) => ({
+      default: module.CodeEditor,
+    })),
+  ),
+)
 
 type LoadedEntryData = Awaited<ReturnType<typeof getRawEntry>>
 type EntryData = LoadedEntryData extends infer Entry
@@ -256,16 +264,24 @@ function RawEntryEditor({
       <div className="mx-auto max-w-5xl space-y-5 p-4 md:p-6">
         <p className="text-sm text-muted-foreground">Source editor</p>
         <EditorError error={error ?? deletion.error ?? rename.error} />
-        <Textarea
-          aria-label="Entry source"
-          className="min-h-[calc(100vh-13rem)] font-mono text-[13px] leading-6"
-          spellCheck={false}
-          value={source}
-          onChange={(event) => {
-            setSource(event.target.value)
-            setSaved(false)
-          }}
-        />
+        <ClientOnly
+          fallback={<Skeleton className="min-h-[calc(100vh-13rem)]" />}
+        >
+          <Suspense
+            fallback={<Skeleton className="min-h-[calc(100vh-13rem)]" />}
+          >
+            <CodeEditor
+              label="Entry source"
+              format={coordinates.path.split('.').pop() ?? 'markdown'}
+              className="[&_.cm-content]:min-h-[calc(100vh-13rem)]"
+              value={source}
+              onChange={(value) => {
+                setSource(value)
+                setSaved(false)
+              }}
+            />
+          </Suspense>
+        </ClientOnly>
       </div>
     </div>
   )

@@ -19,6 +19,7 @@ import { actionRunTable } from './database/schema'
 
 type ActionInput = {
   database: Database
+  cacheDatabase: Database
   repositoryAccess: RepositoryAccessService
   user: ProjectUser & { name: string; image?: string | null }
   owner: string
@@ -85,7 +86,7 @@ async function actionContext(
     input.branch,
   )
   const configuration = await createConfigurationStore({
-    database: input.database,
+    database: input.cacheDatabase,
   }).get(api, input.owner, input.repo, input.branch)
   if (!configuration) throw new Error('Repository configuration not found')
   return {

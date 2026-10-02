@@ -58,7 +58,7 @@ export const getFixedFile = createServerFn({ method: 'GET' })
       async () => {
         const { loadFixedFile } = await import('#/server/entry-editor.server')
         return loadFixedFile({
-          database: services.database,
+          database: services.cacheDatabase,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,

@@ -1,6 +1,17 @@
 import { appendFileSync } from 'node:fs'
 
 const configuration = `
+settings:
+  cache: true
+actions:
+  - name: deploy
+    label: Deploy site
+    workflow: deploy.yml
+    ref: current
+    confirm:
+      title: Deploy site?
+      message: This will trigger the deployment workflow.
+      button: Deploy
 media: public/images
 content:
   - name: posts
@@ -15,10 +26,83 @@ content:
       - name: body
         label: Body
         type: rich-text
+  - name: code
+    label: Code
+    type: file
+    path: content/code.json
+    fields:
+      - name: script
+        label: Script
+        type: code
+        options:
+          format: ts
+      - name: locked
+        label: Locked code
+        type: code
+        readonly: true
+        options:
+          format: json
+  - name: raw-code
+    label: Raw code
+    type: file
+    path: content/raw.ts
+  - name: field-parity
+    label: Field parity
+    type: file
+    path: content/field-parity.json
+    fields:
+      - name: status
+        label: Status
+        type: select
+        options:
+          placeholder: Choose status
+          values:
+            - name: draft
+              label: Draft
+            - name: published
+              label: Published
+      - name: date
+        label: Date
+        type: date
+        options:
+          format: dd/MM/yyyy
+      - name: files
+        label: Files
+        type: file
+        options:
+          multiple: true
+          rename: safe
 `
 
 const files = new Map([
+  [
+    'content/field-parity.json',
+    {
+      content: JSON.stringify({
+        status: 'draft',
+        date: '02/10/2026',
+        files: ['public/images/parity-a.txt', 'public/images/parity-b.txt'],
+      }),
+      sha: 'parity-sha-1',
+    },
+  ],
+  ['public/images/parity-a.txt', { content: 'A', sha: 'parity-media-a' }],
+  ['public/images/parity-b.txt', { content: 'B', sha: 'parity-media-b' }],
+  [
+    'content/raw.ts',
+    { content: 'const original: number = 42', sha: 'raw-code-sha-1' },
+  ],
   ['.pages.yml', { content: configuration, sha: 'config-sha' }],
+  [
+    'content/code.json',
+    {
+      content: JSON.stringify({
+        script: 'const answer: number = 42',
+        locked: '{"locked":true}',
+      }),
+      sha: 'code-sha-1',
+    },
+  ],
   [
     'content/posts/hello.md',
     {

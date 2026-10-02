@@ -33,8 +33,6 @@ const githubApi = vi.hoisted(() => ({
   ]),
 }))
 
-vi.mock('./github-api.server', () => ({ createGitHubApi: () => githubApi }))
-
 describe('inviteCollaborators', () => {
   it('sends the existing-user notification through its branded template', async () => {
     const collaborator = {
@@ -75,6 +73,7 @@ describe('inviteCollaborators', () => {
         owner: 'pages-cms',
         repo: 'site',
         emails: ['editor@example.com'],
+        githubApiFactory: () => githubApi as never,
       }),
     ).resolves.toEqual([collaborator])
 

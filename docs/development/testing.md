@@ -13,26 +13,24 @@ pnpm test
 pnpm test:watch
 ```
 
-## Browser tests
+## Database integration tests
 
-Playwright covers user-visible journeys and HTTP contracts through a running TanStack Start development server.
+```bash
+pnpm test:integration
+```
+
+The command creates temporary local SQLite databases, applies every migration, and runs the shared database conformance suite against both local libSQL and an in-process Miniflare D1 database. Coverage includes constraints, foreign keys, atomic rollback, competing cache publishers, and large cache publications. It requires neither Docker nor PostgreSQL and never reads a developer or production database.
+
+The local libSQL adapter exercises the same client used for Turso. Hosted Turso transport behavior is not claimed unless a disposable remote test database has been explicitly configured and tested.
+
+## Browser tests
 
 ```bash
 pnpm exec playwright install chromium
 pnpm test:e2e
 ```
 
-The Playwright command starts an ephemeral PostgreSQL 17 container, migrates and seeds it, and removes it afterward. A build-time test service seam supplies a deterministic in-process GitHub fixture, so authenticated repository navigation and mutations never use a real GitHub account, development database, or production database. The seam is enabled only by `pnpm test:e2e` and is excluded from normal builds.
-
-## PostgreSQL integration tests
-
-The integration command starts an ephemeral PostgreSQL 17 container on a random local port, applies every migration, runs persistence/cache constraints, and removes the container afterward:
-
-```bash
-pnpm test:integration
-```
-
-Docker must be installed and running. The command never reads `.env.local` and cannot target an existing database.
+The Playwright command creates and migrates temporary SQLite databases. A build-time test service seam supplies a deterministic in-process GitHub fixture, so authenticated repository navigation and mutations never use a real GitHub account, development database, or production database. The seam is enabled only by `pnpm test:e2e` and is excluded from normal builds.
 
 ## Build and Workers checks
 
@@ -43,7 +41,4 @@ pnpm cf:typecheck
 pnpm cf:dry-run
 ```
 
-The dry run builds and bundles the Worker without uploading it. `pnpm build`
-uses the ordinary Vite production composition; `pnpm cf:dry-run` explicitly
-selects and bundles the Cloudflare target. `pnpm dev` exercises the ordinary
-Node development runtime.
+The dry run builds and bundles the Worker without uploading it. `pnpm build` uses the ordinary Vite production composition; `pnpm cf:dry-run` explicitly selects and bundles the Cloudflare target. `pnpm dev` exercises the ordinary Node development runtime.

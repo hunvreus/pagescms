@@ -6,16 +6,18 @@ import {
   githubInstallationTokenTable,
 } from './database/schema'
 import { createGitHubApi, GitHubApiError } from './github-api.server'
+import { DEFAULT_REPOSITORY_SOURCE } from './repository-provider.server'
 import { createGitHubAppApi } from './github-app.server'
 import { decryptSecret, encryptSecret } from './secret-crypto.server'
 
 import type { Database } from './database/client.server'
-import type { GitHubApiFactory } from './github-api.server'
+import type { GitHubApi, GitHubApiFactory } from './github-api.server'
 import type { ProjectUser } from './projects.server'
 import type { RuntimeConfiguration } from './runtime-config.server'
 
 export interface RepositoryAccess {
-  api: ReturnType<typeof createGitHubApi>
+  api: GitHubApi
+  source?: string
   tokenSource: 'user' | 'installation'
 }
 
@@ -46,11 +48,18 @@ function collaboratorMatches(
   )
 }
 
-export function createRepositoryAccessService(
-  database: Database,
-  githubApp: RuntimeConfiguration['githubApp'],
-  githubApiFactory: GitHubApiFactory = createGitHubApi,
-) {
+export function createRepositoryAccessService(input: {
+  database: Database
+  cacheDatabase: Database
+  githubApp: RuntimeConfiguration['githubApp']
+  githubApiFactory?: GitHubApiFactory
+}) {
+  const {
+    database,
+    cacheDatabase,
+    githubApp,
+    githubApiFactory = createGitHubApi,
+  } = input
   const resolutions = new Map<string, Promise<RepositoryAccess>>()
   const installationTokens = new Map<number, Promise<string>>()
 
@@ -60,9 +69,10 @@ export function createRepositoryAccessService(
         'GitHub App credentials are required for collaborator access',
       )
     }
-    const cached = await database.query.githubInstallationTokenTable.findFirst({
-      where: eq(githubInstallationTokenTable.installationId, installationId),
-    })
+    const cached =
+      await cacheDatabase.query.githubInstallationTokenTable.findFirst({
+        where: eq(githubInstallationTokenTable.installationId, installationId),
+      })
     if (cached && Date.now() < cached.expiresAt.getTime() - 60_000) {
       return decryptSecret(cached.ciphertext, cached.iv, githubApp.cryptoKey)
     }
@@ -72,7 +82,7 @@ export function createRepositoryAccessService(
         installationId,
       )
     const encrypted = await encryptSecret(token.token, githubApp.cryptoKey)
-    await database
+    await cacheDatabase
       .insert(githubInstallationTokenTable)
       .values({
         ...encrypted,
@@ -113,7 +123,11 @@ export function createRepositoryAccessService(
       const api = githubApiFactory(account.accessToken)
       try {
         await api.getRepository(owner, repo)
-        return { api, tokenSource: 'user' as const }
+        return {
+          api,
+          source: DEFAULT_REPOSITORY_SOURCE,
+          tokenSource: 'user' as const,
+        }
       } catch (error) {
         if (
           !(error instanceof GitHubApiError) ||
@@ -134,6 +148,7 @@ export function createRepositoryAccessService(
     const token = await getInstallationToken(collaborator.installationId)
     return {
       api: githubApiFactory(token),
+      source: DEFAULT_REPOSITORY_SOURCE,
       tokenSource: 'installation' as const,
     }
   }

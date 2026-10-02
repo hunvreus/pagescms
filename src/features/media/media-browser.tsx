@@ -750,7 +750,8 @@ export function MediaBrowser({
   const canCreateDirectory =
     manage && Boolean(data?.media.capabilities.createDirectory)
   const canUpload = manage && Boolean(data?.media.capabilities.upload)
-  const canMove = manage && Boolean(data?.media.capabilities.move)
+  const canMove =
+    manage && Boolean(data?.media.capabilities.move) && !busy && !folderPending
   const canRename = manage && Boolean(data?.media.capabilities.rename)
   const canDelete = manage && Boolean(data?.media.capabilities.remove)
   const controlsDisabled = busy || folderPending

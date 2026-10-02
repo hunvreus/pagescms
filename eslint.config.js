@@ -31,4 +31,15 @@ export default [
       'prettier.config.js',
     ],
   },
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/server/http.ts'],
+    rules: {
+      'no-console': ['error', { allow: ['log', 'warn'] }],
+    },
+  },
+  {
+    files: ['src/server/http.ts'],
+    rules: { 'no-console': 'off' },
+  },
 ]

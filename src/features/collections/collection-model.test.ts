@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  collectionFluidColumn,
   collectionViewModel,
   collectionValue,
   rowSearchValue,
@@ -94,6 +95,36 @@ describe('collectionViewModel', () => {
       search: 'draft',
       sorting: [{ id: 'title', desc: true }],
     })
+  })
+
+  it('uses the visible primary column as the fluid table column', () => {
+    const model = collectionViewModel({
+      fields: [
+        { name: 'date', type: 'date' },
+        { name: 'title', type: 'string' },
+        { name: 'author', type: 'reference' },
+      ],
+      view: { fields: ['date', 'title', 'author'], primary: 'title' },
+    })
+
+    expect(collectionFluidColumn(model)).toBe('title')
+  })
+
+  it('falls back to the first non-compact column when primary is hidden', () => {
+    const model = collectionViewModel({
+      fields: [
+        { name: 'date', type: 'date' },
+        { name: 'title', type: 'string' },
+        { name: 'summary', type: 'text' },
+        { name: 'published', type: 'boolean' },
+      ],
+      view: {
+        fields: ['date', 'summary', 'published'],
+        primary: 'title',
+      },
+    })
+
+    expect(collectionFluidColumn(model)).toBe('summary')
   })
 })
 

@@ -100,21 +100,24 @@ test('supports the full-page media browsing and mutation workflow', async ({
 
   const source = page.locator('[data-media-path="public/images/renamed.svg"]')
   const destination = page.locator('[data-media-path="public/images/Uploads"]')
+  await expect(source).toHaveCSS('cursor', 'grab')
   const sourceBox = await source.boundingBox()
   const destinationBox = await destination.boundingBox()
   expect(sourceBox).not.toBeNull()
   expect(destinationBox).not.toBeNull()
-  await page.mouse.move(
-    sourceBox!.x + sourceBox!.width / 2,
-    sourceBox!.y + sourceBox!.height / 2,
-  )
+  await source.hover()
   await page.mouse.down()
+  await page.mouse.move(
+    sourceBox!.x + sourceBox!.width / 2 + 12,
+    sourceBox!.y + sourceBox!.height / 2,
+    { steps: 2 },
+  )
+  await expect(source).toHaveAttribute('data-dragging', 'true')
   await page.mouse.move(
     destinationBox!.x + destinationBox!.width / 2,
     destinationBox!.y + destinationBox!.height / 2,
     { steps: 12 },
   )
-  await expect(source).toHaveAttribute('data-dragging', 'true')
   await expect(page.locator('[data-media-drag-overlay]')).toBeVisible()
   const sourceBoxWhileDragging = await source.boundingBox()
   expect(sourceBoxWhileDragging).toEqual(sourceBox)
@@ -122,6 +125,9 @@ test('supports the full-page media browsing and mutation workflow', async ({
   await expect(destination).toHaveAttribute('data-drop-active', 'true')
   await page.mouse.up()
   await expect(page.getByText('renamed.svg', { exact: true })).toHaveCount(0)
+  await expect(
+    page.getByRole('button', { name: 'Upload', exact: true }),
+  ).toBeEnabled()
 
   await page.getByRole('button', { name: /Uploads/ }).click()
   await expect(page.getByText('renamed.svg', { exact: true })).toBeVisible()
@@ -140,12 +146,17 @@ test('uses the same media browser inside the rich-text image picker', async ({
     '/pagescms/fixture/main/collection/posts/entry/content/posts/hello.md',
   )
 
-  const body = page.getByRole('textbox', { name: 'Body' })
-  await body.click()
-  await page.keyboard.press('Control+End')
-  await page.keyboard.press('Enter')
-  await page.keyboard.type('/Image')
-  await page.keyboard.press('Enter')
+  await page.locator('.ProseMirror').waitFor()
+  await page.getByRole('button', { name: 'Source', exact: true }).click()
+  const source = page.locator('textarea')
+  const originalSource = await source.inputValue()
+  await source.fill(`/\n\n${originalSource}`)
+  await page.getByRole('button', { name: 'Editor', exact: true }).click()
+  const body = page.locator('.ProseMirror')
+  await body.locator('p').first().click()
+  await body.press('End')
+  await body.pressSequentially('Image')
+  await page.getByRole('button', { name: 'Image', exact: true }).click()
 
   const picker = page.getByRole('dialog', { name: 'Choose an image' })
   await expect(picker).toBeVisible()

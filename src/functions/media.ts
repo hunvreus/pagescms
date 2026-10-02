@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 
 import { base64ByteLength } from '#/lib/base64'
 import { normalizeGitPath } from '#/lib/git-path'
+import { parseUploadRename } from '#/lib/media-upload-name'
 import { repositoryRef } from '#/lib/repository'
 import { resolveRepositoryPrincipal } from '#/server/repository-policy.server'
 
@@ -84,6 +85,7 @@ function parseUpload(input: unknown) {
     ...media,
     filename: value.filename,
     content: value.content,
+    rename: parseUploadRename(value.rename),
     idempotencyKey: value.idempotencyKey,
     ...(media.path ? { parent: media.path } : {}),
   }
@@ -110,6 +112,7 @@ export function parseMediaUploadInitiation(input: unknown) {
     ...media,
     filename: value.filename,
     size: value.size,
+    rename: parseUploadRename(value.rename),
     contentType: value.contentType,
     idempotencyKey: value.idempotencyKey,
     ...(media.path ? { parent: media.path } : {}),
@@ -250,7 +253,7 @@ export const getMedia = createServerFn({ method: 'GET' })
         const { loadMediaDirectory } =
           await import('#/server/media-service.server')
         return loadMediaDirectory({
-          database: services.database,
+          database: services.cacheDatabase,
           mediaProviderResolver: services.mediaProviderResolver,
           repositoryAccess: services.repositoryAccess,
           user,
@@ -277,7 +280,7 @@ export const getMediaDelivery = createServerFn({ method: 'POST' })
         const { loadMediaDelivery } =
           await import('#/server/media-service.server')
         return loadMediaDelivery({
-          database: services.database,
+          database: services.cacheDatabase,
           mediaProviderResolver: services.mediaProviderResolver,
           repositoryAccess: services.repositoryAccess,
           user,
@@ -305,7 +308,7 @@ export const createMedia = createServerFn({ method: 'POST' })
       async () => {
         const { uploadMedia } = await import('#/server/media-service.server')
         return uploadMedia({
-          database: services.database,
+          database: services.cacheDatabase,
           mediaProviderResolver: services.mediaProviderResolver,
           repositoryAccess: services.repositoryAccess,
           user,
@@ -331,7 +334,7 @@ export const initiateMediaUpload = createServerFn({ method: 'POST' })
     await services.access.authorize(request)
     const { prepareMediaUpload } = await import('#/server/media-service.server')
     const prepared = await prepareMediaUpload({
-      database: services.database,
+      database: services.cacheDatabase,
       mediaProviderResolver: services.mediaProviderResolver,
       repositoryAccess: services.repositoryAccess,
       user,
@@ -376,7 +379,7 @@ export const confirmMediaUpload = createServerFn({ method: 'POST' })
         const { completeMediaUpload } =
           await import('#/server/media-service.server')
         const completed = await completeMediaUpload({
-          database: services.database,
+          database: services.cacheDatabase,
           mediaProviderResolver: services.mediaProviderResolver,
           repositoryAccess: services.repositoryAccess,
           user,
@@ -408,7 +411,7 @@ export const abortMediaUpload = createServerFn({ method: 'POST' })
         const { abortMediaUpload: abort } =
           await import('#/server/media-service.server')
         const aborted = await abort({
-          database: services.database,
+          database: services.cacheDatabase,
           mediaProviderResolver: services.mediaProviderResolver,
           repositoryAccess: services.repositoryAccess,
           user,
@@ -441,7 +444,7 @@ export const createMediaFolder = createServerFn({ method: 'POST' })
         const { createMediaDirectory } =
           await import('#/server/media-service.server')
         return createMediaDirectory({
-          database: services.database,
+          database: services.cacheDatabase,
           mediaProviderResolver: services.mediaProviderResolver,
           repositoryAccess: services.repositoryAccess,
           user,
@@ -468,7 +471,7 @@ export const removeMedia = createServerFn({ method: 'POST' })
       async () => {
         const { deleteMedia } = await import('#/server/media-service.server')
         return deleteMedia({
-          database: services.database,
+          database: services.cacheDatabase,
           mediaProviderResolver: services.mediaProviderResolver,
           repositoryAccess: services.repositoryAccess,
           user,
@@ -496,7 +499,7 @@ export const renameMedia = createServerFn({ method: 'POST' })
         const { renameMediaFile } =
           await import('#/server/media-service.server')
         return renameMediaFile({
-          database: services.database,
+          database: services.cacheDatabase,
           mediaProviderResolver: services.mediaProviderResolver,
           repositoryAccess: services.repositoryAccess,
           user,
@@ -523,7 +526,7 @@ export const moveMedia = createServerFn({ method: 'POST' })
       async () => {
         const { moveMediaFile } = await import('#/server/media-service.server')
         return moveMediaFile({
-          database: services.database,
+          database: services.cacheDatabase,
           mediaProviderResolver: services.mediaProviderResolver,
           repositoryAccess: services.repositoryAccess,
           user,

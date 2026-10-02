@@ -1,5 +1,5 @@
 import { count, eq, sql } from 'drizzle-orm'
-import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createDatabase } from '#/server/database/client.server'
 import {
@@ -24,13 +24,11 @@ import { handleGitHubWebhook } from '#/server/github-webhook.server'
 
 import type { GitHubApi } from '#/server/github-api.server'
 
-const connectionString = process.env.TEST_DATABASE_URL
-const integration = connectionString ? describe : describe.skip
-const database = connectionString
-  ? createDatabase({ connectionString, maxConnections: 1 })
-  : null
+const databaseUrl = process.env.TEST_DATABASE_URL
+const integration = databaseUrl ? describe : describe.skip
+const database = databaseUrl ? createDatabase({ url: databaseUrl }) : null
 
-integration('PostgreSQL integration', () => {
+integration('SQLite integration', () => {
   beforeEach(async () => {
     await database!.delete(cacheFileTable)
     await database!.delete(cacheFileMetaTable)
@@ -38,17 +36,11 @@ integration('PostgreSQL integration', () => {
     await database!.delete(configTable)
   })
 
-  afterAll(async () => {
-    await database?.$client.end({ timeout: 1 })
-  })
-
   it('applies every legacy-compatible migration', async () => {
-    const result = await database!.execute<{ table_name: string }>(sql`
-      select table_name
-      from information_schema.tables
-      where table_schema = 'public'
+    const result = await database!.all<{ name: string }>(sql`
+      select name from sqlite_master where type = 'table'
     `)
-    expect(result.map((row) => row.table_name)).toEqual(
+    expect(result.map((row: { name: string }) => row.name)).toEqual(
       expect.arrayContaining([
         'user',
         'session',
@@ -132,6 +124,46 @@ integration('PostgreSQL integration', () => {
     await expect(
       database!.select({ total: count() }).from(cacheFileTable),
     ).resolves.toEqual([{ total: 0 }])
+  })
+
+  it('isolates durable directory snapshots by repository source', async () => {
+    const cache = createDirectoryCache({ database: database! })
+    const input = (source: string, title: string) => ({
+      api: {
+        source,
+        getRefSha: vi.fn().mockResolvedValue(`${source}-revision`),
+        getDirectory: vi.fn().mockResolvedValue([
+          {
+            type: 'file' as const,
+            name: 'entry.md',
+            path: 'content/entry.md',
+            sha: `${source}-sha`,
+            content: title,
+            size: title.length,
+            downloadUrl: null,
+          },
+        ]),
+      } as unknown as GitHubApi,
+      owner: 'same-owner',
+      repo: 'same-repo',
+      branch: 'main',
+      path: 'content',
+      context: 'collection' as const,
+      enabled: true,
+    })
+
+    await expect(
+      cache.get(input('github.com', 'GitHub')),
+    ).resolves.toMatchObject({ entries: [{ content: 'GitHub' }] })
+    await expect(
+      cache.get(input('gitlab.example.com', 'GitLab')),
+    ).resolves.toMatchObject({ entries: [{ content: 'GitLab' }] })
+
+    const rows = await database!.select().from(cacheFileTable)
+    expect(rows.map(({ source, content }) => ({ source, content }))).toEqual([
+      { source: 'github.com', content: 'GitHub' },
+      { source: 'gitlab.example.com', content: 'GitLab' },
+    ])
   })
 
   const scope = {
@@ -228,6 +260,25 @@ integration('PostgreSQL integration', () => {
     }).get(api, scope.owner, scope.repo, scope.branch)
     expect(configuration?.sha).toBe('new')
     expect(api.getFile).toHaveBeenCalledTimes(calls)
+  })
+
+  it('isolates parsed configuration by repository source', async () => {
+    const store = createConfigurationStore({ database: database! })
+    await store.save('owner', 'repo', 'main', 'github-sha', { content: [] })
+    await store.save(
+      'owner',
+      'repo',
+      'main',
+      'local-sha',
+      { content: [] },
+      'local:/workspace/repo',
+    )
+
+    const rows = await database!.select().from(configTable)
+    expect(rows.map(({ source, sha }) => ({ source, sha }))).toEqual([
+      { source: 'github.com', sha: 'github-sha' },
+      { source: 'local:/workspace/repo', sha: 'local-sha' },
+    ])
   })
 
   it('does not let an older configuration fetch overwrite a completed save', async () => {
@@ -453,6 +504,20 @@ integration('PostgreSQL integration', () => {
 
   it('preserves cached rows across repository and owner rename events, including retries', async () => {
     await seed()
+    await database!.insert(cacheFileMetaTable).values({
+      ...scope,
+      source: 'local:/workspace/site',
+      commitSha: 'local',
+      status: 'ok',
+    })
+    await database!.insert(cacheFileTable).values({
+      ...scope,
+      ...entry('posts/local.md', 'local'),
+      source: 'local:/workspace/site',
+      parentPath: 'posts',
+      commitSha: 'local',
+      updatedAt: new Date('2026-01-01'),
+    })
     const before = await database!.select().from(cacheFileTable)
     const renamed = {
       action: 'renamed',
@@ -468,17 +533,24 @@ integration('PostgreSQL integration', () => {
     })
     const after = await database!.select().from(cacheFileTable)
     expect(after.map((row) => row.id)).toEqual(before.map((row) => row.id))
+    const githubRows = after.filter((row) => row.source === 'github.com')
     expect(
-      after.every(
+      githubRows.every(
         (row) => row.owner === 'new-owner' && row.repo === 'new-name',
       ),
     ).toBe(true)
+    expect(
+      after.find((row) => row.source === 'local:/workspace/site'),
+    ).toMatchObject({ owner: scope.owner, repo: scope.repo })
     const metas = await database!.select().from(cacheFileMetaTable)
     expect(
-      metas.every(
-        (row) => row.owner === 'new-owner' && row.repo === 'new-name',
-      ),
+      metas
+        .filter((row) => row.source === 'github.com')
+        .every((row) => row.owner === 'new-owner' && row.repo === 'new-name'),
     ).toBe(true)
+    expect(
+      metas.find((row) => row.source === 'local:/workspace/site'),
+    ).toMatchObject({ owner: scope.owner, repo: scope.repo })
   })
 
   it('preserves unchanged row IDs and timestamps when reconciling a changed directory', async () => {

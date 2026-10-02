@@ -9,10 +9,14 @@ import { toJsonObject } from '#/lib/json'
 
 import type { JsonObject } from '#/lib/json'
 
-import { GitHubApiError } from './github-api.server'
+import {
+  DEFAULT_REPOSITORY_SOURCE,
+  isRepositoryProviderError,
+  repositorySource,
+} from './repository-provider.server'
 
 import type { Database } from './database/client.server'
-import type { GitHubApi } from './github-api.server'
+import type { RepositoryApi } from './repository-provider.server'
 import type { Clock } from './runtime-ports.server'
 
 import { configTable } from './database/schema'
@@ -21,6 +25,7 @@ import { cachePolicy } from './cache-policy.server'
 import { readRepositoryCached } from './repository-read-cache.server'
 
 export interface StoredConfiguration {
+  source: string
   owner: string
   repo: string
   branch: string
@@ -50,6 +55,7 @@ function rowToConfiguration(
 ): StoredConfiguration {
   const object = toJsonObject(JSON.parse(row.object))
   return {
+    source: row.source,
     owner: row.owner,
     repo: row.repo,
     branch: row.branch,
@@ -69,9 +75,15 @@ export function createConfigurationStore({
   clock?: Clock
   ttlMs?: number
 }) {
-  async function find(owner: string, repo: string, branch: string) {
+  async function find(
+    owner: string,
+    repo: string,
+    branch: string,
+    source = DEFAULT_REPOSITORY_SOURCE,
+  ) {
     const row = await database.query.configTable.findFirst({
       where: and(
+        eq(configTable.source, source),
         sql`lower(${configTable.owner}) = lower(${owner})`,
         sql`lower(${configTable.repo}) = lower(${repo})`,
         eq(configTable.branch, branch),
@@ -80,11 +92,17 @@ export function createConfigurationStore({
     return row ? rowToConfiguration(row) : null
   }
 
-  async function remove(owner: string, repo: string, branch: string) {
+  async function remove(
+    owner: string,
+    repo: string,
+    branch: string,
+    source = DEFAULT_REPOSITORY_SOURCE,
+  ) {
     await database
       .delete(configTable)
       .where(
         and(
+          eq(configTable.source, source),
           sql`lower(${configTable.owner}) = lower(${owner})`,
           sql`lower(${configTable.repo}) = lower(${repo})`,
           eq(configTable.branch, branch),
@@ -93,15 +111,17 @@ export function createConfigurationStore({
   }
 
   async function refresh(
-    api: GitHubApi,
+    api: RepositoryApi,
     owner: string,
     repo: string,
     branch: string,
     cached: StoredConfiguration | null,
   ): Promise<StoredConfiguration | null> {
+    const source = repositorySource(api)
     // Only publish against the snapshot this request observed. A local save or
     // newer refresh may finish while GitHub is responding.
     const snapshot = and(
+      eq(configTable.source, source),
       sql`lower(${configTable.owner}) = lower(${owner})`,
       sql`lower(${configTable.repo}) = lower(${repo})`,
       eq(configTable.branch, branch),
@@ -120,9 +140,9 @@ export function createConfigurationStore({
         () => api.getFile(owner, repo, '.pages.yml', branch),
       )
     } catch (error) {
-      if (error instanceof GitHubApiError && error.status === 404) {
+      if (isRepositoryProviderError(error, 404)) {
         if (cached) await database.delete(configTable).where(snapshot)
-        return find(owner, repo, branch)
+        return find(owner, repo, branch, source)
       }
       throw error
     }
@@ -144,6 +164,7 @@ export function createConfigurationStore({
       await database
         .insert(configTable)
         .values({
+          source,
           owner: owner.toLowerCase(),
           repo: repo.toLowerCase(),
           branch,
@@ -151,7 +172,7 @@ export function createConfigurationStore({
         })
         .onConflictDoNothing()
     }
-    return find(owner, repo, branch)
+    return find(owner, repo, branch, source)
   }
 
   async function save(
@@ -160,6 +181,7 @@ export function createConfigurationStore({
     branch: string,
     sha: string,
     object: JsonObject,
+    source = DEFAULT_REPOSITORY_SOURCE,
   ): Promise<StoredConfiguration> {
     const checkedAt = clock.now()
     const normalizedOwner = owner.toLowerCase()
@@ -167,6 +189,7 @@ export function createConfigurationStore({
     await database
       .insert(configTable)
       .values({
+        source,
         owner: normalizedOwner,
         repo: normalizedRepo,
         branch,
@@ -176,7 +199,12 @@ export function createConfigurationStore({
         lastCheckedAt: checkedAt,
       })
       .onConflictDoUpdate({
-        target: [configTable.owner, configTable.repo, configTable.branch],
+        target: [
+          configTable.source,
+          configTable.owner,
+          configTable.repo,
+          configTable.branch,
+        ],
         set: {
           sha,
           version: CONFIGURATION_VERSION,
@@ -185,6 +213,7 @@ export function createConfigurationStore({
         },
       })
     return {
+      source,
       owner: normalizedOwner,
       repo: normalizedRepo,
       branch,
@@ -197,12 +226,12 @@ export function createConfigurationStore({
 
   return {
     async get(
-      api: GitHubApi,
+      api: RepositoryApi,
       owner: string,
       repo: string,
       branch: string,
     ): Promise<StoredConfiguration | null> {
-      const cached = await find(owner, repo, branch)
+      const cached = await find(owner, repo, branch, repositorySource(api))
       if (
         cached?.version === CONFIGURATION_VERSION &&
         clock.now().getTime() - cached.lastCheckedAt.getTime() <= ttlMs
@@ -214,8 +243,19 @@ export function createConfigurationStore({
       }
       return refresh(api, owner, repo, branch, cached)
     },
-    async refresh(api: GitHubApi, owner: string, repo: string, branch: string) {
-      return refresh(api, owner, repo, branch, await find(owner, repo, branch))
+    async refresh(
+      api: RepositoryApi,
+      owner: string,
+      repo: string,
+      branch: string,
+    ) {
+      return refresh(
+        api,
+        owner,
+        repo,
+        branch,
+        await find(owner, repo, branch, repositorySource(api)),
+      )
     },
     remove,
     save,

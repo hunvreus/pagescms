@@ -1,34 +1,38 @@
-import postgres from 'postgres'
+import { createDatabase } from '#/server/database/client.server'
+import { accountTable, sessionTable, userTable } from '#/server/database/schema'
 
 export default async function globalSetup() {
-  const connectionString = process.env.E2E_DATABASE_URL
-  if (!connectionString) {
+  const databaseUrl = process.env.E2E_DATABASE_URL
+  if (!databaseUrl) {
     throw new Error('E2E_DATABASE_URL must be provided by pnpm test:e2e')
   }
-  const database = postgres(connectionString, { max: 1 })
-  await database`
-    insert into "user" (
-      id, name, email, email_verified, github_username, created_at, updated_at
-    ) values (
-      'playwright-user', 'Playwright Editor', 'editor@example.com', true,
-      'pagescms', now(), now()
-    )
-  `
-  await database`
-    insert into account (
-      id, account_id, provider_id, issuer, user_id, access_token, created_at, updated_at
-    ) values (
-      'playwright-github', '1', 'github', 'local:oauth:github', 'playwright-user',
-      'playwright-github-token', now(), now()
-    )
-  `
-  await database`
-    insert into session (
-      id, token, user_id, expires_at, created_at, updated_at
-    ) values (
-      'playwright-session', 'playwright-session-token', 'playwright-user',
-      now() + interval '1 day', now(), now()
-    )
-  `
-  await database.end({ timeout: 1 })
+  const database = createDatabase({ url: databaseUrl })
+  const now = new Date()
+  await database.insert(userTable).values({
+    id: 'playwright-user',
+    name: 'Playwright Editor',
+    email: 'editor@example.com',
+    emailVerified: true,
+    githubUsername: 'pagescms',
+    createdAt: now,
+    updatedAt: now,
+  })
+  await database.insert(accountTable).values({
+    id: 'playwright-github',
+    accountId: '1',
+    providerId: 'github',
+    issuer: 'local:oauth:github',
+    userId: 'playwright-user',
+    accessToken: 'playwright-github-token',
+    createdAt: now,
+    updatedAt: now,
+  })
+  await database.insert(sessionTable).values({
+    id: 'playwright-session',
+    token: 'playwright-session-token',
+    userId: 'playwright-user',
+    expiresAt: new Date(now.getTime() + 86_400_000),
+    createdAt: now,
+    updatedAt: now,
+  })
 }

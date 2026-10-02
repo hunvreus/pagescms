@@ -25,7 +25,7 @@ test('redirects guests to sign in and serves the health contract', async ({
   await expect(health.json()).resolves.toEqual({
     service: 'pagescms',
     status: 'ok',
-    checks: { database: 'ok' },
+    checks: { database: 'ok', cacheDatabase: 'ok' },
   })
 })
 

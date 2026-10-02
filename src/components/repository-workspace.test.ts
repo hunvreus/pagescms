@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { filterRepositoryNavigation } from './repository-workspace'
+import {
+  filterRepositoryActions,
+  filterRepositoryNavigation,
+} from './repository-workspace'
 
 describe('filterRepositoryNavigation', () => {
   it('preserves files and filters named collection and media resources', () => {
@@ -37,5 +40,27 @@ describe('filterRepositoryNavigation', () => {
       ],
       media: [],
     })
+  })
+})
+
+describe('filterRepositoryActions', () => {
+  const actions = [
+    { name: 'deploy', label: 'Deploy', workflow: 'deploy.yml' },
+    { name: 'preview', label: 'Preview', workflow: 'preview.yml' },
+  ]
+
+  it('keeps only actions exposed by filtered discovery', () => {
+    expect(
+      filterRepositoryActions(actions, {
+        visibility: 'filtered',
+        resources: [{ type: 'action', name: 'preview' }],
+      }),
+    ).toEqual([actions[1]])
+  })
+
+  it('keeps all actions for unrestricted discovery', () => {
+    expect(filterRepositoryActions(actions, { visibility: 'all' })).toEqual(
+      actions,
+    )
   })
 })

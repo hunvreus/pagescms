@@ -1,9 +1,11 @@
 import { and, eq, inArray, sql } from 'drizzle-orm'
+import type { AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
 
 import { normalizeGitPath } from '#/lib/git-path'
 
 import type { Database } from './database/client.server'
 import type { GitHubApi } from './github-api.server'
+import { DEFAULT_REPOSITORY_SOURCE } from './repository-provider.server'
 import type { RepositoryChange } from './repository-cache.server'
 import { applyRepositoryPush } from './repository-cache.server'
 import { createConfigurationStore } from './configuration-store.server'
@@ -22,6 +24,7 @@ import {
   configTable,
   githubInstallationTokenTable,
 } from './database/schema'
+import { databaseStatement, executeAtomic } from './database/core.server'
 
 const encoder = new TextEncoder()
 
@@ -81,43 +84,68 @@ async function clearBranch(
 ) {
   invalidateEphemeralMediaDirectories(owner, repo, branch)
   const coordinates = and(
+    eq(cacheFileTable.source, DEFAULT_REPOSITORY_SOURCE),
     eq(cacheFileTable.owner, owner.toLowerCase()),
     eq(cacheFileTable.repo, repo.toLowerCase()),
     eq(cacheFileTable.branch, branch),
   )
   const metaCoordinates = and(
+    eq(cacheFileMetaTable.source, DEFAULT_REPOSITORY_SOURCE),
     eq(cacheFileMetaTable.owner, owner.toLowerCase()),
     eq(cacheFileMetaTable.repo, repo.toLowerCase()),
     eq(cacheFileMetaTable.branch, branch),
   )
   const configCoordinates = and(
+    eq(configTable.source, DEFAULT_REPOSITORY_SOURCE),
     eq(configTable.owner, owner.toLowerCase()),
     eq(configTable.repo, repo.toLowerCase()),
     eq(configTable.branch, branch),
   )
-  await database.transaction(async (transaction) => {
-    await transaction.delete(cacheFileTable).where(coordinates)
-    await transaction.delete(cacheFileMetaTable).where(metaCoordinates)
-    if (clearConfiguration) {
-      await transaction.delete(configTable).where(configCoordinates)
-    }
-  })
+  const queries = [
+    database.delete(cacheFileTable).where(coordinates),
+    database.delete(cacheFileMetaTable).where(metaCoordinates),
+    ...(clearConfiguration
+      ? [database.delete(configTable).where(configCoordinates)]
+      : []),
+  ]
+  await executeAtomic(database, queries.map(databaseStatement))
 }
 
 async function clearOwner(database: Database, owner: string) {
-  invalidateRepositoryReads(owner)
+  invalidateRepositoryReads(owner, undefined, DEFAULT_REPOSITORY_SOURCE)
   const normalizedOwner = owner.toLowerCase()
-  await database.transaction(async (transaction) => {
-    await transaction
-      .delete(cacheFileTable)
-      .where(eq(cacheFileTable.owner, normalizedOwner))
-    await transaction
-      .delete(cacheFileMetaTable)
-      .where(eq(cacheFileMetaTable.owner, normalizedOwner))
-    await transaction
-      .delete(configTable)
-      .where(eq(configTable.owner, normalizedOwner))
-  })
+  await executeAtomic(database, [
+    databaseStatement(
+      database
+        .delete(cacheFileTable)
+        .where(
+          and(
+            eq(cacheFileTable.source, DEFAULT_REPOSITORY_SOURCE),
+            eq(cacheFileTable.owner, normalizedOwner),
+          ),
+        ),
+    ),
+    databaseStatement(
+      database
+        .delete(cacheFileMetaTable)
+        .where(
+          and(
+            eq(cacheFileMetaTable.source, DEFAULT_REPOSITORY_SOURCE),
+            eq(cacheFileMetaTable.owner, normalizedOwner),
+          ),
+        ),
+    ),
+    databaseStatement(
+      database
+        .delete(configTable)
+        .where(
+          and(
+            eq(configTable.source, DEFAULT_REPOSITORY_SOURCE),
+            eq(configTable.owner, normalizedOwner),
+          ),
+        ),
+    ),
+  ])
 }
 
 async function clearRepository(
@@ -125,35 +153,44 @@ async function clearRepository(
   owner: string,
   repo: string,
 ) {
-  invalidateRepositoryReads(owner, repo)
+  invalidateRepositoryReads(owner, repo, DEFAULT_REPOSITORY_SOURCE)
   const normalizedOwner = owner.toLowerCase()
   const normalizedRepo = repo.toLowerCase()
-  await database.transaction(async (transaction) => {
-    await transaction
-      .delete(cacheFileTable)
-      .where(
-        and(
-          eq(cacheFileTable.owner, normalizedOwner),
-          eq(cacheFileTable.repo, normalizedRepo),
+  await executeAtomic(database, [
+    databaseStatement(
+      database
+        .delete(cacheFileTable)
+        .where(
+          and(
+            eq(cacheFileTable.source, DEFAULT_REPOSITORY_SOURCE),
+            eq(cacheFileTable.owner, normalizedOwner),
+            eq(cacheFileTable.repo, normalizedRepo),
+          ),
         ),
-      )
-    await transaction
-      .delete(cacheFileMetaTable)
-      .where(
-        and(
-          eq(cacheFileMetaTable.owner, normalizedOwner),
-          eq(cacheFileMetaTable.repo, normalizedRepo),
+    ),
+    databaseStatement(
+      database
+        .delete(cacheFileMetaTable)
+        .where(
+          and(
+            eq(cacheFileMetaTable.source, DEFAULT_REPOSITORY_SOURCE),
+            eq(cacheFileMetaTable.owner, normalizedOwner),
+            eq(cacheFileMetaTable.repo, normalizedRepo),
+          ),
         ),
-      )
-    await transaction
-      .delete(configTable)
-      .where(
-        and(
-          eq(configTable.owner, normalizedOwner),
-          eq(configTable.repo, normalizedRepo),
+    ),
+    databaseStatement(
+      database
+        .delete(configTable)
+        .where(
+          and(
+            eq(configTable.source, DEFAULT_REPOSITORY_SOURCE),
+            eq(configTable.owner, normalizedOwner),
+            eq(configTable.repo, normalizedRepo),
+          ),
         ),
-      )
-  })
+    ),
+  ])
 }
 
 async function renameCachedCoordinates(
@@ -163,43 +200,107 @@ async function renameCachedCoordinates(
   oldRepo?: string,
   newRepo?: string,
 ) {
-  invalidateRepositoryReads(oldOwner, oldRepo)
-  invalidateRepositoryReads(newOwner, newRepo)
+  invalidateRepositoryReads(oldOwner, oldRepo, DEFAULT_REPOSITORY_SOURCE)
+  invalidateRepositoryReads(newOwner, newRepo, DEFAULT_REPOSITORY_SOURCE)
   if (
     oldOwner.toLowerCase() === newOwner.toLowerCase() &&
     oldRepo?.toLowerCase() === newRepo?.toLowerCase()
   )
     return
-  await database.transaction(async (transaction) => {
-    for (const [name, keys] of [
-      ['cache_file', ['branch', 'path', 'context']],
-      ['cache_file_meta', ['branch', 'path', 'context']],
-      ['config', ['branch']],
-    ] as const) {
-      const table = sql.identifier(name)
-      const source = sql`source.owner = ${oldOwner.toLowerCase()} ${oldRepo ? sql`and source.repo = ${oldRepo.toLowerCase()}` : sql``}`
-      // A replay or a concurrently opened destination may already have rows.
-      // Keep those, then move the remaining source rows without copying content.
-      await transaction.execute(sql`delete from ${table} as source where ${source} and exists (
-        select 1 from ${table} as destination where destination.owner = ${newOwner.toLowerCase()}
-        and destination.repo = ${newRepo ? sql`${newRepo.toLowerCase()}` : sql`source.repo`}
-        and ${sql.join(
-          keys.map(
-            (key) =>
-              sql`destination.${sql.identifier(key)} = source.${sql.identifier(key)}`,
-          ),
-          sql` and `,
-        )}
-      )`)
-      await transaction.execute(
-        sql`update ${table} as source set owner = ${newOwner.toLowerCase()} ${newRepo ? sql`, repo = ${newRepo.toLowerCase()}` : sql``} where ${source}`,
-      )
-    }
-  })
+  const normalizedOldOwner = oldOwner.toLowerCase()
+  const normalizedNewOwner = newOwner.toLowerCase()
+  const normalizedOldRepo = oldRepo?.toLowerCase()
+  const normalizedNewRepo = newRepo?.toLowerCase()
+  const source = <
+    T extends {
+      source: AnySQLiteColumn
+      owner: AnySQLiteColumn
+      repo: AnySQLiteColumn
+    },
+  >(
+    table: T,
+  ) =>
+    and(
+      eq(table.source, DEFAULT_REPOSITORY_SOURCE),
+      eq(table.owner, normalizedOldOwner),
+      normalizedOldRepo ? eq(table.repo, normalizedOldRepo) : undefined,
+    )
+  const nextRepo = (repo: AnySQLiteColumn) =>
+    normalizedNewRepo ? sql`${normalizedNewRepo}` : repo
+
+  await executeAtomic(database, [
+    databaseStatement(
+      database.delete(cacheFileTable).where(
+        and(
+          source(cacheFileTable),
+          sql`exists (select 1 from ${cacheFileTable} as destination
+          where destination.source = ${DEFAULT_REPOSITORY_SOURCE}
+          and destination.owner = ${normalizedNewOwner}
+          and destination.repo = ${nextRepo(cacheFileTable.repo)}
+          and destination.branch = ${cacheFileTable.branch}
+          and destination.path = ${cacheFileTable.path}
+          and destination.context = ${cacheFileTable.context})`,
+        ),
+      ),
+    ),
+    databaseStatement(
+      database
+        .update(cacheFileTable)
+        .set({
+          owner: normalizedNewOwner,
+          ...(normalizedNewRepo ? { repo: normalizedNewRepo } : {}),
+        })
+        .where(source(cacheFileTable)),
+    ),
+    databaseStatement(
+      database.delete(cacheFileMetaTable).where(
+        and(
+          source(cacheFileMetaTable),
+          sql`exists (select 1 from ${cacheFileMetaTable} as destination
+          where destination.source = ${DEFAULT_REPOSITORY_SOURCE}
+          and destination.owner = ${normalizedNewOwner}
+          and destination.repo = ${nextRepo(cacheFileMetaTable.repo)}
+          and destination.branch = ${cacheFileMetaTable.branch}
+          and destination.path = ${cacheFileMetaTable.path}
+          and destination.context = ${cacheFileMetaTable.context})`,
+        ),
+      ),
+    ),
+    databaseStatement(
+      database
+        .update(cacheFileMetaTable)
+        .set({
+          owner: normalizedNewOwner,
+          ...(normalizedNewRepo ? { repo: normalizedNewRepo } : {}),
+        })
+        .where(source(cacheFileMetaTable)),
+    ),
+    databaseStatement(
+      database.delete(configTable).where(
+        and(
+          source(configTable),
+          sql`exists (select 1 from ${configTable} as destination
+          where destination.source = ${DEFAULT_REPOSITORY_SOURCE}
+          and destination.owner = ${normalizedNewOwner}
+          and destination.repo = ${nextRepo(configTable.repo)}
+          and destination.branch = ${configTable.branch})`,
+        ),
+      ),
+    ),
+    databaseStatement(
+      database
+        .update(configTable)
+        .set({
+          owner: normalizedNewOwner,
+          ...(normalizedNewRepo ? { repo: normalizedNewRepo } : {}),
+        })
+        .where(source(configTable)),
+    ),
+  ])
 }
 
 async function handlePush(
-  database: Database,
+  cacheDatabase: Database,
   payload: Record<string, unknown>,
   resolveApi?: (installationId: number) => Promise<GitHubApi>,
 ) {
@@ -209,7 +310,12 @@ async function handlePush(
   const branch = ref.slice('refs/heads/'.length)
   if (!branch) return
   if (payload.deleted === true)
-    return clearBranch(database, coordinates.owner, coordinates.repo, branch)
+    return clearBranch(
+      cacheDatabase,
+      coordinates.owner,
+      coordinates.repo,
+      branch,
+    )
   const changes = repositoryPushChanges(payload)
   const before = string(payload.before)
   const after = string(payload.after)
@@ -217,10 +323,11 @@ async function handlePush(
   const configurationChanged =
     changes === null || changes.some((change) => change.path === '.pages.yml')
   if (configurationChanged) {
-    await database
+    await cacheDatabase
       .delete(configTable)
       .where(
         and(
+          eq(configTable.source, DEFAULT_REPOSITORY_SOURCE),
           eq(configTable.owner, coordinates.owner.toLowerCase()),
           eq(configTable.repo, coordinates.repo.toLowerCase()),
           eq(configTable.branch, branch),
@@ -229,7 +336,7 @@ async function handlePush(
   }
   if (!changes || !before || !after || !resolveApi || installationId === null) {
     return staleDirectoryCache(
-      database,
+      cacheDatabase,
       coordinates.owner,
       coordinates.repo,
       branch,
@@ -240,20 +347,20 @@ async function handlePush(
     if (configurationChanged) {
       // Rehydrate the normalized configuration during the webhook, as legacy did.
       // Read the current branch, so a delayed delivery cannot restore an old config.
-      await createConfigurationStore({ database }).refresh(
+      await createConfigurationStore({ database: cacheDatabase }).refresh(
         api,
         coordinates.owner,
         coordinates.repo,
         branch,
       )
     }
-    const policy = cachePolicy(database)
+    const policy = cachePolicy(cacheDatabase)
     if (
       (policy.scopedMax > 0 && changes.length > policy.scopedMax) ||
       (policy.incrementalMax > 0 && changes.length > policy.incrementalMax)
     ) {
       return staleDirectoryCache(
-        database,
+        cacheDatabase,
         coordinates.owner,
         coordinates.repo,
         branch,
@@ -262,7 +369,7 @@ async function handlePush(
           : changes.map((change) => change.path),
       )
     }
-    await applyRepositoryPush(database, api, {
+    await applyRepositoryPush(cacheDatabase, api, {
       ...coordinates,
       branch,
       before,
@@ -271,7 +378,7 @@ async function handlePush(
     })
   } catch (error) {
     await staleDirectoryCache(
-      database,
+      cacheDatabase,
       coordinates.owner,
       coordinates.repo,
       branch,
@@ -304,6 +411,7 @@ async function handleWorkflowRun(
 
 async function handleInstallation(
   database: Database,
+  cacheDatabase: Database,
   payload: Record<string, unknown>,
 ) {
   if (payload.action !== 'deleted') return
@@ -316,17 +424,18 @@ async function handleInstallation(
     database
       .delete(collaboratorTable)
       .where(eq(collaboratorTable.installationId, installationId)),
-    database
+    cacheDatabase
       .delete(githubInstallationTokenTable)
       .where(eq(githubInstallationTokenTable.installationId, installationId)),
   ])
   if (owner) {
-    await clearOwner(database, owner)
+    await clearOwner(cacheDatabase, owner)
   }
 }
 
 async function handleInstallationRepositories(
   database: Database,
+  cacheDatabase: Database,
   payload: Record<string, unknown>,
 ) {
   if (payload.action !== 'removed') return
@@ -352,7 +461,7 @@ async function handleInstallationRepositories(
       if (separator <= 0) return []
       return [
         clearRepository(
-          database,
+          cacheDatabase,
           fullName.slice(0, separator),
           fullName.slice(separator + 1),
         ),
@@ -362,14 +471,14 @@ async function handleInstallationRepositories(
 }
 
 async function handleDelete(
-  database: Database,
+  cacheDatabase: Database,
   payload: Record<string, unknown>,
 ) {
   if (payload.ref_type !== 'branch') return
   const coordinates = repositoryCoordinates(payload)
   const branch = string(payload.ref)
   if (!coordinates || !branch) return
-  await clearBranch(database, coordinates.owner, coordinates.repo, branch)
+  await clearBranch(cacheDatabase, coordinates.owner, coordinates.repo, branch)
 }
 
 export async function handleGitHubWebhook(
@@ -377,20 +486,21 @@ export async function handleGitHubWebhook(
   event: string,
   payload: unknown,
   resolveApi?: (installationId: number) => Promise<GitHubApi>,
+  cacheDatabase: Database = database,
 ) {
   const data = record(payload)
   if (!data) throw new Error('Invalid GitHub webhook payload')
   switch (event) {
     case 'push':
-      return handlePush(database, data, resolveApi)
+      return handlePush(cacheDatabase, data, resolveApi)
     case 'workflow_run':
       return handleWorkflowRun(database, data)
     case 'installation':
-      return handleInstallation(database, data)
+      return handleInstallation(database, cacheDatabase, data)
     case 'installation_repositories':
-      return handleInstallationRepositories(database, data)
+      return handleInstallationRepositories(database, cacheDatabase, data)
     case 'delete':
-      return handleDelete(database, data)
+      return handleDelete(cacheDatabase, data)
     case 'repository': {
       const coordinates = repositoryCoordinates(data)
       const repository = record(data.repository)
@@ -402,7 +512,7 @@ export async function handleGitHubWebhook(
         if (!coordinates || !oldName || repositoryId === null) return
         await Promise.all([
           renameCachedCoordinates(
-            database,
+            cacheDatabase,
             coordinates.owner,
             coordinates.owner,
             oldName,
@@ -419,10 +529,14 @@ export async function handleGitHubWebhook(
         const oldOwnerChange = record(record(changes?.owner)?.from)
         const oldOwner = string(oldOwnerChange?.login)
         if (oldOwner && coordinates) {
-          await clearRepository(database, oldOwner, coordinates.repo)
+          await clearRepository(cacheDatabase, oldOwner, coordinates.repo)
         }
       } else if (data.action === 'deleted' && coordinates) {
-        await clearRepository(database, coordinates.owner, coordinates.repo)
+        await clearRepository(
+          cacheDatabase,
+          coordinates.owner,
+          coordinates.repo,
+        )
       } else {
         return
       }
@@ -442,7 +556,7 @@ export async function handleGitHubWebhook(
       const ownerId = number(account?.id)
       if (!oldOwner || !newOwner || ownerId === null) return
       await Promise.all([
-        renameCachedCoordinates(database, oldOwner, newOwner),
+        renameCachedCoordinates(cacheDatabase, oldOwner, newOwner),
         database
           .update(collaboratorTable)
           .set({ owner: newOwner })

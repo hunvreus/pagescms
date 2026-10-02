@@ -4,23 +4,19 @@ import { createDatabase } from './client.server'
 
 describe('createDatabase', () => {
   it('creates a typed Drizzle client without connecting eagerly', () => {
-    const database = createDatabase({
-      connectionString: 'postgres://user:password@example.com/pagescms',
-    })
+    const database = createDatabase({ url: 'file::memory:' })
 
     expect(database.query.userTable).toBeDefined()
     expect(database.query.configTable).toBeDefined()
   })
 
-  it('rejects missing connection details and invalid pool limits', () => {
-    expect(() => createDatabase({ connectionString: ' ' })).toThrow(
-      'connection string',
-    )
+  it('rejects missing connection details and local auth tokens', () => {
+    expect(() => createDatabase({ url: ' ' })).toThrow('database URL')
     expect(() =>
       createDatabase({
-        connectionString: 'postgres://example.com/pagescms',
-        maxConnections: 0,
+        url: 'file::memory:',
+        authToken: 'not-valid-for-local-sqlite',
       }),
-    ).toThrow('positive integer')
+    ).toThrow('do not accept an auth token')
   })
 })

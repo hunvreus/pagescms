@@ -1,5 +1,6 @@
-import { desc, eq, ilike, or, sql } from 'drizzle-orm'
+import { count, countDistinct, desc, eq, like, or, sql } from 'drizzle-orm'
 
+import { atomicBatch } from './database/core.server'
 import type { Database } from './database/client.server'
 
 import {
@@ -18,13 +19,17 @@ const USERS_PER_PAGE = 20
 
 export async function loadAdminDashboard(
   database: Database,
+  cacheDatabase: Database,
   input: { query: string; page: number },
 ) {
   const filter = input.query
     ? or(
-        ilike(userTable.name, `%${input.query}%`),
-        ilike(userTable.email, `%${input.query}%`),
-        ilike(userTable.githubUsername, `%${input.query}%`),
+        like(sql`lower(${userTable.name})`, `%${input.query.toLowerCase()}%`),
+        like(sql`lower(${userTable.email})`, `%${input.query.toLowerCase()}%`),
+        like(
+          sql`lower(${userTable.githubUsername})`,
+          `%${input.query.toLowerCase()}%`,
+        ),
       )
     : undefined
   const usersBase = database
@@ -44,9 +49,7 @@ export async function loadAdminDashboard(
     })
     .from(userTable)
   const usersQuery = filter ? usersBase.where(filter) : usersBase
-  const filteredCountQuery = database
-    .select({ count: sql<number>`count(*)::int` })
-    .from(userTable)
+  const filteredCountQuery = database.select({ count: count() }).from(userTable)
   const [
     userCount,
     verifiedUserCount,
@@ -60,33 +63,27 @@ export async function loadAdminDashboard(
     filteredUserCount,
     users,
   ] = await Promise.all([
-    database.select({ count: sql<number>`count(*)::int` }).from(userTable),
+    database.select({ count: count() }).from(userTable),
     database
-      .select({ count: sql<number>`count(*)::int` })
+      .select({ count: count() })
       .from(userTable)
       .where(eq(userTable.emailVerified, true)),
     database
-      .select({ count: sql<number>`count(*)::int` })
+      .select({ count: count() })
       .from(accountTable)
       .where(eq(accountTable.providerId, 'github')),
-    database
-      .select({ count: sql<number>`count(*)::int` })
-      .from(githubInstallationTokenTable),
-    database
+    cacheDatabase.select({ count: count() }).from(githubInstallationTokenTable),
+    cacheDatabase
       .select({
-        count: sql<number>`count(distinct (${configTable.owner}, ${configTable.repo}))::int`,
+        count: countDistinct(
+          sql`${configTable.source} || char(0) || ${configTable.owner} || char(0) || ${configTable.repo}`,
+        ),
       })
       .from(configTable),
-    database
-      .select({ count: sql<number>`count(*)::int` })
-      .from(collaboratorTable),
-    database.select({ count: sql<number>`count(*)::int` }).from(cacheFileTable),
-    database
-      .select({ count: sql<number>`count(*)::int` })
-      .from(cacheFileMetaTable),
-    database
-      .select({ count: sql<number>`count(*)::int` })
-      .from(cachePermissionTable),
+    database.select({ count: count() }).from(collaboratorTable),
+    cacheDatabase.select({ count: count() }).from(cacheFileTable),
+    cacheDatabase.select({ count: count() }).from(cacheFileMetaTable),
+    cacheDatabase.select({ count: count() }).from(cachePermissionTable),
     filter ? filteredCountQuery.where(filter) : filteredCountQuery,
     usersQuery
       .orderBy(desc(userTable.createdAt))
@@ -129,10 +126,10 @@ export async function revokeAllSessions(database: Database) {
 }
 
 export async function resetGlobalCache(database: Database) {
-  await database.transaction(async (transaction) => {
-    await transaction.delete(cacheFileTable)
-    await transaction.delete(cacheFileMetaTable)
-    await transaction.delete(cachePermissionTable)
-    await transaction.delete(configTable)
-  })
+  await atomicBatch(database, [
+    database.delete(cacheFileTable),
+    database.delete(cacheFileMetaTable),
+    database.delete(cachePermissionTable),
+    database.delete(configTable),
+  ])
 }

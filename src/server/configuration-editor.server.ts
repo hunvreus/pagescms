@@ -9,7 +9,8 @@ import { toJsonObject } from '#/lib/json'
 
 import { createConfigurationStore } from './configuration-store.server'
 import { updateRepositoryCacheAfterMutation } from './repository-cache.server'
-import { GitHubApiError } from './github-api.server'
+import { isRepositoryProviderError } from './repository-provider.server'
+import { logServerEvent, serverErrorDetails } from './http'
 
 import type { Database } from './database/client.server'
 import type { ProjectUser } from './projects.server'
@@ -47,7 +48,7 @@ export async function loadConfigurationSource({
     const file = await api.getFile(owner, repo, '.pages.yml', branch)
     return { source: decodeBase64Utf8(file.content), sha: file.sha }
   } catch (error) {
-    if (error instanceof GitHubApiError && error.status === 404) {
+    if (isRepositoryProviderError(error, 404)) {
       return { source: '', sha: null }
     }
     throw error
@@ -139,7 +140,13 @@ export async function saveConfigurationSource({
     await store.save(owner, repo, branch, result.sha, normalized)
   } catch (error) {
     // The remote commit succeeded; a cache failure must not invite a duplicate save.
-    console.error('Could not cache saved configuration', error)
+    logServerEvent('error', {
+      event: 'configuration_cache_write_failed',
+      owner,
+      repo,
+      branch,
+      ...serverErrorDetails(error),
+    })
     await store.remove(owner, repo, branch).catch(() => {})
   }
   await updateRepositoryCacheAfterMutation(

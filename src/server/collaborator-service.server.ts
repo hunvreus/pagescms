@@ -1,14 +1,15 @@
 import { and, eq, isNull, sql } from 'drizzle-orm'
 
-import { createGitHubApi } from './github-api.server'
 import {
   createCollaboratorAddedEmail,
   createCollaboratorInviteEmail,
 } from './email-templates.server'
+import { logServerEvent, serverErrorDetails } from './http'
 
 import type { Database } from './database/client.server'
 import type { EmailProvider } from './email.server'
 import type { ProjectUser } from './projects.server'
+import type { GitHubApiFactory } from './github-api.server'
 
 import {
   accountTable,
@@ -39,6 +40,7 @@ async function requireManager(
   user: Manager,
   owner: string,
   repo: string,
+  githubApiFactory: GitHubApiFactory,
 ) {
   if (!user.githubUsername) {
     throw new Error('Only GitHub users can manage collaborators')
@@ -53,7 +55,7 @@ async function requireManager(
   if (!account?.accessToken) {
     throw new Error('A GitHub user token is required to manage collaborators')
   }
-  const api = createGitHubApi(account.accessToken)
+  const api = githubApiFactory(account.accessToken)
   const repository = await api.getRepository(owner, repo)
   if (!repository.canPush) {
     throw new Error(`You do not have write access to "${owner}/${repo}"`)
@@ -94,8 +96,9 @@ export async function listCollaborators(
   user: Manager,
   owner: string,
   repo: string,
+  githubApiFactory: GitHubApiFactory,
 ) {
-  await requireManager(database, user, owner, repo)
+  await requireManager(database, user, owner, repo, githubApiFactory)
   return database.query.collaboratorTable.findMany({
     columns: {
       id: true,
@@ -117,12 +120,14 @@ export async function inviteCollaborators(input: {
   repo: string
   branch?: string
   emails: string[]
+  githubApiFactory: GitHubApiFactory
 }) {
   const access = await requireManager(
     input.database,
     input.user,
     input.owner,
     input.repo,
+    input.githubApiFactory,
   )
   const githubUsername = input.user.githubUsername
   if (!githubUsername) {
@@ -227,7 +232,12 @@ export async function inviteCollaborators(input: {
           }),
         )
       } catch (error) {
-        console.error(`Failed to notify collaborator ${email}`, error)
+        logServerEvent('error', {
+          event: 'collaborator_notification_failed',
+          owner: input.owner,
+          repo: input.repo,
+          ...serverErrorDetails(error),
+        })
       }
     }
     created.push({
@@ -246,8 +256,15 @@ export async function removeCollaborator(input: {
   owner: string
   repo: string
   id: number
+  githubApiFactory: GitHubApiFactory
 }) {
-  await requireManager(input.database, input.user, input.owner, input.repo)
+  await requireManager(
+    input.database,
+    input.user,
+    input.owner,
+    input.repo,
+    input.githubApiFactory,
+  )
   const collaborator = await input.database.query.collaboratorTable.findFirst({
     where: and(
       eq(collaboratorTable.id, input.id),

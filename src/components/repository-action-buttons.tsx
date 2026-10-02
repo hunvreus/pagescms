@@ -11,6 +11,7 @@ import { actionsQueryOptions } from '#/queries/repository'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Textarea } from './ui/textarea'
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from './ui/sidebar'
 
 type ActionValue = string | number | boolean
 
@@ -19,16 +20,18 @@ export function RepositoryActionButtons({
   coordinates,
   context,
   disabled = false,
+  layout = 'header',
 }: {
   actions: RepositoryAction[]
   coordinates: { owner: string; repo: string; branch: string }
   context: {
-    type: 'collection' | 'entry' | 'file' | 'media'
-    name: string
-    path: string
+    type: 'repository' | 'collection' | 'entry' | 'file' | 'media'
+    name: string | null
+    path: string | null
     data: Record<string, unknown>
   }
   disabled?: boolean
+  layout?: 'header' | 'sidebar'
 }) {
   const queryClient = useQueryClient()
   const [selected, setSelected] = useState<RepositoryAction | null>(null)
@@ -86,28 +89,54 @@ export function RepositoryActionButtons({
 
   if (!actions.length) return null
   return (
-    <div className="relative flex flex-wrap items-center justify-end gap-2">
+    <div
+      className={
+        layout === 'sidebar'
+          ? 'relative'
+          : 'relative flex flex-wrap items-center justify-end gap-2'
+      }
+    >
       {message ? (
         <span className="text-xs text-muted-foreground">{message}</span>
       ) : null}
       <OperationError error={error} fallback="Could not run action." />
-      {actions.map((action) => (
-        <Button
-          disabled={disabled || running}
-          key={action.name}
-          size="sm"
-          type="button"
-          variant="outline"
-          onClick={() => choose(action)}
-        >
-          {running && selected?.name === action.name ? (
-            <LoaderCircle className="animate-spin" />
-          ) : (
-            <Play />
-          )}
-          {action.label}
-        </Button>
-      ))}
+      {layout === 'sidebar' ? (
+        <SidebarMenu>
+          {actions.map((action) => (
+            <SidebarMenuItem key={action.name}>
+              <SidebarMenuButton
+                disabled={disabled || running}
+                onClick={() => choose(action)}
+              >
+                {running && selected?.name === action.name ? (
+                  <LoaderCircle className="animate-spin" />
+                ) : (
+                  <Play />
+                )}
+                <span>{action.label}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      ) : (
+        actions.map((action) => (
+          <Button
+            disabled={disabled || running}
+            key={action.name}
+            size="sm"
+            type="button"
+            variant="outline"
+            onClick={() => choose(action)}
+          >
+            {running && selected?.name === action.name ? (
+              <LoaderCircle className="animate-spin" />
+            ) : (
+              <Play />
+            )}
+            {action.label}
+          </Button>
+        ))
+      )}
       {selected ? (
         <form
           className="absolute right-0 top-full z-20 mt-2 w-80 space-y-4 rounded-xl border bg-popover p-4 text-popover-foreground shadow-lg"

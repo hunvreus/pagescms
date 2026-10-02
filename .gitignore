@@ -21,6 +21,7 @@ dist-ssr/
 coverage/
 playwright-report/
 test-results/
+.data/
 .tmp/
 *.tsbuildinfo
 *.cpuprofile

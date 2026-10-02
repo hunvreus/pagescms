@@ -78,7 +78,7 @@ export const getReferenceOptions = createServerFn({ method: 'GET' })
         const { loadReferenceOptions } =
           await import('#/server/reference-service.server')
         return loadReferenceOptions({
-          database: services.database,
+          database: services.cacheDatabase,
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,

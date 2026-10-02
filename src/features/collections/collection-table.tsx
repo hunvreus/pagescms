@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
+import { useQueries } from '@tanstack/react-query'
 import {
   columnFilteringFeature,
   columnVisibilityFeature,
@@ -55,9 +56,16 @@ import {
   TableRow,
 } from '#/components/ui/table'
 import type { getCollection } from '#/functions/collection'
+import { getReferenceOptions } from '#/functions/references'
+import { cn } from '#/lib/utils'
+import { queryKeys, queryTimes } from '#/queries/keys'
 
-import { CollectionCell } from './collection-cell'
-import { collectionValue, rowSearchValue } from './collection-model'
+import { CollectionCell, collectionReferenceValues } from './collection-cell'
+import {
+  collectionFluidColumn,
+  collectionValue,
+  rowSearchValue,
+} from './collection-model'
 
 import type { CollectionViewModel } from './collection-model'
 
@@ -89,6 +97,34 @@ const features = tableFeatures({
 
 const helper = createColumnHelper<typeof features, CollectionItem>()
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function referenceSettings(column: CollectionViewModel['columns'][number]) {
+  if (column.type !== 'reference' || !isRecord(column.field.options)) return
+  const options = column.field.options
+  const collection =
+    typeof options.collection === 'string' ? options.collection : ''
+  if (!collection) return
+  const search = typeof options.search === 'string' ? options.search : 'name'
+  return {
+    collection,
+    valueTemplate: typeof options.value === 'string' ? options.value : '{path}',
+    labelTemplate: typeof options.label === 'string' ? options.label : '{name}',
+    searchFields: search
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean),
+  }
+}
+
+function batches<T>(values: T[], size: number) {
+  return Array.from({ length: Math.ceil(values.length / size) }, (_, index) =>
+    values.slice(index * size, (index + 1) * size),
+  )
+}
+
 function entryValue(entry: CollectionItem, path: string) {
   if (entry.type === 'dir') return
   if (path === 'name') return entry.name
@@ -101,6 +137,23 @@ function pageOptions(current: number, count: number) {
   return [...values]
     .filter((value) => value >= 0 && value < count)
     .sort((left, right) => left - right)
+}
+
+function columnSize(
+  id: string,
+  model: CollectionViewModel,
+  fluidColumn: string | undefined,
+) {
+  if (id === 'actions') return 'w-24 min-w-24 max-w-24'
+  if (id === fluidColumn) return 'w-full min-w-48 max-w-px'
+
+  const column = model.columns.find(({ path }) => path === id)
+  if (column?.type === 'image') return 'w-16 min-w-16 max-w-16'
+  if (column?.type === 'boolean') return 'w-28 min-w-28 max-w-28'
+  if (column?.type === 'date' || column?.type === 'datetime') {
+    return 'w-40 min-w-40 max-w-40'
+  }
+  return 'max-w-48'
 }
 
 export function CollectionTable({
@@ -138,6 +191,72 @@ export function CollectionTable({
   search: string
   onSearchChange: Dispatch<SetStateAction<string>>
 }) {
+  const fluidColumn = collectionFluidColumn(model)
+  const referenceRequests = useMemo(() => {
+    const entries = [
+      ...data,
+      ...Object.values(children).flatMap((items) => items ?? []),
+    ]
+    return model.columns.flatMap((column) => {
+      const settings = referenceSettings(column)
+      if (!settings) return []
+      const values = [
+        ...new Set(
+          entries.flatMap((entry) =>
+            entry.type === 'file'
+              ? collectionReferenceValues(entryValue(entry, column.path))
+              : [],
+          ),
+        ),
+      ].sort()
+      return batches(values, 100).map((selectedValues) => ({
+        column: column.path,
+        settings,
+        selectedValues,
+      }))
+    })
+  }, [children, data, model.columns])
+  const referenceQueries = useQueries({
+    queries: referenceRequests.map((request) => ({
+      queryKey: [
+        ...queryKeys.branch(repository),
+        'references',
+        request.settings.collection,
+        request.settings.valueTemplate,
+        request.settings.labelTemplate,
+        request.selectedValues,
+      ] as const,
+      queryFn: () =>
+        getReferenceOptions({
+          data: {
+            owner: repository.owner,
+            repo: repository.repo,
+            branch: repository.branch,
+            collection: request.settings.collection,
+            query: '',
+            valueTemplate: request.settings.valueTemplate,
+            labelTemplate: request.settings.labelTemplate,
+            searchFields: request.settings.searchFields,
+            selectedValues: request.selectedValues,
+          },
+        }),
+      enabled: request.selectedValues.length > 0,
+      staleTime: queryTimes.directory,
+      gcTime: queryTimes.gc,
+    })),
+  })
+  const referenceLabels = useMemo(() => {
+    const labels = new Map<string, Map<string, string>>()
+    referenceQueries.forEach((query, index) => {
+      const request = referenceRequests[index]
+      const columnLabels = labels.get(request.column) ?? new Map()
+      for (const option of query.data ?? []) {
+        columnLabels.set(option.value, option.label)
+      }
+      labels.set(request.column, columnLabels)
+    })
+    return labels
+  }, [referenceQueries, referenceRequests])
   const columns = useMemo(() => {
     const valueColumns = model.columns.map((column, index) =>
       helper.accessor((entry) => entryValue(entry, column.path), {
@@ -179,6 +298,7 @@ export function CollectionTable({
               <CollectionCell
                 column={column}
                 media={media}
+                referenceLabels={referenceLabels.get(column.path)}
                 repository={repository}
                 value={getValue()}
               />
@@ -188,7 +308,10 @@ export function CollectionTable({
 
           return (
             <div
-              className="flex min-w-0 items-center gap-1"
+              className={cn(
+                'flex w-full min-w-0 items-center gap-1',
+                column.path !== fluidColumn && 'max-w-48',
+              )}
               style={
                 isTreeControl
                   ? { paddingLeft: `${row.depth * 24}px` }
@@ -233,7 +356,7 @@ export function CollectionTable({
                 </Link>
               ) : entry.type === 'file' && isPrimary ? (
                 <Link
-                  className="min-w-0 truncate font-medium"
+                  className="block min-w-0 flex-1 truncate font-medium"
                   params={{ ...repository, _splat: entry.path }}
                   to="/$owner/$repo/$branch/collection/$name/entry/$"
                 >
@@ -348,6 +471,8 @@ export function CollectionTable({
     onExpand,
     onRename,
     repository,
+    referenceLabels,
+    fluidColumn,
   ])
 
   const table = useTable(
@@ -395,28 +520,7 @@ export function CollectionTable({
 
   return (
     <div className="space-y-4">
-      <Table className="table-fixed">
-        <colgroup>
-          {table.getVisibleLeafColumns().map((column) => {
-            const modelColumn = model.columns.find(
-              (candidate) => candidate.path === column.id,
-            )
-            const width =
-              column.id === 'actions'
-                ? '6rem'
-                : column.id === model.primary
-                  ? undefined
-                  : modelColumn?.type === 'image'
-                    ? '4rem'
-                    : modelColumn?.type === 'boolean'
-                      ? '7rem'
-                      : modelColumn?.type === 'date' ||
-                          modelColumn?.type === 'datetime'
-                        ? '10rem'
-                        : 'clamp(12rem, 24vw, 24rem)'
-            return <col key={column.id} style={{ width }} />
-          })}
-        </colgroup>
+      <Table>
         <TableHeader>
           {table.getHeaderGroups().map((group) => (
             <TableRow className="hover:bg-transparent" key={group.id}>
@@ -436,13 +540,12 @@ export function CollectionTable({
                             ? 'none'
                             : undefined
                     }
-                    className={
-                      header.column.id === 'actions'
-                        ? 'text-right'
-                        : canSort
-                          ? 'cursor-pointer overflow-hidden select-none hover:bg-muted/50'
-                          : 'overflow-hidden'
-                    }
+                    className={cn(
+                      'overflow-hidden',
+                      columnSize(header.column.id, model, fluidColumn),
+                      header.column.id === 'actions' && 'text-right',
+                      canSort && 'cursor-pointer select-none hover:bg-muted/50',
+                    )}
                     key={header.id}
                     onClick={canSort ? toggleSorting : undefined}
                     onKeyDown={
@@ -472,11 +575,11 @@ export function CollectionTable({
               <TableRow key={row.id}>
                 {row.getVisibleCells().map((cell) => (
                   <TableCell
-                    className={
-                      cell.column.id === 'actions'
-                        ? 'text-right'
-                        : 'overflow-hidden'
-                    }
+                    className={cn(
+                      'overflow-hidden',
+                      columnSize(cell.column.id, model, fluidColumn),
+                      cell.column.id === 'actions' && 'text-right',
+                    )}
                     key={cell.id}
                   >
                     <table.FlexRender cell={cell} />
@@ -486,8 +589,11 @@ export function CollectionTable({
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={model.columns.length + 1}>
-                No entries found.
+              <TableCell
+                className="h-24 text-center"
+                colSpan={table.getVisibleLeafColumns().length}
+              >
+                No results.
               </TableCell>
             </TableRow>
           )}
