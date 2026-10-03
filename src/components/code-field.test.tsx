@@ -118,8 +118,10 @@ describe('CodeMirror code fields', () => {
     )
     expect(captured.props.height).toBe('calc(100vh - 7rem)')
     expect(captured.props.basicSetup).toMatchObject({
-      lineNumbers: true,
-      searchKeymap: true,
+      lineNumbers: false,
+      searchKeymap: false,
+      highlightActiveLine: false,
+      highlightActiveLineGutter: false,
     })
   })
 })

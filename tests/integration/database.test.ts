@@ -9,6 +9,7 @@ import {
   configTable,
 } from '#/server/database/schema'
 import { saveConfigurationSource } from '#/server/configuration-editor.server'
+import { validateConfigurationSource } from '#/lib/configuration-source'
 import { createConfigurationStore } from '#/server/configuration-store.server'
 import { cachePolicy, configureCachePolicy } from '#/server/cache-policy.server'
 import {
@@ -226,41 +227,84 @@ integration('SQLite integration', () => {
     expect(api.getRefSha).not.toHaveBeenCalled()
   })
 
-  it('writes the submitted configuration through to the parsed cache', async () => {
-    const api = {
-      getFile: vi
-        .fn()
-        .mockResolvedValue({ sha: 'old', content: btoa('content: []') }),
-      putFile: vi.fn().mockResolvedValue({
-        sha: 'new',
-        commitSha: 'after',
-        path: '.pages.yml',
-      }),
-    } as unknown as GitHubApi
-    await saveConfigurationSource({
-      database: database!,
-      repositoryAccess: {
-        resolve: async () => ({ api, tokenSource: 'user' as const }),
-      },
-      user: {
-        id: 'u',
-        email: 'user@example.com',
-        name: 'User',
-        githubUsername: 'user',
-      },
-      owner: scope.owner,
-      repo: scope.repo,
-      branch: scope.branch,
-      source: 'content: []\nsettings:\n  cache: true\n',
-      sha: 'old',
-    })
-    const calls = vi.mocked(api.getFile).mock.calls.length
-    const configuration = await createConfigurationStore({
-      database: database!,
-    }).get(api, scope.owner, scope.repo, scope.branch)
-    expect(configuration?.sha).toBe('new')
-    expect(api.getFile).toHaveBeenCalledTimes(calls)
-  })
+  it.each([
+    'content: []\nsettings:\n  cache: true\n',
+    'content: []\nsurprise: true\nsettings:\n  cache: true\n  ignored: true\n',
+    'content: []\nmedia:\n  input: images\n  output: /images\n  ignored: true\n',
+  ])(
+    'writes configuration through to the parsed cache, including warning-only YAML: %s',
+    async (source) => {
+      const api = {
+        getFile: vi
+          .fn()
+          .mockResolvedValue({ sha: 'old', content: btoa('content: []') }),
+        putFile: vi.fn().mockResolvedValue({
+          sha: 'new',
+          commitSha: 'after',
+          path: '.pages.yml',
+        }),
+      } as unknown as GitHubApi
+      await saveConfigurationSource({
+        database: database!,
+        repositoryAccess: {
+          resolve: async () => ({ api, tokenSource: 'user' as const }),
+        },
+        user: {
+          id: 'u',
+          email: 'user@example.com',
+          name: 'User',
+          githubUsername: 'user',
+        },
+        owner: scope.owner,
+        repo: scope.repo,
+        branch: scope.branch,
+        source,
+        sha: 'old',
+      })
+      const calls = vi.mocked(api.getFile).mock.calls.length
+      const configuration = await createConfigurationStore({
+        database: database!,
+      }).get(api, scope.owner, scope.repo, scope.branch)
+      expect(configuration?.sha).toBe('new')
+      expect(api.getFile).toHaveBeenCalledTimes(calls)
+      expect(api.putFile).toHaveBeenCalledWith(
+        expect.objectContaining({ content: btoa(source) }),
+      )
+    },
+  )
+
+  it.each([
+    'media: *missing\n',
+    'content: [\n',
+    'content: false\n',
+    'media:\n  input: 123\n  output: images\n',
+  ])(
+    'rejects invalid configuration before accessing or writing the repository: %s',
+    async (source) => {
+      const resolve = vi.fn()
+      const diagnostic = validateConfigurationSource(source).diagnostics.find(
+        ({ severity }) => severity === 'error',
+      )
+      await expect(
+        saveConfigurationSource({
+          database: database!,
+          repositoryAccess: { resolve },
+          user: {
+            id: 'u',
+            email: 'user@example.com',
+            name: 'User',
+            githubUsername: 'user',
+          },
+          owner: scope.owner,
+          repo: scope.repo,
+          branch: scope.branch,
+          source,
+          sha: 'old',
+        }),
+      ).rejects.toThrow(diagnostic!.message)
+      expect(resolve).not.toHaveBeenCalled()
+    },
+  )
 
   it('isolates parsed configuration by repository source', async () => {
     const store = createConfigurationStore({ database: database! })

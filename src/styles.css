@@ -192,6 +192,47 @@ body {
 
 .pagescms-code-editor .cm-editor {
   background: transparent !important;
+  @apply pr-[10px] pl-[6px] py-1 text-sm;
+}
+
+.pagescms-code-editor .cm-content {
+  @apply min-h-[8rem] font-mono;
+}
+
+.pagescms-code-editor .cm-tooltip {
+  @apply border-border bg-popover! text-popover-foreground rounded-md border! px-3 py-2 text-xs shadow-md;
+}
+
+.pagescms-code-editor .cm-diagnostic {
+  @apply mb-2 flex! gap-x-2! border-0! p-0! last:mb-0;
+}
+
+.pagescms-code-editor .cm-diagnostic::before {
+  content: '●';
+}
+
+.pagescms-code-editor .cm-diagnostic-error::before {
+  @apply text-destructive;
+}
+
+.pagescms-code-editor .cm-diagnostic-warning::before {
+  @apply text-amber-500;
+}
+
+.pagescms-code-editor .cm-lintRange-error,
+.pagescms-code-editor .cm-lintRange-warning {
+  background-image: none !important;
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+  text-underline-offset: 3px;
+}
+
+.pagescms-code-editor .cm-lintRange-error {
+  text-decoration-color: var(--destructive);
+}
+
+.pagescms-code-editor .cm-lintRange-warning {
+  text-decoration-color: var(--color-amber-500);
 }
 
 .pagescms-code-editor .cm-scroller,

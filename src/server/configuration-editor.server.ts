@@ -4,7 +4,7 @@ import {
   resolveCommitMessage,
 } from '#/lib/commit-message'
 import { normalizeConfiguration } from '#/lib/configuration'
-import { parseConfigurationSource } from '#/lib/configuration-source'
+import { validateConfigurationSource } from '#/lib/configuration-source'
 import { toJsonObject } from '#/lib/json'
 
 import { createConfigurationStore } from './configuration-store.server'
@@ -94,12 +94,13 @@ export async function saveConfigurationSource({
   if (source.length > 1_000_000) {
     throw new Error('Configuration source exceeds the 1 MB limit')
   }
-  const parsed = parseConfigurationSource(source)
-  if (parsed.diagnostics.length) {
-    throw new Error(parsed.diagnostics[0]?.message ?? 'Invalid .pages.yml')
+  const parsed = validateConfigurationSource(source)
+  const validationError = parsed.diagnostics.find(
+    (diagnostic) => diagnostic.severity === 'error',
+  )
+  if (validationError) {
+    throw new Error(validationError.message)
   }
-  const { ConfigurationSchema } = await import('#/lib/configuration-schema')
-  ConfigurationSchema.parse(parsed.configuration)
   const normalized = toJsonObject(normalizeConfiguration(parsed.configuration))
 
   const { api } = await repositoryAccess.resolve(user, owner, repo, branch)

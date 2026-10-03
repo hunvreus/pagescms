@@ -16,6 +16,8 @@
 
 ### Changed
 
+- Configuration now parses YAML once per validation, reports invalid/recursive aliases and conversion failures inline, and accepts warning-only saves using the same validation policy as the editor.
+- Restored the legacy GitHub CodeMirror themes, gutter-free editing, styled inline diagnostics, individual unknown-property warnings, and nested configuration validation messages.
 - Restored field parity: named select options and placeholders, formatted date read/write/defaults/steps, custom regex messages, schema-controlled rewrite/merge behavior, custom field registration and behavior hooks, upload rename policies, and sortable multi-file fields.
 - Restored collaborator CSV export/import for SQLite/libSQL, with atomic validated imports, email-based user relinking, and case-insensitive upserts.
 - Audited non-webhook legacy cache paths and restored configuration write-through, upload/move source reuse, colocated media reads, node-file enrichment reuse, configurable TTL/push limits, bounded repository-read caching and cache-coordinate preservation on renames; documented intentional differences and their rationale.
