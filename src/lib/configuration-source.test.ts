@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import YAML from 'yaml'
 
 import {
   parseConfigurationSource,
@@ -83,9 +84,89 @@ field:
       expect.objectContaining({ code: 'MULTIPLE_DOCS', from: 9, to: 18 }),
     )
   })
+
+  it('reports unresolved aliases at the alias without throwing', () => {
+    const source = 'media: *missing\n'
+    const result = parseConfigurationSource(source)
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        severity: 'error',
+        code: 'UNRESOLVED_ALIAS',
+        from: 7,
+        to: 15,
+      }),
+    )
+    expect(validateConfigurationSource(source).diagnostics).toEqual(
+      result.diagnostics,
+    )
+  })
+
+  it('rejects cyclic aliases rather than overflowing schema validation', () => {
+    const result = validateConfigurationSource('content: &items\n  - *items\n')
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        severity: 'error',
+        code: 'CYCLIC_ALIAS',
+        from: 20,
+        to: 26,
+      }),
+    )
+  })
+
+  it('keeps valid aliases working', () => {
+    const result = parseConfigurationSource(
+      'media: &images images\nother: *images\n',
+    )
+    expect(result.configuration).toEqual({ media: 'images', other: 'images' })
+    expect(result.diagnostics).toEqual([])
+  })
+
+  it('reports alias expansion limits as diagnostics rather than throwing', () => {
+    const source =
+      'media: &images images\ncontent: [' +
+      Array(101).fill('*images').join(', ') +
+      ']\n'
+    const result = parseConfigurationSource(source)
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        severity: 'error',
+        code: 'YAML_CONVERSION_ERROR',
+        message: expect.stringContaining('alias count'),
+      }),
+    )
+  })
 })
 
 describe('validateConfigurationSource', () => {
+  it('parses YAML only once per validation', () => {
+    const parse = vi.spyOn(YAML, 'parseDocument')
+    try {
+      validateConfigurationSource('media: images\n')
+      expect(parse).toHaveBeenCalledTimes(1)
+    } finally {
+      parse.mockRestore()
+    }
+  })
+
+  it('preserves nested field messages and ranges alongside warnings', () => {
+    const source =
+      'content:\n  - name: posts\n    type: collection\n    path: posts\n    fields:\n      - name: title\n        type: string\n        required: nope\n        extra: true\n'
+    const result = validateConfigurationSource(source)
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        severity: 'error',
+        from: source.indexOf('nope'),
+        message: "'required' must be a boolean.",
+      }),
+    )
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        severity: 'warning',
+        from: source.indexOf('extra'),
+        message: "Property 'extra' isn't valid and will be ignored.",
+      }),
+    )
+  })
   it('reports configuration schema errors at the related YAML node', () => {
     const result = validateConfigurationSource('content: nope\n')
 
@@ -104,8 +185,48 @@ describe('validateConfigurationSource', () => {
     expect(result.diagnostics).toEqual([
       expect.objectContaining({
         severity: 'warning',
-        message: expect.stringContaining('Unrecognized key'),
+        from: 0,
+        to: 8,
+        message: "Property 'surprise' isn't valid and will be ignored.",
       }),
     ])
+  })
+
+  it('underlines each unknown property rather than the whole mapping', () => {
+    const source = 'settings:\n  surprise: true\n  another: false\n'
+    const result = validateConfigurationSource(source)
+    expect(
+      result.diagnostics.map(({ from, to, message, severity }) => ({
+        text: source.slice(from!, to!),
+        message,
+        severity,
+      })),
+    ).toEqual([
+      {
+        text: 'surprise',
+        message: "Property 'surprise' isn't valid and will be ignored.",
+        severity: 'warning',
+      },
+      {
+        text: 'another',
+        message: "Property 'another' isn't valid and will be ignored.",
+        severity: 'warning',
+      },
+    ])
+  })
+
+  it('expands union errors into the nested custom field messages', () => {
+    const source = 'media:\n  input: 123\n  output: images\n'
+    const result = validateConfigurationSource(source)
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        severity: 'error',
+        from: source.indexOf('123'),
+        message: "'input' is required.",
+      }),
+    )
+    expect(
+      result.diagnostics.some(({ message }) => message === 'Invalid input'),
+    ).toBe(false)
   })
 })

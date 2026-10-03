@@ -1,9 +1,8 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import CodeMirror from '@uiw/react-codemirror'
-import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
-import { lintGutter, linter } from '@codemirror/lint'
+import { githubDark, githubLight } from '@uiw/codemirror-theme-github'
+import { setDiagnostics } from '@codemirror/lint'
 import { EditorView } from '@codemirror/view'
-import { tags } from '@lezer/highlight'
 
 import { cn } from '#/lib/utils'
 import { codeEditorLanguage } from './code-editor-language'
@@ -18,61 +17,14 @@ type SourceDiagnostic = {
 }
 const noDiagnostics: readonly SourceDiagnostic[] = []
 
-const theme = EditorView.theme({
-  '&': {
-    backgroundColor: 'transparent',
-    color: 'var(--foreground)',
-    fontSize: '13px',
-  },
-  '.cm-content': {
-    caretColor: 'var(--foreground)',
-    fontFamily:
-      'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-    lineHeight: '1.5rem',
-    padding: '0.75rem 0',
-  },
-  '.cm-gutters': {
-    backgroundColor: 'transparent',
-    borderRight: '1px solid var(--border)',
-    color: 'var(--muted-foreground)',
-  },
-  '.cm-activeLine, .cm-activeLineGutter': {
-    backgroundColor: 'color-mix(in oklab, var(--muted) 45%, transparent)',
-  },
-  '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--foreground)' },
-  '.cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection':
-    {
-      backgroundColor: 'color-mix(in oklab, var(--primary) 22%, transparent)',
-    },
-  '.cm-tooltip': {
-    backgroundColor: 'var(--popover)',
-    border: '1px solid var(--border)',
-    color: 'var(--popover-foreground)',
-  },
-})
-
-const syntaxTheme = HighlightStyle.define([
-  { tag: tags.comment, color: 'var(--muted-foreground)', fontStyle: 'italic' },
-  {
-    tag: [tags.keyword, tags.atom, tags.bool, tags.null],
-    color: 'var(--chart-1)',
-  },
-  {
-    tag: [tags.string, tags.special(tags.string)],
-    color: 'var(--chart-2)',
-  },
-  {
-    tag: [tags.number, tags.integer, tags.float],
-    color: 'var(--chart-3)',
-  },
-  {
-    tag: [tags.propertyName, tags.attributeName, tags.labelName],
-    color: 'var(--foreground)',
-    fontWeight: '600',
-  },
-  { tag: [tags.punctuation, tags.separator], color: 'var(--muted-foreground)' },
-  { tag: tags.invalid, color: 'var(--destructive)' },
-])
+function subscribeTheme(onChange: () => void) {
+  const observer = new MutationObserver(onChange)
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['class'],
+  })
+  return () => observer.disconnect()
+}
 
 function lintDiagnostics(
   diagnostics: readonly SourceDiagnostic[],
@@ -89,7 +41,6 @@ function lintDiagnostics(
       to,
       severity: diagnostic.severity,
       message: diagnostic.message,
-      source: 'Pages CMS',
     }
   })
 }
@@ -117,39 +68,46 @@ export function CodeEditor({
   required?: boolean
   configuration?: boolean
 }) {
+  const dark = useSyncExternalStore(
+    subscribeTheme,
+    () => document.documentElement.classList.contains('dark'),
+    () => false,
+  )
+  const [view, setView] = useState<EditorView>()
+  useEffect(() => {
+    if (view)
+      view.dispatch(
+        setDiagnostics(
+          view.state,
+          lintDiagnostics(diagnostics, view.state.doc.length),
+        ),
+      )
+  }, [view, diagnostics, value, dark, format])
   const extensions = useMemo(
     () => [
       codeEditorLanguage(format),
       EditorView.lineWrapping,
-      ...(configuration || diagnostics.length
-        ? [
-            lintGutter(),
-            linter((view) =>
-              lintDiagnostics(diagnostics, view.state.doc.length),
-            ),
-          ]
-        : []),
       EditorView.contentAttributes.of({
         'aria-label': label,
         'aria-required': String(required),
         'aria-disabled': String(disabled),
         ...(id ? { id } : {}),
       }),
-      theme,
-      syntaxHighlighting(syntaxTheme),
     ],
-    [diagnostics, label, format, id, required, disabled, configuration],
+    [label, format, id, required, disabled],
   )
 
   return (
     <CodeMirror
       basicSetup={{
         foldGutter: false,
-        highlightActiveLine: configuration,
-        highlightActiveLineGutter: configuration,
-        lineNumbers: configuration,
-        searchKeymap: configuration,
+        highlightActiveLine: false,
+        highlightActiveLineGutter: false,
+        lineNumbers: false,
+        searchKeymap: false,
       }}
+      theme={dark ? githubDark : githubLight}
+      onCreateEditor={setView}
       className={cn(
         'pagescms-code-editor overflow-hidden rounded-md border border-input bg-background text-sm transition-[color,box-shadow] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50 [&_.cm-editor]:outline-none [&_.cm-scroller]:scrollbar',
         disabled && 'opacity-65',

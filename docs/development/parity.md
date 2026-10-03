@@ -6,4 +6,6 @@ Implemented product areas include authentication and account linking, repository
 
 The old Next.js UI called many `/api/:owner/:repo/...` JSON routes as an internal transport. Repository history contains no public documentation or non-legacy consumer for those shapes, so the replacement intentionally uses validated TanStack server functions through the same access-policy gateway instead of maintaining two transports. The externally meaningful HTTP routes retained are Better Auth, app version, GitHub App installation, GitHub webhook, health, and authenticated media preview.
 
+Configuration uses the same source validator in the editor and on save: errors block saving, unknown-property warnings do not. Raw YAML is preserved, including warning-only properties; those properties do not become supported settings. Invalid, recursive, and excessively expanded YAML aliases produce diagnostics rather than escaping into the page error boundary.
+
 Behavioral parity is not yet release acceptance. The remaining hosted acceptance, performance measurement, and deployment/cutover gates are tracked in [`TODO.md`](../../TODO.md).
