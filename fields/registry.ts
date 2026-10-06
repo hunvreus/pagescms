@@ -2,6 +2,7 @@ import { Field } from "@/types/field";
 import { z } from "zod";
 import * as booleanField from "@/fields/core/boolean";
 import * as codeField from "@/fields/core/code";
+import * as colorField from "@/fields/core/color";
 import * as dateField from "@/fields/core/date";
 import * as fileField from "@/fields/core/file";
 import * as imageField from "@/fields/core/image";
@@ -46,6 +47,7 @@ const registerField = (fieldName: string, fieldModule: FieldModule) => {
 
 registerField("boolean", booleanField);
 registerField("code", codeField);
+registerField("color", colorField);
 registerField("date", dateField);
 registerField("file", fileField);
 registerField("image", imageField);
