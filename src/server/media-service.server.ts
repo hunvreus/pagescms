@@ -5,7 +5,6 @@ import {
 } from '#/lib/commit-message'
 import { schemaActions } from '#/lib/actions'
 import { base64ByteLength } from '#/lib/base64'
-import { isCacheEnabled } from '#/lib/configuration'
 import {
   findMediaSchema,
   mediaDirectoryPath,
@@ -166,7 +165,7 @@ async function context(input: MediaInput) {
           branch: input.branch,
           path,
           context: 'media',
-          enabled: isCacheEnabled(configuration.object),
+          enabled: true,
         })
       ).entries,
     resolveDirectory: async (path) =>
@@ -328,6 +327,28 @@ export async function loadMediaAsset(input: MediaInput & { path: string }) {
     throw new Error('This file extension is not allowed')
   }
   return storage.read(path)
+}
+
+export async function loadMediaPreview(
+  input: MediaInput & { path: string; ifNoneMatch?: string },
+) {
+  const { schema, storage } = await context(input)
+  const path = mediaDirectoryPath(schema, input.path)
+  if (path === normalizeGitPath(schema.input))
+    throw new Error('Media asset path must identify a file')
+  if (!allowedExtension(schema, path))
+    throw new Error('This file extension is not allowed')
+  if (storage.preview) return storage.preview(path, input.ifNoneMatch)
+  const file = await storage.read(path)
+  const etag = `"${file.version}"`
+  const notModified = input.ifNoneMatch === etag
+  return {
+    etag,
+    notModified,
+    body: notModified
+      ? null
+      : new Response(new Uint8Array(file.bytes).buffer).body,
+  }
 }
 
 export async function uploadMedia(

@@ -67,6 +67,11 @@ const config = defineConfig(({ mode }) => {
         : nodeRequestServices
 
   return {
+    build: { manifest: true },
+    cacheDir:
+      process.env.PAGESCMS_E2E === 'true'
+        ? 'node_modules/.vite-e2e'
+        : undefined,
     customLogger: createDevelopmentLogger(),
     envDir: process.env.PAGESCMS_E2E === 'true' ? false : undefined,
     server: {
@@ -86,6 +91,7 @@ const config = defineConfig(({ mode }) => {
       dedupe: [
         'react',
         'react-dom',
+        '@tiptap/pm',
         '@tanstack/react-query',
         '@tanstack/react-router',
       ],

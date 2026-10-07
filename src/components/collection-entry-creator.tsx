@@ -3,10 +3,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { LoaderCircle, Plus } from 'lucide-react'
 
-import {
-  StructuredContentField,
-  isContentField,
-} from '#/components/structured-content-field'
+import { StructuredContentField } from '#/components/structured-content-field'
+import { isContentField } from '#/lib/content-field'
 import { OperationError } from '#/components/operation-error'
 import { Button } from '#/components/ui/button'
 import { Field, FieldGroup, FieldLabel } from '#/components/ui/field'

@@ -1,23 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { ExternalLink, History, LoaderCircle } from 'lucide-react'
+import { ArrowUpRight, LoaderCircle } from 'lucide-react'
 
 import { CodeEditor } from '#/components/code-editor'
 import { OperationError } from '#/components/operation-error'
 import { Button } from '#/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '#/components/ui/dropdown-menu'
-import { FieldError } from '#/components/ui/field'
-import {
-  getConfigurationHistory,
-  updateConfiguration,
-} from '#/functions/configuration-editor'
+import { updateConfiguration } from '#/functions/configuration-editor'
 import { useUnsavedWarning } from '#/hooks/use-unsaved-warning'
 import { validateConfigurationSource } from '#/lib/configuration-source'
 import { configurationEditorQueryOptions } from '#/queries/content'
@@ -29,10 +17,26 @@ export function ConfigurationPage({
   owner,
   repo,
   branch,
+  embedded = false,
+  onDirtyChange,
+  inline = false,
+  editing = true,
+  onEdit,
+  onDone,
+  onCancel,
+  showGitHubLink = false,
 }: {
   owner: string
   repo: string
   branch: string
+  embedded?: boolean
+  onDirtyChange?: (dirty: boolean) => void
+  inline?: boolean
+  editing?: boolean
+  onEdit?: () => void
+  onDone?: () => void
+  onCancel?: () => void
+  showGitHubLink?: boolean
 }) {
   const params = { owner, repo, branch }
   const { data: initial } = useSuspenseQuery(
@@ -43,12 +47,7 @@ export function ConfigurationPage({
   const [savedSource, setSavedSource] = useState(initial.source)
   const [sha, setSha] = useState<string | null>(initial.sha)
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
   const [error, setError] = useState<unknown>(null)
-  const [history, setHistory] = useState<Awaited<
-    ReturnType<typeof getConfigurationHistory>
-  > | null>(null)
-  const [loadingHistory, setLoadingHistory] = useState(false)
   const diagnostics = useMemo(
     () => validateConfigurationSource(source).diagnostics,
     [source],
@@ -57,13 +56,21 @@ export function ConfigurationPage({
     (diagnostic) => diagnostic.severity === 'error',
   )
   const dirty = source !== savedSource
+  useEffect(() => {
+    if (inline && !editing) {
+      setSource(savedSource)
+      setError(null)
+    }
+  }, [inline, editing, savedSource])
+  useEffect(() => {
+    onDirtyChange?.(dirty)
+  }, [dirty, onDirtyChange])
 
   useUnsavedWarning(dirty)
 
   async function save() {
     if (errors.length) return
     setSaving(true)
-    setSaved(false)
     setError(null)
     try {
       const result = await updateConfiguration({
@@ -71,10 +78,10 @@ export function ConfigurationPage({
       })
       setSha(result.sha)
       setSavedSource(source)
-      setSaved(true)
       await queryClient.invalidateQueries({
         queryKey: queryKeys.branch(params),
       })
+      onDone?.()
     } catch (cause) {
       setError(cause)
     } finally {
@@ -82,102 +89,90 @@ export function ConfigurationPage({
     }
   }
 
-  async function loadHistory() {
-    if (history || loadingHistory) return
-    setLoadingHistory(true)
-    setError(null)
-    try {
-      setHistory(await getConfigurationHistory({ data: params }))
-    } catch (cause) {
-      setError(cause)
-    } finally {
-      setLoadingHistory(false)
-    }
-  }
+  const controls = (
+    <>
+      {showGitHubLink ? (
+        <Button asChild size="sm" variant="ghost">
+          <a
+            aria-label="View configuration on GitHub"
+            href={`https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/blob/${encodeURIComponent(branch)}/.pages.yml`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            View on GitHub <ArrowUpRight data-icon="inline-end" />
+          </a>
+        </Button>
+      ) : null}
+      {onCancel && editing ? (
+        <Button
+          size={inline ? 'sm' : 'default'}
+          variant="outline"
+          onClick={onCancel}
+          disabled={saving}
+        >
+          Cancel
+        </Button>
+      ) : null}
+      {inline && !editing ? (
+        <Button size="sm" variant="outline" onClick={onEdit}>
+          Edit configuration
+        </Button>
+      ) : (
+        <Button
+          size={inline ? 'sm' : 'default'}
+          disabled={saving || !dirty || errors.length > 0}
+          onClick={() => void save()}
+        >
+          {saving ? <LoaderCircle className="animate-spin" /> : null}
+          {saving ? 'Saving' : 'Save'}
+        </Button>
+      )}
+    </>
+  )
 
   return (
     <RepositoryAdminPage
+      embedded={embedded}
+      hideHeading={embedded && !inline}
       className="max-w-none"
       title="Configuration"
-      actions={
-        <>
-          <DropdownMenu onOpenChange={(open) => open && void loadHistory()}>
-            <DropdownMenuTrigger asChild>
-              <Button
-                aria-label="Configuration history"
-                size="icon"
-                variant="outline"
-              >
-                {loadingHistory ? (
-                  <LoaderCircle className="animate-spin" />
-                ) : (
-                  <History />
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              <DropdownMenuLabel>Configuration history</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {loadingHistory ? (
-                <DropdownMenuItem disabled>Loading history…</DropdownMenuItem>
-              ) : history?.length ? (
-                history.map((commit) => (
-                  <DropdownMenuItem asChild key={commit.sha}>
-                    <a
-                      className="flex items-start justify-between gap-3"
-                      href={commit.url}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
-                      <span className="min-w-0">
-                        <span className="block truncate">
-                          {commit.message.split('\n')[0]}
-                        </span>
-                        <span className="block text-xs text-muted-foreground">
-                          {commit.authorName}
-                          {commit.authoredAt
-                            ? ` · ${new Date(commit.authoredAt).toLocaleString()}`
-                            : ''}
-                        </span>
-                      </span>
-                      <ExternalLink className="mt-0.5 shrink-0" />
-                    </a>
-                  </DropdownMenuItem>
-                ))
-              ) : (
-                <DropdownMenuItem disabled>No history found.</DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button
-            disabled={saving || !dirty || errors.length > 0}
-            onClick={() => void save()}
-          >
-            {saving ? <LoaderCircle className="animate-spin" /> : null}
-            {saving ? 'Saving' : saved && !dirty ? 'Saved' : 'Save'}
-          </Button>
-        </>
-      }
+      actions={inline || !embedded ? controls : undefined}
     >
       <OperationError
         error={error}
         fallback="Could not update configuration."
       />
       <div className="space-y-2">
-        <CodeEditor
-          configuration
-          format="yaml"
-          diagnostics={diagnostics}
-          label="Pages CMS configuration"
-          value={source}
-          onChange={(value) => {
-            setSource(value)
-            setSaved(false)
-          }}
-        />
-        <FieldError
-          errors={errors.map((diagnostic) => ({ message: diagnostic.message }))}
-        />
+        <div
+          className={inline ? `relative ${editing ? '' : 'h-40'}` : undefined}
+          data-slot="configuration-preview"
+          data-editing={editing}
+        >
+          <CodeEditor
+            format="yaml"
+            diagnostics={editing ? diagnostics : []}
+            label="Pages CMS configuration"
+            value={
+              inline && !editing
+                ? savedSource.split('\n').slice(0, 8).join('\n')
+                : source
+            }
+            disabled={inline && !editing}
+            autoFocus={inline && editing}
+            className={
+              inline
+                ? `rounded-xl bg-card [&_.cm-editor]:px-4! [&_.cm-editor]:py-3! [&_.cm-line]:px-0! ${editing ? 'min-h-40' : 'h-40 pointer-events-none border-border opacity-100 [&_.cm-editor]:h-full [&_.cm-scroller]:overflow-hidden'}`
+                : undefined
+            }
+            onChange={setSource}
+          />
+          {inline && !editing ? (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-px bottom-px h-12 rounded-b-xl bg-gradient-to-t from-card to-transparent"
+            />
+          ) : null}
+        </div>
       </div>
     </RepositoryAdminPage>
   )

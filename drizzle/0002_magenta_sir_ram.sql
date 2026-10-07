@@ -1,0 +1,1 @@
+DROP TABLE `cache_permission`;

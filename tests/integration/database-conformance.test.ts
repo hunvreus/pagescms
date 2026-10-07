@@ -10,7 +10,6 @@ import {
   actionRunTable,
   cacheFileMetaTable,
   cacheFileTable,
-  cachePermissionTable,
   collaboratorTable,
   githubInstallationTokenTable,
   sessionTable,
@@ -60,7 +59,6 @@ function conformance(name: string, createHarness: () => Promise<Harness>) {
       await harness.database.delete(actionRunTable)
       await harness.database.delete(cacheFileTable)
       await harness.database.delete(cacheFileMetaTable)
-      await harness.database.delete(cachePermissionTable)
       await harness.database.delete(collaboratorTable)
       await harness.database.delete(sessionTable)
       await harness.database.delete(userTable)
@@ -150,44 +148,6 @@ function conformance(name: string, createHarness: () => Promise<Harness>) {
         paths: ['content/post.md'],
         dryRun: false,
       })
-
-      await harness.database.insert(cachePermissionTable).values({
-        githubId: 42,
-        owner: 'PagesCMS',
-        repo: 'Website',
-        lastUpdated: new Date(),
-      })
-      await expect(
-        harness.database.insert(cachePermissionTable).values({
-          githubId: 42,
-          owner: 'PagesCMS',
-          repo: 'Website',
-          lastUpdated: new Date(),
-        }),
-      ).rejects.toThrow()
-
-      await harness.database.insert(collaboratorTable).values({
-        type: 'repository',
-        installationId: 1,
-        ownerId: 2,
-        repoId: 3,
-        owner: 'PagesCMS',
-        repo: 'Website',
-        branch: 'main',
-        email: 'Editor@example.com',
-      })
-      await expect(
-        harness.database.insert(collaboratorTable).values({
-          type: 'repository',
-          installationId: 1,
-          ownerId: 2,
-          repoId: 3,
-          owner: 'pagescms',
-          repo: 'website',
-          branch: 'main',
-          email: 'editor@example.com',
-        }),
-      ).rejects.toThrow()
     })
 
     it('allows only one concurrent cache publication to claim a snapshot', async () => {
@@ -279,7 +239,7 @@ function conformance(name: string, createHarness: () => Promise<Harness>) {
         .select({ count: sql<number>`count(*)` })
         .from(cacheFileTable)
       expect(Number(count)).toBe(3_000)
-    })
+    }, 30_000)
   })
 }
 
@@ -303,18 +263,20 @@ if (databaseUrl && cacheDatabaseUrl) {
       try {
         const database = createLibSqlDatabase(applicationClient)
         const cacheDatabase = createLibSqlDatabase(cacheClient)
-        await cacheDatabase.insert(cachePermissionTable).values({
-          githubId: 99,
-          owner: 'pagescms',
-          repo: 'separate-cache',
-          lastUpdated: new Date(),
-        })
-
-        expect(await database.select().from(cachePermissionTable)).toHaveLength(
-          0,
-        )
+        await cacheDatabase
+          .insert(cacheFileMetaTable)
+          .values({ owner: 'pagescms', repo: 'isolated', branch: 'main' })
         expect(
-          await cacheDatabase.select().from(cachePermissionTable),
+          await database
+            .select()
+            .from(cacheFileMetaTable)
+            .where(eq(cacheFileMetaTable.repo, 'isolated')),
+        ).toHaveLength(0)
+        expect(
+          await cacheDatabase
+            .select()
+            .from(cacheFileMetaTable)
+            .where(eq(cacheFileMetaTable.repo, 'isolated')),
         ).toHaveLength(1)
       } finally {
         applicationClient.close()

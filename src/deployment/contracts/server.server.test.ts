@@ -88,8 +88,8 @@ describe('server deployment contract', () => {
       billingWebhook: { handle: async () => undefined },
       entitlementReader: { read: async () => null },
       repositoryPermissionAdmin: {
-        read: async () => ({ version: '1', grants: [] }),
-        replace: async () => ({ version: '2', grants: [] }),
+        read: async () => ({ version: '1', roles: [], assignments: [] }),
+        replace: async () => ({ version: '2', roles: [], assignments: [] }),
       },
     }
     const deployment = definePagesCmsServerDeployment({

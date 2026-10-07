@@ -178,6 +178,7 @@ export const getRawEntry = createServerFn({ method: 'GET' })
     const user = {
       id: session.user.id,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
     return services.access.execute(
@@ -220,6 +221,7 @@ export const getEntryHistory = createServerFn({ method: 'GET' })
     const user = {
       id: session.user.id,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
     return services.access.execute(
@@ -264,6 +266,7 @@ export const updateRawEntry = createServerFn({ method: 'POST' })
       id: session.user.id,
       name: session.user.name,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
     return services.access.execute(
@@ -308,6 +311,7 @@ export const updateStructuredEntry = createServerFn({ method: 'POST' })
       id: session.user.id,
       name: session.user.name,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
     return services.access.execute(
@@ -355,6 +359,7 @@ export const createStructuredCollectionEntry = createServerFn({
       id: session.user.id,
       name: session.user.name,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
     return services.access.execute(
@@ -399,6 +404,7 @@ export const createRawCollectionEntry = createServerFn({ method: 'POST' })
       id: session.user.id,
       name: session.user.name,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
     return services.access.execute(
@@ -442,6 +448,7 @@ export const createCollectionFolder = createServerFn({ method: 'POST' })
       id: session.user.id,
       name: session.user.name,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
     return services.access.execute(
@@ -486,6 +493,7 @@ export const deleteEntry = createServerFn({ method: 'POST' })
       id: session.user.id,
       name: session.user.name,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
     return services.access.execute(
@@ -530,6 +538,7 @@ export const renameEntry = createServerFn({ method: 'POST' })
       id: session.user.id,
       name: session.user.name,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
     return services.access.execute(
@@ -574,6 +583,7 @@ export const moveEntry = createServerFn({ method: 'POST' })
       id: session.user.id,
       name: session.user.name,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
     return services.access.execute(

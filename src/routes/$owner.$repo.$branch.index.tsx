@@ -1,12 +1,19 @@
-import { createFileRoute, getRouteApi, redirect } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  getRouteApi,
+  Link,
+  redirect,
+} from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
 import {
   Empty,
+  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyTitle,
 } from '#/components/ui/empty'
+import { Button } from '#/components/ui/button'
 import { repositoryWorkspaceQueryOptions } from '#/queries/repository'
 import { getDefaultConfigurationNavigationItem } from '#/lib/configuration-navigation'
 
@@ -66,6 +73,19 @@ function RepositoryOverview() {
             </>
           )}
         </EmptyHeader>
+        {!workspace.configuration && workspace.canViewGitHub ? (
+          <EmptyContent>
+            <Button asChild>
+              <Link
+                to="/$owner/$repo/$branch/settings"
+                params={params}
+                search={{ edit: 'configuration' }}
+              >
+                Add configuration
+              </Link>
+            </Button>
+          </EmptyContent>
+        ) : null}
       </Empty>
     </div>
   )

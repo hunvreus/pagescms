@@ -2,7 +2,6 @@ import type {
   AccessPrincipal,
   AccessTenant,
 } from '#/server/access-policy.server'
-import { APPLICATION_OPERATIONS } from '#/lib/application-operations'
 import type { ApplicationOperation } from '#/lib/application-operations'
 
 import { DeploymentConfigurationError } from './version'
@@ -39,6 +38,20 @@ export interface EntitlementReader {
   }) => Promise<EntitlementSnapshot | null>
 }
 
+export interface BillingSessions {
+  options: (input: { accountId: string }) => Promise<{
+    plans: readonly { id: string; label: string }[]
+    canManage: boolean
+  }>
+  create: (input: {
+    accountId: string
+    email: string
+    intent: 'checkout' | 'portal'
+    priceId?: string
+    idempotencyKey: string
+  }) => Promise<{ url: string }>
+}
+
 export interface BillingWebhookHandler {
   handle: (request: { body: Uint8Array; headers: Headers }) => Promise<{
     status?: 200 | 202 | 204
@@ -56,35 +69,43 @@ export class BillingWebhookRequestError extends Error {
   }
 }
 
-export type RepositoryPermissionResource =
-  | Readonly<{ type: 'repository' }>
-  | Readonly<{ type: 'collection' | 'media' | 'action'; name: string }>
-
-export interface RepositoryPermissionGrant {
+export type RepositoryPermissionResource = Readonly<{
+  type: 'collection' | 'media' | 'action'
+  name: string
+}>
+export interface RepositoryRolePermission {
   id: string
-  principalId: string
-  principalType: 'user' | 'collaborator'
-  operations: readonly ApplicationOperation[]
+  operations: 'all' | readonly ApplicationOperation[]
   resource: RepositoryPermissionResource
 }
-
-export interface RepositoryPermissionSnapshot {
-  version: string
-  grants: readonly RepositoryPermissionGrant[]
+export interface RepositoryRole {
+  id: string
+  label: string
+  permissions: readonly RepositoryRolePermission[]
 }
-
+export interface RepositoryRoleAssignment {
+  principalId: string
+  branches: 'all' | readonly string[]
+  roles: readonly string[]
+}
+export interface RepositoryPermissions {
+  version: string
+  roles: readonly RepositoryRole[]
+  assignments: readonly RepositoryRoleAssignment[]
+}
 export interface RepositoryPermissionAdmin {
   read: (repository: {
     owner: string
     repo: string
-  }) => Promise<RepositoryPermissionSnapshot>
+  }) => Promise<RepositoryPermissions>
   replace: (input: {
     owner: string
     repo: string
     expectedVersion: string
-    grants: readonly RepositoryPermissionGrant[]
+    roles: readonly RepositoryRole[]
+    assignments: readonly RepositoryRoleAssignment[]
     actorId: string
-  }) => Promise<RepositoryPermissionSnapshot>
+  }) => Promise<RepositoryPermissions>
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -226,95 +247,131 @@ export function validateEntitlementSnapshot(
   })
 }
 
-const operations = new Set<string>(APPLICATION_OPERATIONS)
+export const RESOURCE_OPERATIONS = {
+  collection: [
+    'collection.read',
+    'entry.read',
+    'entry.create',
+    'entry.update',
+    'entry.rename',
+    'entry.delete',
+    'entry.history',
+    'reference.read',
+  ],
+  media: ['media.read', 'media.write', 'media.rename', 'media.delete'],
+  action: ['action.read', 'action.run', 'action.cancel', 'action.rerun'],
+} as const satisfies Record<string, readonly ApplicationOperation[]>
+export const FULL_ACCESS_ROLE = 'full-access'
 
-export function validateRepositoryPermissionSnapshot(
+export function validateRepositoryPermissions(
   value: unknown,
-): RepositoryPermissionSnapshot {
-  if (!isRecord(value)) {
+): RepositoryPermissions {
+  if (!isRecord(value))
     throw new DeploymentConfigurationError(
-      'The repository permission admin returned an invalid snapshot',
+      'Repository permissions must be an object',
     )
+  assertOnlyKeys(
+    value,
+    ['version', 'roles', 'assignments'],
+    'Repository permissions',
+  )
+  if (
+    typeof value.version !== 'string' ||
+    !/^(0|[1-9]\d*)$/.test(value.version) ||
+    !Number.isSafeInteger(Number(value.version))
+  )
+    throw new DeploymentConfigurationError('Invalid permission version')
+  if (
+    !Array.isArray(value.roles) ||
+    value.roles.length > 100 ||
+    !Array.isArray(value.assignments) ||
+    value.assignments.length > 1000
+  )
+    throw new DeploymentConfigurationError('Invalid roles or assignments')
+  const unique = (values: readonly string[], label: string) => {
+    if (new Set(values).size !== values.length)
+      throw new DeploymentConfigurationError(`Duplicate ${label}`)
   }
-  assertOnlyKeys(value, ['version', 'grants'], 'The permission snapshot')
-  if (!Array.isArray(value.grants) || value.grants.length > 10_000) {
-    throw new DeploymentConfigurationError(
-      'The permission snapshot has invalid grants',
-    )
+  const strings = (values: unknown, label: string): readonly string[] => {
+    if (!Array.isArray(values) || values.length > 1000)
+      throw new DeploymentConfigurationError(`Invalid ${label}`)
+    const result = values.map((v) => requiredString(v, label))
+    unique(result, label)
+    return Object.freeze(result)
   }
-  const grants = value.grants.map((grant, index) => {
-    if (!isRecord(grant) || !isRecord(grant.resource)) {
-      throw new DeploymentConfigurationError(
-        `Repository permission grant ${index} is invalid`,
+  const roles = value.roles.map((role) => {
+    if (!isRecord(role)) throw new DeploymentConfigurationError('Invalid role')
+    assertOnlyKeys(role, ['id', 'label', 'permissions'], 'Role')
+    const id = requiredString(role.id, 'Role ID')
+    if (id === FULL_ACCESS_ROLE)
+      throw new DeploymentConfigurationError('Full access is a built-in role')
+    if (!Array.isArray(role.permissions) || role.permissions.length > 100)
+      throw new DeploymentConfigurationError('Invalid role permissions')
+    const permissions = role.permissions.map((p) => {
+      if (!isRecord(p) || !isRecord(p.resource))
+        throw new DeploymentConfigurationError('Invalid role permission')
+      assertOnlyKeys(p, ['id', 'resource', 'operations'], 'Role permission')
+      assertOnlyKeys(p.resource, ['type', 'name'], 'Permission resource')
+      const type = p.resource.type
+      if (type !== 'collection' && type !== 'media' && type !== 'action')
+        throw new DeploymentConfigurationError('Invalid resource type')
+      const operations =
+        p.operations === 'all'
+          ? ('all' as const)
+          : strings(p.operations, 'operations')
+      if (
+        operations !== 'all' &&
+        (!operations.length ||
+          !operations.every((op) =>
+            (RESOURCE_OPERATIONS[type] as readonly string[]).includes(op),
+          ))
       )
-    }
-    assertOnlyKeys(
-      grant,
-      ['id', 'principalId', 'principalType', 'operations', 'resource'],
-      `Repository permission grant ${index}`,
+        throw new DeploymentConfigurationError(
+          'Invalid operations for resource',
+        )
+      return Object.freeze({
+        id: requiredString(p.id, 'Permission ID'),
+        operations: operations as 'all' | readonly ApplicationOperation[],
+        resource: Object.freeze({
+          type,
+          name: requiredString(p.resource.name, 'Resource name'),
+        }),
+      })
+    })
+    unique(
+      permissions.map((p) => p.id),
+      'permission IDs',
     )
-    if (
-      grant.principalType !== 'user' &&
-      grant.principalType !== 'collaborator'
-    ) {
-      throw new DeploymentConfigurationError(
-        `Repository permission grant ${index} has an invalid principal type`,
-      )
-    }
-    if (
-      !Array.isArray(grant.operations) ||
-      grant.operations.length === 0 ||
-      !grant.operations.every(
-        (operation) =>
-          typeof operation === 'string' && operations.has(operation),
-      )
-    ) {
-      throw new DeploymentConfigurationError(
-        `Repository permission grant ${index} has invalid operations`,
-      )
-    }
-    const resource = grant.resource
-    if (resource.type === 'repository') {
-      assertOnlyKeys(
-        resource,
-        ['type'],
-        `Repository permission grant ${index} resource`,
-      )
-    } else if (
-      resource.type === 'collection' ||
-      resource.type === 'media' ||
-      resource.type === 'action'
-    ) {
-      assertOnlyKeys(
-        resource,
-        ['type', 'name'],
-        `Repository permission grant ${index} resource`,
-      )
-      requiredString(
-        resource.name,
-        `Repository permission grant ${index} resource name`,
-      )
-    } else {
-      throw new DeploymentConfigurationError(
-        `Repository permission grant ${index} has an invalid resource`,
-      )
-    }
-
     return Object.freeze({
-      id: requiredString(grant.id, `Repository permission grant ${index} id`),
-      principalId: requiredString(
-        grant.principalId,
-        `Repository permission grant ${index} principal`,
-      ),
-      principalType: grant.principalType,
-      operations: Object.freeze([
-        ...new Set(grant.operations),
-      ] as ApplicationOperation[]),
-      resource: Object.freeze({ ...resource }) as RepositoryPermissionResource,
+      id,
+      label: requiredString(role.label, 'Role label'),
+      permissions: Object.freeze(permissions),
     })
   })
+  unique(
+    roles.map((r) => r.id),
+    'role IDs',
+  )
+  const assignments = value.assignments.map((a) => {
+    if (!isRecord(a))
+      throw new DeploymentConfigurationError('Invalid role assignment')
+    assertOnlyKeys(a, ['principalId', 'branches', 'roles'], 'Role assignment')
+    return Object.freeze({
+      principalId: requiredString(a.principalId, 'Collaborator ID'),
+      branches:
+        a.branches === 'all'
+          ? ('all' as const)
+          : strings(a.branches, 'branches'),
+      roles: strings(a.roles, 'assigned roles'),
+    })
+  })
+  unique(
+    assignments.map((a) => a.principalId),
+    'collaborator assignments',
+  )
   return Object.freeze({
-    version: requiredString(value.version, 'The permission snapshot version'),
-    grants: Object.freeze(grants),
+    version: value.version,
+    roles: Object.freeze(roles),
+    assignments: Object.freeze(assignments),
   })
 }

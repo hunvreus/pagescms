@@ -7,16 +7,13 @@ import {
   Check,
   History,
   LoaderCircle,
-  MoreHorizontal,
+  EllipsisVertical,
 } from 'lucide-react'
 
-import {
-  StructuredContentField,
-  isContentField,
-} from '#/components/structured-content-field'
+import { StructuredContentField } from '#/components/structured-content-field'
+import { isContentField } from '#/lib/content-field'
 import { RepositoryActionButtons } from '#/components/repository-action-buttons'
 import { OperationError } from '#/components/operation-error'
-import { RepositoryPageHeader } from '#/components/repository-page-header'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,12 +25,6 @@ import {
   AlertDialogTitle,
 } from '#/components/ui/alert-dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbSeparator,
-} from '#/components/ui/breadcrumb'
 import { Button } from '#/components/ui/button'
 import {
   Dialog,
@@ -58,6 +49,7 @@ import { buildEntryBreadcrumb } from '#/features/editor/entry-breadcrumb'
 import { EntryPageHeader } from '#/features/editor/entry-page-header'
 import { getEntryDisplayTitle } from '#/features/editor/entry-title'
 import { useUnsavedWarning } from '#/hooks/use-unsaved-warning'
+import { useRepositoryGitHubLink } from '#/hooks/use-repository-github-link'
 import {
   deleteEntry,
   getEntryHistory,
@@ -262,7 +254,6 @@ function RawEntryEditor({
         onSave={() => void save()}
       />
       <div className="mx-auto max-w-5xl space-y-5 p-4 md:p-6">
-        <p className="text-sm text-muted-foreground">Source editor</p>
         <EditorError error={error ?? deletion.error ?? rename.error} />
         <ClientOnly
           fallback={<Skeleton className="min-h-[calc(100vh-13rem)]" />}
@@ -436,6 +427,7 @@ function EditorHeader({
   onSave: () => void
 }) {
   const currentFilename = coordinates.path.split('/').at(-1) ?? ''
+  const canViewGitHub = useRepositoryGitHubLink()
   const [renameOpen, setRenameOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [renameFilename, setRenameFilename] = useState(currentFilename)
@@ -464,7 +456,10 @@ function EditorHeader({
       actions={
         <>
           {initial.sha ? (
-            <EntryHistoryButton coordinates={coordinates} />
+            <EntryHistoryButton
+              key={coordinates.path}
+              coordinates={coordinates}
+            />
           ) : null}
           <RepositoryActionButtons
             actions={initial.actions}
@@ -476,52 +471,71 @@ function EditorHeader({
             }}
             coordinates={coordinates}
           />
-          <Button
-            disabled={saving || deleting || renaming || !dirty}
-            onClick={onSave}
-          >
-            {saving ? (
-              <LoaderCircle className="animate-spin" />
-            ) : saved ? (
-              <Check />
+          <div className="flex items-center gap-2">
+            <Button
+              disabled={saving || deleting || renaming || !dirty}
+              onClick={onSave}
+            >
+              {saving ? (
+                <LoaderCircle className="animate-spin" />
+              ) : saved ? (
+                <Check />
+              ) : null}
+              {saving ? 'Saving' : 'Save'}
+            </Button>
+            {canRename || canDelete || (canViewGitHub && initial.sha) ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    aria-label="Entry actions"
+                    disabled={saving || deleting || renaming}
+                    size="icon"
+                    variant="outline"
+                  >
+                    <EllipsisVertical />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {canViewGitHub && initial.sha ? (
+                    <>
+                      <DropdownMenuItem asChild>
+                        <a
+                          href={`https://github.com/${encodeURIComponent(coordinates.owner)}/${encodeURIComponent(coordinates.repo)}/blob/${encodeURIComponent(coordinates.branch)}/${coordinates.path.split('/').map(encodeURIComponent).join('/')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          View on GitHub{' '}
+                          <ArrowUpRight className="ml-auto opacity-50" />
+                        </a>
+                      </DropdownMenuItem>
+                      {canRename || canDelete ? (
+                        <DropdownMenuSeparator />
+                      ) : null}
+                    </>
+                  ) : null}
+                  {canRename ? (
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        setRenameFilename(currentFilename)
+                        setRenameOpen(true)
+                      }}
+                    >
+                      Rename
+                    </DropdownMenuItem>
+                  ) : null}
+                  {canRename && canDelete ? <DropdownMenuSeparator /> : null}
+                  {canDelete ? (
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onSelect={() => setDeleteOpen(true)}
+                    >
+                      Delete
+                    </DropdownMenuItem>
+                  ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : null}
-            {saving ? 'Saving' : 'Save'}
-          </Button>
-          {canRename || canDelete ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  aria-label="Entry actions"
-                  disabled={saving || deleting || renaming}
-                  size="icon"
-                  variant="outline"
-                >
-                  <MoreHorizontal />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {canRename ? (
-                  <DropdownMenuItem
-                    onSelect={() => {
-                      setRenameFilename(currentFilename)
-                      setRenameOpen(true)
-                    }}
-                  >
-                    Rename
-                  </DropdownMenuItem>
-                ) : null}
-                {canRename && canDelete ? <DropdownMenuSeparator /> : null}
-                {canDelete ? (
-                  <DropdownMenuItem
-                    variant="destructive"
-                    onSelect={() => setDeleteOpen(true)}
-                  >
-                    Delete
-                  </DropdownMenuItem>
-                ) : null}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : null}
+          </div>
           <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
             <DialogContent>
               <DialogHeader>
@@ -613,6 +627,7 @@ function EntryHistoryButton({
 }: {
   coordinates: ContentEntryCoordinates
 }) {
+  const canViewGitHub = useRepositoryGitHubLink()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [history, setHistory] = useState<
@@ -657,14 +672,24 @@ function EntryHistoryButton({
       >
         {error ? (
           <DropdownMenuItem disabled>Could not load history.</DropdownMenuItem>
-        ) : loading ? (
-          <DropdownMenuItem disabled>Loading history…</DropdownMenuItem>
-        ) : history?.length ? (
+        ) : loading || !history ? (
+          <div role="status" aria-label="Loading history" className="space-y-1">
+            {Array.from({ length: 3 }, (_, index) => (
+              <div key={index} className="flex items-center gap-3 px-1.5 py-1">
+                <Skeleton className="size-6 shrink-0 rounded-full" />
+                <div className="flex-1 space-y-1">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-3 w-36" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : history.length ? (
           history.slice(0, 3).map((commit) => (
             <DropdownMenuItem asChild key={commit.sha}>
               <a
                 className="min-w-0 gap-3"
-                href={commit.url}
+                href={canViewGitHub ? commit.url : undefined}
                 rel="noreferrer"
                 target="_blank"
               >
@@ -693,20 +718,26 @@ function EntryHistoryButton({
             </DropdownMenuItem>
           ))
         ) : (
-          <DropdownMenuItem disabled>No history found.</DropdownMenuItem>
+          <DropdownMenuItem disabled className="text-muted-foreground">
+            No history found.
+          </DropdownMenuItem>
         )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <a
-            className="whitespace-nowrap"
-            href={`https://github.com/${encodeURIComponent(coordinates.owner)}/${encodeURIComponent(coordinates.repo)}/commits/${encodeURIComponent(coordinates.branch)}/${coordinates.path.split('/').map(encodeURIComponent).join('/')}`}
-            rel="noreferrer"
-            target="_blank"
-          >
-            View on GitHub
-            <ArrowUpRight className="ml-auto size-3 text-muted-foreground" />
-          </a>
-        </DropdownMenuItem>
+        {canViewGitHub ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <a
+                className="whitespace-nowrap"
+                href={`https://github.com/${encodeURIComponent(coordinates.owner)}/${encodeURIComponent(coordinates.repo)}/commits/${encodeURIComponent(coordinates.branch)}/${coordinates.path.split('/').map(encodeURIComponent).join('/')}`}
+                rel="noreferrer"
+                target="_blank"
+              >
+                View on GitHub
+                <ArrowUpRight className="ml-auto opacity-50" />
+              </a>
+            </DropdownMenuItem>
+          </>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   )
@@ -724,56 +755,4 @@ function historyInitials(name: string) {
 
 function EditorError({ error }: { error: unknown }) {
   return <OperationError error={error} fallback="Could not update entry." />
-}
-
-export function ContentEntrySkeleton() {
-  return (
-    <div className="-m-4 md:-m-6" aria-label="Loading entry">
-      <RepositoryPageHeader
-        actions={
-          <>
-            <Button
-              aria-label="Entry history"
-              disabled
-              size="icon"
-              variant="outline"
-            />
-            <Button disabled>Save</Button>
-            <Button
-              aria-label="Entry actions"
-              disabled
-              size="icon"
-              variant="outline"
-            />
-          </>
-        }
-      >
-        <Breadcrumb className="min-w-0">
-          <BreadcrumbList className="flex-nowrap text-lg font-medium">
-            <BreadcrumbItem className="shrink-0">
-              <Skeleton className="h-5 w-20" />
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem className="min-w-0">
-              <Skeleton className="h-5 w-44" />
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      </RepositoryPageHeader>
-      <div className="mx-auto max-w-3xl p-4 md:p-6">
-        <FieldGroup>
-          {[0, 1, 2, 3].map((index) => (
-            <div className="space-y-2" key={index}>
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-9 w-full" />
-            </div>
-          ))}
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-16" />
-            <Skeleton className="h-72 w-full" />
-          </div>
-        </FieldGroup>
-      </div>
-    </div>
-  )
 }

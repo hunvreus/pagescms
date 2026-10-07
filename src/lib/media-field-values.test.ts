@@ -4,6 +4,7 @@ import {
   allowedMediaFieldExtensions,
   mediaInputPath,
   mediaOutputPath,
+  relativeMediaPath,
   transformMediaFieldValues,
   validateMediaFieldValues,
 } from './media-field-values'
@@ -18,6 +19,18 @@ const media = [
 ]
 
 describe('media field values', () => {
+  it('displays paths relative to the media root without stripping unrelated prefixes', () => {
+    expect(
+      relativeMediaPath('static/uploads/folder/a.png', 'static/uploads'),
+    ).toBe('folder/a.png')
+    expect(
+      relativeMediaPath('static/uploads-other/a.png', 'static/uploads'),
+    ).toBe('static/uploads-other/a.png')
+    expect(relativeMediaPath('a.png', '')).toBe('a.png')
+    expect(
+      relativeMediaPath('https://example.com/a.png', 'static/uploads'),
+    ).toBe('https://example.com/a.png')
+  })
   it('maps rich-text image paths across input and output roots', () => {
     expect(mediaInputPath('/uploads/cover.jpg', media[0])).toBe(
       'static/uploads/cover.jpg',

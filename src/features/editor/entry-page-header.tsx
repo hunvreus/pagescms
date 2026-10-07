@@ -1,4 +1,5 @@
 import { Fragment } from 'react'
+import { Link } from '@tanstack/react-router'
 
 import { RepositoryPageHeader } from '#/components/repository-page-header'
 
@@ -46,8 +47,10 @@ export function EntryPageHeader({
               ) : segment.type === 'root' ? (
                 <BreadcrumbItem className="shrink-0">
                   {collectionHref ? (
-                    <BreadcrumbLink href={collectionHref}>
-                      {segment.label}
+                    <BreadcrumbLink asChild>
+                      <Link to={collectionHref} search={{ path: undefined }}>
+                        {segment.label}
+                      </Link>
                     </BreadcrumbLink>
                   ) : (
                     <span>{segment.label}</span>
@@ -63,9 +66,12 @@ export function EntryPageHeader({
                     <DropdownMenuContent align="start">
                       {segment.items.map((item) => (
                         <DropdownMenuItem asChild key={item.path}>
-                          <a href={folderHref(collectionHref, item.path)}>
+                          <Link
+                            to={collectionHref ?? '/'}
+                            search={{ path: item.path }}
+                          >
                             {item.label}
-                          </a>
+                          </Link>
                         </DropdownMenuItem>
                       ))}
                     </DropdownMenuContent>
@@ -73,11 +79,13 @@ export function EntryPageHeader({
                 </BreadcrumbItem>
               ) : segment.type === 'folder' ? (
                 <BreadcrumbItem className="hidden min-w-0 sm:inline-flex">
-                  <BreadcrumbLink
-                    className="max-w-40 truncate"
-                    href={folderHref(collectionHref, segment.path)}
-                  >
-                    {segment.label}
+                  <BreadcrumbLink asChild className="max-w-40 truncate">
+                    <Link
+                      to={collectionHref ?? '/'}
+                      search={{ path: segment.path }}
+                    >
+                      {segment.label}
+                    </Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
               ) : (
@@ -93,10 +101,4 @@ export function EntryPageHeader({
       </Breadcrumb>
     </RepositoryPageHeader>
   )
-}
-
-function folderHref(collectionHref: string | undefined, path: string) {
-  if (!collectionHref) return '#'
-  const search = new URLSearchParams({ path })
-  return `${collectionHref}?${search}`
 }

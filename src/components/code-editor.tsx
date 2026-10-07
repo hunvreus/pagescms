@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import CodeMirror from '@uiw/react-codemirror'
 import { githubDark, githubLight } from '@uiw/codemirror-theme-github'
-import { setDiagnostics } from '@codemirror/lint'
+import { linter, setDiagnostics } from '@codemirror/lint'
 import { EditorView } from '@codemirror/view'
 
 import { cn } from '#/lib/utils'
@@ -55,7 +55,7 @@ export function CodeEditor({
   id,
   disabled = false,
   required = false,
-  configuration = false,
+  autoFocus = false,
 }: {
   value: string
   diagnostics?: readonly SourceDiagnostic[]
@@ -66,7 +66,7 @@ export function CodeEditor({
   id?: string
   disabled?: boolean
   required?: boolean
-  configuration?: boolean
+  autoFocus?: boolean
 }) {
   const dark = useSyncExternalStore(
     subscribeTheme,
@@ -74,6 +74,9 @@ export function CodeEditor({
     () => false,
   )
   const [view, setView] = useState<EditorView>()
+  useEffect(() => {
+    if (view && autoFocus && !disabled) view.focus()
+  }, [view, autoFocus, disabled])
   useEffect(() => {
     if (view)
       view.dispatch(
@@ -86,6 +89,8 @@ export function CodeEditor({
   const extensions = useMemo(
     () => [
       codeEditorLanguage(format),
+      // Keep lint state across the wrapper's extension reconfiguration.
+      linter(null),
       EditorView.lineWrapping,
       EditorView.contentAttributes.of({
         'aria-label': label,
@@ -109,13 +114,12 @@ export function CodeEditor({
       theme={dark ? githubDark : githubLight}
       onCreateEditor={setView}
       className={cn(
-        'pagescms-code-editor overflow-hidden rounded-md border border-input bg-background text-sm transition-[color,box-shadow] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50 [&_.cm-editor]:outline-none [&_.cm-scroller]:scrollbar',
+        'pagescms-code-editor overflow-hidden rounded-md border border-input bg-background text-sm transition-colors focus-within:border-ring [&_.cm-editor]:outline-none [&_.cm-scroller]:scrollbar',
         disabled && 'opacity-65',
         className,
       )}
       extensions={extensions}
-      height={configuration ? 'calc(100vh - 7rem)' : undefined}
-      minHeight={configuration ? '24rem' : '8rem'}
+      minHeight="8rem"
       editable={!disabled}
       readOnly={disabled}
       value={value}

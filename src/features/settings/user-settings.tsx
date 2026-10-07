@@ -32,6 +32,7 @@ import {
 import { Input } from '#/components/ui/input'
 import { Skeleton } from '#/components/ui/skeleton'
 import { updateProfile } from '#/functions/account'
+import { createBillingSession } from '#/functions/billing'
 import { AppHeader, AppHeaderSkeleton } from '#/features/account/app-header'
 import { authClient, signIn } from '#/lib/auth-client'
 import { queryKeys } from '#/queries/keys'
@@ -42,6 +43,7 @@ export function UserSettings() {
   const queryClient = useQueryClient()
   const [name, setName] = useState(data.user.name)
   const [saving, setSaving] = useState(false)
+  const [billingBusy, setBillingBusy] = useState(false)
   const [connecting, setConnecting] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -65,6 +67,20 @@ export function UserSettings() {
       setError(cause)
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function openBilling(intent: 'checkout' | 'portal', priceId?: string) {
+    setBillingBusy(true)
+    setError(null)
+    try {
+      const { url } = await createBillingSession({
+        data: { intent, priceId, idempotencyKey: crypto.randomUUID() },
+      })
+      window.location.assign(url)
+    } catch (cause) {
+      setError(cause)
+      setBillingBusy(false)
     }
   }
 
@@ -151,8 +167,32 @@ export function UserSettings() {
                 </ul>
               </CardContent>
             ) : null}
-            {data.entitlement.upgradeUrl ||
-            data.entitlement.billingPortalUrl ? (
+            {data.billing ? (
+              <CardFooter className="flex-wrap justify-end gap-2">
+                {data.billing.canManage ? (
+                  <Button
+                    disabled={billingBusy}
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void openBilling('portal')}
+                  >
+                    Manage billing
+                  </Button>
+                ) : (
+                  data.billing.plans.map((plan) => (
+                    <Button
+                      key={plan.id}
+                      disabled={billingBusy}
+                      size="sm"
+                      onClick={() => void openBilling('checkout', plan.id)}
+                    >
+                      Upgrade to {plan.label}
+                    </Button>
+                  ))
+                )}
+              </CardFooter>
+            ) : data.entitlement.upgradeUrl ||
+              data.entitlement.billingPortalUrl ? (
               <CardFooter className="justify-end gap-2">
                 {data.entitlement.billingPortalUrl ? (
                   <Button asChild size="sm" variant="outline">
@@ -216,13 +256,12 @@ export function UserSettings() {
                     <FieldLabel>Picture</FieldLabel>
                   </div>
                   <FieldContent>
-                    <Avatar className="size-16 rounded-lg after:rounded-lg">
+                    <Avatar className="size-16 rounded-lg">
                       <AvatarImage
                         alt={data.user.name || data.user.email}
-                        className="rounded-lg"
                         src={avatar}
                       />
-                      <AvatarFallback className="rounded-lg">
+                      <AvatarFallback>
                         {initials(data.user.name || data.user.email)}
                       </AvatarFallback>
                     </Avatar>

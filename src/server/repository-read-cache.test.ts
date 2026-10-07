@@ -7,6 +7,69 @@ import {
 import { defaultCachePolicy, parseCachePolicy } from './cache-policy.server'
 
 describe('repository read caching', () => {
+  it('bounds negative caching and preserves credential isolation and invalidation', async () => {
+    vi.useFakeTimers()
+    try {
+      const fetcher = {},
+        first = {},
+        second = {},
+        other = {}
+      registerRepositoryReader(first, 'negative-a', fetcher)
+      registerRepositoryReader(second, 'negative-a', fetcher)
+      registerRepositoryReader(other, 'negative-b', fetcher)
+      const error = new Error('denied')
+      const load = vi.fn().mockRejectedValue(error)
+      const read = (api: object) =>
+        readRepositoryCached(
+          api,
+          'owner',
+          'negative',
+          'repository',
+          60_000,
+          load,
+          () => true,
+        )
+      await expect(read(first)).rejects.toBe(error)
+      await expect(read(second)).rejects.toBe(error)
+      expect(load).toHaveBeenCalledTimes(1)
+      await expect(read(other)).rejects.toBe(error)
+      expect(load).toHaveBeenCalledTimes(2)
+      vi.advanceTimersByTime(15_001)
+      await expect(read(first)).rejects.toBe(error)
+      expect(load).toHaveBeenCalledTimes(3)
+      invalidateRepositoryReads('owner', 'negative')
+      await expect(read(first)).rejects.toBe(error)
+      expect(load).toHaveBeenCalledTimes(4)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('does not retain transient failures by default', async () => {
+    const api = {},
+      load = vi.fn().mockRejectedValue(new Error('upstream unavailable'))
+    await expect(
+      readRepositoryCached(
+        api,
+        'owner',
+        'transient',
+        'repository',
+        15_000,
+        load,
+      ),
+    ).rejects.toThrow()
+    await expect(
+      readRepositoryCached(
+        api,
+        'owner',
+        'transient',
+        'repository',
+        15_000,
+        load,
+      ),
+    ).rejects.toThrow()
+    expect(load).toHaveBeenCalledTimes(2)
+  })
   it('coalesces readers with the same credential without sharing across credentials', async () => {
     const first = {},
       second = {},

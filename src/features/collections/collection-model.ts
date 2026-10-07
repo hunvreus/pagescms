@@ -195,6 +195,41 @@ export function collectionValue(
   return current
 }
 
+export function collectionListFields(
+  value: unknown,
+  model: CollectionViewModel,
+): unknown {
+  const paths = [
+    ...new Set([
+      ...model.columns.map(({ path }) => path),
+      model.primary,
+      ...model.searchFields,
+      ...model.sortFields,
+      ...model.initial.sorting.map(({ id }) => id),
+    ]),
+  ]
+  function project(current: unknown, requested: string[]): unknown {
+    if (
+      typeof current !== 'object' ||
+      current === null ||
+      Array.isArray(current)
+    )
+      return current
+    return Object.fromEntries<unknown>(
+      Object.entries(current as Record<string, unknown>).flatMap(
+        ([key, field]) => {
+          if (requested.includes(key)) return [[key, field]]
+          const nested = requested
+            .filter((path) => path.startsWith(`${key}.`))
+            .map((path) => path.slice(key.length + 1))
+          return nested.length ? [[key, project(field, nested)]] : []
+        },
+      ),
+    )
+  }
+  return project(value, paths)
+}
+
 function searchableValue(value: JsonValue | undefined): string[] {
   if (value === undefined || value === null) return []
   if (

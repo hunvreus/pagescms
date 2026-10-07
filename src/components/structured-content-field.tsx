@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useId, useRef, useState } from 'react'
-import type { ComponentType, LazyExoticComponent } from 'react'
+import { isContentField } from '#/lib/content-field'
+import type { ComponentType, CSSProperties, LazyExoticComponent } from 'react'
 import { ClientOnly } from '@tanstack/react-router'
 import { createClientOnlyFn } from '@tanstack/react-start'
 import clientDeployment from '#pagescms/deployment/client'
@@ -20,6 +21,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import type { Transform } from '@dnd-kit/utilities'
 import {
   ArrowUpRight,
   Asterisk,
@@ -28,15 +30,25 @@ import {
   ChevronsDownUp,
   ChevronsUpDown,
   File,
+  FileArchive,
+  FileAudio,
+  FileCode,
+  FileImage,
+  FileSpreadsheet,
+  FileText,
+  FileType,
+  FileVideo,
   Folder,
   GripVertical,
   LoaderCircle,
   Plus,
   Trash2,
   Upload,
+  X,
 } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
+import { useRepositoryGitHubLink } from '#/hooks/use-repository-github-link'
 import { Badge } from '#/components/ui/badge'
 import {
   AlertDialog,
@@ -59,6 +71,13 @@ import { OperationError } from '#/components/operation-error'
 import { ErrorAlert } from '#/components/error-alert'
 import { Field, FieldDescription, FieldLabel } from '#/components/ui/field'
 import { Input } from '#/components/ui/input'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '#/components/ui/tabs'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '#/components/ui/tooltip'
 import { MediaPickerDialog } from '#/features/media/media-picker-dialog'
 import { uploadMediaFiles } from '#/features/media/media-upload'
 import { coreFieldRendererRegistry } from '#/features/editor/fields/core-field-renderers'
@@ -72,8 +91,10 @@ import { parseUploadRename } from '#/lib/media-upload-name'
 import { customFieldEditors } from '#/features/editor/fields/custom-field-components'
 import {
   allowedMediaFieldExtensions,
+  relativeMediaPath,
   resolveFieldMedia,
 } from '#/lib/media-field-values'
+import { extensionCategories, getFileExtension } from '#/lib/file-types'
 
 import type { JsonObject, JsonValue } from '#/lib/json'
 import type { FieldRendererProps } from '#/features/editor/fields/field-renderer-registry'
@@ -92,6 +113,29 @@ const deploymentFieldComponents = new Map<
   string,
   LazyExoticComponent<ComponentType<DeploymentFieldProps>>
 >()
+
+function MediaFileIcon({ path }: { path: string }) {
+  const icons = {
+    image: FileImage,
+    document: FileText,
+    video: FileVideo,
+    audio: FileAudio,
+    compressed: FileArchive,
+    code: FileCode,
+    font: FileType,
+    spreadsheet: FileSpreadsheet,
+  }
+  const extension = getFileExtension(path).toLowerCase()
+  const category = Object.keys(extensionCategories).find((key) =>
+    (
+      extensionCategories[
+        key as keyof typeof extensionCategories
+      ] as readonly string[]
+    ).includes(extension),
+  ) as keyof typeof icons | undefined
+  const Icon = category ? icons[category] : File
+  return <Icon className="size-4 shrink-0" />
+}
 
 function getDeploymentFieldComponent(name: string) {
   const cached = deploymentFieldComponents.get(name)
@@ -120,39 +164,49 @@ function RichTextRenderer({
   const settings = isContentField(field.options) ? field.options : {}
   const headerActions =
     settings.switcher === false ? undefined : (
-      <div className="inline-flex h-7 items-center rounded-md bg-muted p-0.5 text-muted-foreground">
+      <TabsList
+        aria-label={`${label} mode`}
+        className="group-data-horizontal/tabs:h-7"
+      >
         {(['editor', 'source'] as const).map((nextMode) => (
-          <button
-            className={`h-6 rounded-sm px-2 text-xs capitalize transition-colors hover:text-foreground ${mode === nextMode ? 'bg-background text-foreground shadow-xs' : ''}`}
-            data-active={mode === nextMode || undefined}
+          <TabsTrigger
+            className="px-2 text-xs"
             disabled={disabled || pendingUploads > 0}
             key={nextMode}
-            type="button"
-            onClick={() => setMode(nextMode)}
+            value={nextMode}
           >
             {nextMode === 'editor' ? 'Editor' : 'Source'}
-          </button>
+          </TabsTrigger>
         ))}
-      </div>
+      </TabsList>
     )
 
-  return renderField(
-    <ClientOnly fallback={<DeferredEditorFallback />}>
-      <Suspense fallback={<DeferredEditorFallback />}>
-        <RichTextField
-          disabled={disabled}
-          field={field}
-          id={id}
-          label={label}
-          mode={mode}
-          referenceContext={referenceContext}
-          value={value}
-          onChange={onChange}
-          onPendingUploadsChange={setPendingUploads}
-        />
-      </Suspense>
-    </ClientOnly>,
-    headerActions,
+  return (
+    <Tabs
+      value={mode}
+      onValueChange={(next) => setMode(next as 'editor' | 'source')}
+    >
+      {renderField(
+        <TabsContent value={mode}>
+          <ClientOnly fallback={<DeferredEditorFallback />}>
+            <Suspense fallback={<DeferredEditorFallback />}>
+              <RichTextField
+                disabled={disabled}
+                field={field}
+                id={id}
+                label={label}
+                mode={mode}
+                referenceContext={referenceContext}
+                value={value}
+                onChange={onChange}
+                onPendingUploadsChange={setPendingUploads}
+              />
+            </Suspense>
+          </ClientOnly>
+        </TabsContent>,
+        headerActions,
+      )}
+    </Tabs>
   )
 }
 
@@ -189,14 +243,39 @@ function DeferredEditorFallback() {
   )
 }
 
+function MountedGroupContent({
+  open,
+  children,
+}: {
+  open: boolean
+  children: React.ReactNode
+}) {
+  const [mounted, setMounted] = useState(open)
+  useEffect(() => {
+    if (open) setMounted(true)
+  }, [open])
+
+  return (
+    <CollapsibleContent forceMount hidden={!open}>
+      {open || mounted ? children : null}
+    </CollapsibleContent>
+  )
+}
+
+function selectedFieldBlock(field: JsonObject, value: JsonValue | undefined) {
+  const key = typeof field.blockKey === 'string' ? field.blockKey : '_block'
+  if (field.type !== 'block' || !isContentField(value)) return undefined
+  return Array.isArray(field.blocks)
+    ? field.blocks
+        .filter(isContentField)
+        .find((block) => block.name === value[key])
+    : undefined
+}
+
 coreFieldRendererRegistry.register('rich-text', RichTextRenderer)
 coreFieldRendererRegistry.register('code', CodeRenderer)
 
 export type { ReferenceContext } from '#/features/editor/fields/field-types'
-
-export function isContentField(value: unknown): value is JsonObject {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
 
 function initialFieldValue(field: JsonObject): JsonValue {
   const initialized = initializeStructuredContent([
@@ -218,49 +297,82 @@ function initialFieldValue(field: JsonObject): JsonValue {
 function ConfirmRemoveButton({
   label,
   description,
+  kind = 'item',
   disabled = false,
   onConfirm,
 }: {
   label: string
   description: string
+  kind?: 'item' | 'block'
   disabled?: boolean
   onConfirm: () => void
 }) {
+  const Icon = kind === 'block' ? X : Trash2
+  const tooltip = kind === 'block' ? 'Reset block' : 'Remove item'
   if (disabled) {
     return (
       <Button
         aria-label={label}
+        className="text-muted-foreground hover:text-foreground"
         disabled
         size="icon-sm"
         type="button"
         variant="ghost"
       >
-        <Trash2 />
+        <Icon />
       </Button>
     )
   }
 
   return (
     <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button aria-label={label} size="icon-sm" type="button" variant="ghost">
-          <Trash2 />
-        </Button>
-      </AlertDialogTrigger>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <AlertDialogTrigger asChild>
+              <Button
+                aria-label={label}
+                className="text-muted-foreground hover:text-foreground"
+                size="icon-sm"
+                type="button"
+                variant="ghost"
+              >
+                <Icon />
+              </Button>
+            </AlertDialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent>{tooltip}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Remove this item?</AlertDialogTitle>
+          <AlertDialogTitle>
+            {kind === 'block' ? 'Reset this block?' : 'Remove this item?'}
+          </AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction variant="destructive" onClick={onConfirm}>
-            Remove
+            {kind === 'block' ? 'Reset' : 'Remove'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   )
+}
+
+export function sortableItemStyle(
+  transform: Transform | null,
+  transition: string | undefined,
+  dragging: boolean,
+): CSSProperties {
+  return {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    position: 'relative',
+    zIndex: dragging ? 1 : undefined,
+  }
 }
 
 function SortableListItem({
@@ -276,25 +388,25 @@ function SortableListItem({
   const handle = disabled ? null : (
     <Button
       aria-label="Reorder item"
-      className="cursor-grab touch-none active:cursor-grabbing"
+      className="cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
       size="icon-sm"
       type="button"
       variant="ghost"
       {...sortable.attributes}
       {...sortable.listeners}
     >
-      <GripVertical className="text-muted-foreground" />
+      <GripVertical />
     </Button>
   )
 
   return (
     <div
       ref={sortable.setNodeRef}
-      style={{
-        transform: CSS.Transform.toString(sortable.transform),
-        transition: sortable.transition,
-        opacity: sortable.isDragging ? 0.5 : 1,
-      }}
+      style={sortableItemStyle(
+        sortable.transform,
+        sortable.transition,
+        sortable.isDragging,
+      )}
     >
       {children(handle)}
     </div>
@@ -307,12 +419,14 @@ function ListFieldControl({
   disabled,
   referenceContext,
   onChange,
+  renderField,
 }: {
   field: JsonObject
   value: JsonValue | undefined
   disabled: boolean
   referenceContext?: ReferenceContext
   onChange: (value: JsonValue) => void
+  renderField: FieldRendererProps['renderField']
 }) {
   const values = Array.isArray(value) ? value : []
   const options = getListFieldOptions(field)
@@ -383,25 +497,26 @@ function ListFieldControl({
     setOpenItems((current) => arrayMove(current, from, to))
   }
 
-  return (
+  const headerActions =
+    options.collapsible && values.length > 1 ? (
+      <Button
+        className="text-muted-foreground hover:text-foreground"
+        size="sm"
+        type="button"
+        variant="ghost"
+        onClick={() =>
+          setOpenItems((current) =>
+            current.map(() => current.some((open) => !open)),
+          )
+        }
+      >
+        {openItems.every(Boolean) ? <ChevronsDownUp /> : <ChevronsUpDown />}
+        {openItems.every(Boolean) ? 'Collapse all' : 'Expand all'}
+      </Button>
+    ) : undefined
+
+  return renderField(
     <div className="space-y-2">
-      {options.collapsible && values.length > 1 ? (
-        <div className="flex justify-end">
-          <Button
-            size="sm"
-            type="button"
-            variant="ghost"
-            onClick={() =>
-              setOpenItems((current) =>
-                current.map(() => current.some((open) => !open)),
-              )
-            }
-          >
-            {openItems.every(Boolean) ? <ChevronsDownUp /> : <ChevronsUpDown />}
-            {openItems.every(Boolean) ? 'Collapse all' : 'Expand all'}
-          </Button>
-        </div>
-      ) : null}
       <DndContext
         collisionDetection={closestCenter}
         id={`${listId}-dnd`}
@@ -412,82 +527,114 @@ function ListFieldControl({
       >
         <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
           <div className="space-y-2">
-            {values.map((item, index) => (
-              <SortableListItem
-                disabled={disabled}
-                id={itemIds[index] ?? `${listId}-${index}`}
-                key={itemIds[index] ?? `${listId}-${index}`}
-              >
-                {(handle) =>
-                  options.collapsible ? (
-                    <Collapsible
-                      className="rounded-lg border"
-                      open={openItems[index] ?? !options.initiallyCollapsed}
-                      onOpenChange={(open) =>
-                        setOpenItems((current) =>
-                          current.map((itemOpen, itemIndex) =>
-                            itemIndex === index ? open : itemOpen,
-                          ),
-                        )
-                      }
-                    >
-                      <div className="flex min-h-10 items-center gap-1 p-1">
+            {values.map((item, index) => {
+              const selectedBlock = selectedFieldBlock(field, item)
+              return (
+                <SortableListItem
+                  disabled={disabled}
+                  id={itemIds[index] ?? `${listId}-pending-${index}`}
+                  key={itemIds[index] ?? `${listId}-pending-${index}`}
+                >
+                  {(handle) =>
+                    options.collapsible ? (
+                      <Collapsible
+                        className="rounded-xl border bg-card"
+                        open={openItems[index] ?? !options.initiallyCollapsed}
+                        onOpenChange={(open) =>
+                          setOpenItems((current) =>
+                            current.map((itemOpen, itemIndex) =>
+                              itemIndex === index ? open : itemOpen,
+                            ),
+                          )
+                        }
+                      >
+                        <div className="flex min-h-10 items-center p-1">
+                          {handle}
+                          <CollapsibleTrigger asChild>
+                            <Button
+                              className="min-w-0 flex-1 justify-start text-left text-sm aria-expanded:bg-transparent aria-expanded:hover:bg-muted dark:aria-expanded:hover:bg-muted/50"
+                              size="sm"
+                              variant="ghost"
+                              type="button"
+                            >
+                              <ChevronRight className="text-muted-foreground transition-transform group-data-[state=open]/button:rotate-90" />
+                              <span className="truncate">
+                                {getListItemSummary(field, item, index)}
+                              </span>
+                            </Button>
+                          </CollapsibleTrigger>
+                          {selectedBlock ? (
+                            <>
+                              <Badge
+                                variant="outline"
+                                className="text-muted-foreground"
+                              >
+                                {String(
+                                  selectedBlock.label ?? selectedBlock.name,
+                                )}
+                              </Badge>
+                              {!disabled ? (
+                                <ConfirmRemoveButton
+                                  kind="block"
+                                  description="This clears the selected block and its fields, keeping the list item so you can choose another block."
+                                  label={`Reset block in item ${index + 1}`}
+                                  onConfirm={() => update(index, null)}
+                                />
+                              ) : null}
+                            </>
+                          ) : null}
+                          {!disabled ? (
+                            <ConfirmRemoveButton
+                              description="This removes the item and all of its nested fields."
+                              disabled={values.length <= options.min}
+                              label={`Remove item ${index + 1}`}
+                              onConfirm={() => remove(index)}
+                            />
+                          ) : null}
+                        </div>
+                        <MountedGroupContent
+                          open={openItems[index] ?? !options.initiallyCollapsed}
+                        >
+                          <div className="border-t p-4">
+                            <StructuredContentField
+                              embedded
+                              hideMetadata
+                              blockHeaderInList
+                              field={itemField}
+                              referenceContext={referenceContext}
+                              value={item}
+                              onChange={(next) => update(index, next)}
+                            />
+                          </div>
+                        </MountedGroupContent>
+                      </Collapsible>
+                    ) : (
+                      <div className="flex items-start gap-1 rounded-xl border bg-card p-4">
                         {handle}
-                        <CollapsibleTrigger asChild>
-                          <button
-                            className="group flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm font-medium hover:bg-muted"
-                            type="button"
-                          >
-                            <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-90" />
-                            <span className="truncate">
-                              {getListItemSummary(field, item, index)}
-                            </span>
-                          </button>
-                        </CollapsibleTrigger>
-                        {!disabled ? (
-                          <ConfirmRemoveButton
-                            description="This removes the item and all of its nested fields."
-                            disabled={values.length <= options.min}
-                            label={`Remove item ${index + 1}`}
-                            onConfirm={() => remove(index)}
-                          />
-                        ) : null}
-                      </div>
-                      <CollapsibleContent>
-                        <div className="border-t p-4">
+                        <div className="min-w-0 flex-1">
                           <StructuredContentField
+                            embedded
+                            hideMetadata
                             field={itemField}
                             referenceContext={referenceContext}
                             value={item}
                             onChange={(next) => update(index, next)}
                           />
                         </div>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  ) : (
-                    <div className="flex items-start gap-1 rounded-lg border p-2">
-                      {handle}
-                      <div className="min-w-0 flex-1">
-                        <StructuredContentField
-                          field={itemField}
-                          referenceContext={referenceContext}
-                          value={item}
-                          onChange={(next) => update(index, next)}
-                        />
+                        {!disabled ? (
+                          <ConfirmRemoveButton
+                            description="This removes the item from the list."
+                            disabled={values.length <= options.min}
+                            label={`Remove item ${index + 1}`}
+                            onConfirm={() => remove(index)}
+                          />
+                        ) : null}
                       </div>
-                      {!disabled ? (
-                        <ConfirmRemoveButton
-                          description="This removes the item from the list."
-                          disabled={values.length <= options.min}
-                          label={`Remove item ${index + 1}`}
-                          onConfirm={() => remove(index)}
-                        />
-                      ) : null}
-                    </div>
-                  )
-                }
-              </SortableListItem>
-            ))}
+                    )
+                  }
+                </SortableListItem>
+              )
+            })}
           </div>
         </SortableContext>
       </DndContext>
@@ -504,7 +651,8 @@ function ListFieldControl({
       {!values.length ? (
         <p className="text-sm text-muted-foreground">No items.</p>
       ) : null}
-    </div>
+    </div>,
+    headerActions,
   )
 }
 
@@ -526,11 +674,18 @@ function ObjectFieldControl({
     ? field.fields.filter(isContentField)
     : []
   return (
-    <div className={embedded ? 'space-y-4' : 'space-y-4 rounded-lg border p-4'}>
+    <div
+      className={
+        embedded ? 'space-y-4' : 'space-y-4 rounded-xl border bg-card p-4'
+      }
+    >
       {fields.map((child) => {
         const name = String(child.name)
         return (
           <StructuredContentField
+            inheritedReadonly={
+              field.readonly === true && child.readonly !== true
+            }
             field={
               field.readonly === true ? { ...child, readonly: true } : child
             }
@@ -555,12 +710,16 @@ function BlockFieldControl({
   value,
   disabled,
   referenceContext,
+  embedded = false,
+  headerInList = false,
   onChange,
 }: {
   field: JsonObject
   value: JsonValue | undefined
   disabled: boolean
   referenceContext?: ReferenceContext
+  embedded?: boolean
+  headerInList?: boolean
   onChange: (value: JsonValue) => void
 }) {
   const blocks = Array.isArray(field.blocks)
@@ -573,24 +732,35 @@ function BlockFieldControl({
   const selected = blocks.find((block) => block.name === selectedName)
 
   return (
-    <div className="rounded-lg border">
+    <div className={embedded ? undefined : 'rounded-xl border bg-card'}>
       {selected && object ? (
         <>
-          <div className="flex min-h-10 items-center justify-between gap-2 p-1 pl-3">
-            <Badge variant="outline">
-              {typeof selected.label === 'string'
-                ? selected.label
-                : selectedName}
-            </Badge>
-            {!disabled ? (
-              <ConfirmRemoveButton
-                description="This removes the selected block and all of its fields."
-                label="Remove block"
-                onConfirm={() => onChange(null)}
-              />
-            ) : null}
-          </div>
-          <div className="border-t p-4">
+          {!headerInList ? (
+            <div className="flex min-h-10 items-center justify-between gap-2 p-1 pl-3">
+              <Badge variant="outline">
+                {typeof selected.label === 'string'
+                  ? selected.label
+                  : selectedName}
+              </Badge>
+              {!disabled ? (
+                <ConfirmRemoveButton
+                  kind="block"
+                  description="This clears the selected block and its fields so you can choose another block."
+                  label="Reset block"
+                  onConfirm={() => onChange(null)}
+                />
+              ) : null}
+            </div>
+          ) : null}
+          <div
+            className={
+              headerInList
+                ? undefined
+                : embedded
+                  ? 'border-t pt-4'
+                  : 'border-t p-4'
+            }
+          >
             <ObjectFieldControl
               embedded
               field={{ ...selected, readonly: disabled }}
@@ -606,7 +776,7 @@ function BlockFieldControl({
           </div>
         </>
       ) : (
-        <div className="space-y-3 p-4">
+        <div className={embedded ? 'space-y-3' : 'space-y-3 p-4'}>
           <p className="text-sm font-medium">Choose a content block</p>
           <div className="flex flex-wrap gap-2">
             {blocks.map((block) => {
@@ -642,11 +812,19 @@ export function StructuredContentField({
   field,
   value,
   referenceContext,
+  embedded = false,
+  hideMetadata = false,
+  blockHeaderInList = false,
+  inheritedReadonly = false,
   onChange,
 }: {
   field: JsonObject
   value: JsonValue | undefined
   referenceContext?: ReferenceContext
+  embedded?: boolean
+  hideMetadata?: boolean
+  blockHeaderInList?: boolean
+  inheritedReadonly?: boolean
   onChange: (value: JsonValue | undefined) => void
 }) {
   const name = String(field.name)
@@ -670,22 +848,24 @@ export function StructuredContentField({
     headerActions?: React.ReactNode,
   ) => (
     <Field>
-      {label || required || disabled || headerActions ? (
+      {(!hideMetadata &&
+        (label || required || (disabled && !inheritedReadonly))) ||
+      headerActions ? (
         <div
           className="flex min-h-6 items-center justify-between gap-2"
           data-slot="field-header"
         >
           <div className="flex min-w-0 items-center gap-2">
-            {label ? (
+            {!hideMetadata && label ? (
               <FieldLabel htmlFor={controlId}>{label}</FieldLabel>
             ) : null}
-            {required ? (
+            {!hideMetadata && required ? (
               <Badge variant="secondary" className="text-muted-foreground">
                 <Asterisk className="-ml-1 -mr-0.5" />
                 Required
               </Badge>
             ) : null}
-            {disabled ? (
+            {!hideMetadata && disabled && !inheritedReadonly ? (
               <Badge variant="secondary" className="text-muted-foreground">
                 <Ban className="-ml-0.5" />
                 Readonly
@@ -700,18 +880,21 @@ export function StructuredContentField({
         </div>
       ) : null}
       {fieldControl}
-      {description ? <FieldDescription>{description}</FieldDescription> : null}
+      {!hideMetadata && description ? (
+        <FieldDescription>{description}</FieldDescription>
+      ) : null}
     </Field>
   )
 
   let control: React.ReactNode
   if (field.list) {
-    control = (
+    return (
       <ListFieldControl
         disabled={disabled}
         field={field}
         referenceContext={referenceContext}
         value={value}
+        renderField={renderField}
         onChange={onChange}
       />
     )
@@ -737,6 +920,7 @@ export function StructuredContentField({
   } else if (type === 'object') {
     control = (
       <ObjectFieldControl
+        embedded={embedded}
         field={field}
         referenceContext={referenceContext}
         value={value}
@@ -746,6 +930,8 @@ export function StructuredContentField({
   } else if (type === 'block') {
     control = (
       <BlockFieldControl
+        embedded={embedded}
+        headerInList={blockHeaderInList}
         disabled={disabled}
         field={field}
         referenceContext={referenceContext}
@@ -854,15 +1040,16 @@ function ImageFieldThumbnail({
   onRemove: () => void
 }) {
   const sortable = useSortable({ id, disabled: readonly || !draggable })
+  const canViewGitHub = useRepositoryGitHubLink()
   return (
     <div
       className="relative size-28"
       ref={sortable.setNodeRef}
-      style={{
-        transform: CSS.Transform.toString(sortable.transform),
-        transition: sortable.transition,
-        opacity: sortable.isDragging ? 0.5 : 1,
-      }}
+      style={sortableItemStyle(
+        sortable.transform,
+        sortable.transition,
+        sortable.isDragging,
+      )}
     >
       <div
         className={
@@ -874,36 +1061,45 @@ function ImageFieldThumbnail({
       >
         <MediaThumbnail
           {...context}
-          className="size-28 rounded-md"
+          className="size-28 rounded-lg"
           name={mediaName}
           path={path}
         />
       </div>
       <div className="absolute right-1 bottom-1 flex rounded-md bg-background/95 p-0.5 shadow-sm backdrop-blur-sm">
-        <Button
-          asChild
-          aria-label={`View ${path} on GitHub`}
-          size="icon-xs"
-          variant="ghost"
-        >
-          <a
-            href={`https://github.com/${encodeURIComponent(context.owner)}/${encodeURIComponent(context.repo)}/blob/${encodeURIComponent(context.branch)}/${path.split('/').map(encodeURIComponent).join('/')}`}
-            rel="noreferrer"
-            target="_blank"
-          >
-            <ArrowUpRight className="text-muted-foreground" />
-          </a>
-        </Button>
-        {!readonly ? (
+        {canViewGitHub ? (
           <Button
-            aria-label={`Remove ${path}`}
+            asChild
+            aria-label={`View ${path} on GitHub`}
             size="icon-xs"
-            type="button"
             variant="ghost"
-            onClick={onRemove}
           >
-            <Trash2 className="text-muted-foreground" />
+            <a
+              href={`https://github.com/${encodeURIComponent(context.owner)}/${encodeURIComponent(context.repo)}/blob/${encodeURIComponent(context.branch)}/${path.split('/').map(encodeURIComponent).join('/')}`}
+              rel="noreferrer"
+              target="_blank"
+            >
+              <ArrowUpRight className="text-muted-foreground" />
+            </a>
           </Button>
+        ) : null}
+        {!readonly ? (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  aria-label={`Remove ${path}`}
+                  size="icon-xs"
+                  type="button"
+                  variant="ghost"
+                  onClick={onRemove}
+                >
+                  <Trash2 className="text-muted-foreground" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Remove image</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         ) : null}
       </div>
     </div>
@@ -926,6 +1122,7 @@ function MediaFieldControl({
   onChange: (value: JsonValue | undefined) => void
 }) {
   const settings = isContentField(field.options) ? field.options : {}
+  const canViewGitHub = useRepositoryGitHubLink()
   const media = resolveFieldMedia(field, context.media ?? [])
   const multiple =
     settings.multiple === true || isContentField(settings.multiple)
@@ -1084,41 +1281,63 @@ function MediaFieldControl({
                     disabled={disabled || !multiple}
                   >
                     {(handle) => (
-                      <div className="flex items-center gap-2 rounded-lg border bg-muted/20 px-3 py-2 text-sm">
+                      <div className="flex min-h-10 items-center rounded-xl border bg-card p-1">
                         {multiple && !disabled ? handle : null}
-                        <File className="size-4" />
-                        <span className="min-w-0 flex-1 truncate">
-                          {item.path}
-                        </span>
-                        <Button
-                          asChild
-                          aria-label={`Open ${item.path}`}
-                          size="icon"
-                          variant="ghost"
-                        >
-                          <a
-                            href={`https://github.com/${encodeURIComponent(context.owner)}/${encodeURIComponent(context.repo)}/blob/${encodeURIComponent(context.branch)}/${item.path.split('/').map(encodeURIComponent).join('/')}`}
-                            rel="noreferrer"
-                            target="_blank"
-                          >
-                            <ArrowUpRight className="text-muted-foreground" />
-                          </a>
-                        </Button>
-                        {!disabled ? (
+                        {canViewGitHub ? (
                           <Button
-                            aria-label={`Remove ${item.path}`}
-                            size="icon"
-                            type="button"
+                            asChild
+                            aria-label={`Open ${item.path}`}
+                            className="min-w-0 flex-1 justify-start text-sm"
+                            size="sm"
                             variant="ghost"
-                            onClick={() => {
-                              const next = selected.filter(
-                                (_selectedPath, index) => index !== item.index,
-                              )
-                              onChange(multiple ? next : undefined)
-                            }}
                           >
-                            <Trash2 />
+                            <a
+                              href={`https://github.com/${encodeURIComponent(context.owner)}/${encodeURIComponent(context.repo)}/blob/${encodeURIComponent(context.branch)}/${item.path.split('/').map(encodeURIComponent).join('/')}`}
+                              rel="noreferrer"
+                              target="_blank"
+                            >
+                              <MediaFileIcon path={item.path} />
+                              <span className="truncate">
+                                {relativeMediaPath(item.path, mediaInput)}
+                              </span>
+                              <ArrowUpRight
+                                className="size-4 opacity-50"
+                                data-icon="inline-end"
+                              />
+                            </a>
                           </Button>
+                        ) : (
+                          <span className="inline-flex h-7 min-w-0 flex-1 items-center gap-1 border border-transparent px-2.5 text-sm font-medium">
+                            <MediaFileIcon path={item.path} />
+                            <span className="truncate">
+                              {relativeMediaPath(item.path, mediaInput)}
+                            </span>
+                          </span>
+                        )}
+                        {!disabled ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  aria-label={`Remove ${item.path}`}
+                                  className="text-muted-foreground hover:text-foreground"
+                                  size="icon-sm"
+                                  type="button"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    const next = selected.filter(
+                                      (_selectedPath, index) =>
+                                        index !== item.index,
+                                    )
+                                    onChange(multiple ? next : undefined)
+                                  }}
+                                >
+                                  <Trash2 />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Remove file</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         ) : null}
                       </div>
                     )}

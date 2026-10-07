@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   validateEntitlementSnapshot,
-  validateRepositoryPermissionSnapshot,
+  validateRepositoryPermissions,
 } from './hosted.server'
 
 describe('hosted deployment projections', () => {
@@ -50,36 +50,46 @@ describe('hosted deployment projections', () => {
   })
 
   it('accepts known permission operations and rejects unknown authority', () => {
-    const snapshot = validateRepositoryPermissionSnapshot({
+    const snapshot = validateRepositoryPermissions({
       version: '1',
-      grants: [
+      assignments: [],
+      roles: [
         {
-          id: 'grant-1',
-          principalId: 'user-1',
-          principalType: 'user',
-          operations: ['entry.read', 'entry.update'],
-          resource: { type: 'collection', name: 'posts' },
+          id: 'editor',
+          label: 'Editor',
+          permissions: [
+            {
+              id: 'grant-1',
+              operations: ['entry.read', 'entry.update'],
+              resource: { type: 'collection', name: 'posts' },
+            },
+          ],
         },
       ],
     })
-    expect(snapshot.grants[0].operations).toEqual([
+    expect(snapshot.roles[0].permissions[0].operations).toEqual([
       'entry.read',
       'entry.update',
     ])
 
     expect(() =>
-      validateRepositoryPermissionSnapshot({
+      validateRepositoryPermissions({
         version: '1',
-        grants: [
+        assignments: [],
+        roles: [
           {
-            id: 'grant-1',
-            principalId: 'user-1',
-            principalType: 'user',
-            operations: ['root.everything'],
-            resource: { type: 'repository' },
+            id: 'editor',
+            label: 'Editor',
+            permissions: [
+              {
+                id: 'grant-1',
+                operations: ['root.everything'],
+                resource: { type: 'collection', name: 'all' },
+              },
+            ],
           },
         ],
       }),
-    ).toThrow(/invalid operations/)
+    ).toThrow(/Invalid operations/)
   })
 })

@@ -1,6 +1,7 @@
 import { and, eq, isNull, or, sql } from 'drizzle-orm'
 
 import { createGitHubApi } from './github-api.server'
+import { recordRepositoryOpened } from './repository-activity.server'
 
 import type { Database } from './database/client.server'
 import type {
@@ -15,6 +16,7 @@ import { accountTable, collaboratorTable } from './database/schema'
 export interface ProjectUser {
   id: string
   email: string
+  emailVerified?: boolean
   githubUsername: string | null
 }
 
@@ -36,10 +38,12 @@ export interface ProjectRepository {
 function collaboratorMatchesUser(user: ProjectUser) {
   return or(
     eq(collaboratorTable.userId, user.id),
-    and(
-      isNull(collaboratorTable.userId),
-      sql`lower(${collaboratorTable.email}) = lower(${user.email})`,
-    ),
+    user.emailVerified === true
+      ? and(
+          isNull(collaboratorTable.userId),
+          sql`lower(${collaboratorTable.email}) = lower(${user.email})`,
+        )
+      : undefined,
   )
 }
 
@@ -237,16 +241,22 @@ export function createProjectService(
               ),
           )
         : Promise.resolve(null)
-      const [repository, branches, configuration] = await Promise.all([
+      const [repository, branchExists, configuration] = await Promise.all([
         api.getRepository(owner, repo),
-        api.listBranches(owner, repo),
+        branch ? api.branchExists(owner, repo, branch) : Promise.resolve(true),
         configurationPromise,
       ])
+      await recordRepositoryOpened(database, owner, repo)
       return {
         repository,
-        branches,
+        branches: [
+          ...new Set([
+            repository.defaultBranch,
+            ...(branchExists && branch ? [branch] : []),
+          ]),
+        ],
         branch: branch ?? null,
-        branchExists: branch ? branches.includes(branch) : true,
+        branchExists,
         configuration,
       }
     },

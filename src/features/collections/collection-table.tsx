@@ -22,17 +22,18 @@ import { Link } from '@tanstack/react-router'
 import {
   ArrowDown,
   ArrowUp,
+  ArrowUpRight,
   ChevronDown,
+  EllipsisVertical,
   ChevronLeft,
   ChevronRight,
-  EllipsisVertical,
   Folder,
   LoaderCircle,
   Plus,
 } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
-import { ButtonGroup } from '#/components/ui/button-group'
+import { useRepositoryGitHubLink } from '#/hooks/use-repository-github-link'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -191,6 +192,7 @@ export function CollectionTable({
   search: string
   onSearchChange: Dispatch<SetStateAction<string>>
 }) {
+  const canViewGitHub = useRepositoryGitHubLink()
   const fluidColumn = collectionFluidColumn(model)
   const referenceRequests = useMemo(() => {
     const entries = [
@@ -387,7 +389,7 @@ export function CollectionTable({
       ),
       helper.display({
         id: 'actions',
-        header: 'Actions',
+        header: '',
         enableGlobalFilter: false,
         enableSorting: false,
         cell: ({ row }) => {
@@ -396,7 +398,7 @@ export function CollectionTable({
           return (
             <div className="flex justify-end">
               {entry.type === 'file' ? (
-                <ButtonGroup>
+                <div className="flex items-center gap-2">
                   <Button asChild size="sm" variant="outline">
                     <Link
                       params={{ ...repository, _splat: entry.path }}
@@ -405,7 +407,10 @@ export function CollectionTable({
                       Edit
                     </Link>
                   </Button>
-                  {canRename || canDelete || (canCreate && addable) ? (
+                  {canViewGitHub ||
+                  canRename ||
+                  canDelete ||
+                  (canCreate && addable) ? (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -417,6 +422,25 @@ export function CollectionTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        {canViewGitHub ? (
+                          <>
+                            <DropdownMenuItem asChild>
+                              <a
+                                href={`https://github.com/${encodeURIComponent(repository.owner)}/${encodeURIComponent(repository.repo)}/blob/${encodeURIComponent(repository.branch)}/${entry.path.split('/').map(encodeURIComponent).join('/')}`}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                View on GitHub{' '}
+                                <ArrowUpRight className="ml-auto opacity-50" />
+                              </a>
+                            </DropdownMenuItem>
+                            {canRename ||
+                            canDelete ||
+                            (canCreate && addable) ? (
+                              <DropdownMenuSeparator />
+                            ) : null}
+                          </>
+                        ) : null}
                         {canCreate && addable ? (
                           <DropdownMenuItem onSelect={() => onAddChild(entry)}>
                             Add child
@@ -441,7 +465,7 @@ export function CollectionTable({
                       </DropdownMenuContent>
                     </DropdownMenu>
                   ) : null}
-                </ButtonGroup>
+                </div>
               ) : canCreate && addable ? (
                 <Button
                   aria-label={`Add child to ${entry.name}`}
@@ -462,6 +486,7 @@ export function CollectionTable({
     canCreate,
     canAddChild,
     canDelete,
+    canViewGitHub,
     canRename,
     loading,
     media,
@@ -520,7 +545,7 @@ export function CollectionTable({
 
   return (
     <div className="space-y-4">
-      <Table>
+      <Table containerClassName="rounded-xl border bg-card">
         <TableHeader>
           {table.getHeaderGroups().map((group) => (
             <TableRow className="hover:bg-transparent" key={group.id}>
@@ -543,7 +568,6 @@ export function CollectionTable({
                     className={cn(
                       'overflow-hidden',
                       columnSize(header.column.id, model, fluidColumn),
-                      header.column.id === 'actions' && 'text-right',
                       canSort && 'cursor-pointer select-none hover:bg-muted/50',
                     )}
                     key={header.id}
@@ -578,7 +602,10 @@ export function CollectionTable({
                     className={cn(
                       'overflow-hidden',
                       columnSize(cell.column.id, model, fluidColumn),
-                      cell.column.id === 'actions' && 'text-right',
+                      cell.column.id === 'actions' && 'py-0 text-right',
+                      model.columns.find(
+                        (column) => column.path === cell.column.id,
+                      )?.type === 'image' && 'py-0',
                     )}
                     key={cell.id}
                   >
@@ -588,9 +615,9 @@ export function CollectionTable({
               </TableRow>
             ))
           ) : (
-            <TableRow>
+            <TableRow className="hover:bg-transparent">
               <TableCell
-                className="h-24 text-center"
+                className="text-center text-muted-foreground"
                 colSpan={table.getVisibleLeafColumns().length}
               >
                 No results.

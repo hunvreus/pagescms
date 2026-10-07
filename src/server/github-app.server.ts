@@ -124,6 +124,34 @@ export function createGitHubAppApi(
   }
 
   return {
+    async getRepositoryInstallation(
+      owner: string,
+      repo: string,
+    ): Promise<{
+      id: number
+      account: { login: string; type: 'User' | 'Organization' }
+    }> {
+      const body = await request(
+        `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/installation`,
+      )
+      const account = requiredRecord(body.account)
+      if (
+        typeof body.id !== 'number' ||
+        !Number.isInteger(body.id) ||
+        body.id <= 0 ||
+        typeof account.login !== 'string' ||
+        (account.type !== 'User' && account.type !== 'Organization')
+      ) {
+        throw new Error('GitHub returned an invalid repository installation')
+      }
+      return {
+        id: body.id,
+        account: {
+          login: account.login,
+          type: account.type,
+        },
+      }
+    },
     async createInstallationToken(installationId: number) {
       if (!Number.isInteger(installationId) || installationId <= 0) {
         throw new Error('Invalid GitHub installation id')

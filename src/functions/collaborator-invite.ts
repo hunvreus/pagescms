@@ -26,3 +26,14 @@ export const getCollaboratorInvite = createServerFn({ method: 'GET' })
         : undefined,
     )
   })
+
+export const acceptCollaboratorInvitation = createServerFn({ method: 'POST' })
+  .validator(inviteToken)
+  .handler(async ({ context, data }) => {
+    const services = context.getServices()
+    const session = await services.getSession()
+    if (!session?.user) throw new Error('Authentication required')
+    const { acceptCollaboratorInvite } =
+      await import('#/server/collaborator-service.server')
+    return acceptCollaboratorInvite(services.database, data, session.user)
+  })

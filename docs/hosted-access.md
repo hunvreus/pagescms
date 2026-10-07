@@ -31,13 +31,36 @@ Discovery evaluates all configured collections, media sources, and actions in
 one request. It returns `all`, `none`, or an explicit filtered resource list,
 avoiding an authorization N+1. The repository workspace removes hidden schemas
 and actions from the client configuration projection. Action-list responses are
-filtered the same way. Files remain repository-scoped in deployment API v1.
+filtered the same way. Fixed-file content participates in the same named-resource
+checks as collections in deployment API v2.
 
-Granular snapshots are opt-in per repository: version `0` preserves existing
-collaborator behavior. Once an owner saves a snapshot, a collaborator needs an
-exact operation/resource grant. Repository-level grants apply to every named
-resource. Collaborators can never read or replace their own permission
-snapshot through the permission-administration API.
+Pro stores roles, resource permissions and user-role assignments in its SQLite
+database. Resource names refer to the branch's configuration; missing references
+are shown as warning badges. Multiple roles union their grants. `all` is shorthand
+for all resources of a type or all operations for that resource type. Assigned
+branches are `all` or a list; the role list is shared across those branches.
+
+With no custom roles, collaborators retain basic access. If roles are defined,
+unassigned collaborators are denied. Missing/deleted assigned roles grant nothing.
+The built-in `full-access` role covers configured content/media/actions; it never
+grants management. Only GitHub users with write access can edit configuration,
+manage collaborators, clear cache or edit permission policy.
+
+Collaborators only navigate configured, authorized branches. An unavailable
+requested branch falls back to the configured default or the first authorized
+configured branch. With none available, the app asks the user to contact the
+administrator and links back to projects. Invalid configuration stays diagnostic.
+New core invitations are repository-wide; existing branch-scoped records keep
+their scope until changed. Pro assignments can narrow core admission further.
+Ordinary navigation checks only the requested configured branch. The picker and
+fallback reuse one repository admission and batch branch permissions, then check
+configuration on authorized candidates. Cold configuration discovery still
+requires a lookup for each candidate; this is not a production latency claim.
+
+Rename/move stays within the configured content or media root. Action run, viewing
+runs, cancellation and rerun use separate operations. Installation-token action
+execution is enabled only with the private permission module and after policy
+checks; core-only collaborators cannot dispatch workflows.
 
 ## Quotas
 
@@ -72,8 +95,10 @@ multipart sessions.
 ## Entitlement projection and billing
 
 `EntitlementReader` returns only normalized status, plan label, policy version,
-usage counters, and safe upgrade/portal URLs. Provider customer IDs, price IDs,
-raw events, and secrets are forbidden from the client projection.
+usage counters, and safe upgrade/portal URLs. Provider customer IDs, raw events, and secrets are forbidden from the client
+projection. The separate `BillingSessions` boundary lists purchasable plan IDs and
+creates authenticated checkout/portal sessions. It takes the account ID and email
+from the server session; the browser cannot select another account or return URL.
 
 The core billing route passes exact raw request bytes and headers to the fixed
 private handler. The handler must verify the provider signature before parsing,
@@ -93,3 +118,19 @@ Core surfaces only the closed reasons `authentication_required`,
 `feature_unavailable`, and `policy_unavailable`, plus a safe upgrade URL where
 applicable. Vendor state and payment details stay out of general errors and
 logs.
+
+## Collaborator UI composition
+
+Core renders basic collaborator management. Pro's client contribution replaces
+that component with a Roles section and one collaborator table. Invitations and
+edits select roles and branch scope in the same dialog; pending invitations can
+be edited before acceptance. No separate assignment table is shown.
+
+Core validates invitations and checks manager access before asking Pro to save
+access. Pro saves assignments before core creates membership or sends mail;
+failure never creates an unscoped collaborator. Assignment keys use the normalized
+invited email from the core collaborator record, not a browser-supplied identity.
+That key remains stable when a pending invite binds to a user or the user changes
+their account email. Existing user-ID assignments remain readable until edited.
+Orphan assignments after failed delivery have no effect without core membership
+and are replaced by a fresh invitation. Separate databases do not share a transaction.

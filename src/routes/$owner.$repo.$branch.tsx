@@ -43,7 +43,7 @@ export const Route = createFileRoute('/$owner/$repo/$branch')({
     const redirectTo = location.href
 
     try {
-      const [, authentication] = await Promise.all([
+      const [workspace, authentication] = await Promise.all([
         context.queryClient.ensureQueryData(
           repositoryWorkspaceQueryOptions({
             owner: params.owner,
@@ -53,6 +53,11 @@ export const Route = createFileRoute('/$owner/$repo/$branch')({
         ),
         context.queryClient.ensureQueryData(authenticationQueryOptions()),
       ])
+
+      if (workspace.branch && workspace.branch !== params.branch)
+        throw redirect({
+          href: `/${encodeURIComponent(params.owner)}/${encodeURIComponent(params.repo)}/${encodeURIComponent(workspace.branch)}`,
+        })
 
       if (!authentication.user) {
         throw redirect({ href: getSignInUrl(redirectTo) })
@@ -116,8 +121,10 @@ function BranchWorkspace() {
       repo={workspace.repository.repo}
       branch={workspace.branch!}
       branches={workspace.branches}
+      defaultBranch={workspace.repository.defaultBranch}
       configuration={workspace.configuration}
       discovery={workspace.discovery}
+      canViewGitHub={workspace.canViewGitHub}
       user={authentication.user}
     >
       <Outlet />
@@ -155,7 +162,7 @@ function WorkspaceLoading() {
         <SidebarContent>
           <WorkspaceLoadingGroup label="Content" rows={1} />
           <WorkspaceLoadingGroup label="Media" rows={1} />
-          <WorkspaceLoadingGroup label="Admin" rows={3} />
+          <WorkspaceLoadingGroup label="Admin" rows={1} />
         </SidebarContent>
         <SidebarFooter className="border-t">
           <div className="flex items-center justify-between gap-2">

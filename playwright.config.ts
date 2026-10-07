@@ -1,4 +1,5 @@
 import { createHmac } from 'node:crypto'
+import { dirname, join } from 'node:path'
 
 import { defineConfig, devices } from '@playwright/test'
 
@@ -10,7 +11,12 @@ const signature = createHmac('sha256', authSecret)
 const sessionCookie = encodeURIComponent(`${sessionToken}.${signature}`)
 const githubMetricsPath =
   process.env.PAGESCMS_E2E_GITHUB_METRICS_PATH ??
-  `/tmp/pagescms-e2e-github-${process.pid}.jsonl`
+  (process.env.E2E_DATABASE_URL?.startsWith('file:')
+    ? join(
+        dirname(process.env.E2E_DATABASE_URL.slice(5)),
+        'github-metrics.jsonl',
+      )
+    : `/tmp/pagescms-e2e-github-${process.pid}.jsonl`)
 process.env.PAGESCMS_E2E_GITHUB_METRICS_PATH = githubMetricsPath
 const productionE2E = process.env.PAGESCMS_E2E_PRODUCTION === 'true'
 

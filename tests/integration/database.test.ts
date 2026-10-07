@@ -7,8 +7,13 @@ import {
   cacheFileTable,
   collaboratorInviteTable,
   configTable,
+  repositoryTable,
 } from '#/server/database/schema'
 import { saveConfigurationSource } from '#/server/configuration-editor.server'
+import { loadCollection } from '#/server/collection-service.server'
+import { recordRepositoryOpened } from '#/server/repository-activity.server'
+import { createProjectService } from '#/server/projects.server'
+import { loadCacheStatus, manageCache } from '#/server/cache-service.server'
 import { validateConfigurationSource } from '#/lib/configuration-source'
 import { createConfigurationStore } from '#/server/configuration-store.server'
 import { cachePolicy, configureCachePolicy } from '#/server/cache-policy.server'
@@ -24,17 +29,197 @@ import {
 import { handleGitHubWebhook } from '#/server/github-webhook.server'
 
 import type { GitHubApi } from '#/server/github-api.server'
+import type { RepositoryAccessService } from '#/server/repository-access.server'
 
 const databaseUrl = process.env.TEST_DATABASE_URL
 const integration = databaseUrl ? describe : describe.skip
 const database = databaseUrl ? createDatabase({ url: databaseUrl }) : null
 
 integration('SQLite integration', () => {
+  it('opens a selected branch without loading every branch and records recent activity', async () => {
+    const owner = 'performance',
+      repo = 'workspace',
+      branch = 'feature/a'
+    await createConfigurationStore({ database: database! }).save(
+      owner,
+      repo,
+      branch,
+      'config',
+      { content: [] },
+    )
+    const api = {
+      getRepository: vi.fn().mockResolvedValue({ defaultBranch: 'main' }),
+      branchExists: vi.fn().mockResolvedValue(true),
+      listBranches: vi.fn(),
+    } as unknown as GitHubApi
+    const access = {
+      resolve: vi.fn().mockResolvedValue({ api, tokenSource: 'user' }),
+    } as unknown as RepositoryAccessService
+    const service = createProjectService(database!, database!, access)
+    const workspace = await service.openRepository(
+      { id: 'user', email: 'user@example.com', githubUsername: 'user' },
+      owner,
+      repo,
+      branch,
+    )
+    expect(workspace).toMatchObject({
+      branchExists: true,
+      branches: ['main', 'feature/a'],
+    })
+    expect(api.branchExists).toHaveBeenCalledWith(owner, repo, branch)
+    expect(api.listBranches).not.toHaveBeenCalled()
+    const before = await database!.query.repositoryTable.findFirst({
+      where: eq(repositoryTable.owner, owner),
+    })
+    await recordRepositoryOpened(database!, owner, repo)
+    const after = await database!.query.repositoryTable.findFirst({
+      where: eq(repositoryTable.owner, owner),
+    })
+    expect(after?.lastOpenedAt).toEqual(before?.lastOpenedAt)
+  })
+
+  it('projects collection payloads while retaining complete cached source', async () => {
+    const owner = 'performance',
+      repo = 'collection',
+      branch = 'main'
+    await createConfigurationStore({ database: database! }).save(
+      owner,
+      repo,
+      branch,
+      'config',
+      {
+        content: [
+          {
+            name: 'posts',
+            type: 'collection',
+            path: 'posts',
+            format: 'yaml-frontmatter',
+            fields: [
+              { name: 'title', type: 'string' },
+              { name: 'body', type: 'rich-text' },
+            ],
+            view: { fields: ['title'] },
+          },
+        ],
+      },
+    )
+    const source = `---\ntitle: Post\n---\n${'large body'.repeat(1000)}`
+    const api = {
+      getRefSha: vi.fn().mockResolvedValue('head'),
+      getDirectory: vi.fn().mockResolvedValue([
+        {
+          type: 'file',
+          name: 'post.md',
+          path: 'posts/post.md',
+          sha: 'post-sha',
+          content: source,
+          size: source.length,
+        },
+      ]),
+    } as unknown as GitHubApi
+    const collection = await loadCollection({
+      database: database!,
+      repositoryAccess: {
+        resolve: vi.fn().mockResolvedValue({ api, tokenSource: 'user' }),
+      },
+      user: { id: 'user', email: 'user@example.com', githubUsername: 'user' },
+      owner,
+      repo,
+      branch,
+      name: 'posts',
+    })
+    expect(collection.contents[0]).toMatchObject({ fields: { title: 'Post' } })
+    expect(JSON.stringify(collection.contents)).not.toContain('large body')
+    expect(
+      (await database!.select().from(cacheFileTable)).some(
+        (file) => file.content === source,
+      ),
+    ).toBe(true)
+  })
   beforeEach(async () => {
     await database!.delete(cacheFileTable)
     await database!.delete(cacheFileMetaTable)
     await database!.delete(collaboratorInviteTable)
     await database!.delete(configTable)
+  })
+
+  it.each([undefined, false, true])(
+    'caches collection reads regardless of the removed cache setting: %s',
+    async (setting) => {
+      const owner = 'always-cached'
+      const repo = 'content'
+      const branch = 'main'
+      await createConfigurationStore({ database: database! }).save(
+        owner,
+        repo,
+        branch,
+        'config-sha',
+        {
+          settings: setting === undefined ? {} : { cache: setting },
+          content: [{ name: 'posts', type: 'collection', path: 'posts' }],
+        },
+      )
+      const api = {
+        getRefSha: vi.fn().mockResolvedValue('head'),
+        getDirectory: vi.fn().mockResolvedValue([]),
+      } as unknown as GitHubApi
+      const input = {
+        database: database!,
+        repositoryAccess: {
+          resolve: vi.fn().mockResolvedValue({ api, tokenSource: 'user' }),
+        } as unknown as RepositoryAccessService,
+        user: {
+          id: 'cache-user',
+          email: 'cache@example.com',
+          githubUsername: 'cache-user',
+        },
+        owner,
+        repo,
+        branch,
+        name: 'posts',
+      }
+      await loadCollection(input)
+      await loadCollection(input)
+      expect(api.getDirectory).toHaveBeenCalledTimes(1)
+      expect(await database!.select().from(cacheFileMetaTable)).toHaveLength(1)
+    },
+  )
+
+  it('allows empty-cache administration without configuration and preserves write-access checks', async () => {
+    const api = {
+      getRepository: vi.fn().mockResolvedValue({ canPush: true }),
+    } as unknown as GitHubApi
+    const resolve = vi.fn().mockResolvedValue({ api, tokenSource: 'user' })
+    const input = {
+      database: database!,
+      repositoryAccess: { resolve } as unknown as RepositoryAccessService,
+      user: {
+        id: 'cache-user',
+        email: 'cache@example.com',
+        githubUsername: 'cache-user',
+      },
+      owner: 'empty-cache',
+      repo: 'empty',
+      branch: 'main',
+    }
+    await expect(loadCacheStatus(input)).resolves.toMatchObject({
+      fileCount: 0,
+      directoryCount: 0,
+      configuration: null,
+    })
+    await expect(
+      manageCache({ ...input, action: 'clear-all' }),
+    ).resolves.toEqual({ message: 'All repository caches cleared' })
+    vi.mocked(api.getRepository).mockResolvedValue({
+      canPush: false,
+    } as Awaited<ReturnType<GitHubApi['getRepository']>>)
+    await expect(loadCacheStatus(input)).rejects.toThrow(
+      'Repository write access is required',
+    )
+    resolve.mockResolvedValue({ api, tokenSource: 'installation' })
+    await expect(
+      manageCache({ ...input, action: 'clear-all' }),
+    ).rejects.toThrow('Only GitHub users can manage the cache')
   })
 
   it('applies every legacy-compatible migration', async () => {
@@ -53,7 +238,6 @@ integration('SQLite integration', () => {
         'config',
         'cache_file',
         'cache_file_meta',
-        'cache_permission',
         'action_run',
       ]),
     )
@@ -228,13 +412,14 @@ integration('SQLite integration', () => {
   })
 
   it.each([
-    'content: []\nsettings:\n  cache: true\n',
-    'content: []\nsurprise: true\nsettings:\n  cache: true\n  ignored: true\n',
+    'content: []\nsettings:\n  config: true\n',
+    'content: []\nsurprise: true\nsettings:\n  config: true\n  ignored: true\n',
     'content: []\nmedia:\n  input: images\n  output: /images\n  ignored: true\n',
   ])(
     'writes configuration through to the parsed cache, including warning-only YAML: %s',
     async (source) => {
       const api = {
+        getRepository: vi.fn().mockResolvedValue({ canPush: true }),
         getFile: vi
           .fn()
           .mockResolvedValue({ sha: 'old', content: btoa('content: []') }),

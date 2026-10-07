@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 
 import {
   CONFIGURATION_VERSION,
-  isCacheEnabled,
   isConfigurationEditingEnabled,
   normalizeConfiguration,
 } from './configuration'
@@ -16,7 +15,7 @@ describe('configuration settings normalization', () => {
     }
 
     expect(normalizeConfiguration(source)).toEqual({
-      settings: { config: false, cache: true },
+      settings: { config: false },
     })
     expect(source).toEqual({ settings: false, cache: true, hide: true })
   })
@@ -28,9 +27,8 @@ describe('configuration settings normalization', () => {
       hide: true,
     })
 
-    expect(normalized.settings).toEqual({ config: true, cache: false })
+    expect(normalized.settings).toEqual({ config: true })
     expect(isConfigurationEditingEnabled(normalized)).toBe(true)
-    expect(isCacheEnabled(normalized)).toBe(false)
     expect(CONFIGURATION_VERSION).toBe('3.0')
   })
 

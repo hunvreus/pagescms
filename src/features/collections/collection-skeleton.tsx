@@ -58,7 +58,10 @@ export function CollectionSkeleton() {
       >
         <Skeleton className="h-6 w-32" />
       </RepositoryPageHeader>
-      <Table className="table-fixed">
+      <Table
+        className="table-fixed"
+        containerClassName="rounded-xl border bg-card"
+      >
         <colgroup>
           {columns.map((column) => (
             <col key={column.id} style={{ width: column.width }} />
@@ -68,7 +71,9 @@ export function CollectionSkeleton() {
           <TableRow className="hover:bg-transparent">
             {columns.map((column) => (
               <TableHead key={column.id}>
-                <Skeleton className={`h-4 ${column.headerWidth}`} />
+                {column.id !== 'actions' ? (
+                  <Skeleton className={`h-4 ${column.headerWidth}`} />
+                ) : null}
               </TableHead>
             ))}
           </TableRow>
@@ -76,7 +81,7 @@ export function CollectionSkeleton() {
         <TableBody>
           {Array.from({ length: 8 }, (_, row) => (
             <TableRow key={row}>
-              <TableCell>
+              <TableCell className="py-0">
                 <Skeleton className="size-8" />
               </TableCell>
               <TableCell>
@@ -93,8 +98,8 @@ export function CollectionSkeleton() {
               <TableCell>
                 <Skeleton className="h-5 w-10 rounded-full" />
               </TableCell>
-              <TableCell>
-                <Skeleton className="ml-auto h-8 w-16" />
+              <TableCell className="py-0 text-right">
+                <Skeleton className="ml-auto h-7 w-16" />
               </TableCell>
             </TableRow>
           ))}

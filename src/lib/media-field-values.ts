@@ -12,6 +12,13 @@ export interface FieldMediaSchema {
 type Field = JsonObject
 type Direction = 'read' | 'write'
 
+export function relativeMediaPath(path: string, input: string): string {
+  const root = input.replace(/^\/+|\/+$/g, '')
+  return root && path.startsWith(`${root}/`)
+    ? path.slice(root.length + 1)
+    : path
+}
+
 function isObject(value: unknown): value is JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

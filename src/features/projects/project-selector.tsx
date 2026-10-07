@@ -1,7 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { ChevronsUpDown, LockKeyhole, Search, Settings } from 'lucide-react'
+import {
+  ChevronsUpDown,
+  LoaderCircle,
+  LockKeyhole,
+  Search,
+  Settings,
+} from 'lucide-react'
 
 import { Button, buttonVariants } from '#/components/ui/button'
 import { ButtonGroup } from '#/components/ui/button-group'
@@ -12,13 +18,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '#/components/ui/dropdown-menu'
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from '#/components/ui/empty'
 import { Input } from '#/components/ui/input'
 import { Skeleton } from '#/components/ui/skeleton'
 import {
@@ -103,16 +102,36 @@ export function ProjectSelector({
     gcTime: 10 * 60_000,
     placeholderData: keepPreviousData,
   })
+  const lastResults = useRef({
+    account: selectedKey,
+    values: repositories.data,
+  })
+  useEffect(() => {
+    if (repositories.isSuccess && !repositories.isPlaceholderData) {
+      lastResults.current = { account: selectedKey, values: repositories.data }
+    }
+  }, [
+    repositories.data,
+    repositories.isSuccess,
+    repositories.isPlaceholderData,
+    selectedKey,
+  ])
+  const results =
+    repositories.data ??
+    (lastResults.current.account === selectedKey
+      ? lastResults.current.values
+      : undefined)
+  const filtering = searchIsSettling || repositories.isFetching
 
   const visibleRepositories = useMemo(() => {
-    const values = repositories.data ?? []
+    const values = results ?? []
     if (selectedAccount?.repositorySelection === 'all') return values
     const normalizedKeyword = keyword.trim().toLowerCase()
     if (!normalizedKeyword) return values
     return values.filter((repository) =>
       repository.repo.toLowerCase().includes(normalizedKeyword),
     )
-  }, [keyword, repositories.data, selectedAccount?.repositorySelection])
+  }, [keyword, results, selectedAccount?.repositorySelection])
 
   if (!selectedAccount) return null
 
@@ -177,7 +196,14 @@ export function ProjectSelector({
           </TooltipProvider>
         </ButtonGroup>
         <div className="relative min-w-0 flex-1">
-          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 opacity-50" />
+          {filtering ? (
+            <LoaderCircle
+              aria-label="Filtering repositories"
+              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 animate-spin text-muted-foreground"
+            />
+          ) : (
+            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 opacity-50" />
+          )}
           <Input
             autoComplete="off"
             className="pl-9"
@@ -189,9 +215,7 @@ export function ProjectSelector({
         </div>
       </div>
 
-      {repositories.isPending || repositories.isFetching || searchIsSettling ? (
-        <ProjectListSkeleton />
-      ) : repositories.isError ? (
+      {repositories.isError ? (
         <div className="space-y-2">
           <OperationError
             error={repositories.error}
@@ -201,8 +225,11 @@ export function ProjectSelector({
             Try again
           </Button>
         </div>
+      ) : null}
+      {!results && repositories.isPending ? (
+        <ProjectListSkeleton />
       ) : visibleRepositories.length ? (
-        <ul>
+        <ul aria-busy={filtering}>
           {visibleRepositories.map((repository) => {
             const destination = repository.defaultBranch
               ? '/$owner/$repo/$branch'
@@ -249,25 +276,23 @@ export function ProjectSelector({
             )
           })}
         </ul>
-      ) : (
-        <Empty className="min-h-52 bg-accent p-4 md:p-6">
-          <EmptyHeader>
-            <EmptyTitle>No projects</EmptyTitle>
-            <EmptyDescription>
-              {keyword.trim()
-                ? 'No projects matched your search.'
-                : 'No projects are available for this account.'}
-            </EmptyDescription>
-          </EmptyHeader>
+      ) : !repositories.isError ? (
+        <div className="rounded-xl border bg-card px-4 py-3 text-center text-sm text-muted-foreground">
+          {keyword.trim()
+            ? 'No projects matched your search.'
+            : 'No projects are available for this account.'}
           {keyword.trim() ? (
-            <EmptyContent>
-              <Button variant="outline" onClick={() => setKeyword('')}>
-                Reset search
-              </Button>
-            </EmptyContent>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="ml-2"
+              onClick={() => setKeyword('')}
+            >
+              Reset search
+            </Button>
           ) : null}
-        </Empty>
-      )}
+        </div>
+      ) : null}
     </div>
   )
 }

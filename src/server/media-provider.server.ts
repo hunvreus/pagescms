@@ -48,6 +48,12 @@ export interface MediaStoredFile {
   bytes: Uint8Array
 }
 
+export interface MediaPreviewFile {
+  etag: string | null
+  body: ReadableStream<Uint8Array> | null
+  notModified: boolean
+}
+
 export interface MediaMutationMetadata {
   message: string
   actor?: { name: string; email: string }
@@ -117,6 +123,7 @@ export interface MediaStorage {
   list: (directory: string) => Promise<MediaManifest>
   resolveOrigins: (paths: string[]) => Promise<MediaOrigin[]>
   read: (path: string) => Promise<MediaStoredFile>
+  preview?: (path: string, ifNoneMatch?: string) => Promise<MediaPreviewFile>
   write: (input: {
     path: string
     content: string
@@ -198,6 +205,7 @@ function isStorage(value: unknown): value is MediaStorage {
     typeof storage.list === 'function' &&
     typeof storage.resolveOrigins === 'function' &&
     typeof storage.read === 'function' &&
+    (storage.preview === undefined || typeof storage.preview === 'function') &&
     typeof storage.write === 'function' &&
     typeof storage.createDirectory === 'function' &&
     typeof storage.remove === 'function' &&
@@ -408,6 +416,24 @@ export function createGitHubMediaStorage({
         bytes: decodeBase64Bytes(file.content),
       }
     },
+    ...(api.getFileResponse
+      ? {
+          preview: async (path: string, ifNoneMatch?: string) => {
+            const response = await api.getFileResponse!(
+              owner,
+              repo,
+              path,
+              branch,
+              ifNoneMatch,
+            )
+            return {
+              etag: response.headers.get('etag'),
+              body: response.body,
+              notModified: response.status === 304,
+            }
+          },
+        }
+      : {}),
     async write({ path, content, metadata }) {
       const result = await api.putFile({
         owner,

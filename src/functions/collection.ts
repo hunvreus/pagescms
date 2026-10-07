@@ -37,6 +37,7 @@ export const getCollection = createServerFn({ method: 'GET' })
     const user = {
       id: session.user.id,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
     const principal = await resolveRepositoryPrincipal(

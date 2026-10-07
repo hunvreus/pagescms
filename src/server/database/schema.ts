@@ -188,6 +188,22 @@ const configTable = sqliteTable(
   }),
 )
 
+const repositoryTable = sqliteTable(
+  'repository',
+  {
+    id: serial('id'),
+    source: text('source').notNull(),
+    owner: text('owner').notNull(),
+    repo: text('repo').notNull(),
+    lastOpenedAt: timestamp('last_opened_at').notNull(),
+  },
+  (table) => ({
+    uq_repository_source_owner_repo: uniqueIndex(
+      'uq_repository_source_owner_repo',
+    ).on(table.source, table.owner, table.repo),
+  }),
+)
+
 const cacheFileTable = sqliteTable(
   'cache_file',
   {
@@ -257,22 +273,6 @@ const cacheFileMetaTable = sqliteTable(
   }),
 )
 
-const cachePermissionTable = sqliteTable(
-  'cache_permission',
-  {
-    id: serial('id'),
-    githubId: integer('github_id').notNull(),
-    owner: text('owner').notNull(),
-    repo: text('repo').notNull(),
-    lastUpdated: timestamp('last_updated').notNull(),
-  },
-  (table) => ({
-    idx_cache_permission_githubId_owner_repo: uniqueIndex(
-      'idx_cache_permission_githubId_owner_repo',
-    ).on(table.githubId, table.owner, table.repo),
-  }),
-)
-
 const actionRunTable = sqliteTable(
   'action_run',
   {
@@ -330,8 +330,8 @@ export {
   collaboratorTable,
   collaboratorInviteTable,
   configTable,
+  repositoryTable,
   cacheFileTable,
   cacheFileMetaTable,
-  cachePermissionTable,
   actionRunTable,
 }

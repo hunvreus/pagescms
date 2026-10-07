@@ -1,4 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
+import { isDeploymentAdmin } from '#/server/admin-access.server'
 
 import { validateEntitlementSnapshot } from '#/deployment/contracts/hosted.server'
 
@@ -40,13 +41,15 @@ export const getAccountSettings = createServerFn({ method: 'GET' }).handler(
             id: session.user.id,
             name: session.user.name,
             email: session.user.email,
+            emailVerified: session.user.emailVerified,
             image: session.user.image ?? null,
             githubUsername: session.user.githubUsername ?? null,
           },
           githubClientId: services.configuration.auth.github?.clientId,
           githubAppName: services.configuration.githubAppName,
-          isAdmin: services.configuration.adminEmails.includes(
-            session.user.email.toLowerCase(),
+          isAdmin: isDeploymentAdmin(
+            session.user,
+            services.configuration.adminEmails,
           ),
         })
         const entitlementValue = services.entitlementReader
@@ -58,7 +61,12 @@ export const getAccountSettings = createServerFn({ method: 'GET' }).handler(
         const entitlement = entitlementValue
           ? validateEntitlementSnapshot(entitlementValue)
           : null
-        return { ...settings, entitlement }
+        const billing = services.billingSessions
+          ? await services.billingSessions.options({
+              accountId: session.user.id,
+            })
+          : null
+        return { ...settings, entitlement, billing }
       },
     )
   },

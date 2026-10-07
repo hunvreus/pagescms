@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
-import { EditorState } from '@codemirror/state'
+import { diagnosticCount, setDiagnostics } from '@codemirror/lint'
+import { EditorState, StateEffect } from '@codemirror/state'
 import { syntaxTree } from '@codemirror/language'
 
 import CodeField from './code-field'
@@ -20,6 +21,29 @@ vi.mock('@uiw/react-codemirror', () => ({
 }))
 
 describe('CodeMirror code fields', () => {
+  it('preserves diagnostics when CodeMirror reconfigures its extensions', () => {
+    renderToStaticMarkup(
+      <CodeEditor
+        label="Configuration"
+        format="yaml"
+        value="content: ["
+        onChange={() => undefined}
+      />,
+    )
+    const extensions = captured.props.extensions ?? []
+    let state = EditorState.create({ doc: 'content: [', extensions })
+    state = state.update(
+      setDiagnostics(state, [
+        { from: 10, to: 10, severity: 'error', message: 'Unclosed sequence' },
+      ]),
+    ).state
+    expect(diagnosticCount(state)).toBe(1)
+    state = state.update({
+      effects: StateEffect.reconfigure.of(extensions),
+    }).state
+    expect(diagnosticCount(state)).toBe(1)
+  })
+
   it.each([
     'yaml',
     'yml',
@@ -103,10 +127,9 @@ describe('CodeMirror code fields', () => {
     },
   )
 
-  it('keeps configuration diagnostics and full-height setup on the shared editor', () => {
+  it('keeps configuration diagnostics and lets the shared editor grow with its content', () => {
     renderToStaticMarkup(
       <CodeEditor
-        configuration
         format="yaml"
         diagnostics={[
           { from: 0, to: 3, severity: 'error', message: 'Invalid value' },
@@ -116,7 +139,7 @@ describe('CodeMirror code fields', () => {
         onChange={() => undefined}
       />,
     )
-    expect(captured.props.height).toBe('calc(100vh - 7rem)')
+    expect(captured.props.height).toBeUndefined()
     expect(captured.props.basicSetup).toMatchObject({
       lineNumbers: false,
       searchKeymap: false,

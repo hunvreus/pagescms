@@ -2,7 +2,10 @@
 import { repositorySource } from './repository-provider.server'
 
 const identities = new WeakMap<object, Promise<string>>()
-const entries = new Map<string, { value: unknown; expires: number }>()
+const entries = new Map<
+  string,
+  { value: unknown; expires: number; failed?: boolean }
+>()
 const pending = new Map<string, Promise<unknown>>()
 const fetcherIds = new WeakMap<object, string>()
 
@@ -35,6 +38,7 @@ export async function readRepositoryCached<T>(
   resource: string,
   ttlMs: number,
   load: () => Promise<T>,
+  cacheFailure?: (error: unknown) => boolean,
 ): Promise<T> {
   let identity = identities.get(api)
   if (!identity) {
@@ -49,7 +53,10 @@ export async function readRepositoryCached<T>(
     resource,
   ])
   const cached = entries.get(key)
-  if (cached && cached.expires > Date.now()) return cached.value as T
+  if (cached && cached.expires > Date.now()) {
+    if (cached.failed) throw cached.value
+    return cached.value as T
+  }
   entries.delete(key)
   const existing = pending.get(key)
   if (existing) return existing as Promise<T>
@@ -60,6 +67,17 @@ export async function readRepositoryCached<T>(
         entries.set(key, { value, expires: Date.now() + ttlMs })
       }
       return value
+    })
+    .catch((error: unknown) => {
+      if (pending.get(key) === request && ttlMs > 0 && cacheFailure?.(error)) {
+        while (entries.size >= 256) entries.delete(entries.keys().next().value!)
+        entries.set(key, {
+          value: error,
+          failed: true,
+          expires: Date.now() + Math.min(ttlMs, 15_000),
+        })
+      }
+      throw error
     })
     .finally(() => {
       if (pending.get(key) === request) pending.delete(key)

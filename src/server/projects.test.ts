@@ -42,6 +42,32 @@ describe('mergeProjectAccounts', () => {
 })
 
 describe('createProjectService', () => {
+  it('checks the selected branch without enumerating the branch picker', async () => {
+    const update = vi.fn().mockResolvedValue(undefined)
+    const database = {
+      insert: () => ({ values: () => ({ onConflictDoUpdate: update }) }),
+    } as unknown as Database
+    const api = {
+      getRepository: vi.fn().mockResolvedValue({ defaultBranch: 'main' }),
+      branchExists: vi.fn().mockResolvedValue(true),
+      listBranches: vi.fn(),
+    }
+    const access = {
+      resolve: vi.fn().mockResolvedValue({ api }),
+    } as unknown as RepositoryAccessService
+    // No selected branch also means no configuration lookup is necessary.
+    const service = createProjectService(database, database, access)
+    await expect(
+      service.openRepository(
+        { id: 'user', email: 'user@example.com', githubUsername: 'user' },
+        'owner',
+        'repo',
+      ),
+    ).resolves.toMatchObject({ branchExists: true, branches: ['main'] })
+    expect(api.listBranches).not.toHaveBeenCalled()
+    expect(api.branchExists).not.toHaveBeenCalled()
+    expect(update).toHaveBeenCalledOnce()
+  })
   it('uses a linked GitHub token even when the cached username is missing', async () => {
     const where = vi.fn(async () => [])
     const database = {

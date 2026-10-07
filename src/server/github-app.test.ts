@@ -24,6 +24,28 @@ function decodeSegment(value: string) {
 }
 
 describe('GitHub App authentication', () => {
+  it('looks up only the requested repository installation with App authentication', async () => {
+    const { privateKey } = keyPair('pkcs8')
+    const fetcher = vi.fn(async (_input: RequestInfo | URL) =>
+      Response.json({
+        id: 42,
+        account: { login: 'PagesCMS', type: 'Organization' },
+      }),
+    )
+    await expect(
+      createGitHubAppApi(
+        { appId: '12345', privateKey },
+        fetcher,
+      ).getRepositoryInstallation('PagesCMS', 'site'),
+    ).resolves.toEqual({
+      id: 42,
+      account: { login: 'PagesCMS', type: 'Organization' },
+    })
+    expect(fetcher).toHaveBeenCalledOnce()
+    expect(fetcher.mock.calls[0]?.[0]).toBe(
+      'https://api.github.com/repos/PagesCMS/site/installation',
+    )
+  })
   it.each(['pkcs1', 'pkcs8'] as const)(
     'signs a valid App JWT from a %s private key',
     async (type) => {

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { LoaderCircle, Trash2, UserPlus } from 'lucide-react'
+import { LoaderCircle, UserPlus } from 'lucide-react'
 
 import { OperationError } from '#/components/operation-error'
 import {
@@ -33,20 +33,25 @@ import {
   TableRow,
 } from '#/components/ui/table'
 import { Textarea } from '#/components/ui/textarea'
-import { RepositoryPermissionsContribution } from '#/features/collaborators/repository-permissions-contribution'
+import {
+  hasRepositoryCollaborators,
+  RepositoryPermissionsContribution,
+} from '#/features/collaborators/repository-permissions-contribution'
 import { addCollaborators, deleteCollaborator } from '#/functions/collaborators'
 import { collaboratorsQueryOptions } from '#/queries/repository'
 
 import { RepositoryAdminPage } from './repository-admin-page'
 
-export function CollaboratorsPage({
+function BasicCollaboratorsPage({
   owner,
   repo,
   branch,
+  embedded = false,
 }: {
   owner: string
   repo: string
   branch: string
+  embedded?: boolean
 }) {
   const params = { owner, repo, branch }
   const { data: collaborators } = useSuspenseQuery(
@@ -104,9 +109,10 @@ export function CollaboratorsPage({
 
   return (
     <RepositoryAdminPage
+      embedded={embedded}
       title="Collaborators"
       actions={
-        <Button onClick={() => setInviteOpen(true)}>
+        <Button size="sm" variant="outline" onClick={() => setInviteOpen(true)}>
           <UserPlus />
           Invite collaborator
         </Button>
@@ -116,59 +122,55 @@ export function CollaboratorsPage({
         error={error}
         fallback="Could not update collaborators."
       />
-      <div className="overflow-hidden rounded-lg border">
-        <Table aria-label="Repository collaborators">
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead>Email</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Access</TableHead>
-              <TableHead className="w-px text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {collaborators.length ? (
-              collaborators.map((collaborator) => (
-                <TableRow key={collaborator.id}>
-                  <TableCell className="font-medium">
-                    {collaborator.email}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">
-                      {collaborator.userId ? 'Active' : 'Invitation pending'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{collaborator.branch ?? 'All branches'}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      aria-label={`Remove ${collaborator.email}`}
-                      size="icon-sm"
-                      variant="ghost"
-                      onClick={() => setRemoving(collaborator)}
-                    >
-                      <Trash2 />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow className="hover:bg-transparent">
-                <TableCell
-                  className="h-24 text-center text-muted-foreground"
-                  colSpan={4}
-                >
-                  No collaborators yet.
+      <Table
+        aria-label="Repository collaborators"
+        containerClassName="rounded-xl border bg-card"
+      >
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead>Email</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Access</TableHead>
+            <TableHead className="w-px" />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {collaborators.length ? (
+            collaborators.map((collaborator) => (
+              <TableRow key={collaborator.id}>
+                <TableCell className="font-medium">
+                  {collaborator.email}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="secondary">
+                    {collaborator.userId ? 'Active' : 'Invitation pending'}
+                  </Badge>
+                </TableCell>
+                <TableCell>{collaborator.branch ?? 'All branches'}</TableCell>
+                <TableCell className="py-0 text-right">
+                  <Button
+                    aria-label={`Remove ${collaborator.email}`}
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => setRemoving(collaborator)}
+                  >
+                    Remove
+                  </Button>
                 </TableCell>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      <RepositoryPermissionsContribution
-        {...params}
-        collaborators={collaborators}
-      />
+            ))
+          ) : (
+            <TableRow className="hover:bg-transparent">
+              <TableCell
+                className="text-center text-muted-foreground"
+                colSpan={4}
+              >
+                No collaborators yet.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
 
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent>
@@ -239,4 +241,20 @@ export function CollaboratorsPage({
       </AlertDialog>
     </RepositoryAdminPage>
   )
+}
+
+export function CollaboratorsPage(props: {
+  owner: string
+  repo: string
+  branch: string
+  embedded?: boolean
+}) {
+  if (hasRepositoryCollaborators) {
+    return (
+      <RepositoryAdminPage embedded={props.embedded} title="Collaborators">
+        <RepositoryPermissionsContribution {...props} />
+      </RepositoryAdminPage>
+    )
+  }
+  return <BasicCollaboratorsPage {...props} />
 }

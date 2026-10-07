@@ -1,4 +1,3 @@
-import { isCacheEnabled } from '#/lib/configuration'
 import {
   collectionDirectoryPath,
   findContentSchema,
@@ -125,7 +124,7 @@ export async function loadReferenceOptions(input: {
           branch: input.branch,
           path,
           context: 'collection',
-          enabled: isCacheEnabled(configuration.object),
+          enabled: true,
         }),
       ),
     )

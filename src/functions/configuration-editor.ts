@@ -47,6 +47,7 @@ export const getConfigurationEditor = createServerFn({ method: 'GET' })
     const user = {
       id: session.user.id,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
     return services.access.execute(
@@ -75,43 +76,6 @@ export const getConfigurationEditor = createServerFn({ method: 'GET' })
     )
   })
 
-export const getConfigurationHistory = createServerFn({ method: 'GET' })
-  .validator(parseCoordinates)
-  .handler(async ({ context, data }) => {
-    const services = context.getServices()
-    const session = await services.getSession()
-    if (!session?.user) throw new Error('Authentication required')
-    const user = {
-      id: session.user.id,
-      email: session.user.email,
-      githubUsername: session.user.githubUsername ?? null,
-    }
-    return services.access.execute(
-      {
-        operation: 'configuration.history',
-        principal: await resolveRepositoryPrincipal(
-          services.repositoryAccess,
-          user,
-          data,
-        ),
-        tenant: {
-          type: 'repository',
-          id: `${data.owner}/${data.repo}`.toLowerCase(),
-        },
-        target: { repository: data, branch: data.branch, path: '.pages.yml' },
-      },
-      async () => {
-        const { loadConfigurationHistory } =
-          await import('#/server/configuration-editor.server')
-        return loadConfigurationHistory({
-          repositoryAccess: services.repositoryAccess,
-          user,
-          ...data,
-        })
-      },
-    )
-  })
-
 export const updateConfiguration = createServerFn({ method: 'POST' })
   .validator(parseSaveRequest)
   .handler(async ({ context, data }) => {
@@ -122,6 +86,7 @@ export const updateConfiguration = createServerFn({ method: 'POST' })
       id: session.user.id,
       name: session.user.name,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
     return services.access.execute(

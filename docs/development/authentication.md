@@ -26,6 +26,13 @@ Email-code sign-in is enabled when a trusted build-time plugin creates an email 
 
 ## Runtime behavior
 
+- OAuth identities must report a verified email before user creation, account linking, or sign-in. GitHub is not exempted as a trusted provider. Email-code sign-in retains its own proof-of-email flow.
+- Deployment-admin allowlisting requires a verified email. Pending collaborator grants match email only for verified users; already-bound grants match the immutable user ID.
+- Invitation GET requests only report status and expose a masked address to guests. Acceptance is an authenticated POST for the matching verified account. Invitation creation, acceptance, removal, and send-failure rollback use atomic application-database batches.
+- Configuration source editing and workflow mutations require direct GitHub user credentials with repository write permission. Collaborators using installation credentials cannot change `.pages.yml`, including through ordinary file/media mutation endpoints. Parsed configuration remains available to render permitted content fields.
+- Branch creation checks admission to both the source and destination branch before writing.
+- Media previews resolve the effective repository principal, apply hosted policy, and use a restrictive sandbox CSP even on conditional responses. Client errors do not expose internal exception messages.
+- Installation/repository removal atomically revokes collaborators and their pending invitations before disposable cache cleanup. Application and cache storage can be separate databases: failed cache cleanup is retried, not treated as a distributed transaction.
 - Unauthenticated application routes redirect to `/sign-in` with a validated internal return path.
 - Session reads are memoized per request and route results use short stale times to keep navigation responsive without making sign-out changes linger.
 - GitHub credentials are optional, but both values must be configured together.

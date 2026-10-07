@@ -1,12 +1,12 @@
 import { readFile, rm, writeFile } from 'node:fs/promises'
 
-import { expect, test } from '@playwright/test'
+import { expect, test } from './test'
 
-const metricsPath = (() => {
+function metricsPath() {
   const value = process.env.PAGESCMS_E2E_GITHUB_METRICS_PATH
   if (!value) throw new Error('GitHub fixture metrics path is required')
   return value
-})()
+}
 const mediaDirectoryPath =
   '/repos/pagescms/performance-fixture/contents/public/images'
 const productionBenchmark = process.env.PAGESCMS_E2E_PRODUCTION === 'true'
@@ -20,11 +20,11 @@ type FixtureRequest = {
 }
 
 test.afterEach(async () => {
-  await rm(metricsPath, { force: true })
+  await rm(metricsPath(), { force: true })
 })
 
 async function fixtureRequests() {
-  const source = await readFile(metricsPath, 'utf8')
+  const source = await readFile(metricsPath(), 'utf8')
   return source
     .trim()
     .split('\n')
@@ -47,7 +47,7 @@ function summary(values: Array<number>) {
 test('loads a media manifest and its image sources from one GitHub directory request', async ({
   page,
 }) => {
-  await writeFile(metricsPath, '')
+  await writeFile(metricsPath(), '')
   const coldStartedAt = performance.now()
 
   await page.goto(
@@ -67,7 +67,7 @@ test('loads a media manifest and its image sources from one GitHub directory req
   })
   expect(requests).toHaveLength(1)
 
-  await writeFile(metricsPath, '')
+  await writeFile(metricsPath(), '')
   const warmStartedAt = performance.now()
   await page.reload()
   await expect(page.locator('[data-state="loaded"]')).toHaveCount(2, {
@@ -104,7 +104,7 @@ test('measures production media first-useful-render for public and private repos
     'performance-fixture',
     'private-performance-fixture',
   ]) {
-    await writeFile(metricsPath, '')
+    await writeFile(metricsPath(), '')
     const cold: Array<number> = []
     const warm: Array<number> = []
     let coldDirectoryRequests = 0

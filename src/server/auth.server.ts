@@ -48,6 +48,15 @@ export function createPagesCmsAuth({
     baseURL: authBaseUrl(configuration.baseUrl),
     secret: configuration.secret,
     user: {
+      validateUserInfo: ({ user, source }) => {
+        if (source.method === 'oauth' && user.emailVerified !== true) {
+          return {
+            error: 'email_not_verified',
+            errorDescription:
+              'Verify your email with your sign-in provider before continuing.',
+          }
+        }
+      },
       additionalFields: {
         githubUsername: {
           type: 'string',
@@ -59,7 +68,7 @@ export function createPagesCmsAuth({
     account: {
       accountLinking: {
         enabled: true,
-        trustedProviders: ['github'],
+        trustedProviders: [],
         updateUserInfoOnLink: true,
         allowUnlinkingAll: false,
       },
@@ -67,6 +76,7 @@ export function createPagesCmsAuth({
     socialProviders: configuration.github
       ? {
           github: {
+            requireEmailVerification: true,
             clientId: configuration.github.clientId,
             clientSecret: configuration.github.clientSecret,
             overrideUserInfoOnSignIn: false,

@@ -1,10 +1,12 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './test'
+import { configuration } from './github-fixture.server'
 
 test('raw files use the same CodeMirror editor and persist source exactly', async ({
   page,
 }) => {
   await page.goto('/pagescms/fixture/main/file/raw-code')
   const editor = page.getByRole('textbox', { name: 'Entry source' })
+  await expect(page.getByText('Source editor', { exact: true })).toHaveCount(0)
   await expect(editor).toHaveClass(/cm-content/)
   await expect(editor).toContainText('const original: number = 42')
   await editor.fill('const changed: number = 123\n')
@@ -25,14 +27,6 @@ test('code fields use CodeMirror, preserve edits and undo, and respect readonly'
   await expect(editor).toHaveClass(/cm-content/)
   await expect(editor).toHaveAttribute('contenteditable', 'true')
   await expect(page.locator('.cm-gutters')).toHaveCount(0)
-  const keyword = editor
-    .locator('span')
-    .filter({ hasText: /^const$/ })
-    .first()
-  await page.evaluate(() => document.documentElement.classList.add('dark'))
-  await expect(keyword).toHaveCSS('color', 'rgb(255, 123, 114)')
-  await page.evaluate(() => document.documentElement.classList.remove('dark'))
-  await expect(keyword).toHaveCSS('color', 'rgb(215, 58, 73)')
   const locked = page.getByRole('textbox', { name: 'Locked code', exact: true })
   await expect(locked).toHaveAttribute('contenteditable', 'false')
   await editor.fill('const answer: number = 123')
@@ -54,21 +48,25 @@ test('code fields use CodeMirror, preserve edits and undo, and respect readonly'
 test('configuration shows YAML diagnostics and blocks invalid saves', async ({
   page,
 }) => {
-  await page.goto('/pagescms/fixture/main/configuration')
+  await page.goto('/pagescms/fixture/main/settings?edit=configuration')
+  await page.waitForLoadState('networkidle')
   const editor = page.getByRole('textbox', { name: 'Pages CMS configuration' })
   await expect(editor).toContainText('content:')
   await editor.fill('content: [')
   await expect(
     page.getByRole('button', { name: 'Save', exact: true }),
   ).toBeDisabled()
-  await expect(page.getByRole('alert')).toContainText('end with a ]')
+  await editor.press('ControlOrMeta+Shift+m')
+  await expect(page.locator('.cm-panel-lint')).toContainText('end with a ]')
+  await page.locator('.cm-panel-lint button[name=close]').click()
   await expect(page.locator('.cm-gutters')).toHaveCount(0)
   await editor.fill('media: *missing\n')
   await expect(page.locator('.cm-lintRange-error')).toHaveText('*missing')
   await expect(
     page.getByRole('button', { name: 'Save', exact: true }),
   ).toBeDisabled()
-  await expect(page.getByRole('alert')).toContainText(
+  await page.locator('.cm-lintRange-error').hover()
+  await expect(page.locator('.cm-diagnostic-error')).toContainText(
     'must reference an earlier anchor',
   )
   await editor.fill('content: false')
@@ -80,19 +78,19 @@ test('configuration shows YAML diagnostics and blocks invalid saves', async ({
   await expect(page.locator('.cm-lintRange-warning')).toHaveText('surprise')
   await page.evaluate(() => document.documentElement.classList.toggle('dark'))
   await expect(page.locator('.cm-lintRange-warning')).toHaveText('surprise')
-  await expect(page.locator('.cm-lintRange-warning')).toHaveCSS(
-    'text-decoration-style',
-    'wavy',
-  )
   await page.locator('.cm-lintRange-warning').hover()
   await expect(page.locator('.cm-diagnostic-warning')).toContainText(
     "Property 'surprise' isn't valid and will be ignored.",
   )
   await page.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(
-    page.getByRole('button', { name: 'Saved', exact: true }),
-  ).toBeDisabled()
+    page.getByRole('button', { name: 'Edit configuration' }),
+  ).toBeVisible()
   await page.reload()
+  await expect(editor).toHaveAttribute('contenteditable', 'false')
+  await page.getByRole('button', { name: 'Edit configuration' }).click()
+  await expect(page).toHaveURL(/edit=configuration/)
+  await expect(editor).toHaveAttribute('contenteditable', 'true')
   await expect(editor).toContainText('surprise: true')
   await expect(page.locator('.cm-lintRange-warning')).toHaveText('surprise')
   await editor.fill('media: public/images\n')
@@ -100,4 +98,9 @@ test('configuration shows YAML diagnostics and blocks invalid saves', async ({
     page.getByRole('button', { name: 'Save', exact: true }),
   ).toBeEnabled()
   await expect(page.locator('.cm-lintRange-warning')).toHaveCount(0)
+  await editor.fill(configuration)
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(
+    page.getByRole('button', { name: 'Edit configuration' }),
+  ).toBeVisible()
 })

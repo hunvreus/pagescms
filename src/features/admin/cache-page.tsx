@@ -1,7 +1,6 @@
 import { useState } from 'react'
+import { formatDistanceToNow } from 'date-fns'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { LoaderCircle, RefreshCw, Trash2 } from 'lucide-react'
-
 import { OperationError } from '#/components/operation-error'
 import {
   AlertDialog,
@@ -13,49 +12,37 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '#/components/ui/alert-dialog'
-import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
+import { Badge } from '#/components/ui/badge'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '#/components/ui/table'
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '#/components/ui/tooltip'
 import { updateCache } from '#/functions/cache'
 import { queryKeys } from '#/queries/keys'
 import { cacheStatusQueryOptions } from '#/queries/repository'
-
 import { RepositoryAdminPage } from './repository-admin-page'
 
 type CacheAction =
   | 'reconcile-content'
   | 'clear-content'
-  | 'clear-permissions'
   | 'refresh-configuration'
   | 'clear-configuration'
   | 'clear-all'
-
-type Confirmation = {
-  action: CacheAction
-  title: string
-  description: string
-  label: string
-}
-
-function date(value: string | undefined) {
-  return value ? new Date(value).toLocaleString() : 'Never'
-}
+type Confirmation = { action: CacheAction; title: string; description: string }
 
 export function CachePage({
   owner,
   repo,
   branch,
+  embedded = false,
 }: {
   owner: string
   repo: string
   branch: string
+  embedded?: boolean
 }) {
   const params = { owner, repo, branch }
   const { data } = useSuspenseQuery(cacheStatusQueryOptions(params))
@@ -64,7 +51,6 @@ export function CachePage({
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<unknown>(null)
-
   async function run(action: CacheAction) {
     setRunning(action)
     setMessage(null)
@@ -81,242 +67,152 @@ export function CachePage({
       setRunning(null)
     }
   }
-
-  const contentChecked = data.directories.reduce<string | undefined>(
-    (latest, directory) =>
-      !latest || directory.lastCheckedAt > latest
-        ? directory.lastCheckedAt
-        : latest,
-    undefined,
-  )
-
+  const rows: Array<{
+    title: string
+    description: string
+    status: string
+    counts?: string[]
+    checkedAt?: string
+    refresh?: CacheAction
+    canRefresh?: boolean
+    clear: CacheAction
+    empty: boolean
+  }> = [
+    {
+      title: 'Content',
+      description:
+        'Refresh checks GitHub for changes. Clear removes cached files and listings until they are needed again.',
+      status: '',
+      counts: [`${data.fileCount} files`, `${data.directoryCount} directories`],
+      refresh: 'reconcile-content',
+      canRefresh: data.directoryCount > 0,
+      clear: 'clear-content',
+      empty: data.fileCount === 0 && data.directoryCount === 0,
+    },
+    {
+      title: 'Configuration',
+      description:
+        'Refresh reloads and validates .pages.yml now. Clear discards the snapshot until the next request.',
+      status: data.configuration
+        ? `Last checked ${formatDistanceToNow(new Date(data.configuration.lastCheckedAt), { addSuffix: true })}`
+        : 'Not cached',
+      checkedAt: data.configuration?.lastCheckedAt,
+      refresh: 'refresh-configuration',
+      canRefresh: true,
+      clear: 'clear-configuration',
+      empty: data.configuration === null,
+    },
+  ]
   return (
     <RepositoryAdminPage
+      embedded={embedded}
       title="Cache"
       actions={
         <Button
-          disabled={running !== null}
-          variant="outline"
+          size="sm"
+          variant="destructive"
+          disabled={running !== null || rows.every((row) => row.empty)}
           onClick={() =>
             setConfirmation({
               action: 'clear-all',
               title: 'Clear all cached data?',
               description:
-                'Content, configuration, and permission data will be fetched again when it is next needed.',
-              label: 'Clear all',
+                'Content, configuration, and permissions will be fetched again when next needed.',
             })
           }
         >
-          <Trash2 />
-          Clear cache
+          Clear all
         </Button>
       }
     >
-      <div>
-        <p className="text-sm text-muted-foreground">
-          Cached repository data reduces GitHub requests. GitHub remains the
-          source of truth.
+      <OperationError error={error} fallback="Could not update the cache." />
+      {message ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          {message}
         </p>
-        {message ? <p className="mt-3 text-sm">{message}</p> : null}
-        <OperationError error={error} fallback="Could not update the cache." />
-      </div>
-
-      <div className="overflow-hidden rounded-lg border">
-        <Table aria-label="Repository cache">
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead>Cache</TableHead>
-              <TableHead>Stored data</TableHead>
-              <TableHead>Last checked</TableHead>
-              <TableHead className="w-px text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow>
-              <TableCell>
-                <p className="font-medium">Content</p>
-                <p className="max-w-md whitespace-normal text-xs text-muted-foreground">
-                  Files and directory listings used by collections and media.
-                </p>
-              </TableCell>
-              <TableCell>
-                {data.fileCount} files · {data.directories.length} directories
-              </TableCell>
-              <TableCell>{date(contentChecked)}</TableCell>
-              <TableCell>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    aria-label="Refresh content cache"
-                    disabled={running !== null}
-                    size="icon-sm"
-                    variant="outline"
-                    onClick={() => void run('reconcile-content')}
-                  >
-                    {running === 'reconcile-content' ? (
-                      <LoaderCircle className="animate-spin" />
-                    ) : (
-                      <RefreshCw />
-                    )}
-                  </Button>
-                  <Button
-                    aria-label="Clear content cache"
-                    disabled={running !== null}
-                    size="icon-sm"
-                    variant="outline"
-                    onClick={() =>
-                      setConfirmation({
-                        action: 'clear-content',
-                        title: 'Clear content cache?',
-                        description:
-                          'Collection and media data will be fetched again when it is next opened.',
-                        label: 'Clear',
-                      })
-                    }
-                  >
-                    <Trash2 />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>
-                <p className="font-medium">Configuration</p>
-                <p className="max-w-md whitespace-normal text-xs text-muted-foreground">
-                  The validated .pages.yml snapshot used to build this
-                  workspace.
-                </p>
-              </TableCell>
-              <TableCell className="font-mono text-xs">
-                {data.configuration
-                  ? `${data.configuration.sha.slice(0, 8)} · v${data.configuration.version}`
-                  : 'Not cached'}
-              </TableCell>
-              <TableCell>{date(data.configuration?.lastCheckedAt)}</TableCell>
-              <TableCell>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    aria-label="Refresh configuration cache"
-                    disabled={running !== null}
-                    size="icon-sm"
-                    variant="outline"
-                    onClick={() => void run('refresh-configuration')}
-                  >
-                    {running === 'refresh-configuration' ? (
-                      <LoaderCircle className="animate-spin" />
-                    ) : (
-                      <RefreshCw />
-                    )}
-                  </Button>
-                  <Button
-                    aria-label="Clear configuration cache"
-                    disabled={running !== null}
-                    size="icon-sm"
-                    variant="outline"
-                    onClick={() =>
-                      setConfirmation({
-                        action: 'clear-configuration',
-                        title: 'Clear configuration cache?',
-                        description:
-                          'The repository configuration will be fetched and validated again on the next request.',
-                        label: 'Clear',
-                      })
-                    }
-                  >
-                    <Trash2 />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>
-                <p className="font-medium">Permissions</p>
-                <p className="max-w-md whitespace-normal text-xs text-muted-foreground">
-                  Short-lived GitHub access checks for this repository.
-                </p>
-              </TableCell>
-              <TableCell>{data.permissionCount} records</TableCell>
-              <TableCell>—</TableCell>
-              <TableCell className="text-right">
+      ) : null}
+      <div className="divide-y rounded-xl border bg-card">
+        {rows.map((row) => (
+          <div
+            key={row.title}
+            className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-sm font-medium">{row.title}</h3>
+                {row.counts ? (
+                  row.counts.map((value) => (
+                    <Badge
+                      key={value}
+                      variant="secondary"
+                      className="text-muted-foreground"
+                    >
+                      {value}
+                    </Badge>
+                  ))
+                ) : row.checkedAt ? (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge
+                          variant="secondary"
+                          className="text-muted-foreground"
+                          tabIndex={0}
+                        >
+                          {row.status}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {new Intl.DateTimeFormat(undefined, {
+                          dateStyle: 'full',
+                          timeStyle: 'long',
+                        }).format(new Date(row.checkedAt))}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : (
+                  <Badge variant="secondary" className="text-muted-foreground">
+                    {row.status}
+                  </Badge>
+                )}
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {row.description}
+              </p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              {row.refresh ? (
                 <Button
-                  aria-label="Clear permission cache"
-                  disabled={running !== null}
-                  size="icon-sm"
+                  size="sm"
                   variant="outline"
-                  onClick={() =>
-                    setConfirmation({
-                      action: 'clear-permissions',
-                      title: 'Clear permission cache?',
-                      description:
-                        'GitHub permissions will be checked again on the next protected request.',
-                      label: 'Clear',
-                    })
-                  }
+                  aria-label={`Refresh ${row.title.toLowerCase()} cache`}
+                  disabled={running !== null || !row.canRefresh}
+                  onClick={() => {
+                    if (row.refresh) void run(row.refresh)
+                  }}
                 >
-                  <Trash2 />
+                  {running === row.refresh ? 'Refreshing…' : 'Refresh'}
                 </Button>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
+              ) : null}
+              <Button
+                size="sm"
+                variant="destructive"
+                aria-label={`Clear ${row.title === 'Permissions' ? 'permission' : row.title.toLowerCase()} cache`}
+                disabled={running !== null || row.empty}
+                onClick={() =>
+                  setConfirmation({
+                    action: row.clear,
+                    title: `Clear ${row.title === 'Permissions' ? 'permission' : row.title.toLowerCase()} cache?`,
+                    description: row.description,
+                  })
+                }
+              >
+                Clear
+              </Button>
+            </div>
+          </div>
+        ))}
       </div>
-
-      <section className="space-y-3">
-        <div>
-          <h2 className="font-medium">Cached directories</h2>
-          <p className="text-sm text-muted-foreground">
-            Directories appear after a collection or media folder has been
-            opened.
-          </p>
-        </div>
-        <div className="overflow-hidden rounded-lg border">
-          <Table aria-label="Cached directories">
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead>Path</TableHead>
-                <TableHead>Used by</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last checked</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.directories.length ? (
-                data.directories.map((directory) => (
-                  <TableRow key={`${directory.context}:${directory.path}`}>
-                    <TableCell className="font-mono text-xs">
-                      {directory.path || '/'}
-                    </TableCell>
-                    <TableCell className="capitalize">
-                      {directory.context}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          directory.status === 'error'
-                            ? 'destructive'
-                            : 'secondary'
-                        }
-                      >
-                        {directory.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{date(directory.lastCheckedAt)}</TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow className="hover:bg-transparent">
-                  <TableCell
-                    className="h-24 text-center text-muted-foreground"
-                    colSpan={4}
-                  >
-                    No directories cached.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </section>
-
       <AlertDialog
         open={confirmation !== null}
         onOpenChange={(open) => !open && setConfirmation(null)}
@@ -338,7 +234,7 @@ export function CachePage({
                 if (action) void run(action)
               }}
             >
-              {confirmation?.label}
+              Clear
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

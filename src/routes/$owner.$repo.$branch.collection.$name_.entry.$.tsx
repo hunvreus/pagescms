@@ -1,10 +1,8 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
-import {
-  ContentEntryEditor,
-  ContentEntrySkeleton,
-} from '#/components/content-entry-editor'
+import { ContentEntryEditor } from '#/components/content-entry-editor'
+import { ContentEntrySkeleton } from '#/components/content-entry-skeleton'
 import { getSignInUrl } from '#/lib/auth-redirect'
 import { entryQueryOptions } from '#/queries/content'
 

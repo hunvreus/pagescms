@@ -3,6 +3,7 @@ import type { EmailProvider } from '#/server/email.server'
 import type { MediaProviderResolver } from '#/server/media-provider.server'
 import type {
   BillingWebhookHandler,
+  BillingSessions,
   EntitlementReader,
   RepositoryPermissionAdmin,
 } from './hosted.server'
@@ -12,6 +13,7 @@ import { DEPLOYMENT_API_VERSION, DeploymentConfigurationError } from './version'
 export interface PagesCmsServerServices {
   accessPolicy?: AccessPolicy
   billingWebhook?: BillingWebhookHandler
+  billingSessions?: BillingSessions
   emailProvider?: EmailProvider
   entitlementReader?: EntitlementReader
   mediaProviderResolver?: MediaProviderResolver
@@ -113,6 +115,7 @@ export function createPagesCmsServerServices(
     [
       'accessPolicy',
       'billingWebhook',
+      'billingSessions',
       'emailProvider',
       'entitlementReader',
       'mediaProviderResolver',
@@ -128,6 +131,12 @@ export function createPagesCmsServerServices(
       'The server deployment returned an invalid access policy',
     )
   }
+  if (
+    services.billingSessions !== undefined &&
+    (!hasFunction(services.billingSessions, 'options') ||
+      !hasFunction(services.billingSessions, 'create'))
+  )
+    throw new DeploymentConfigurationError('Invalid billing sessions service')
   if (
     services.billingWebhook !== undefined &&
     !hasFunction(services.billingWebhook, 'handle')
@@ -172,6 +181,7 @@ export function createPagesCmsServerServices(
 
   return Object.freeze({
     accessPolicy: services.accessPolicy,
+    billingSessions: services.billingSessions as BillingSessions | undefined,
     billingWebhook: services.billingWebhook as
       BillingWebhookHandler | undefined,
     emailProvider: services.emailProvider,

@@ -3,12 +3,17 @@ import { describe, expect, it } from 'vitest'
 import { ConfigurationSchema } from './configuration-schema'
 
 describe('ConfigurationSchema', () => {
+  it.each([{ cache: false }, { settings: { cache: false } }])(
+    'rejects the removed cache setting: %j',
+    (value) => {
+      expect(ConfigurationSchema.safeParse(value).success).toBe(false)
+    },
+  )
   it('accepts representative legacy content, media, settings, and actions', () => {
     expect(
       ConfigurationSchema.safeParse({
         media: 'images',
         settings: {
-          cache: true,
           commit: { identity: 'user', templates: { update: 'Update {path}' } },
         },
         content: [

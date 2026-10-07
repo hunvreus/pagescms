@@ -1,57 +1,55 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import { RepositoryGitHubLinkContext } from '#/hooks/use-repository-github-link'
 
 import {
   StructuredContentField,
   keyedMediaValues,
+  sortableItemStyle,
 } from './structured-content-field'
 
 describe('StructuredContentField', () => {
+  it('distinguishes clearing a selected block from removing its list item', () => {
+    const html = renderToStaticMarkup(
+      <StructuredContentField
+        field={{
+          name: 'layout',
+          type: 'block',
+          list: { collapsible: { collapsed: true } },
+          blocks: [{ name: 'widget', fields: [] }],
+        }}
+        value={[{ _block: 'widget' }]}
+        onChange={() => undefined}
+      />,
+    )
+    const clearStart = html.indexOf('aria-label="Reset block in item 1"')
+    const removeStart = html.indexOf('aria-label="Remove item 1"')
+    expect(clearStart).toBeGreaterThanOrEqual(0)
+    expect(removeStart).toBeGreaterThan(clearStart)
+  })
+  it('moves unequal-sized sortable items without scaling or fading them', () => {
+    const style = sortableItemStyle(
+      { x: 12, y: 80, scaleX: 0.6, scaleY: 2.5 },
+      undefined,
+      true,
+    )
+    expect(style.transform).toBe('translate3d(12px, 80px, 0)')
+    expect(style.transform).not.toContain('scale')
+    expect(style.opacity).toBeUndefined()
+    expect(style.zIndex).toBe(1)
+    expect(sortableItemStyle(null, 'transform 200ms ease', false)).toEqual({
+      transform: undefined,
+      transition: 'transform 200ms ease',
+      position: 'relative',
+      zIndex: undefined,
+    })
+  })
+
   it('gives repeated media values distinct sortable identities', () => {
     expect(keyedMediaValues(['image.png', 'image.png'])).toEqual([
       { id: '0:image.png', index: 0, path: 'image.png' },
       { id: '1:image.png', index: 1, path: 'image.png' },
     ])
-  })
-
-  it('places renderer actions in the shared field header', () => {
-    const html = renderToStaticMarkup(
-      <StructuredContentField
-        field={{
-          name: 'body',
-          type: 'rich-text',
-          label: 'Body',
-          required: true,
-        }}
-        value="Hello"
-        onChange={() => undefined}
-      />,
-    )
-
-    const headerStart = html.indexOf('data-slot="field-header"')
-    const actionsStart = html.indexOf('data-slot="field-header-actions"')
-    const controlStart = html.indexOf('min-h-48')
-
-    expect(headerStart).toBeGreaterThanOrEqual(0)
-    expect(actionsStart).toBeGreaterThan(headerStart)
-    expect(controlStart).toBeGreaterThan(actionsStart)
-    expect(html).toContain('>Body</label>')
-    expect(html).toContain('>Required</span>')
-    expect(html).toContain('>Editor</button>')
-    expect(html).toContain('>Source</button>')
-  })
-
-  it('does not render empty header actions for ordinary fields', () => {
-    const html = renderToStaticMarkup(
-      <StructuredContentField
-        field={{ name: 'title', type: 'string', label: 'Title' }}
-        value="Hello"
-        onChange={() => undefined}
-      />,
-    )
-
-    expect(html).toContain('data-slot="field-header"')
-    expect(html).not.toContain('data-slot="field-header-actions"')
   })
 
   it('renders configured select placeholders and date step', () => {
@@ -126,6 +124,8 @@ describe('StructuredContentField', () => {
       />,
     )
     expect(html).toContain('aria-roledescription="sortable"')
+    expect(html).toContain('>a.txt</span>')
+    expect(html).not.toContain('href="https://github.com')
     const unknown = renderToStaticMarkup(
       <StructuredContentField
         value={undefined}
@@ -134,5 +134,35 @@ describe('StructuredContentField', () => {
       />,
     )
     expect(unknown).toContain('Unknown field type')
+  })
+
+  it('links file names only with repository GitHub access and preserves branch and full path', () => {
+    const html = renderToStaticMarkup(
+      <RepositoryGitHubLinkContext.Provider value={true}>
+        <StructuredContentField
+          field={{ name: 'file', type: 'file' }}
+          value="assets/folder/image.png"
+          referenceContext={{
+            owner: 'pagescms',
+            repo: 'Test',
+            branch: 'feature/media',
+            media: [
+              {
+                name: 'default',
+                label: 'Default',
+                input: 'assets',
+                output: '/assets',
+                extensions: [],
+              },
+            ],
+          }}
+          onChange={() => undefined}
+        />
+      </RepositoryGitHubLinkContext.Provider>,
+    )
+    expect(html).toContain(
+      'https://github.com/pagescms/Test/blob/feature%2Fmedia/assets/folder/image.png',
+    )
+    expect(html).toContain('>folder/image.png</span>')
   })
 })

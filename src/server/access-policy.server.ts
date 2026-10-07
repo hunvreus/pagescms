@@ -6,6 +6,7 @@ export type AccessPrincipal =
   | Readonly<{
       type: 'user' | 'collaborator' | 'service'
       id: string
+      collaboratorKey?: string
       roles?: readonly string[]
     }>
 
@@ -58,11 +59,12 @@ export type AccessDecision =
     }>
 
 export type AccessDiscoveryResource = Readonly<{
-  type: 'collection' | 'media' | 'action'
+  type: 'collection' | 'media' | 'action' | 'branch'
   name: string
 }>
 
 export type AccessDiscoveryRequest = Readonly<{
+  operation?: ApplicationOperation
   principal: AccessPrincipal
   tenant: AccessTenant
   target?: AccessTarget

@@ -351,7 +351,7 @@ export function createGitHubApi(
 
     async listBranches(owner: string, repo: string): Promise<string[]> {
       const branches: string[] = []
-      for (let page = 1; page <= MAX_PAGES; page += 1) {
+      for (let page = 1; ; page += 1) {
         const body = await githubRequest(
           fetcher,
           token,
@@ -368,6 +368,21 @@ export function createGitHubApi(
         if (body.length < 100) break
       }
       return branches
+    },
+
+    async branchExists(owner: string, repo: string, branch: string) {
+      try {
+        await githubRequest(
+          fetcher,
+          token,
+          `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/branches/${encodeURIComponent(branch)}`,
+        )
+        return true
+      } catch (error) {
+        if (error instanceof GitHubApiError && error.status === 404)
+          return false
+        throw error
+      }
     },
 
     async createBranch(
@@ -443,6 +458,37 @@ export function createGitHubApi(
         sha,
         content,
       }
+    },
+
+    async getFileResponse(
+      owner: string,
+      repo: string,
+      path: string,
+      branch: string,
+      ifNoneMatch?: string,
+    ) {
+      const query = new URLSearchParams({ ref: branch })
+      const response = await fetcher(
+        `${GITHUB_API_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${path.split('/').map(encodeURIComponent).join('/')}?${query}`,
+        {
+          headers: {
+            accept: 'application/vnd.github.raw',
+            authorization: `Bearer ${token}`,
+            'user-agent': 'pagescms',
+            'x-github-api-version': '2022-11-28',
+            ...(ifNoneMatch ? { 'if-none-match': ifNoneMatch } : {}),
+          },
+        },
+      )
+      if (response.status !== 304 && !response.ok) {
+        await response.body?.cancel()
+        throw new GitHubApiError(
+          `GitHub media request failed with status ${response.status}`,
+          response.status,
+          response.headers.get('retry-after') ?? undefined,
+        )
+      }
+      return response
     },
 
     async getFiles(
@@ -1003,12 +1049,29 @@ export function createGitHubApi(
   const repository = api.getRepository
   const branches = api.listBranches
   api.getRepository = (owner, repo) =>
-    readRepositoryCached(api, owner, repo, 'repository', repositoryTtlMs, () =>
-      repository(owner, repo),
+    readRepositoryCached(
+      api,
+      owner,
+      repo,
+      'repository',
+      repositoryTtlMs,
+      () => repository(owner, repo),
+      (error) =>
+        error instanceof GitHubApiError && [401, 404].includes(error.status),
     )
   api.listBranches = (owner, repo) =>
     readRepositoryCached(api, owner, repo, 'branches', repositoryTtlMs, () =>
       branches(owner, repo),
+    )
+  const branchExists = api.branchExists
+  api.branchExists = (owner, repo, branch) =>
+    readRepositoryCached(
+      api,
+      owner,
+      repo,
+      `branch:${branch}`,
+      repositoryTtlMs,
+      () => branchExists(owner, repo, branch),
     )
   const createBranch = api.createBranch
   api.createBranch = async (...args) => {
