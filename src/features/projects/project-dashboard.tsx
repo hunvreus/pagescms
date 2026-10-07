@@ -70,7 +70,9 @@ export function ProjectDashboard({
           ) : user.githubUsername && githubAppInstallAvailable ? (
             <Empty className="min-h-[calc(100vh-8rem)] border-0">
               <EmptyHeader>
-                <EmptyTitle>Install the GitHub App</EmptyTitle>
+                <EmptyTitle className="text-muted-foreground">
+                  Install the GitHub App
+                </EmptyTitle>
                 <EmptyDescription>
                   Install the GitHub App on at least one account before you can
                   open or create projects.
@@ -85,7 +87,9 @@ export function ProjectDashboard({
           ) : (
             <Empty className="min-h-[calc(100vh-8rem)] border-0">
               <EmptyHeader>
-                <EmptyTitle>No repositories yet</EmptyTitle>
+                <EmptyTitle className="text-muted-foreground">
+                  No repositories yet
+                </EmptyTitle>
                 <EmptyDescription>
                   Ask a repository owner or organization administrator to invite
                   you.

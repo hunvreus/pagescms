@@ -21,6 +21,7 @@ import {
   cacheFileMetaTable,
   cacheFileTable,
   collaboratorTable,
+  collaboratorInviteTable,
   configTable,
   githubInstallationTokenTable,
 } from './database/schema'
@@ -420,14 +421,27 @@ async function handleInstallation(
   const account = record(installation?.account)
   const owner = string(account?.login)
   if (installationId === null) return
-  await Promise.all([
-    database
-      .delete(collaboratorTable)
-      .where(eq(collaboratorTable.installationId, installationId)),
-    cacheDatabase
-      .delete(githubInstallationTokenTable)
-      .where(eq(githubInstallationTokenTable.installationId, installationId)),
+  // Application and cache databases can be separate: revoke access first,
+  // then perform idempotent cache cleanup so a retry can safely finish it.
+  await executeAtomic(database, [
+    databaseStatement(
+      database.delete(collaboratorInviteTable).where(sql`exists (
+      select 1 from ${collaboratorTable} where
+      ${collaboratorTable.installationId} = ${installationId} and
+      lower(${collaboratorTable.owner}) = lower(${collaboratorInviteTable.owner}) and
+      lower(${collaboratorTable.repo}) = lower(${collaboratorInviteTable.repo}) and
+      lower(${collaboratorTable.email}) = lower(${collaboratorInviteTable.email})
+    )`),
+    ),
+    databaseStatement(
+      database
+        .delete(collaboratorTable)
+        .where(eq(collaboratorTable.installationId, installationId)),
+    ),
   ])
+  await cacheDatabase
+    .delete(githubInstallationTokenTable)
+    .where(eq(githubInstallationTokenTable.installationId, installationId))
   if (owner) {
     await clearOwner(cacheDatabase, owner)
   }
@@ -448,12 +462,23 @@ async function handleInstallationRepositories(
       })
     : []
   if (!repositories.length) return
-  await database.delete(collaboratorTable).where(
-    inArray(
-      collaboratorTable.repoId,
-      repositories.map((repository) => repository.id),
-    ),
+  const removedRepositories = inArray(
+    collaboratorTable.repoId,
+    repositories.map((repository) => repository.id),
   )
+  await executeAtomic(database, [
+    databaseStatement(
+      database.delete(collaboratorInviteTable).where(sql`exists (
+      select 1 from ${collaboratorTable} where ${removedRepositories}
+      and lower(${collaboratorTable.owner}) = lower(${collaboratorInviteTable.owner})
+      and lower(${collaboratorTable.repo}) = lower(${collaboratorInviteTable.repo})
+      and lower(${collaboratorTable.email}) = lower(${collaboratorInviteTable.email})
+    )`),
+    ),
+    databaseStatement(
+      database.delete(collaboratorTable).where(removedRepositories),
+    ),
+  ])
   await Promise.all(
     repositories.flatMap(({ fullName }) => {
       if (!fullName) return []

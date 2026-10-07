@@ -1,4 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
+import { isDeploymentAdmin } from '#/server/admin-access.server'
 
 import type { RequestServices } from '#/server/request-services.server'
 
@@ -9,12 +10,22 @@ export function parseAdminSearch(input: unknown) {
       : {}
   const query = typeof value.query === 'string' ? value.query.trim() : ''
   const page = typeof value.page === 'number' ? value.page : 1
+  const repoQuery =
+    typeof value.repoQuery === 'string' ? value.repoQuery.trim() : ''
+  const repoPage = typeof value.repoPage === 'number' ? value.repoPage : 1
   if (query.length > 100) throw new Error('Admin search is too long')
   if (!Number.isInteger(page) || page < 1) throw new Error('Invalid admin page')
-  return { query, page }
+  if (repoQuery.length > 100) throw new Error('Admin search is too long')
+  if (!Number.isInteger(repoPage) || repoPage < 1)
+    throw new Error('Invalid repository page')
+  return { query, page, repoQuery, repoPage }
 }
 
-function parseAdminAction(input: unknown) {
+export function parseAdminAction(input: unknown): {
+  action: 'revoke-user' | 'revoke-all' | 'reset-cache'
+  userId: string | null
+  target: 'all' | 'content' | 'configuration'
+} {
   if (typeof input !== 'object' || input === null)
     throw new Error('Invalid admin action')
   const value = input as Record<string, unknown>
@@ -31,20 +42,20 @@ function parseAdminAction(input: unknown) {
   ) {
     throw new Error('Admin user id is required')
   }
+  const target = value.target ?? 'all'
+  if (target !== 'content' && target !== 'configuration' && target !== 'all')
+    throw new Error('Invalid cache target')
   return {
     action: value.action,
     userId: typeof value.userId === 'string' ? value.userId : null,
+    target,
   }
 }
 
 async function requireAdmin(services: RequestServices) {
   const session = await services.getSession()
   if (!session?.user) throw new Error('Authentication required')
-  if (
-    !services.configuration.adminEmails.includes(
-      session.user.email.toLowerCase(),
-    )
-  ) {
+  if (!isDeploymentAdmin(session.user, services.configuration.adminEmails)) {
     throw new Error('Admin access required')
   }
   await services.access.authorize({
@@ -85,8 +96,8 @@ export const runAdminAction = createServerFn({ method: 'POST' })
     const { resetGlobalCache, revokeAllSessions, revokeUserSessions } =
       await import('#/server/admin-service.server')
     if (data.action === 'reset-cache') {
-      await resetGlobalCache(services.cacheDatabase)
-      return { message: 'Global cache reset', signedOut: false }
+      await resetGlobalCache(services.cacheDatabase, data.target)
+      return { message: 'Cache cleared', signedOut: false }
     }
     if (data.action === 'revoke-all') {
       await revokeAllSessions(services.database)

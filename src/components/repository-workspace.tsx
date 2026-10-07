@@ -1,50 +1,39 @@
-import { Fragment, useMemo, useState } from 'react'
-import { Link, useRouter, useRouterState } from '@tanstack/react-router'
-import { useQueryClient } from '@tanstack/react-query'
+import { Fragment, useState } from 'react'
+import { Link, useRouterState } from '@tanstack/react-router'
+import { useQuery } from '@tanstack/react-query'
+import { repositoryBranchesQueryOptions } from '#/queries/repository'
 import {
   ArrowUpRight,
+  ArrowLeft,
+  Check,
   ChevronRight,
   ChevronsUpDown,
-  Database,
   File,
   FileStack,
   FolderOpen,
-  ListVideo,
+  GitBranch,
   LoaderCircle,
-  Plus,
   Settings,
-  Users,
 } from 'lucide-react'
 
-import { OperationError } from '#/components/operation-error'
 import { RepositoryActionButtons } from '#/components/repository-action-buttons'
 import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
-import { Button } from '#/components/ui/button'
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '#/components/ui/collapsible'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '#/components/ui/dialog'
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '#/components/ui/dropdown-menu'
-import { Field, FieldLabel } from '#/components/ui/field'
-import { Input } from '#/components/ui/input'
 import {
   Sidebar,
   SidebarContent,
@@ -66,16 +55,16 @@ import {
 import { AccountMenu } from '#/features/account/app-header'
 import { AboutDialog } from '#/features/projects/about-dialog'
 import { readRecentProjects } from '#/features/projects/recent-projects'
-import { createRepositoryBranch } from '#/functions/repository'
-import {
-  isCacheEnabled,
-  isConfigurationEditingEnabled,
-} from '#/lib/configuration'
+import { BranchManager } from '#/features/projects/branch-manager'
+import { compactBranches } from '#/features/projects/branch-picker'
 import { getConfigurationNavigationGroups } from '#/lib/configuration-navigation'
 import { repositoryActions } from '#/lib/actions'
-import { queryKeys } from '#/queries/keys'
 
 import type { ReactNode } from 'react'
+import {
+  RepositoryGitHubLinkContext,
+  useRepositoryGitHubLink,
+} from '#/hooks/use-repository-github-link'
 import type { AppHeaderUser } from '#/features/account/app-header'
 import type { RecentProject } from '#/features/projects/recent-projects'
 import type { ConfigurationNavigationNode } from '#/lib/configuration-navigation'
@@ -88,10 +77,12 @@ interface WorkspaceProps {
   repo: string
   branch: string
   branches: readonly string[]
+  defaultBranch: string
   configuration: {
     object: Record<string, unknown>
   } | null
   discovery: AccessDiscoveryDecision
+  canViewGitHub: boolean
   user: AppHeaderUser
 }
 
@@ -101,8 +92,10 @@ export function RepositoryWorkspace({
   repo,
   branch,
   branches,
+  defaultBranch,
   configuration,
   discovery,
+  canViewGitHub,
   user,
 }: WorkspaceProps) {
   const pathname = useRouterState({
@@ -114,65 +107,37 @@ export function RepositoryWorkspace({
       : { content: [], media: [] },
     discovery,
   )
-  const canManageRepository = Boolean(user.githubUsername)
   const actions = filterRepositoryActions(
     configuration ? repositoryActions(configuration.object) : [],
     discovery,
   )
-  const adminItems = configuration
-    ? [
-        ...(canManageRepository && isCacheEnabled(configuration.object)
-          ? [{ key: 'cache', label: 'Cache', icon: <Database /> }]
-          : []),
-        ...(canManageRepository && resourceTypeVisible(discovery, 'action')
-          ? [{ key: 'actions', label: 'Actions', icon: <ListVideo /> }]
-          : []),
-        ...(canManageRepository
-          ? [
-              {
-                key: 'collaborators',
-                label: 'Collaborators',
-                icon: <Users />,
-              },
-            ]
-          : []),
-        ...(canManageRepository &&
-        isConfigurationEditingEnabled(configuration.object)
-          ? [
-              {
-                key: 'configuration',
-                label: 'Configuration',
-                icon: <Settings />,
-              },
-            ]
-          : []),
-      ]
-    : []
 
   return (
-    <SidebarProvider>
-      <RepositorySidebar
-        adminItems={adminItems}
-        branch={branch}
-        branches={branches}
-        navigation={navigation}
-        actions={actions}
-        owner={owner}
-        pathname={pathname}
-        repo={repo}
-        user={user}
-      />
-      <SidebarInset className="min-h-screen">
-        <header className="sticky top-0 z-30 flex h-12 items-center border-b bg-background px-3 md:hidden">
-          <SidebarTrigger />
-        </header>
-        <main className="min-w-0 flex-1 p-4 md:p-6">{children}</main>
-      </SidebarInset>
-    </SidebarProvider>
+    <RepositoryGitHubLinkContext value={canViewGitHub}>
+      <SidebarProvider>
+        <RepositorySidebar
+          branch={branch}
+          branches={branches}
+          defaultBranch={defaultBranch}
+          navigation={navigation}
+          actions={actions}
+          owner={owner}
+          pathname={pathname}
+          repo={repo}
+          user={user}
+        />
+        <SidebarInset className="min-h-screen">
+          <header className="sticky top-0 z-30 flex h-12 items-center border-b bg-background px-3 md:hidden">
+            <SidebarTrigger />
+          </header>
+          <main className="min-w-0 flex-1 p-4 md:p-6">{children}</main>
+        </SidebarInset>
+      </SidebarProvider>
+    </RepositoryGitHubLinkContext>
   )
 }
 
-function resourceTypeVisible(
+export function resourceTypeVisible(
   discovery: AccessDiscoveryDecision,
   type: 'collection' | 'media' | 'action',
 ) {
@@ -226,9 +191,9 @@ export function filterRepositoryActions(
 
 function RepositorySidebar({
   actions,
-  adminItems,
   branch,
   branches,
+  defaultBranch,
   navigation,
   owner,
   pathname,
@@ -236,9 +201,9 @@ function RepositorySidebar({
   user,
 }: {
   actions: RepositoryAction[]
-  adminItems: Array<{ key: string; label: string; icon: ReactNode }>
   branch: string
   branches: readonly string[]
+  defaultBranch: string
   navigation: ReturnType<typeof getConfigurationNavigationGroups>
   owner: string
   pathname: string
@@ -253,6 +218,7 @@ function RepositorySidebar({
             <RepositorySwitcher
               branch={branch}
               branches={branches}
+              defaultBranch={defaultBranch}
               owner={owner}
               repo={repo}
             />
@@ -294,33 +260,6 @@ function RepositorySidebar({
             </SidebarGroupContent>
           </SidebarGroup>
         ) : null}
-        {adminItems.length ? (
-          <SidebarGroup>
-            <SidebarGroupLabel>Admin</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {adminItems.map((item) => {
-                  const href = repositoryPath(owner, repo, branch, item.key)
-                  return (
-                    <SidebarMenuItem key={item.key}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={isActivePath(pathname, href)}
-                      >
-                        {adminNavigationLink({
-                          branch,
-                          item,
-                          owner,
-                          repo,
-                        })}
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ) : null}
       </SidebarContent>
       <SidebarFooter className="border-t">
         <div className="flex items-center justify-between gap-2">
@@ -332,101 +271,40 @@ function RepositorySidebar({
   )
 }
 
-function adminNavigationLink({
-  branch,
-  item,
-  owner,
-  repo,
-}: {
-  branch: string
-  item: { key: string; label: string; icon: ReactNode }
-  owner: string
-  repo: string
-}) {
-  const content = (
-    <>
-      {item.icon}
-      <span>{item.label}</span>
-    </>
-  )
-  const params = { owner, repo, branch }
-  switch (item.key) {
-    case 'cache':
-      return (
-        <Link params={params} to="/$owner/$repo/$branch/cache">
-          {content}
-        </Link>
-      )
-    case 'actions':
-      return (
-        <Link params={params} to="/$owner/$repo/$branch/actions">
-          {content}
-        </Link>
-      )
-    case 'collaborators':
-      return (
-        <Link params={params} to="/$owner/$repo/$branch/collaborators">
-          {content}
-        </Link>
-      )
-    default:
-      return (
-        <Link params={params} to="/$owner/$repo/$branch/configuration">
-          {content}
-        </Link>
-      )
-  }
-}
-
 function RepositorySwitcher({
   branch,
   branches,
+  defaultBranch,
   owner,
   repo,
 }: {
   branch: string
   branches: readonly string[]
+  defaultBranch: string
   owner: string
   repo: string
 }) {
-  const router = useRouter()
-  const queryClient = useQueryClient()
+  const canViewGitHub = useRepositoryGitHubLink()
   const [manageOpen, setManageOpen] = useState(false)
+  const [switcherOpen, setSwitcherOpen] = useState(false)
+  const branchQuery = useQuery({
+    ...repositoryBranchesQueryOptions({ owner, repo, branch }),
+    enabled: switcherOpen,
+  })
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([])
-  const [newBranch, setNewBranch] = useState('')
-  const [creating, setCreating] = useState(false)
-  const [error, setError] = useState<unknown>(null)
-  const sortedBranches = useMemo(
-    () => [...branches].sort((left, right) => left.localeCompare(right)),
-    [branches],
+  const displayedBranches = compactBranches(
+    branchQuery.data ?? branches,
+    branch,
+    defaultBranch,
   )
-
-  async function createBranch() {
-    setCreating(true)
-    setError(null)
-    try {
-      const result = await createRepositoryBranch({
-        data: { owner, repo, branch: newBranch, source: branch },
-      })
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.repository({ owner, repo }),
-      })
-      setManageOpen(false)
-      await router.navigate({
-        to: '/$owner/$repo/$branch',
-        params: { owner, repo, branch: result.branch },
-      })
-    } catch (cause) {
-      setError(cause)
-    } finally {
-      setCreating(false)
-    }
-  }
+  const closeSwitcher = () => setSwitcherOpen(false)
 
   return (
     <>
       <DropdownMenu
+        open={switcherOpen}
         onOpenChange={(open) => {
+          setSwitcherOpen(open)
           if (!open) return
           setRecentProjects(
             readRecentProjects()
@@ -447,12 +325,9 @@ function RepositorySwitcher({
             <Avatar className="size-8 rounded-md">
               <AvatarImage
                 alt={`${owner}'s avatar`}
-                className="rounded-md"
                 src={`https://github.com/${encodeURIComponent(owner)}.png?size=64`}
               />
-              <AvatarFallback className="rounded-md">
-                {owner.slice(0, 2).toUpperCase()}
-              </AvatarFallback>
+              <AvatarFallback>{owner.slice(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
             <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium">{repo}</span>
@@ -463,119 +338,125 @@ function RepositorySwitcher({
             <ChevronsUpDown className="ml-auto" />
           </SidebarMenuButton>
         </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="start"
-          className="w-(--radix-dropdown-menu-trigger-width) min-w-56"
-        >
-          <DropdownMenuItem asChild>
-            <a
-              href={`https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`}
-              rel="noreferrer noopener"
-              target="_blank"
-            >
-              View on GitHub
-              <ArrowUpRight className="ml-auto opacity-50" />
-            </a>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuLabel>Branches</DropdownMenuLabel>
-          <DropdownMenuRadioGroup
-            className="max-h-52 overflow-y-auto"
-            value={branch}
-            onValueChange={(nextBranch) => {
-              void router.navigate({
-                to: '/$owner/$repo/$branch',
-                params: { owner, repo, branch: nextBranch },
-              })
-            }}
+        {/* Don't retain the exit-animation portal across pending navigation. */}
+        {switcherOpen ? (
+          <DropdownMenuContent
+            align="start"
+            className="w-(--radix-dropdown-menu-trigger-width) min-w-56"
           >
-            {sortedBranches.map((value) => (
-              <DropdownMenuRadioItem key={value} value={value}>
-                <span className="truncate">{value}</span>
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={() => setManageOpen(true)}>
-            Manage branches
-          </DropdownMenuItem>
-          {recentProjects.length ? (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>Recently visited</DropdownMenuLabel>
-              {recentProjects.map((project) => (
-                <DropdownMenuItem
-                  asChild
-                  key={`${project.owner}/${project.repo}`}
-                >
-                  <Link params={project} to="/$owner/$repo/$branch">
-                    <img
-                      alt={`${project.owner}'s avatar`}
-                      className="size-5 rounded"
-                      src={`https://github.com/${encodeURIComponent(project.owner)}.png?size=40`}
-                    />
-                    <span className="truncate">{project.repo}</span>
+            {canViewGitHub ? (
+              <>
+                <DropdownMenuItem asChild>
+                  <a
+                    href={`https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/tree/${encodeURIComponent(branch)}`}
+                    rel="noreferrer noopener"
+                    target="_blank"
+                  >
+                    View on GitHub
+                    <ArrowUpRight className="ml-auto opacity-50" />
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild onSelect={closeSwitcher}>
+                  <Link
+                    to="/$owner/$repo/$branch/settings"
+                    params={{ owner, repo, branch }}
+                    onClick={closeSwitcher}
+                  >
+                    <Settings />
+                    Settings
                   </Link>
                 </DropdownMenuItem>
-              ))}
-            </>
-          ) : null}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem asChild>
-            <Link to="/">All projects</Link>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
+              </>
+            ) : null}
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <GitBranch />
+                <span className="truncate">{branch}</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="min-w-56 max-w-80">
+                {branchQuery.isLoading ? (
+                  <DropdownMenuItem disabled>
+                    <LoaderCircle className="animate-spin" />
+                    Loading branches…
+                  </DropdownMenuItem>
+                ) : null}
+                {branchQuery.isError ? (
+                  <DropdownMenuItem disabled>
+                    Could not load branches.
+                  </DropdownMenuItem>
+                ) : null}
+                {displayedBranches.map((value) => (
+                  <DropdownMenuItem
+                    key={value}
+                    asChild
+                    onSelect={closeSwitcher}
+                  >
+                    <Link
+                      to="/$owner/$repo/$branch"
+                      params={{ owner, repo, branch: value }}
+                      onClick={closeSwitcher}
+                    >
+                      <span className="truncate">{value}</span>
+                      {value === branch ? <Check className="ml-auto" /> : null}
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onSelect={() => {
+                    closeSwitcher()
+                    setManageOpen(true)
+                  }}
+                >
+                  Manage branches
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            {recentProjects.length ? (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Recently visited</DropdownMenuLabel>
+                {recentProjects.map((project) => (
+                  <DropdownMenuItem
+                    asChild
+                    onSelect={closeSwitcher}
+                    key={`${project.owner}/${project.repo}`}
+                  >
+                    <Link
+                      params={project}
+                      to="/$owner/$repo/$branch"
+                      onClick={closeSwitcher}
+                    >
+                      <img
+                        alt={`${project.owner}'s avatar`}
+                        className="size-5 rounded"
+                        src={`https://github.com/${encodeURIComponent(project.owner)}.png?size=40`}
+                      />
+                      <span className="truncate">{project.repo}</span>
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+              </>
+            ) : null}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild onSelect={closeSwitcher}>
+              <Link to="/" onClick={closeSwitcher}>
+                <ArrowLeft />
+                All projects
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        ) : null}
       </DropdownMenu>
-      <Dialog open={manageOpen} onOpenChange={setManageOpen}>
-        <DialogContent>
-          <form
-            onSubmit={(event) => {
-              event.preventDefault()
-              void createBranch()
-            }}
-          >
-            <DialogHeader>
-              <DialogTitle>Manage branches</DialogTitle>
-              <DialogDescription>
-                Create a new branch from {branch}.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-5">
-              <Field>
-                <FieldLabel htmlFor="new-branch">Branch name</FieldLabel>
-                <Input
-                  autoFocus
-                  id="new-branch"
-                  placeholder="feature/editor"
-                  value={newBranch}
-                  onChange={(event) => setNewBranch(event.target.value)}
-                />
-              </Field>
-              <OperationError
-                error={error}
-                fallback="Could not create branch."
-              />
-            </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setManageOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button disabled={creating || !newBranch.trim()} type="submit">
-                {creating ? (
-                  <LoaderCircle className="animate-spin" />
-                ) : (
-                  <Plus />
-                )}
-                Create branch
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <BranchManager
+        open={manageOpen}
+        onOpenChange={setManageOpen}
+        owner={owner}
+        repo={repo}
+        branch={branch}
+        canCreate={canViewGitHub}
+      />
     </>
   )
 }

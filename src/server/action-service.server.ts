@@ -10,6 +10,7 @@ import { findContentSchema, findMediaSchema } from '#/lib/configuration-content'
 import { normalizeGitPath } from '#/lib/git-path'
 
 import { createConfigurationStore } from './configuration-store.server'
+import { requireRepositoryManager } from './repository-policy.server'
 
 import type { Database } from './database/client.server'
 import type { ProjectUser } from './projects.server'
@@ -25,6 +26,7 @@ type ActionInput = {
   owner: string
   repo: string
   branch: string
+  allowCollaboratorExecution?: boolean
 }
 
 export type RepositoryActionContext = {
@@ -98,6 +100,7 @@ async function actionContext(
 function summary(
   row: typeof actionRunTable.$inferSelect,
   user: ActionInput['user'],
+  allowCollaboratorExecution = false,
 ) {
   const triggeredBy = row.triggeredBy as {
     userId?: string
@@ -127,7 +130,7 @@ function summary(
       ((row.payload as { action?: { cancelable?: boolean } }).action
         ?.cancelable ??
         true),
-    canRerun: user.githubUsername !== null,
+    canRerun: user.githubUsername !== null || allowCollaboratorExecution,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     completedAt: row.completedAt?.toISOString() ?? null,
@@ -222,8 +225,11 @@ async function syncActionRun(
   }
 }
 
-export async function loadRepositoryActions(input: ActionInput) {
+export async function loadRepositoryActions(
+  input: ActionInput & { includeRuns?: boolean },
+) {
   const { actions, api } = await actionContext(input)
+  if (input.includeRuns === false) return { actions, runs: [] }
   const rows = await input.database
     .select()
     .from(actionRunTable)
@@ -257,7 +263,11 @@ export async function loadRepositoryActions(input: ActionInput) {
   return {
     actions,
     runs: rows.map((row) =>
-      summary(synchronized.get(row.id) ?? row, input.user),
+      summary(
+        synchronized.get(row.id) ?? row,
+        input.user,
+        input.allowCollaboratorExecution,
+      ),
     ),
   }
 }
@@ -269,6 +279,8 @@ export async function dispatchRepositoryAction(
     context: RepositoryActionContext
   },
 ) {
+  if (!input.allowCollaboratorExecution)
+    await requireRepositoryManager(input.repositoryAccess, input.user, input)
   const { api, actions } = await actionContext(input, input.context)
   const action = actions.find((value) => value.name === input.actionName)
   if (!action) throw new Error(`Action ${input.actionName} was not found`)
@@ -358,12 +370,15 @@ export async function dispatchRepositoryAction(
 export async function manageRepositoryAction(
   input: ActionInput & { runId: number; intent: 'cancel' | 'rerun' },
 ) {
-  const { api } = await input.repositoryAccess.resolve(
-    input.user,
-    input.owner,
-    input.repo,
-    input.branch,
-  )
+  const admission = input.allowCollaboratorExecution
+    ? await input.repositoryAccess.resolve(
+        input.user,
+        input.owner,
+        input.repo,
+        input.branch,
+      )
+    : await requireRepositoryManager(input.repositoryAccess, input.user, input)
+  const { api } = admission
   const rows = await input.database
     .select()
     .from(actionRunTable)
@@ -378,6 +393,24 @@ export async function manageRepositoryAction(
     .limit(1)
   const row = rows.at(0)
   if (!row) throw new Error('Action run not found')
+  if (admission.tokenSource === 'installation') {
+    const configured = await actionContext(input, {
+      type: row.contextType as RepositoryActionContext['type'],
+      name: row.contextName,
+      path: row.contextPath,
+      data: {},
+    })
+    const current = configured.actions.find(
+      (action) => action.name === row.actionName,
+    )
+    if (
+      !current ||
+      (input.intent === 'rerun' &&
+        (current.workflow !== row.workflow ||
+          resolveActionRef(current.ref, input.branch) !== row.workflowRef))
+    )
+      throw new Error('This action is no longer configured for this run')
+  }
 
   const originalPayload = row.payload as {
     action?: { name?: string; label?: string; cancelable?: boolean }
@@ -417,7 +450,7 @@ export async function manageRepositoryAction(
     return summary(updated[0] ?? row, input.user)
   }
 
-  if (!input.user.githubUsername) {
+  if (!input.user.githubUsername && !input.allowCollaboratorExecution) {
     throw new Error('Only GitHub users can run this action again')
   }
   const workflowRef = resolveActionRef(
@@ -510,4 +543,25 @@ export async function manageRepositoryAction(
       .where(eq(actionRunTable.id, created.id))
     throw error
   }
+}
+
+export async function readActionRunName(
+  database: Database,
+  input: { owner: string; repo: string; branch: string; runId: number },
+) {
+  const rows = await database
+    .select({ name: actionRunTable.actionName })
+    .from(actionRunTable)
+    .where(
+      and(
+        eq(actionRunTable.id, input.runId),
+        eq(actionRunTable.owner, input.owner),
+        eq(actionRunTable.repo, input.repo),
+        eq(actionRunTable.ref, input.branch),
+      ),
+    )
+    .limit(1)
+  const row = rows.at(0)
+  if (!row) throw new Error('Action run not found')
+  return row.name
 }

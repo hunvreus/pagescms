@@ -8,7 +8,7 @@ import {
 } from '@tanstack/react-router'
 import { FolderPlus, LoaderCircle, Plus, Search } from 'lucide-react'
 
-import { isContentField } from '#/components/structured-content-field'
+import { isContentField } from '#/lib/content-field'
 import { RepositoryActionButtons } from '#/components/repository-action-buttons'
 import { RepositoryPageHeader } from '#/components/repository-page-header'
 import { OperationError } from '#/components/operation-error'
@@ -420,18 +420,7 @@ function CollectionPage() {
         }
         refreshing={isFetching}
         title={
-          <CollectionBreadcrumb
-            collection={data.collection}
-            navigate={(path) =>
-              router.navigate({
-                params,
-                search: {
-                  path: path === data.collection.rootPath ? undefined : path,
-                },
-                to: '/$owner/$repo/$branch/collection/$name',
-              })
-            }
-          />
+          <CollectionBreadcrumb collection={data.collection} params={params} />
         }
       />
 
@@ -676,10 +665,10 @@ function CollectionHeader({
 
 function CollectionBreadcrumb({
   collection,
-  navigate,
+  params,
 }: {
   collection: CollectionData['collection']
-  navigate: (path: string) => void | Promise<unknown>
+  params: { owner: string; repo: string; branch: string; name: string }
 }) {
   const relative = getGitRelativePath(collection.path, collection.rootPath)
   const segments = relative.split('/').filter(Boolean)
@@ -705,12 +694,13 @@ function CollectionBreadcrumb({
         <BreadcrumbItem className={entries.length ? undefined : 'min-w-0'}>
           {entries.length ? (
             <BreadcrumbLink asChild>
-              <button
-                type="button"
-                onClick={() => navigate(collection.rootPath)}
+              <Link
+                to="/$owner/$repo/$branch/collection/$name"
+                params={params}
+                search={{ path: undefined }}
               >
                 {collection.label}
-              </button>
+              </Link>
             </BreadcrumbLink>
           ) : (
             <BreadcrumbPage className="block truncate font-medium">
@@ -729,11 +719,14 @@ function CollectionBreadcrumb({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
                   {middle.map((entry) => (
-                    <DropdownMenuItem
-                      key={entry.path}
-                      onSelect={() => navigate(entry.path)}
-                    >
-                      {entry.name}
+                    <DropdownMenuItem key={entry.path} asChild>
+                      <Link
+                        to="/$owner/$repo/$branch/collection/$name"
+                        params={params}
+                        search={{ path: entry.path }}
+                      >
+                        {entry.name}
+                      </Link>
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
@@ -753,9 +746,13 @@ function CollectionBreadcrumb({
                   </BreadcrumbPage>
                 ) : (
                   <BreadcrumbLink asChild>
-                    <button type="button" onClick={() => navigate(entry.path)}>
+                    <Link
+                      to="/$owner/$repo/$branch/collection/$name"
+                      params={params}
+                      search={{ path: entry.path }}
+                    >
                       {entry.name}
-                    </button>
+                    </Link>
                   </BreadcrumbLink>
                 )}
               </BreadcrumbItem>

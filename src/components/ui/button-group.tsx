@@ -1,9 +1,8 @@
 import { cva } from 'class-variance-authority'
+import type { VariantProps } from 'class-variance-authority'
+import { cn } from 'cn'
 import { Slot } from 'radix-ui'
 
-import type { VariantProps } from 'class-variance-authority'
-
-import { cn } from '#/lib/utils.ts'
 import { Separator } from '#/components/ui/separator.tsx'
 
 const buttonGroupVariants = cva(

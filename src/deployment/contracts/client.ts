@@ -1,8 +1,9 @@
 import type { ComponentType } from 'react'
 import type { JsonObject, JsonValue } from '#/lib/json'
 import type {
-  RepositoryPermissionGrant,
-  RepositoryPermissionSnapshot,
+  RepositoryRole,
+  RepositoryRoleAssignment,
+  RepositoryPermissions,
 } from './hosted.server'
 
 import { DEPLOYMENT_API_VERSION, DeploymentConfigurationError } from './version'
@@ -26,16 +27,30 @@ export interface RepositoryPermissionsContributionProps {
   disabled: boolean
   owner: string
   repo: string
-  principals: readonly Readonly<{
-    id: string
-    label: string
-    type: 'collaborator'
+  collaborators: readonly Readonly<{
+    id: number
+    email: string
+    userId: string | null
+    branch: string | null
   }>[]
-  snapshot: RepositoryPermissionSnapshot
+  branches: readonly string[]
+  onInvite: (input: {
+    emails: string[]
+    expectedVersion: string
+    roles: readonly string[]
+    branches: 'all' | readonly string[]
+  }) => Promise<void>
+  onRemove: (id: number) => Promise<void>
+  resources: readonly Readonly<{
+    type: 'collection' | 'media' | 'action'
+    name: string
+  }>[]
+  snapshot: RepositoryPermissions
   onReplace: (input: {
     expectedVersion: string
-    grants: readonly RepositoryPermissionGrant[]
-  }) => Promise<RepositoryPermissionSnapshot>
+    roles: readonly RepositoryRole[]
+    assignments: readonly RepositoryRoleAssignment[]
+  }) => Promise<RepositoryPermissions>
 }
 
 export interface PagesCmsClientDeployment {

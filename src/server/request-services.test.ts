@@ -8,6 +8,34 @@ import {
 import { createDatabase } from './database/client.server'
 
 describe('createRequestServices', () => {
+  it('does not synchronize a GitHub profile on email-only session reads', async () => {
+    const database = createDatabase({ url: 'file::memory:' })
+    const services = createRequestServices(
+      {
+        BETTER_AUTH_SECRET: 'a-secure-auth-secret-with-32-characters',
+        BETTER_AUTH_URL: 'https://app.pagescms.org',
+        DATABASE_URL: 'file::memory:',
+      },
+      new Headers(),
+      { database, cacheDatabase: database },
+    )
+    const load = vi
+      .spyOn(services.auth.api, 'getSession')
+      .mockImplementation(
+        async () =>
+          ({ user: { id: 'email-user', githubUsername: null } }) as never,
+      )
+    const account = vi.spyOn(database.query.accountTable, 'findFirst')
+    const user = vi.spyOn(database.query.userTable, 'findFirst')
+    await services.getSession()
+    await services.getSession()
+    expect(load).toHaveBeenCalledOnce()
+    expect(account).not.toHaveBeenCalled()
+    expect(user).not.toHaveBeenCalled()
+    load.mockRestore()
+    account.mockRestore()
+    user.mockRestore()
+  })
   it('builds isolated request services from explicit bindings', () => {
     const database = createDatabase({ url: 'file::memory:' })
     const services = createRequestServices(
@@ -45,8 +73,8 @@ describe('createRequestServices', () => {
           billingWebhook: { handle: async () => undefined },
           entitlementReader: { read: async () => null },
           repositoryPermissionAdmin: {
-            read: async () => ({ version: '1', grants: [] }),
-            replace: async () => ({ version: '2', grants: [] }),
+            read: async () => ({ version: '1', roles: [], assignments: [] }),
+            replace: async () => ({ version: '2', roles: [], assignments: [] }),
           },
         },
       },

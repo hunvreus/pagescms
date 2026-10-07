@@ -12,4 +12,4 @@
 - [Webhooks and cache](./development/webhooks-and-cache.md)
 - [Parity status](./development/parity.md)
 
-The migration program and acceptance criteria live in the root [`PLAN.md`](../PLAN.md). Stable runtime mechanics live in [`ARCHITECTURE.md`](../ARCHITECTURE.md).
+Migration acceptance is tracked in [Parity status](./development/parity.md) and [`TODO.md`](../TODO.md). Stable runtime mechanics live in [`ARCHITECTURE.md`](../ARCHITECTURE.md).

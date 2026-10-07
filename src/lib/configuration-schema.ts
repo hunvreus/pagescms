@@ -833,11 +833,6 @@ const ContentObjectSchema: z.ZodTypeAny = z.lazy(() =>
 // Main schema with media and content
 const ConfigurationSchema = z
   .object({
-    cache: z
-      .boolean({
-        message: "'cache' must be a boolean.",
-      })
-      .optional(),
     hide: z
       .boolean({
         message: "'hide' must be a boolean.",
@@ -872,11 +867,6 @@ const ConfigurationSchema = z
               config: z
                 .boolean({
                   message: "'config' must be a boolean.",
-                })
-                .optional(),
-              cache: z
-                .boolean({
-                  message: "'cache' must be a boolean.",
                 })
                 .optional(),
               hide: z

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './test'
 
 test('named selects, formatted dates, file reordering and safe uploads persist', async ({
   page,

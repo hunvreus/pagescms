@@ -42,7 +42,7 @@ describe('authBaseUrl', () => {
 })
 
 describe('createPagesCmsAuth', () => {
-  it('constructs the request-scoped Better Auth handler without connecting eagerly', () => {
+  it('constructs the request-scoped Better Auth handler without connecting eagerly', async () => {
     const database = createDatabase({ url: 'file::memory:' })
     const auth = createPagesCmsAuth({
       database,
@@ -57,5 +57,30 @@ describe('createPagesCmsAuth', () => {
     expect(auth.handler).toBeTypeOf('function')
     expect(auth.api.getSession).toBeTypeOf('function')
     expect(auth.options.onAPIError.errorURL).toBe('/auth/error')
+    expect(auth.options.account.accountLinking.trustedProviders).toEqual([])
+    expect(auth.options.socialProviders.github?.requireEmailVerification).toBe(
+      true,
+    )
+    const validate = auth.options.user.validateUserInfo
+    for (const action of ['create-user', 'link-account', 'sign-in'] as const) {
+      expect(
+        await validate({
+          user: { emailVerified: false },
+          source: { method: 'oauth', action, oauth: { providerId: 'github' } },
+        }),
+      ).toMatchObject({ error: 'email_not_verified' })
+      expect(
+        await validate({
+          user: { emailVerified: true },
+          source: { method: 'oauth', action, oauth: { providerId: 'github' } },
+        }),
+      ).toBeUndefined()
+    }
+    expect(
+      await validate({
+        user: { emailVerified: false },
+        source: { method: 'email-otp', action: 'create-user' },
+      }),
+    ).toBeUndefined()
   })
 })

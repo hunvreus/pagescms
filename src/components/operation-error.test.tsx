@@ -10,7 +10,6 @@ describe('OperationError', () => {
     )
 
     expect(html).toContain('role="alert"')
-    expect(html).toContain('text-destructive')
     expect(html).toContain('Save failed')
   })
 

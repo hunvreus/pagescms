@@ -1,8 +1,11 @@
 import { createServerFn } from '@tanstack/react-start'
 
-import { validateRepositoryPermissionSnapshot } from '#/deployment/contracts/hosted.server'
+import { validateRepositoryPermissions } from '#/deployment/contracts/hosted.server'
 import { repositoryRef } from '#/lib/repository'
-import { resolveRepositoryPrincipal } from '#/server/repository-policy.server'
+import {
+  resolveRepositoryPrincipal,
+  requireRepositoryManager,
+} from '#/server/repository-policy.server'
 
 import type { ProjectUser } from '#/server/projects.server'
 import type { RequestServices } from '#/server/request-services.server'
@@ -32,14 +35,16 @@ function replacement(input: unknown) {
   if (typeof value.expectedVersion !== 'string' || !value.expectedVersion) {
     throw new Error('A permission snapshot version is required')
   }
-  const validated = validateRepositoryPermissionSnapshot({
+  const validated = validateRepositoryPermissions({
     version: value.expectedVersion,
-    grants: value.grants,
+    roles: value.roles,
+    assignments: value.assignments,
   })
   return {
     ...repository,
     expectedVersion: value.expectedVersion,
-    grants: validated.grants,
+    roles: validated.roles,
+    assignments: validated.assignments,
   }
 }
 
@@ -78,18 +83,14 @@ export const getRepositoryPermissions = createServerFn({ method: 'GET' })
     const user = {
       id: session.user.id,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
-    await services.repositoryAccess.resolve(
-      user,
-      data.owner,
-      data.repo,
-      data.branch,
-    )
+    await requireRepositoryManager(services.repositoryAccess, user, data)
     return services.access.execute(
       await policy(data, 'repository.permissions.read', services, user),
       async () =>
-        validateRepositoryPermissionSnapshot(
+        validateRepositoryPermissions(
           await admin.read({ owner: data.owner, repo: data.repo }),
         ),
     )
@@ -106,23 +107,20 @@ export const replaceRepositoryPermissions = createServerFn({ method: 'POST' })
     const user = {
       id: session.user.id,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
-    await services.repositoryAccess.resolve(
-      user,
-      data.owner,
-      data.repo,
-      data.branch,
-    )
+    await requireRepositoryManager(services.repositoryAccess, user, data)
     return services.access.execute(
       await policy(data, 'repository.permissions.update', services, user),
       async () =>
-        validateRepositoryPermissionSnapshot(
+        validateRepositoryPermissions(
           await admin.replace({
             owner: data.owner,
             repo: data.repo,
             expectedVersion: data.expectedVersion,
-            grants: data.grants,
+            roles: data.roles,
+            assignments: data.assignments,
             actorId: user.id,
           }),
         ),

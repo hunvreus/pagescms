@@ -201,6 +201,87 @@ describe('createGitHubApi', () => {
     expect(fileUrl.searchParams.get('ref')).toBe('feature/a')
   })
 
+  it('lists every branch beyond the former twenty-page limit', async () => {
+    const fetcher = vi.fn(async (input: RequestInfo | URL) => {
+      const page = Number(new URL(String(input)).searchParams.get('page'))
+      const offset = (page - 1) * 100
+      return Response.json(
+        Array.from({ length: Math.min(100, 2101 - offset) }, (_, index) => ({
+          name: `branch-${offset + index}`,
+        })),
+      )
+    })
+    const api = createGitHubApi('all-branches', fetcher, 0)
+    const branches = await api.listBranches('owner', 'repo')
+    expect(branches).toHaveLength(2101)
+    expect(branches.at(-1)).toBe('branch-2100')
+    expect(fetcher).toHaveBeenCalledTimes(22)
+  })
+
+  it('checks one encoded branch and distinguishes missing branches from upstream failures', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ name: 'feature/a' }))
+      .mockResolvedValueOnce(
+        Response.json({ message: 'missing' }, { status: 404 }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({ message: 'rate limited' }, { status: 403 }),
+      )
+    const api = createGitHubApi('branch-check', fetcher, 0)
+    await expect(api.branchExists('owner', 'repo', 'feature/a')).resolves.toBe(
+      true,
+    )
+    expect(String(fetcher.mock.calls[0]?.[0])).toContain(
+      '/branches/feature%2Fa',
+    )
+    await expect(api.branchExists('owner', 'repo', 'missing')).resolves.toBe(
+      false,
+    )
+    await expect(
+      api.branchExists('owner', 'repo', 'main'),
+    ).rejects.toMatchObject({ status: 403 })
+  })
+
+  it('streams raw previews and forwards conditional requests without JSON or blob decoding', async () => {
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('image'))
+        controller.close()
+      },
+    })
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(body, { headers: { etag: '"revision"' } }),
+      )
+      .mockResolvedValueOnce(
+        new Response(null, { status: 304, headers: { etag: '"revision"' } }),
+      )
+    const api = createGitHubApi('media-preview', fetcher)
+    const response = await api.getFileResponse(
+      'owner',
+      'repo',
+      'images/photo.png',
+      'feature/a',
+    )
+    expect(response.body).toBe(body)
+    expect(await response.text()).toBe('image')
+    const cached = await api.getFileResponse(
+      'owner',
+      'repo',
+      'images/photo.png',
+      'feature/a',
+      '"revision"',
+    )
+    expect(cached.status).toBe(304)
+    expect(cached.body).toBeNull()
+    const headers = new Headers(fetcher.mock.calls[1]?.[1]?.headers)
+    expect(headers.get('if-none-match')).toBe('"revision"')
+    expect(headers.get('accept')).toBe('application/vnd.github.raw')
+    expect(fetcher).toHaveBeenCalledTimes(2)
+  })
+
   it('loads file content from the Git blob endpoint when Contents omits it', async () => {
     const fetcher = vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(String(input))

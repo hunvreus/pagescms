@@ -25,6 +25,8 @@ export const APPLICATION_OPERATIONS = [
   'reference.read',
   'action.read',
   'action.run',
+  'action.cancel',
+  'action.rerun',
   'collaborator.read',
   'collaborator.invite',
   'collaborator.remove',

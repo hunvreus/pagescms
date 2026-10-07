@@ -19,9 +19,9 @@ export const Route = createFileRoute('/$owner/$repo/')({
           repo: params.repo,
         }),
       )
-      if (!workspace.repository.defaultBranch) return
+      if (!(workspace.branch ?? workspace.repository.defaultBranch)) return
       throw redirect({
-        href: `/${encodeURIComponent(params.owner)}/${encodeURIComponent(params.repo)}/${encodeURIComponent(workspace.repository.defaultBranch)}`,
+        href: `/${encodeURIComponent(params.owner)}/${encodeURIComponent(params.repo)}/${encodeURIComponent(workspace.branch ?? workspace.repository.defaultBranch)}`,
       })
     } catch (error) {
       if (
@@ -49,7 +49,9 @@ function EmptyRepository() {
     <main className="flex min-h-screen items-center justify-center p-4 md:p-6">
       <Empty className="max-w-xs p-0">
         <EmptyHeader>
-          <EmptyTitle>Empty repository</EmptyTitle>
+          <EmptyTitle className="text-muted-foreground">
+            Empty repository
+          </EmptyTitle>
           <EmptyDescription>
             Create a branch and add a .pages.yml file to configure this
             repository.

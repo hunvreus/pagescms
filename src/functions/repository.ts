@@ -6,6 +6,10 @@ import {
 } from '#/lib/configuration-discovery'
 import { getConfigurationNavigation } from '#/lib/configuration-navigation'
 import { branchName, repositoryRef } from '#/lib/repository'
+import {
+  configuredCollaboratorBranches,
+  NoConfiguredBranchesError,
+} from '#/server/configured-branches.server'
 import { resolveRepositoryPrincipal } from '#/server/repository-policy.server'
 
 import type { RequestServices } from '#/server/request-services.server'
@@ -60,6 +64,7 @@ function authenticatedProjectUser(
   return {
     id: session.user.id,
     email: session.user.email,
+    emailVerified: session.user.emailVerified,
     githubUsername: session.user.githubUsername ?? null,
   }
 }
@@ -72,15 +77,29 @@ export const getRepositoryWorkspace = createServerFn({ method: 'GET' })
     const principal = await resolveRepositoryPrincipal(
       services.repositoryAccess,
       user,
-      data,
+      { owner: data.owner, repo: data.repo },
     )
+    const selectedBranch =
+      principal.type === 'collaborator'
+        ? (
+            await configuredCollaboratorBranches(
+              services,
+              user,
+              data,
+              data.branch,
+              true,
+            )
+          )[0]
+        : data.branch
+    if (principal.type === 'collaborator' && !selectedBranch)
+      throw new NoConfiguredBranchesError()
     const tenant = {
       type: 'repository' as const,
       id: `${data.owner.toLowerCase()}/${data.repo.toLowerCase()}`,
     }
     const target = {
       repository: { owner: data.owner, repo: data.repo },
-      ...(data.branch ? { branch: data.branch } : {}),
+      ...(selectedBranch ? { branch: selectedBranch } : {}),
     }
     return services.access.execute(
       {
@@ -94,11 +113,15 @@ export const getRepositoryWorkspace = createServerFn({ method: 'GET' })
           user,
           data.owner,
           data.repo,
-          data.branch,
+          selectedBranch,
         )
         const configuration = workspace.configuration?.object
         if (!configuration) {
-          return { ...workspace, discovery: { visibility: 'all' as const } }
+          return {
+            ...workspace,
+            canViewGitHub: principal.type === 'user',
+            discovery: { visibility: 'all' as const },
+          }
         }
         const navigation = getConfigurationNavigation(configuration)
         const discovery = await services.access.discover({
@@ -106,11 +129,13 @@ export const getRepositoryWorkspace = createServerFn({ method: 'GET' })
           tenant,
           target,
           resources: [
-            ...navigation.flatMap((item) =>
-              item.type === 'file'
-                ? []
-                : [{ type: item.type, name: item.name } as const],
-            ),
+            ...navigation.flatMap((item) => [
+              {
+                type:
+                  item.type === 'file' ? ('collection' as const) : item.type,
+                name: item.name,
+              },
+            ]),
             ...getConfigurationActionNames(configuration).map((name) => ({
               type: 'action' as const,
               name,
@@ -119,6 +144,7 @@ export const getRepositoryWorkspace = createServerFn({ method: 'GET' })
         })
         return {
           ...workspace,
+          canViewGitHub: principal.type === 'user',
           configuration: workspace.configuration
             ? {
                 ...workspace.configuration,
@@ -153,7 +179,39 @@ export const createRepositoryBranch = createServerFn({ method: 'POST' })
         },
         target: {
           repository: data,
-          branch: data.source,
+          branch: data.branch,
+        },
+      },
+      async () => {
+        const { createBranch } = await import('#/server/branch-service.server')
+        return createBranch(services.repositoryAccess, user, data)
+      },
+    )
+  })
+
+export const getRepositoryBranches = createServerFn({ method: 'GET' })
+  .validator(parseRepositoryRequest)
+  .handler(async ({ context, data }) => {
+    const services = context.getServices()
+    const user = authenticatedProjectUser(await services.getSession())
+    const principal = await resolveRepositoryPrincipal(
+      services.repositoryAccess,
+      user,
+      { owner: data.owner, repo: data.repo },
+    )
+    if (principal.type === 'collaborator')
+      return configuredCollaboratorBranches(services, user, data)
+    return services.access.execute(
+      {
+        operation: 'repository.read',
+        principal,
+        tenant: {
+          type: 'repository',
+          id: `${data.owner}/${data.repo}`.toLowerCase(),
+        },
+        target: {
+          repository: data,
+          ...(data.branch ? { branch: data.branch } : {}),
         },
       },
       async () => {
@@ -161,9 +219,9 @@ export const createRepositoryBranch = createServerFn({ method: 'POST' })
           user,
           data.owner,
           data.repo,
-          data.source,
+          data.branch,
         )
-        return api.createBranch(data.owner, data.repo, data.branch, data.source)
+        return api.listBranches(data.owner, data.repo)
       },
     )
   })

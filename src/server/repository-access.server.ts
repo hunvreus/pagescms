@@ -1,3 +1,4 @@
+import { collaboratorKey } from '#/lib/collaborator-key'
 import { and, eq, isNull, or, sql } from 'drizzle-orm'
 
 import {
@@ -9,6 +10,7 @@ import { createGitHubApi, GitHubApiError } from './github-api.server'
 import { DEFAULT_REPOSITORY_SOURCE } from './repository-provider.server'
 import { createGitHubAppApi } from './github-app.server'
 import { decryptSecret, encryptSecret } from './secret-crypto.server'
+import { collaboratorApi } from './collaborator-api.server'
 
 import type { Database } from './database/client.server'
 import type { GitHubApi, GitHubApiFactory } from './github-api.server'
@@ -19,6 +21,8 @@ export interface RepositoryAccess {
   api: GitHubApi
   source?: string
   tokenSource: 'user' | 'installation'
+  collaboratorKey?: string
+  branches?: 'all' | readonly string[]
 }
 
 function collaboratorMatches(
@@ -30,10 +34,12 @@ function collaboratorMatches(
   return and(
     or(
       eq(collaboratorTable.userId, user.id),
-      and(
-        isNull(collaboratorTable.userId),
-        sql`lower(${collaboratorTable.email}) = lower(${user.email})`,
-      ),
+      user.emailVerified === true
+        ? and(
+            isNull(collaboratorTable.userId),
+            sql`lower(${collaboratorTable.email}) = lower(${user.email})`,
+          )
+        : undefined,
     ),
     sql`lower(${collaboratorTable.owner}) = lower(${owner})`,
     sql`lower(${collaboratorTable.repo}) = lower(${repo})`,
@@ -127,6 +133,7 @@ export function createRepositoryAccessService(input: {
           api,
           source: DEFAULT_REPOSITORY_SOURCE,
           tokenSource: 'user' as const,
+          branches: 'all' as const,
         }
       } catch (error) {
         if (
@@ -138,18 +145,23 @@ export function createRepositoryAccessService(input: {
       }
     }
 
-    const collaborator = await database.query.collaboratorTable.findFirst({
-      columns: { installationId: true },
+    const collaborators = await database.query.collaboratorTable.findMany({
+      columns: { installationId: true, branch: true, email: true },
       where: collaboratorMatches(user, owner, repo, branch),
     })
+    const collaborator = collaborators.at(0)
     if (!collaborator) {
       throw new Error(`You do not have permission to access "${owner}/${repo}"`)
     }
     const token = await getInstallationToken(collaborator.installationId)
     return {
-      api: githubApiFactory(token),
+      api: collaboratorApi(githubApiFactory(token)),
       source: DEFAULT_REPOSITORY_SOURCE,
       tokenSource: 'installation' as const,
+      collaboratorKey: collaboratorKey(collaborator.email),
+      branches: collaborators.some((row) => row.branch === null)
+        ? ('all' as const)
+        : collaborators.flatMap((row) => (row.branch ? [row.branch] : [])),
     }
   }
 
@@ -161,13 +173,38 @@ export function createRepositoryAccessService(input: {
       const key = [
         user.id,
         user.email.toLowerCase(),
+        String(user.emailVerified === true),
         owner.toLowerCase(),
         repo.toLowerCase(),
         branch ?? '',
       ].join('\0')
       let resolution = resolutions.get(key)
       if (!resolution) {
-        resolution = resolveUncached(user, owner, repo, branch)
+        const unscoped = branch
+          ? resolutions.get(
+              [
+                user.id,
+                user.email.toLowerCase(),
+                String(user.emailVerified === true),
+                owner.toLowerCase(),
+                repo.toLowerCase(),
+                '',
+              ].join('\0'),
+            )
+          : undefined
+        resolution = unscoped
+          ? unscoped.then((admission) => {
+              if (
+                admission.branches &&
+                admission.branches !== 'all' &&
+                !admission.branches.includes(branch!)
+              )
+                throw new Error(
+                  `You do not have permission to access "${owner}/${repo}"`,
+                )
+              return admission
+            })
+          : resolveUncached(user, owner, repo, branch)
         resolutions.set(key, resolution)
         void resolution.catch(() => resolutions.delete(key))
       }

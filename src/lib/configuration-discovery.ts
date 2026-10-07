@@ -34,7 +34,6 @@ function filterNamedValues(
                 }),
           }
         : candidate
-    if (type === 'collection' && candidate.type === 'file') return [sanitized]
     const name =
       typeof candidate.name === 'string'
         ? candidate.name

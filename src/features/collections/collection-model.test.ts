@@ -4,10 +4,60 @@ import {
   collectionFluidColumn,
   collectionViewModel,
   collectionValue,
+  collectionListFields,
   rowSearchValue,
 } from './collection-model'
 
 describe('collectionViewModel', () => {
+  it('projects list payloads without losing nested search, sorting, or primary values', () => {
+    const model = collectionViewModel({
+      fields: [{ name: 'title', type: 'string' }],
+      view: {
+        fields: ['title'],
+        primary: 'slug',
+        search: ['meta.summary'],
+        sort: ['date'],
+      },
+    })
+    expect(
+      collectionListFields(
+        {
+          title: 'Post',
+          slug: 'post',
+          date: '2026-10-06',
+          body: 'large body',
+          meta: { summary: 'find me', unused: 'large' },
+          hidden: 'unused',
+        },
+        model,
+      ),
+    ).toEqual({
+      title: 'Post',
+      slug: 'post',
+      date: '2026-10-06',
+      meta: { summary: 'find me' },
+    })
+  })
+
+  it.each([
+    { fields: ['body'] },
+    { fields: ['title'], search: ['body'] },
+    { fields: ['title'], sort: ['body'] },
+    { fields: ['title'], primary: 'body' },
+    {},
+  ])('preserves bodies when the view needs them: %s', (view) => {
+    const model = collectionViewModel({
+      fields: [
+        { name: 'title', type: 'string' },
+        { name: 'body', type: 'rich-text' },
+      ],
+      view,
+    })
+    expect(
+      collectionListFields({ title: 'Post', body: 'Required body' }, model),
+    ).toHaveProperty('body', 'Required body')
+  })
+
   it('uses configured fields in order and resolves nested field metadata', () => {
     const model = collectionViewModel({
       fields: [

@@ -2,7 +2,7 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 
 import { CollectionEntryCreator } from '#/components/collection-entry-creator'
-import { ContentEntrySkeleton } from '#/components/content-entry-editor'
+import { ContentEntrySkeleton } from '#/components/content-entry-skeleton'
 import { getSignInUrl } from '#/lib/auth-redirect'
 import { collectionQueryOptions } from '#/queries/content'
 

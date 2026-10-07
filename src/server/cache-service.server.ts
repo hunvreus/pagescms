@@ -1,7 +1,5 @@
 import { and, eq, sql } from 'drizzle-orm'
 
-import { isCacheEnabled } from '#/lib/configuration'
-
 import { createConfigurationStore } from './configuration-store.server'
 import { DEFAULT_REPOSITORY_SOURCE } from './repository-provider.server'
 import {
@@ -16,7 +14,6 @@ import type { RepositoryAccessService } from './repository-access.server'
 import {
   cacheFileMetaTable,
   cacheFileTable,
-  cachePermissionTable,
   configTable,
 } from './database/schema'
 
@@ -48,16 +45,7 @@ async function cacheContext(input: CacheInput) {
   const configurationStore = createConfigurationStore({
     database: input.database,
   })
-  const configuration = await configurationStore.get(
-    api,
-    input.owner,
-    input.repo,
-    input.branch,
-  )
-  if (!configuration || !isCacheEnabled(configuration.object)) {
-    throw new Error('Cache is disabled for this repository')
-  }
-  return { api, configuration, configurationStore }
+  return { api, configurationStore }
 }
 
 function branchConditions(input: CacheInput) {
@@ -73,44 +61,33 @@ export async function loadCacheStatus(input: CacheInput) {
   await cacheContext(input)
   const normalizedOwner = input.owner.toLowerCase()
   const normalizedRepo = input.repo.toLowerCase()
-  const [fileCountRows, permissionCountRows, metaRows, config] =
-    await Promise.all([
-      input.database
-        .select({ count: sql<number>`count(*)` })
-        .from(cacheFileTable)
-        .where(branchConditions(input)),
-      input.database
-        .select({ count: sql<number>`count(*)` })
-        .from(cachePermissionTable)
-        .where(
-          and(
-            eq(cachePermissionTable.owner, normalizedOwner),
-            eq(cachePermissionTable.repo, normalizedRepo),
-          ),
+  const [fileCountRows, directoryCountRows, config] = await Promise.all([
+    input.database
+      .select({ count: sql<number>`count(*)` })
+      .from(cacheFileTable)
+      .where(branchConditions(input)),
+    input.database
+      .select({ count: sql<number>`count(*)` })
+      .from(cacheFileMetaTable)
+      .where(
+        and(
+          eq(cacheFileMetaTable.source, DEFAULT_REPOSITORY_SOURCE),
+          eq(cacheFileMetaTable.owner, normalizedOwner),
+          eq(cacheFileMetaTable.repo, normalizedRepo),
+          eq(cacheFileMetaTable.branch, input.branch),
         ),
-      input.database
-        .select()
-        .from(cacheFileMetaTable)
-        .where(
-          and(
-            eq(cacheFileMetaTable.source, DEFAULT_REPOSITORY_SOURCE),
-            eq(cacheFileMetaTable.owner, normalizedOwner),
-            eq(cacheFileMetaTable.repo, normalizedRepo),
-            eq(cacheFileMetaTable.branch, input.branch),
-          ),
-        ),
-      input.database.query.configTable.findFirst({
-        where: and(
-          eq(configTable.source, DEFAULT_REPOSITORY_SOURCE),
-          sql`lower(${configTable.owner}) = lower(${input.owner})`,
-          sql`lower(${configTable.repo}) = lower(${input.repo})`,
-          eq(configTable.branch, input.branch),
-        ),
-      }),
-    ])
+      ),
+    input.database.query.configTable.findFirst({
+      where: and(
+        eq(configTable.source, DEFAULT_REPOSITORY_SOURCE),
+        sql`lower(${configTable.owner}) = lower(${input.owner})`,
+        sql`lower(${configTable.repo}) = lower(${input.repo})`,
+        eq(configTable.branch, input.branch),
+      ),
+    }),
+  ])
   return {
     fileCount: Number(fileCountRows.at(0)?.count ?? 0),
-    permissionCount: Number(permissionCountRows.at(0)?.count ?? 0),
     configuration: config
       ? {
           sha: config.sha,
@@ -118,20 +95,13 @@ export async function loadCacheStatus(input: CacheInput) {
           lastCheckedAt: config.lastCheckedAt.toISOString(),
         }
       : null,
-    directories: metaRows.map((row) => ({
-      path: row.path,
-      context: row.context,
-      status: row.status,
-      error: row.error,
-      lastCheckedAt: row.lastCheckedAt.toISOString(),
-    })),
+    directoryCount: Number(directoryCountRows.at(0)?.count ?? 0),
   }
 }
 
 export type CacheAction =
   | 'reconcile-content'
   | 'clear-content'
-  | 'clear-permissions'
   | 'refresh-configuration'
   | 'clear-configuration'
   | 'clear-all'
@@ -180,16 +150,6 @@ export async function manageCache(input: CacheInput & { action: CacheAction }) {
       input.branch,
     )
   }
-  if (input.action === 'clear-permissions' || input.action === 'clear-all') {
-    await input.database
-      .delete(cachePermissionTable)
-      .where(
-        and(
-          eq(cachePermissionTable.owner, normalizedOwner),
-          eq(cachePermissionTable.repo, normalizedRepo),
-        ),
-      )
-  }
   if (input.action === 'refresh-configuration') {
     await configurationStore.refresh(api, input.owner, input.repo, input.branch)
   }
@@ -198,7 +158,6 @@ export async function manageCache(input: CacheInput & { action: CacheAction }) {
   }
   const messages: Record<Exclude<CacheAction, 'reconcile-content'>, string> = {
     'clear-content': 'Content cache cleared',
-    'clear-permissions': 'Permission cache cleared',
     'refresh-configuration': 'Configuration cache refreshed',
     'clear-configuration': 'Configuration cache cleared',
     'clear-all': 'All repository caches cleared',

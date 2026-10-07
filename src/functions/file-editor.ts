@@ -35,6 +35,7 @@ export const getFixedFile = createServerFn({ method: 'GET' })
     const user = {
       id: session.user.id,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
     return services.access.execute(

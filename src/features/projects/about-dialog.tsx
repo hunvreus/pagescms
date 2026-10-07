@@ -80,7 +80,7 @@ export function AboutDialog() {
       </TooltipProvider>
       <DialogContent className="w-80 max-w-[calc(100vw-2rem)]">
         <DialogHeader className="items-center gap-3 text-center">
-          <div className="flex size-15 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+          <div className="flex size-15 items-center justify-center rounded-2xl bg-[oklch(0.60_0.13_163)] text-[oklch(0.98_0.02_166)] dark:bg-[oklch(0.70_0.15_162)] dark:text-[oklch(0.26_0.05_173)]">
             <PagesCmsGlyph className="size-10" />
           </div>
           <DialogTitle className="text-base font-semibold">
@@ -137,7 +137,7 @@ export function AboutDialog() {
 
 export function PagesCmsMark() {
   return (
-    <span className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
+    <span className="flex size-6 items-center justify-center rounded-md bg-[oklch(0.60_0.13_163)] text-[oklch(0.98_0.02_166)] dark:bg-[oklch(0.70_0.15_162)] dark:text-[oklch(0.26_0.05_173)]">
       <PagesCmsGlyph className="size-4" />
     </span>
   )

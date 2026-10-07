@@ -25,4 +25,17 @@ describe('repository policy principals', () => {
       )
     },
   )
+
+  it('does not treat a linked GitHub username as direct access to an invited repository', async () => {
+    const resolve = vi
+      .fn()
+      .mockResolvedValue({ api: {}, tokenSource: 'installation' })
+    await expect(
+      resolveRepositoryPrincipal(
+        { resolve },
+        { ...user, githubUsername: 'linked-user' },
+        repository,
+      ),
+    ).resolves.toEqual({ type: 'collaborator', id: user.id })
+  })
 })

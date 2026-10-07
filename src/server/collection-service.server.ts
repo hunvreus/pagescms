@@ -4,11 +4,14 @@ import {
   findContentSchema,
 } from '#/lib/configuration-content'
 import { schemaActions } from '#/lib/actions'
-import { isCacheEnabled } from '#/lib/configuration'
 import { parseContent } from '#/lib/content-serialization'
 import { resolveContentOperations } from '#/lib/content-operations'
 import { getConfigurationNavigationGroupTrail } from '#/lib/configuration-navigation'
 import { toJsonValue } from '#/lib/json'
+import {
+  collectionListFields,
+  collectionViewModel,
+} from '#/features/collections/collection-model'
 
 import { createConfigurationStore } from './configuration-store.server'
 import { createDirectoryCache } from './directory-cache.server'
@@ -118,7 +121,7 @@ export async function loadCollection({
     branch,
     path: directory,
     context: 'collection',
-    enabled: isCacheEnabled(configuration.object),
+    enabled: true,
     nodeFilename,
   })
   let entries = directoryResult.entries.map((entry) => {
@@ -169,6 +172,11 @@ export async function loadCollection({
   )
   const format = contentFormat(schema.format)
   const hasFields = Array.isArray(schema.fields) && schema.fields.length > 0
+  const model = collectionViewModel({
+    fields: schema.fields,
+    filename: schema.filename,
+    view: schema.view,
+  })
   const errors: string[] = []
   const contents: CollectionEntry[] = []
 
@@ -195,18 +203,16 @@ export async function loadCollection({
           format,
           delimiters: delimiters(schema.delimiters),
         })
-        fields = toJsonValue(parsed)
         if (
-          typeof fields === 'object' &&
-          fields !== null &&
-          !Array.isArray(fields) &&
-          !('date' in fields) &&
+          isRecord(parsed) &&
+          !('date' in parsed) &&
           typeof schema.filename === 'string' &&
           schema.filename.startsWith('{year}-{month}-{day}')
         ) {
           const date = dateFromFilename(entry.name)
-          if (date) fields.date = date
+          if (date) parsed.date = date
         }
+        fields = toJsonValue(collectionListFields(parsed, model))
       } catch (error) {
         errors.push(
           `Could not parse ${entry.path}: ${error instanceof Error ? error.message : 'unknown error'}`,

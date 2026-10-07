@@ -3,7 +3,10 @@ import { queryOptions } from '@tanstack/react-query'
 import { getActions } from '#/functions/actions'
 import { getCacheStatus } from '#/functions/cache'
 import { getCollaborators } from '#/functions/collaborators'
-import { getRepositoryWorkspace } from '#/functions/repository'
+import {
+  getRepositoryWorkspace,
+  getRepositoryBranches,
+} from '#/functions/repository'
 
 import { queryKeys, queryTimes } from './keys'
 
@@ -14,6 +17,15 @@ interface RepositoryRef {
 
 interface BranchRef extends RepositoryRef {
   branch: string
+}
+
+export function repositoryBranchesQueryOptions(input: BranchRef) {
+  return queryOptions({
+    queryKey: [...queryKeys.branch(input), 'branches'] as const,
+    queryFn: () => getRepositoryBranches({ data: input }),
+    staleTime: queryTimes.minute,
+    gcTime: queryTimes.gc,
+  })
 }
 
 export function repositoryWorkspaceQueryOptions(
@@ -33,10 +45,14 @@ export function repositoryWorkspaceQueryOptions(
   })
 }
 
-export function actionsQueryOptions(input: BranchRef) {
+export function actionsQueryOptions(input: BranchRef, includeRuns = true) {
   return queryOptions({
-    queryKey: [...queryKeys.branch(input), 'actions'] as const,
-    queryFn: () => getActions({ data: input }),
+    queryKey: [
+      ...queryKeys.branch(input),
+      'actions',
+      includeRuns ? 'runs' : 'list',
+    ] as const,
+    queryFn: () => getActions({ data: { ...input, includeRuns } }),
     staleTime: 5_000,
     gcTime: queryTimes.gc,
   })

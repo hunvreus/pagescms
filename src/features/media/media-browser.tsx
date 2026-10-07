@@ -43,6 +43,7 @@ import {
 } from 'lucide-react'
 
 import { MediaThumbnail } from '#/components/media-thumbnail'
+import { useRepositoryGitHubLink } from '#/hooks/use-repository-github-link'
 import { OperationError } from '#/components/operation-error'
 import { RepositoryActionButtons } from '#/components/repository-action-buttons'
 import { RepositoryPageHeader } from '#/components/repository-page-header'
@@ -176,10 +177,11 @@ function EntryPreview({
         className={cn('flex shrink-0 items-center justify-center', className)}
       >
         <Folder
+          strokeWidth={variant === 'grid' ? 2 : undefined}
           className={cn(
             'text-muted-foreground',
             variant === 'grid'
-              ? 'size-[clamp(4.5rem,8vw,6rem)] stroke-[0.75]'
+              ? 'size-[clamp(4.5rem,8vw,6rem)] [&>*]:[vector-effect:non-scaling-stroke]'
               : 'size-5',
           )}
         />
@@ -201,10 +203,11 @@ function EntryPreview({
       className={cn('flex shrink-0 items-center justify-center', className)}
     >
       <File
+        strokeWidth={variant === 'grid' ? 2 : undefined}
         className={cn(
           'text-muted-foreground',
           variant === 'grid'
-            ? 'size-[clamp(4.5rem,8vw,6rem)] stroke-[0.75]'
+            ? 'size-[clamp(4.5rem,8vw,6rem)] [&>*]:[vector-effect:non-scaling-stroke]'
             : 'size-5',
         )}
       />
@@ -483,6 +486,7 @@ function EntryActions({
   onRename: (entry: MediaEntry) => void
   onDelete: (entry: MediaEntry) => void
 }) {
+  const canViewGitHub = useRepositoryGitHubLink()
   if (entry.type !== 'file') return null
   return (
     <DropdownMenu>
@@ -496,19 +500,24 @@ function EntryActions({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-40">
-        <DropdownMenuItem asChild>
-          <a
-            href={githubUrl(coordinates, entry.path)}
-            rel="noreferrer"
-            target="_blank"
-          >
-            View on GitHub <ArrowUpRight className="ml-auto opacity-50" />
-          </a>
-        </DropdownMenuItem>
-        {canRename ? (
-          <DropdownMenuItem onSelect={() => onRename(entry)}>
-            Rename
+        {canViewGitHub ? (
+          <DropdownMenuItem asChild>
+            <a
+              href={githubUrl(coordinates, entry.path)}
+              rel="noreferrer"
+              target="_blank"
+            >
+              View on GitHub <ArrowUpRight className="ml-auto opacity-50" />
+            </a>
           </DropdownMenuItem>
+        ) : null}
+        {canRename ? (
+          <>
+            {canViewGitHub ? <DropdownMenuSeparator /> : null}
+            <DropdownMenuItem onSelect={() => onRename(entry)}>
+              Rename
+            </DropdownMenuItem>
+          </>
         ) : null}
         {canDelete ? (
           <>
@@ -947,7 +956,7 @@ export function MediaBrowser({
         }),
         helper.display({
           id: 'actions',
-          header: 'Actions',
+          header: '',
           cell: ({ row }) => (
             <div className="flex justify-end">
               <EntryActions
@@ -1085,16 +1094,11 @@ export function MediaBrowser({
     />
   ) : null
   const tableResults = (
-    <Table>
+    <Table containerClassName="rounded-xl border bg-card">
       <TableHeader>
         <TableRow className="hover:bg-transparent">
           {mediaTable.getHeaderGroups()[0]?.headers.map((header) => (
-            <TableHead
-              className={
-                header.column.id === 'actions' ? 'text-right' : undefined
-              }
-              key={header.id}
-            >
+            <TableHead key={header.id}>
               {header.isPlaceholder ? null : (
                 <mediaTable.FlexRender header={header} />
               )}
@@ -1103,6 +1107,16 @@ export function MediaBrowser({
         </TableRow>
       </TableHeader>
       <TableBody>
+        {!visible.length ? (
+          <TableRow className="hover:bg-transparent">
+            <TableCell
+              colSpan={mediaTable.getVisibleLeafColumns().length}
+              className="text-center text-muted-foreground"
+            >
+              {search ? 'No matching media.' : 'No media yet.'}
+            </TableCell>
+          </TableRow>
+        ) : null}
         {mediaTable.getRowModel().rows.map((row) => (
           <MediaTableRow
             canMove={canMove}
@@ -1113,7 +1127,11 @@ export function MediaBrowser({
             {row.getVisibleCells().map((cell) => (
               <TableCell
                 className={
-                  cell.column.id === 'actions' ? 'text-right' : undefined
+                  cell.column.id === 'actions'
+                    ? 'py-0 text-right'
+                    : cell.column.id === 'name'
+                      ? 'py-0'
+                      : undefined
                 }
                 key={cell.id}
               >
@@ -1128,7 +1146,9 @@ export function MediaBrowser({
   const emptyResults = (
     <Empty className="min-h-64 border">
       <EmptyHeader>
-        <EmptyTitle>{search ? 'No matching media' : 'No media yet'}</EmptyTitle>
+        <EmptyTitle className="text-muted-foreground">
+          {search ? 'No matching media' : 'No media yet'}
+        </EmptyTitle>
         <EmptyDescription>
           {search
             ? 'Try a different search.'
@@ -1197,6 +1217,8 @@ export function MediaBrowser({
         ) : (
           tableResults
         )
+      ) : view === 'list' ? (
+        tableResults
       ) : (
         emptyResults
       )}
@@ -1421,7 +1443,10 @@ export function MediaBrowserSkeleton({ view = 'grid' }: { view?: MediaView }) {
     <div className={mediaGridClassName}>
       <div className="rounded-md p-2">
         <div className="flex aspect-video items-center justify-center text-muted">
-          <Folder className="size-[clamp(4.5rem,8vw,6rem)] animate-pulse stroke-[0.75]" />
+          <Folder
+            strokeWidth={2}
+            className="size-[clamp(4.5rem,8vw,6rem)] animate-pulse [&>*]:[vector-effect:non-scaling-stroke]"
+          />
         </div>
         <Skeleton className="mx-auto mt-2 h-4 w-3/4" />
       </div>

@@ -15,7 +15,10 @@
     "./deployment/conformance/media-storage": "./src/deployment/conformance/media-storage.ts",
     "./lib/application-operations": "./src/lib/application-operations.ts",
     "./server/access-policy.server": "./src/server/access-policy.server.ts",
-    "./server/media-provider.server": "./src/server/media-provider.server.ts"
+    "./server/media-provider.server": "./src/server/media-provider.server.ts",
+    "./components/ui/*": "./src/components/ui/*.tsx",
+    "./components/operation-error": "./src/components/operation-error.tsx",
+    "./lib/collaborator-key": "./src/lib/collaborator-key.ts"
   },
   "imports": {
     "#/*": "./src/*"
@@ -23,10 +26,11 @@
   "scripts": {
     "dev": "node --env-file-if-exists=.env.local ./node_modules/vite/bin/vite.js dev --port 3000",
     "cf:dev": "PAGESCMS_CLOUDFLARE=true vite dev --port 3000",
-    "cf:build": "CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false PAGESCMS_CLOUDFLARE=true vite build",
+    "cf:build": "CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false PAGESCMS_CLOUDFLARE=true vite build && pnpm performance:check",
     "cf:preview": "PAGESCMS_CLOUDFLARE=true vite preview",
     "generate-routes": "tsr generate",
-    "build": "vite build",
+    "build": "vite build && pnpm performance:check",
+    "performance:check": "node scripts/check-performance-budget.mjs",
     "preview": "vite preview",
     "typecheck": "pnpm generate-routes && tsc --noEmit",
     "lint": "eslint .",
@@ -93,6 +97,7 @@
     "better-auth": "^1.7.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
     "cn": "^0.4.0",
     "date-fns": "^4.4.0",
     "drizzle-orm": "^0.45.2",
@@ -102,7 +107,7 @@
     "radix-ui": "^1.6.7",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "shadcn": "^4.18.0",
+    "shadcn": "^4.21.1",
     "smol-toml": "^1.8.0",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.3",
@@ -139,6 +144,7 @@
       "workerd"
     ],
     "overrides": {
+      "prosemirror-model": "1.25.12",
       "esbuild@<=0.24.2": ">=0.25.0"
     },
     "patchedDependencies": {

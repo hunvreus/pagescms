@@ -22,10 +22,15 @@ export default definePagesCmsServerDeployment({
         }),
       },
       repositoryPermissionAdmin: {
-        read: async () => ({ version: 'fixture-v1', grants: [] }),
+        read: async () => ({
+          version: 'fixture-v1',
+          roles: [],
+          assignments: [],
+        }),
         replace: async ({ expectedVersion }) => ({
           version: `${expectedVersion}-next`,
-          grants: [],
+          roles: [],
+          assignments: [],
         }),
       },
     }

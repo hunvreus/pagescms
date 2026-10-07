@@ -61,7 +61,6 @@ describe('filterConfigurationForDiscovery', () => {
             { name: 'publish', label: 'Publish', workflow: 'publish.yml' },
           ],
         },
-        { type: 'file', name: 'settings' },
       ],
       media: [{ name: 'default' }],
       actions: [{ name: 'publish', label: 'Publish', workflow: 'publish.yml' }],

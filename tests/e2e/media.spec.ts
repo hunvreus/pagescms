@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './test'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -147,11 +147,11 @@ test('uses the same media browser inside the rich-text image picker', async ({
   )
 
   await page.locator('.ProseMirror').waitFor()
-  await page.getByRole('button', { name: 'Source', exact: true }).click()
+  await page.getByRole('tab', { name: 'Source', exact: true }).click()
   const source = page.locator('textarea')
   const originalSource = await source.inputValue()
   await source.fill(`/\n\n${originalSource}`)
-  await page.getByRole('button', { name: 'Editor', exact: true }).click()
+  await page.getByRole('tab', { name: 'Editor', exact: true }).click()
   const body = page.locator('.ProseMirror')
   await body.locator('p').first().click()
   await body.press('End')
@@ -160,7 +160,9 @@ test('uses the same media browser inside the rich-text image picker', async ({
 
   const picker = page.getByRole('dialog', { name: 'Choose an image' })
   await expect(picker).toBeVisible()
-  await expect(page.getByText('Image', { exact: true })).toHaveCount(0)
+  await expect(
+    page.getByRole('button', { name: 'Image', exact: true }),
+  ).toHaveCount(0)
   await expect(picker).toHaveCSS('overflow', 'hidden')
   await expect(
     picker.locator('[data-slot="scroll-area-viewport"]'),

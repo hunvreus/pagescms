@@ -118,7 +118,12 @@ function managementRequest(input: unknown): ReturnType<typeof coordinates> & {
 
 async function policy(
   data: ReturnType<typeof coordinates>,
-  operation: 'action.read' | 'action.run',
+  operation:
+    | 'repository.read'
+    | 'action.read'
+    | 'action.run'
+    | 'action.cancel'
+    | 'action.rerun',
   services: RequestServices,
   user: ProjectUser,
 ) {
@@ -144,6 +149,7 @@ function actionUser(user: {
   id: string
   name: string
   email: string
+  emailVerified: boolean
   image?: string | null
   githubUsername?: string | null
 }) {
@@ -151,20 +157,31 @@ function actionUser(user: {
     id: user.id,
     name: user.name,
     email: user.email,
+    emailVerified: user.emailVerified,
     image: user.image ?? null,
     githubUsername: user.githubUsername ?? null,
   }
 }
 
 export const getActions = createServerFn({ method: 'GET' })
-  .validator(coordinates)
+  .validator((input: unknown) => {
+    const ref = coordinates(input)
+    const value = input as Record<string, unknown>
+    if (
+      value.includeRuns !== undefined &&
+      typeof value.includeRuns !== 'boolean'
+    ) {
+      throw new Error('Invalid action request')
+    }
+    return { ...ref, includeRuns: value.includeRuns !== false }
+  })
   .handler(async ({ context, data }) => {
     const services = context.getServices()
     const session = await services.getSession()
     if (!session?.user) throw new Error('Authentication required')
     const accessRequest = await policy(
       data,
-      'action.read',
+      'repository.read',
       services,
       actionUser(session.user),
     )
@@ -172,6 +189,7 @@ export const getActions = createServerFn({ method: 'GET' })
       const { loadRepositoryActions } =
         await import('#/server/action-service.server')
       const result = await loadRepositoryActions({
+        allowCollaboratorExecution: Boolean(services.repositoryPermissionAdmin),
         database: services.database,
         cacheDatabase: services.cacheDatabase,
         repositoryAccess: services.repositoryAccess,
@@ -187,7 +205,40 @@ export const getActions = createServerFn({ method: 'GET' })
           name: action.name,
         })),
       })
-      if (discovery.visibility === 'all') return result
+      const resources = [
+        ...new Set([
+          ...result.actions.map((action) => action.name),
+          ...result.runs.map((run) => run.actionName),
+        ]),
+      ].map((name) => ({ type: 'action' as const, name }))
+      const capabilities = await Promise.all(
+        (['action.read', 'action.cancel', 'action.rerun'] as const).map(
+          (operation) =>
+            services.access.discover({
+              principal: accessRequest.principal,
+              tenant: accessRequest.tenant,
+              target: accessRequest.target,
+              operation,
+              resources,
+            }),
+        ),
+      )
+      const visibleTo = (decision: typeof discovery, name: string) =>
+        decision.visibility === 'all' ||
+        (decision.visibility === 'filtered' &&
+          decision.resources.some(
+            (resource) => resource.type === 'action' && resource.name === name,
+          ))
+      const readableRuns = result.runs
+        .filter((run) => visibleTo(capabilities[0], run.actionName))
+        .map((run) => ({
+          ...run,
+          canCancel:
+            run.canCancel && visibleTo(capabilities[1], run.actionName),
+          canRerun: run.canRerun && visibleTo(capabilities[2], run.actionName),
+        }))
+      if (discovery.visibility === 'all')
+        return { ...result, runs: readableRuns }
       const visible = new Set(
         discovery.visibility === 'filtered'
           ? discovery.resources.map((resource) => resource.name)
@@ -195,7 +246,7 @@ export const getActions = createServerFn({ method: 'GET' })
       )
       return {
         actions: result.actions.filter((action) => visible.has(action.name)),
-        runs: result.runs.filter((run) => visible.has(run.actionName)),
+        runs: readableRuns.filter((run) => visible.has(run.actionName)),
       }
     })
   })
@@ -212,6 +263,9 @@ export const runAction = createServerFn({ method: 'POST' })
         const { dispatchRepositoryAction } =
           await import('#/server/action-service.server')
         return dispatchRepositoryAction({
+          allowCollaboratorExecution: Boolean(
+            services.repositoryPermissionAdmin,
+          ),
           database: services.database,
           cacheDatabase: services.cacheDatabase,
           repositoryAccess: services.repositoryAccess,
@@ -228,12 +282,27 @@ export const manageAction = createServerFn({ method: 'POST' })
     const services = context.getServices()
     const session = await services.getSession()
     if (!session?.user) throw new Error('Authentication required')
+    const { readActionRunName } = await import('#/server/action-service.server')
+    await resolveRepositoryPrincipal(
+      services.repositoryAccess,
+      actionUser(session.user),
+      data,
+    )
+    const actionName = await readActionRunName(services.database, data)
     return services.access.execute(
-      await policy(data, 'action.run', services, actionUser(session.user)),
+      await policy(
+        { ...data, actionName } as typeof data,
+        data.intent === 'cancel' ? 'action.cancel' : 'action.rerun',
+        services,
+        actionUser(session.user),
+      ),
       async () => {
         const { manageRepositoryAction } =
           await import('#/server/action-service.server')
         return manageRepositoryAction({
+          allowCollaboratorExecution: Boolean(
+            services.repositoryPermissionAdmin,
+          ),
           database: services.database,
           cacheDatabase: services.cacheDatabase,
           repositoryAccess: services.repositoryAccess,

@@ -187,9 +187,7 @@ export function CollectionCell({
           path={typeof item === 'string' ? mediaInputPath(item, schema) : null}
         />
         {extraValueCount(value) ? (
-          <span className="text-xs text-muted-foreground">
-            +{extraValueCount(value)}
-          </span>
+          <span className="text-xs">+{extraValueCount(value)}</span>
         ) : null}
       </span>
     )

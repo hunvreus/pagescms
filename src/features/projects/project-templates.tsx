@@ -110,6 +110,10 @@ function TemplateDialog({
             alt={`Preview for ${template.name}`}
             className="aspect-video w-full object-cover"
             src={template.thumbnail}
+            width={800}
+            height={500}
+            loading="lazy"
+            decoding="async"
           />
           <div className="truncate border-t px-3 py-2 text-sm font-medium">
             {template.name}

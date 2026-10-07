@@ -211,6 +211,28 @@ async function policy(
   services: RequestServices,
   user: ProjectUser,
 ) {
+  const uploadBinding =
+    'filename' in data
+      ? JSON.stringify({
+          filename: data.filename,
+          parent: 'parent' in data ? data.parent : null,
+          rename: 'rename' in data ? data.rename : null,
+          contentType: 'contentType' in data ? data.contentType : null,
+        })
+      : undefined
+  const contentDigest =
+    'content' in data && typeof data.content === 'string'
+      ? Array.from(
+          new Uint8Array(
+            await crypto.subtle.digest(
+              'SHA-256',
+              new TextEncoder().encode(data.content),
+            ),
+          ),
+        )
+          .map((byte) => byte.toString(16).padStart(2, '0'))
+          .join('')
+      : undefined
   return {
     operation,
     principal: await resolveRepositoryPrincipal(
@@ -229,9 +251,20 @@ async function policy(
       ...(data.path ? { path: data.path } : {}),
     },
     ...('size' in data && typeof data.size === 'number'
-      ? { facts: { bytes: data.size } }
+      ? {
+          facts: {
+            bytes: data.size,
+            ...(uploadBinding ? { uploadBinding } : {}),
+          },
+        }
       : 'content' in data && typeof data.content === 'string'
-        ? { facts: { bytes: base64ByteLength(data.content) } }
+        ? {
+            facts: {
+              bytes: base64ByteLength(data.content),
+              ...(uploadBinding ? { uploadBinding } : {}),
+              ...(contentDigest ? { contentDigest } : {}),
+            },
+          }
         : {}),
   }
 }
@@ -245,6 +278,7 @@ export const getMedia = createServerFn({ method: 'GET' })
     const user = {
       id: session.user.id,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
     return services.access.execute(
@@ -272,6 +306,7 @@ export const getMediaDelivery = createServerFn({ method: 'POST' })
     const user = {
       id: session.user.id,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
     return services.access.execute(
@@ -300,6 +335,7 @@ export const createMedia = createServerFn({ method: 'POST' })
       id: session.user.id,
       name: session.user.name,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
     return services.access.executeQuota(
@@ -328,6 +364,7 @@ export const initiateMediaUpload = createServerFn({ method: 'POST' })
       id: session.user.id,
       name: session.user.name,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
     const request = await policy(data, 'media.write', services, user)
@@ -371,6 +408,7 @@ export const confirmMediaUpload = createServerFn({ method: 'POST' })
     const user = {
       id: session.user.id,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
     return services.access.execute(
@@ -403,6 +441,7 @@ export const abortMediaUpload = createServerFn({ method: 'POST' })
     const user = {
       id: session.user.id,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
     return services.access.execute(
@@ -436,6 +475,7 @@ export const createMediaFolder = createServerFn({ method: 'POST' })
       id: session.user.id,
       name: session.user.name,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
     return services.access.execute(
@@ -464,6 +504,7 @@ export const removeMedia = createServerFn({ method: 'POST' })
       id: session.user.id,
       name: session.user.name,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
     return services.access.execute(
@@ -491,6 +532,7 @@ export const renameMedia = createServerFn({ method: 'POST' })
       id: session.user.id,
       name: session.user.name,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
     return services.access.execute(
@@ -519,6 +561,7 @@ export const moveMedia = createServerFn({ method: 'POST' })
       id: session.user.id,
       name: session.user.name,
       email: session.user.email,
+      emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
     return services.access.execute(

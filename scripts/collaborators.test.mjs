@@ -1,3 +1,4 @@
+import { readFile, readdir } from 'node:fs/promises'
 import { createClient } from '@libsql/client'
 import { describe, expect, it } from 'vitest'
 import {
@@ -20,10 +21,17 @@ const row = {
 
 async function database() {
   const client = createClient({ url: 'file::memory:' })
-  await client.executeMultiple(`CREATE TABLE user (id TEXT PRIMARY KEY, email TEXT NOT NULL);
-    CREATE TABLE collaborator (id INTEGER PRIMARY KEY, type TEXT NOT NULL, installation_id INTEGER NOT NULL, owner_id INTEGER NOT NULL, repo_id INTEGER, owner TEXT NOT NULL, repo TEXT NOT NULL, branch TEXT, email TEXT NOT NULL, user_id TEXT REFERENCES user(id), invited_by TEXT REFERENCES user(id));
-    CREATE UNIQUE INDEX collaborators_unique ON collaborator(lower(owner),lower(repo),lower(email));
-    INSERT INTO user VALUES ('admin','admin@example.com'), ('person','person@example.com');`)
+  const directory = new URL('../drizzle/', import.meta.url)
+  for (const name of (await readdir(directory))
+    .filter((n) => n.endsWith('.sql'))
+    .sort()) {
+    await client.executeMultiple(
+      await readFile(new URL(name, directory), 'utf8'),
+    )
+  }
+  await client.executeMultiple(
+    `INSERT INTO user (id,name,email,email_verified,created_at,updated_at) VALUES ('admin','Admin','admin@example.com',1,unixepoch(),unixepoch()), ('person','Person','person@example.com',1,unixepoch(),unixepoch());`,
+  )
   return client
 }
 

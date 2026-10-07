@@ -10,7 +10,6 @@ import type { RequestServices } from '#/server/request-services.server'
 const cacheActions = new Set<CacheAction>([
   'reconcile-content',
   'clear-content',
-  'clear-permissions',
   'refresh-configuration',
   'clear-configuration',
   'clear-all',
@@ -67,11 +66,13 @@ async function policy(
 function cacheUser(user: {
   id: string
   email: string
+  emailVerified: boolean
   githubUsername?: string | null
 }) {
   return {
     id: user.id,
     email: user.email,
+    emailVerified: user.emailVerified,
     githubUsername: user.githubUsername ?? null,
   }
 }

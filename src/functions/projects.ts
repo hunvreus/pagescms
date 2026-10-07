@@ -1,4 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
+import { isDeploymentAdmin } from '#/server/admin-access.server'
 
 import { PROJECT_TEMPLATES } from '#/lib/project-templates'
 
@@ -13,6 +14,7 @@ function requireUser(
     id: session.user.id,
     name: session.user.name,
     email: session.user.email,
+    emailVerified: session.user.emailVerified,
     image: session.user.image ?? null,
     githubUsername: session.user.githubUsername ?? null,
   }
@@ -75,9 +77,7 @@ export const getDashboardData = createServerFn({ method: 'GET' }).handler(
     return {
       user,
       accounts,
-      isAdmin: services.configuration.adminEmails.includes(
-        user.email.toLowerCase(),
-      ),
+      isAdmin: isDeploymentAdmin(user, services.configuration.adminEmails),
       githubAppInstallAvailable: Boolean(services.configuration.githubAppName),
     }
   },

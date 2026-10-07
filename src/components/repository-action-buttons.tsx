@@ -123,7 +123,7 @@ export function RepositoryActionButtons({
           <Button
             disabled={disabled || running}
             key={action.name}
-            size="sm"
+            size="default"
             type="button"
             variant="outline"
             onClick={() => choose(action)}

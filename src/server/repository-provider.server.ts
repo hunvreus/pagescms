@@ -60,6 +60,13 @@ export interface RepositoryApi {
     path: string,
     revision: string,
   ) => Promise<RepositoryFile>
+  getFileResponse?: (
+    owner: string,
+    repo: string,
+    path: string,
+    revision: string,
+    ifNoneMatch?: string,
+  ) => Promise<Response>
   getFiles: (
     owner: string,
     repo: string,

@@ -18,7 +18,6 @@ describe('legacy-compatible database schema', () => {
         schema.configTable,
         schema.cacheFileTable,
         schema.cacheFileMetaTable,
-        schema.cachePermissionTable,
         schema.actionRunTable,
       ].map(getTableName),
     ).toEqual([
@@ -32,7 +31,6 @@ describe('legacy-compatible database schema', () => {
       'config',
       'cache_file',
       'cache_file_meta',
-      'cache_permission',
       'action_run',
     ])
   })

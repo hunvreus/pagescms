@@ -5,8 +5,6 @@ import { createAccessPolicyGateway } from './access-policy.server'
 import { createPagesCmsAuth } from './auth.server'
 import { configureCachePolicy, parseCachePolicy } from './cache-policy.server'
 import { createGitHubApi } from './github-api.server'
-import { syncGitHubProfile } from './github-account.server'
-import { logServerEvent, serverErrorDetails } from './http'
 import { createProjectService } from './projects.server'
 import { createRepositoryAccessService } from './repository-access.server'
 import {
@@ -75,29 +73,10 @@ export function createRequestServices(
     configuration: configuration.auth,
     emailProvider,
   })
-  const getSession = createSessionReader(async () => {
-    const session = await auth.api.getSession({ headers: requestHeaders })
-    if (!session?.user || session.user.githubUsername) return session
-
-    try {
-      const profile = await syncGitHubProfile(database, session.user.id)
-      if (!profile) return session
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          ...profile,
-        },
-      }
-    } catch (error) {
-      logServerEvent('error', {
-        event: 'github_profile_sync_failed',
-        userId: session.user.id,
-        ...serverErrorDetails(error),
-      })
-      return session
-    }
-  })
+  // GitHub profiles are synchronized when a session is created, not on reads.
+  const getSession = createSessionReader(() =>
+    auth.api.getSession({ headers: requestHeaders }),
+  )
   const authenticationMethods = {
     email: Boolean(emailProvider),
   } as const
@@ -107,6 +86,7 @@ export function createRequestServices(
     auth,
     authenticationMethods,
     billingWebhook,
+    billingSessions: deploymentServices.billingSessions,
     configuration,
     database,
     cacheDatabase,

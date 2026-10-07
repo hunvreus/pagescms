@@ -294,9 +294,7 @@ export function normalizeConfiguration(
   const settings = normalized.settings
   if (!isRecord(settings)) throw new Error('Configuration settings are invalid')
 
-  if (typeof normalized.cache === 'boolean' && settings.cache == null) {
-    settings.cache = normalized.cache
-  }
+  delete settings.cache
   if (typeof normalized.hide === 'boolean' && settings.config == null) {
     settings.config = !normalized.hide
   }
@@ -358,11 +356,4 @@ export function isConfigurationEditingEnabled(
   if (typeof settings.config === 'boolean') return settings.config
   if (typeof settings.hide === 'boolean') return !settings.hide
   return true
-}
-
-export function isCacheEnabled(configuration?: ConfigurationRecord) {
-  const settings = resolveSettings(configuration)
-  if (typeof settings.cache === 'boolean') return settings.cache
-  if (typeof configuration?.cache === 'boolean') return configuration.cache
-  return false
 }

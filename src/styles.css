@@ -64,14 +64,14 @@ body {
 
 :root {
   color-scheme: light;
-  --background: oklch(1 0 0);
+  --background: oklch(0.99 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.6 0.13 163);
-  --primary-foreground: oklch(0.98 0.02 166);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -81,21 +81,21 @@ body {
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.6 0.13 163);
+  --ring: oklch(0.623 0.214 259.815);
   --chart-1: oklch(0.85 0.13 165);
   --chart-2: oklch(0.77 0.15 163);
   --chart-3: oklch(0.7 0.15 162);
   --chart-4: oklch(0.6 0.13 163);
   --chart-5: oklch(0.51 0.1 166);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
+  --sidebar: oklch(0.965 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.6 0.13 163);
-  --sidebar-primary-foreground: oklch(0.98 0.02 166);
-  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: oklch(0.922 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.6 0.13 163);
+  --sidebar-ring: var(--ring);
   --scrollbar-track: transparent;
   --scrollbar-thumb: var(--border);
   --scrollbar-width: 0.625rem;
@@ -105,37 +105,37 @@ body {
 
 .dark {
   color-scheme: dark;
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.7 0.15 162);
-  --primary-foreground: oklch(0.26 0.05 173);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: oklch(0.209 0 0);
+  --foreground: oklch(0.95 0 0);
+  --card: oklch(0.255 0 0);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.285 0 0);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.309 0 0);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.285 0 0);
+  --muted-foreground: oklch(0.68 0 0);
+  --accent: oklch(0.321 0 0);
+  --accent-foreground: var(--foreground);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.7 0.15 162);
+  --ring: oklch(0.707 0.165 254.624);
   --chart-1: oklch(0.85 0.13 165);
   --chart-2: oklch(0.77 0.15 163);
   --chart-3: oklch(0.7 0.15 162);
   --chart-4: oklch(0.6 0.13 163);
   --chart-5: oklch(0.51 0.1 166);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.77 0.15 163);
-  --sidebar-primary-foreground: oklch(0.26 0.05 173);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar: oklch(0.243 0 0);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: oklch(0.321 0 0);
+  --sidebar-accent-foreground: var(--foreground);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.7 0.15 162);
+  --sidebar-ring: var(--ring);
 }
 
 @layer base {
@@ -143,7 +143,7 @@ body {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
   html {
     @apply font-sans;
@@ -241,6 +241,77 @@ body {
 }
 
 @layer components {
+  [data-slot='dialog-close'][data-variant='ghost'] {
+    color: var(--muted-foreground);
+  }
+
+  [data-slot='dialog-close'][data-variant='ghost']:is(:hover, :focus-visible) {
+    color: var(--foreground);
+  }
+  /* Popup containers also have tabindex; only interactive controls get this edge. */
+  :is(
+      button,
+      a[href],
+      input,
+      textarea,
+      select,
+      [role='button'],
+      [role='checkbox'],
+      [role='radio'],
+      [role='switch'],
+      [role='slider']
+    ):focus-visible:not(
+      .cm-content,
+      [role='menuitem'],
+      [role='menuitemcheckbox'],
+      [role='menuitemradio'],
+      [role='option'],
+      [data-slot='select-trigger'],
+      [data-slot='input-group-control']
+    ),
+  [data-slot='input-otp-slot'][data-active='true'] {
+    box-shadow: none !important;
+    border-color: var(--ring) !important;
+    outline: 1px solid var(--ring) !important;
+    outline-offset: -1px !important;
+  }
+
+  [data-slot='input-group']:has(
+    [data-slot='input-group-control']:focus-visible
+  ) {
+    box-shadow: none !important;
+    border-color: var(--ring) !important;
+    outline: 1px solid var(--ring) !important;
+    outline-offset: -1px !important;
+  }
+
+  :is(
+      button,
+      a[href],
+      input,
+      textarea,
+      select,
+      [role='button'],
+      [role='checkbox'],
+      [role='radio'],
+      [role='switch'],
+      [role='slider']
+    )[aria-invalid='true']:focus-visible:not([data-slot='select-trigger']) {
+    border-color: var(--destructive) !important;
+    outline-color: var(--destructive) !important;
+  }
+
+  /* Radix moves focus here during opening/loading and pointer navigation.
+     Focus is indicated by the items, not an outline around the entire popup. */
+  :is([role='menu'], [role='listbox']) {
+    outline: none;
+  }
+
+  [data-slot='field-label']:has(:focus-visible),
+  .cn-editor .tiptap:focus {
+    box-shadow: none !important;
+  }
+
   .cn-editor .tiptap {
     @apply border-input placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 min-h-16 w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] md:text-sm;
   }

@@ -8,6 +8,20 @@
       "when": 1790437313000,
       "tag": "0000_wet_overlord",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1791204186627,
+      "tag": "0001_dry_monster_badoon",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791354335690,
+      "tag": "0002_magenta_sir_ram",
+      "breakpoints": true
     }
   ]
 }

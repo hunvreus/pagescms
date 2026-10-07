@@ -8,6 +8,7 @@ import { validateConfigurationSource } from '#/lib/configuration-source'
 import { toJsonObject } from '#/lib/json'
 
 import { createConfigurationStore } from './configuration-store.server'
+import { requireRepositoryManager } from './repository-policy.server'
 import { updateRepositoryCacheAfterMutation } from './repository-cache.server'
 import { isRepositoryProviderError } from './repository-provider.server'
 import { logServerEvent, serverErrorDetails } from './http'
@@ -55,23 +56,6 @@ export async function loadConfigurationSource({
   }
 }
 
-export async function loadConfigurationHistory({
-  repositoryAccess,
-  user,
-  owner,
-  repo,
-  branch,
-}: {
-  repositoryAccess: RepositoryAccessService
-  user: ProjectUser
-  owner: string
-  repo: string
-  branch: string
-}) {
-  const { api } = await repositoryAccess.resolve(user, owner, repo, branch)
-  return api.listFileCommits(owner, repo, branch, '.pages.yml')
-}
-
 export async function saveConfigurationSource({
   database,
   repositoryAccess,
@@ -103,7 +87,11 @@ export async function saveConfigurationSource({
   }
   const normalized = toJsonObject(normalizeConfiguration(parsed.configuration))
 
-  const { api } = await repositoryAccess.resolve(user, owner, repo, branch)
+  const { api } = await requireRepositoryManager(repositoryAccess, user, {
+    owner,
+    repo,
+    branch,
+  })
   const cached = await createConfigurationStore({
     database,
   }).get(api, owner, repo, branch)

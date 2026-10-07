@@ -12,12 +12,40 @@ export function RepositoryAdminPage({
   actions,
   children,
   className,
+  embedded = false,
+  hideHeading = false,
 }: {
   title: string
   actions?: ReactNode
   children: ReactNode
   className?: string
+  embedded?: boolean
+  hideHeading?: boolean
 }) {
+  if (embedded) {
+    return (
+      <section
+        id={title.toLowerCase().replaceAll(' ', '-')}
+        className={cn('space-y-3 scroll-mt-24', className)}
+        aria-label={title}
+      >
+        {!hideHeading || actions ? (
+          <div
+            data-slot="settings-section-header"
+            className="flex min-h-7 flex-wrap items-center justify-end gap-3"
+          >
+            {!hideHeading ? (
+              <h2 className="mr-auto text-sm font-medium">{title}</h2>
+            ) : null}
+            {actions ? (
+              <div className="flex items-center gap-2">{actions}</div>
+            ) : null}
+          </div>
+        ) : null}
+        {children}
+      </section>
+    )
+  }
   return (
     <div className="-m-4 md:-m-6">
       <RepositoryPageHeader actions={actions}>

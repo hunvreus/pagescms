@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './test'
 
 test('navigates a repository and persists a structured entry update', async ({
   page,
@@ -15,22 +15,20 @@ test('navigates a repository and persists a structured entry update', async ({
     .locator('a[href="/pagescms/fixture/main"]', { hasText: 'Open' })
     .click()
 
+  await page.getByRole('link', { name: 'Posts', exact: true }).click()
   await expect(page).toHaveURL(/\/pagescms\/fixture\/main\/collection\/posts$/)
   await expect(page.getByRole('columnheader', { name: /Title/ })).toBeVisible()
+  const actionHeader = page.getByRole('columnheader').last()
+  await expect(actionHeader).toHaveText('')
+  const actionCell = page
+    .getByRole('button', { name: 'Actions for hello.md' })
+    .locator('xpath=ancestor::td[1]')
+  await expect(actionCell.locator('[data-slot="button-group"]')).toHaveCount(0)
   await expect(page.getByText('Hello world', { exact: true })).toBeVisible()
+  const tableContainer = page.locator('[data-slot="table-container"]')
+  await expect(tableContainer).toHaveCSS('overflow-x', 'auto')
   const collectionHeader = page.locator('[data-slot="repository-page-header"]')
   await expect(collectionHeader).toBeVisible()
-  const collectionHeaderContract = await collectionHeader.evaluate(
-    (element) => {
-      const style = getComputedStyle(element)
-      return {
-        minHeight: style.minHeight,
-        paddingLeft: style.paddingLeft,
-        paddingRight: style.paddingRight,
-        position: style.position,
-      }
-    },
-  )
 
   const search = page.getByRole('textbox', { name: 'Search collection' })
   await search.fill('missing entry')
@@ -42,8 +40,10 @@ test('navigates a repository and persists a structured entry update', async ({
   const collectionActionsMenu = page.getByRole('menu')
   await expect(
     collectionActionsMenu.locator('[data-slot="dropdown-menu-separator"]'),
+  ).toHaveCount(2)
+  await expect(
+    collectionActionsMenu.getByRole('menuitem', { name: 'View on GitHub' }),
   ).toBeVisible()
-  await expect(collectionActionsMenu.locator('svg')).toHaveCount(0)
   await page.keyboard.press('Escape')
 
   await page.getByRole('link', { name: 'Edit' }).click()
@@ -55,40 +55,30 @@ test('navigates a repository and persists a structured entry update', async ({
 
   const editorHeader = page.locator('[data-slot="repository-page-header"]')
   await expect(editorHeader).toBeVisible()
-  await expect
-    .poll(() =>
-      editorHeader.evaluate((element) => {
-        const style = getComputedStyle(element)
-        return {
-          minHeight: style.minHeight,
-          paddingLeft: style.paddingLeft,
-          paddingRight: style.paddingRight,
-          position: style.position,
-        }
-      }),
-    )
-    .toEqual(collectionHeaderContract)
-  for (const item of await editorHeader.locator('li').all()) {
-    await expect
-      .poll(() =>
-        item.evaluate((element) => getComputedStyle(element).fontWeight),
-      )
-      .toBe('500')
-  }
-  await expect(
-    page.getByRole('button', { name: 'Save' }).locator('svg'),
-  ).toHaveCount(0)
-
+  const saveButton = editorHeader.getByRole('button', {
+    name: 'Save',
+    exact: true,
+  })
+  const entryAction = editorHeader.getByRole('button', {
+    name: 'Test entry action',
+  })
+  const entryMenu = editorHeader.getByRole('button', { name: 'Entry actions' })
+  await expect(editorHeader.locator('[data-slot="button-group"]')).toHaveCount(
+    0,
+  )
+  await expect(saveButton).toHaveCSS('height', '32px')
+  await expect(entryAction).toHaveCSS('height', '32px')
+  await expect(entryMenu).toHaveCSS('height', '32px')
   const title = page.getByLabel('Title')
   await expect(title).toHaveValue('Hello world')
   await expect(page.getByRole('textbox', { name: 'Body' })).toContainText(
     'Welcome to Pages CMS.',
   )
-  await page.getByRole('button', { name: 'source' }).click()
+  await page.getByRole('tab', { name: 'Source', exact: true }).click()
   await expect(page.getByRole('textbox', { name: 'Body source' })).toHaveValue(
     'Welcome to Pages CMS.\n',
   )
-  await page.getByRole('button', { name: 'editor' }).click()
+  await page.getByRole('tab', { name: 'Editor', exact: true }).click()
   await expect(page.getByRole('textbox', { name: 'Body' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Entry history' }).click()
@@ -101,8 +91,10 @@ test('navigates a repository and persists a structured entry update', async ({
   const actionsMenu = page.getByRole('menu')
   await expect(
     actionsMenu.locator('[data-slot="dropdown-menu-separator"]'),
+  ).toHaveCount(2)
+  await expect(
+    actionsMenu.getByRole('menuitem', { name: 'View on GitHub' }),
   ).toBeVisible()
-  await expect(actionsMenu.locator('svg')).toHaveCount(0)
   await page.getByRole('menuitem', { name: 'Rename' }).click()
   await expect(page.getByRole('dialog', { name: 'Rename entry' })).toBeVisible()
   await expect(page.getByLabel('Filename')).toHaveValue('hello.md')

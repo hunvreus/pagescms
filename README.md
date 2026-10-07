@@ -2,7 +2,7 @@
 
 Pages CMS is an open-source content management system for GitHub repositories. This branch contains a new TanStack Start application targeting Cloudflare Workers. The previous Next.js implementation is preserved under [`_legacy/`](./_legacy/).
 
-The replacement is being built in reviewable migration waves. It currently includes repository and branch navigation, configuration editing/history, collections and fields, file and entry operations, media, references, actions, collaborators, cache controls, settings, administration, GitHub webhooks, and build-time plugins. [`PLAN.md`](./PLAN.md) defines the remaining parity and cutover gates; [`TODO.md`](./TODO.md) records concrete unfinished work.
+The replacement is being built in reviewable migration waves. It currently includes repository and branch navigation, configuration editing/history, collections and fields, file and entry operations, media, references, actions, collaborators, cache controls, settings, administration, GitHub webhooks, and build-time plugins. [Parity status](./docs/development/parity.md) documents acceptance; [`TODO.md`](./TODO.md) records remaining cutover gates and concrete unfinished work.
 
 ## Requirements
 

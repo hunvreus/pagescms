@@ -23,20 +23,26 @@ function repositoryResponse() {
 
 function databaseWith(input: {
   account?: { accessToken: string | null } | null
-  collaborator?: { installationId: number } | null
+  collaborator?: {
+    email: string
+    installationId: number
+    branch?: string | null
+  } | null
   cachedToken?: {
     ciphertext: string
     iv: string
     expiresAt: Date
   } | null
 }) {
-  const collaboratorFind = vi.fn(async () => input.collaborator ?? null)
+  const collaboratorFind = vi.fn(async () =>
+    input.collaborator ? [{ branch: null, ...input.collaborator }] : [],
+  )
   const database = {
     query: {
       accountTable: {
         findFirst: vi.fn(async () => input.account ?? null),
       },
-      collaboratorTable: { findFirst: collaboratorFind },
+      collaboratorTable: { findMany: collaboratorFind },
       githubInstallationTokenTable: {
         findFirst: vi.fn(async () => input.cachedToken ?? null),
       },
@@ -81,7 +87,7 @@ describe('repository access', () => {
     vi.stubGlobal('fetch', fetcher)
     const { database } = databaseWith({
       account: null,
-      collaborator: { installationId: 42 },
+      collaborator: { email: 'editor@example.com', installationId: 42 },
       cachedToken: {
         ...encrypted,
         expiresAt: new Date(Date.now() + 10 * 60_000),
@@ -119,5 +125,49 @@ describe('repository access', () => {
         githubApp: undefined,
       }).resolve(user, 'private-owner', 'private-repo'),
     ).rejects.toThrow('do not have permission')
+  })
+  it('reuses repository admission without widening an existing core branch scope', async () => {
+    const cryptoKey = btoa(String.fromCharCode(...new Uint8Array(32).fill(31)))
+    const encrypted = await encryptSecret('ghs_installation', cryptoKey)
+    const { database, collaboratorFind } = databaseWith({
+      collaborator: {
+        email: 'editor@example.com',
+        installationId: 42,
+        branch: 'main',
+      },
+      cachedToken: { ...encrypted, expiresAt: new Date(Date.now() + 600000) },
+    })
+    const service = createRepositoryAccessService({
+      database,
+      cacheDatabase: database,
+      githubApp: {
+        appId: '123',
+        privateKey: 'unused-for-cached-token',
+        cryptoKey,
+      },
+    })
+    const admission = await service.resolve(
+      { ...user, githubUsername: null },
+      'pagescms',
+      'pagescms',
+    )
+    expect(admission.branches).toEqual(['main'])
+    expect(
+      await service.resolve(
+        { ...user, githubUsername: null },
+        'pagescms',
+        'pagescms',
+        'main',
+      ),
+    ).toBe(admission)
+    await expect(
+      service.resolve(
+        { ...user, githubUsername: null },
+        'pagescms',
+        'pagescms',
+        'draft',
+      ),
+    ).rejects.toThrow('do not have permission')
+    expect(collaboratorFind).toHaveBeenCalledTimes(1)
   })
 })

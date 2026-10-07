@@ -1,7 +1,14 @@
+import { logServerEvent, serverErrorDetails } from '#/server/http'
+import { collaboratorKey } from '#/lib/collaborator-key'
 import { createServerFn } from '@tanstack/react-start'
 
+import { validateRepositoryPermissions } from '#/deployment/contracts/hosted.server'
 import { repositoryRef } from '#/lib/repository'
-import { resolveRepositoryPrincipal } from '#/server/repository-policy.server'
+import {
+  resolveRepositoryPrincipal,
+  requireRepositoryManager,
+} from '#/server/repository-policy.server'
+import { createGitHubAppApi } from '#/server/github-app.server'
 
 import type { ProjectUser } from '#/server/projects.server'
 import type { RequestServices } from '#/server/request-services.server'
@@ -34,7 +41,24 @@ function inviteRequest(input: unknown) {
   ) {
     throw new Error('Invalid collaborator emails')
   }
-  return { ...repository, emails: value.emails }
+  const permissions =
+    value.permissions === undefined
+      ? undefined
+      : validateRepositoryPermissions({
+          version: (value.permissions as Record<string, unknown> | null)
+            ?.expectedVersion,
+          roles: [],
+          assignments: [
+            {
+              principalId: 'invitation',
+              roles: (value.permissions as Record<string, unknown> | null)
+                ?.roles,
+              branches: (value.permissions as Record<string, unknown> | null)
+                ?.branches,
+            },
+          ],
+        })
+  return { ...repository, emails: value.emails, permissions }
 }
 
 function removeRequest(input: unknown) {
@@ -79,14 +103,23 @@ function manager(user: {
   id: string
   name: string
   email: string
+  emailVerified: boolean
   githubUsername?: string | null
 }) {
   return {
     id: user.id,
     name: user.name,
     email: user.email,
+    emailVerified: user.emailVerified,
     githubUsername: user.githubUsername ?? null,
   }
+}
+
+function installationLookup(services: RequestServices) {
+  const configuration = services.configuration.githubApp
+  return configuration
+    ? createGitHubAppApi(configuration).getRepositoryInstallation
+    : undefined
 }
 
 export const getCollaborators = createServerFn({ method: 'GET' })
@@ -106,6 +139,7 @@ export const getCollaborators = createServerFn({ method: 'GET' })
           data.owner,
           data.repo,
           services.githubApiFactory,
+          installationLookup(services),
         )
       },
     )
@@ -125,6 +159,8 @@ export const addCollaborators = createServerFn({ method: 'POST' })
         manager(session.user),
       ),
       async () => {
+        if (services.repositoryPermissionAdmin && !data.permissions)
+          throw new Error('Select collaborator permissions before inviting')
         const { inviteCollaborators } =
           await import('#/server/collaborator-service.server')
         return inviteCollaborators({
@@ -134,9 +170,67 @@ export const addCollaborators = createServerFn({ method: 'POST' })
           user: manager(session.user),
           owner: data.owner,
           repo: data.repo,
-          branch: data.branch,
           emails: data.emails,
           githubApiFactory: services.githubApiFactory,
+          installationLookup: installationLookup(services),
+          prepare: data.permissions
+            ? async (emails) => {
+                const admin = services.repositoryPermissionAdmin
+                if (!admin)
+                  throw new Error('Repository permissions are not configured')
+                const user = manager(session.user)
+                await requireRepositoryManager(
+                  services.repositoryAccess,
+                  user,
+                  data,
+                )
+                const selection = data.permissions!
+                await services.access.execute(
+                  {
+                    ...(await policy(
+                      data,
+                      'collaborator.invite',
+                      services,
+                      user,
+                    )),
+                    operation: 'repository.permissions.update',
+                  },
+                  async () => {
+                    const current = await admin.read(data)
+                    if (current.version !== selection.version)
+                      throw new Error(
+                        'Permissions changed; reload before inviting',
+                      )
+                    const selected = selection.assignments[0]
+                    if (
+                      selected.roles.some(
+                        (id) =>
+                          id !== 'full-access' &&
+                          !current.roles.some((role) => role.id === id),
+                      )
+                    )
+                      throw new Error('Selected role no longer exists')
+                    const keys = emails.map(collaboratorKey)
+                    await admin.replace({
+                      ...data,
+                      actorId: user.id,
+                      expectedVersion: selection.version,
+                      roles: current.roles,
+                      assignments: [
+                        ...current.assignments.filter(
+                          (assignment) =>
+                            !keys.includes(assignment.principalId),
+                        ),
+                        ...keys.map((principalId) => ({
+                          ...selected,
+                          principalId,
+                        })),
+                      ],
+                    })
+                  },
+                )
+              }
+            : undefined,
         })
       },
     )
@@ -158,14 +252,42 @@ export const deleteCollaborator = createServerFn({ method: 'POST' })
       async () => {
         const { removeCollaborator } =
           await import('#/server/collaborator-service.server')
-        return removeCollaborator({
+        const removed = await removeCollaborator({
           database: services.database,
           user: manager(session.user),
           owner: data.owner,
           repo: data.repo,
           id: data.id,
           githubApiFactory: services.githubApiFactory,
+          installationLookup: installationLookup(services),
         })
+        const admin = services.repositoryPermissionAdmin
+        if (admin) {
+          try {
+            const current = await admin.read(data)
+            const keys = [collaboratorKey(removed.email), removed.userId]
+            const assignments = current.assignments.filter(
+              (assignment) => !keys.includes(assignment.principalId),
+            )
+            if (assignments.length !== current.assignments.length)
+              await admin.replace({
+                ...data,
+                actorId: session.user.id,
+                expectedVersion: current.version,
+                roles: current.roles,
+                assignments,
+              })
+          } catch (error) {
+            // Core membership is already revoked; cleanup cannot restore access.
+            logServerEvent('error', {
+              event: 'collaborator_permissions_cleanup_failed',
+              owner: data.owner,
+              repo: data.repo,
+              ...serverErrorDetails(error),
+            })
+          }
+        }
+        return { id: removed.id }
       },
     )
   })
