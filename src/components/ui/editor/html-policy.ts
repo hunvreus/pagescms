@@ -84,10 +84,96 @@ const forbiddenTags = [
   'meta',
   'link',
   'base',
-  'svg',
   'math',
   'template',
+  'foreignobject',
+  'use',
+  'image',
+  'animate',
+  'animatemotion',
+  'animatetransform',
+  'set',
 ]
+
+const svgTags = new Set([
+  'svg',
+  'g',
+  'defs',
+  'path',
+  'circle',
+  'ellipse',
+  'rect',
+  'line',
+  'polyline',
+  'polygon',
+  'title',
+  'desc',
+  'text',
+  'tspan',
+  'lineargradient',
+  'radialgradient',
+  'stop',
+  'clippath',
+  'mask',
+])
+const svgAttributes = new Set([
+  'class',
+  'id',
+  'xmlns',
+  'viewbox',
+  'width',
+  'height',
+  'x',
+  'y',
+  'x1',
+  'y1',
+  'x2',
+  'y2',
+  'cx',
+  'cy',
+  'r',
+  'rx',
+  'ry',
+  'd',
+  'points',
+  'fill',
+  'fill-rule',
+  'fill-opacity',
+  'stroke',
+  'stroke-width',
+  'stroke-linecap',
+  'stroke-linejoin',
+  'stroke-miterlimit',
+  'stroke-dasharray',
+  'stroke-dashoffset',
+  'stroke-opacity',
+  'opacity',
+  'transform',
+  'preserveaspectratio',
+  'offset',
+  'stop-color',
+  'stop-opacity',
+  'gradientunits',
+  'gradienttransform',
+  'spreadmethod',
+  'fx',
+  'fy',
+  'text-anchor',
+  'dominant-baseline',
+  'font-size',
+  'clip-path',
+  'mask',
+  'role',
+  'aria-label',
+  'aria-labelledby',
+  'aria-describedby',
+  'aria-hidden',
+  'focusable',
+])
+
+function isSvg(element: Element) {
+  return element.namespaceURI === 'http://www.w3.org/2000/svg'
+}
 
 function matches(element: Element, selectors: string[] = []) {
   return selectors.some((selector) => {
@@ -124,6 +210,10 @@ export function sanitizeEditorHtml(html: string, policy?: MarkdownHtmlPolicy) {
     ]),
   )
   const visit = (element: Element) => {
+    if (isSvg(element) && !svgTags.has(element.localName.toLowerCase())) {
+      element.remove()
+      return
+    }
     const decision = decisions.get(element)
     if (decision === 'drop') {
       element.remove()
@@ -136,6 +226,18 @@ export function sanitizeEditorHtml(html: string, policy?: MarkdownHtmlPolicy) {
     }
     for (const attribute of Array.from(element.attributes)) {
       const name = attribute.name.toLowerCase()
+      if (isSvg(element)) {
+        // Static SVG only: no links, external resources, styles or animation.
+        if (
+          !svgAttributes.has(name) ||
+          /\\|\/\*|\*\//.test(attribute.value) ||
+          (/url\s*\(/i.test(attribute.value) &&
+            !/^url\(\s*['"]?#[\w.-]+['"]?\s*\)$/i.test(attribute.value))
+        ) {
+          element.removeAttribute(attribute.name)
+        }
+        continue
+      }
       if (
         !safeAttributes.includes(name) &&
         !policy?.attributes?.includes(name)
@@ -278,6 +380,23 @@ function htmlFragment(src: string) {
 
 function expandMarkdownHtml(html: string, policy?: MarkdownHtmlPolicy) {
   const parser = new Marked()
+  // A standalone icon is a block child, not a Markdown paragraph containing SVG.
+  parser.use({
+    extensions: [
+      {
+        name: 'svgBlock',
+        level: 'block',
+        tokenizer(src) {
+          if (!/^<svg(?:\s|>)/i.test(src)) return undefined
+          const raw = htmlFragment(src)
+          return raw ? { type: 'svgBlock', raw } : undefined
+        },
+        renderer(token) {
+          return token.raw
+        },
+      },
+    ],
+  })
   const expand = (fragment: string): string => {
     const raw = htmlFragment(fragment)
     if (!raw) return fragment
@@ -497,6 +616,16 @@ export function createMarkdownHtmlExtensions(policy?: MarkdownHtmlPolicy) {
               priority: 2000,
               getAttrs: (element) => {
                 const tag = element.tagName.toLowerCase()
+                if (tag === 'svg') {
+                  const inline = Boolean(
+                    element.closest(
+                      'p, h1, h2, h3, h4, h5, h6, span, a, summary',
+                    ),
+                  )
+                  return inline === !block
+                    ? { source: sanitizeStoredHtml(element.outerHTML, policy) }
+                    : false
+                }
                 const nestedSpan =
                   tag === 'span' &&
                   Array.from(element.querySelectorAll('span')).some(
@@ -531,8 +660,8 @@ export function createMarkdownHtmlExtensions(policy?: MarkdownHtmlPolicy) {
               String(node.attrs['source'] ?? ''),
               block,
             ) as HTMLElement
-            dom.contentEditable = 'false'
-            dom.title = 'Double-click to edit HTML'
+            dom.setAttribute('contenteditable', 'false')
+            dom.setAttribute('title', 'Double-click to edit HTML')
             dom.addEventListener('dblclick', () => {
               if (!editor.isEditable) return
               const source = window.prompt(
@@ -617,7 +746,7 @@ export function createMarkdownHtmlExtensions(policy?: MarkdownHtmlPolicy) {
         )
         if (!safe.trim()) return omitted(block)
         const parsed = generateJSON(
-          safe,
+          !block && /^<svg(?:\s|>)/i.test(safe) ? `<p>${safe}</p>` : safe,
           currentEditor.extensionManager.extensions,
         ) as JSONContent
         if (block)

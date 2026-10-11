@@ -14,9 +14,17 @@
 
 ### Added
 
+- Rich-text `options.snippets` exposes reusable source snippets through the shared editor slash menu, with optional HTML/Markdown input format, ordinary sanitization and filtering, and undo.
+
+- Rich-text fields render static SVG icons in HTML and Markdown by default. The shared editor sanitizes SVG drawing elements and attributes, blocks active SVG and external references, and supports fragment source editing.
+
 - Rich-text `options.html` forwards CSS-selector keep/strip/drop rules and attribute permissions to the shared editor. Permitted containers are editable and round-trip as HTML inside Markdown; source items preserve Markdown comments and component markup. HTML input and clipboard content are sanitized.
 
 ### Changed
+
+- Saving an existing structured entry with `settings.content.merge: true` reads the correct GitHub path and branch before merging.
+
+- Delayed rich-text value acknowledgments no longer reset newer typing. The correction lives in the shared editor; explicit external content replacements remain supported.
 
 - Use the shared 128px minimum height for configuration and source editors, including loading placeholders; match rich-text and code-field placeholders to their minimum heights.
 

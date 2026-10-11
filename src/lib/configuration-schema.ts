@@ -499,6 +499,22 @@ const generateFieldObjectSchema = (
           .optional(),
         options: z
           .object({
+            snippets: z
+              .array(
+                z
+                  .object({
+                    label: z.string().trim().min(1),
+                    source: z
+                      .string()
+                      .refine(
+                        (value) => value.trim().length > 0,
+                        'Snippet source cannot be empty.',
+                      ),
+                    format: z.enum(['html', 'markdown']).optional(),
+                  })
+                  .strict(),
+              )
+              .optional(),
             html: z
               .object({
                 keep: z.array(z.string().min(1)).optional(),

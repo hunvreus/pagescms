@@ -352,3 +352,148 @@ for (const format of ['markdown', 'html'] as const) {
     await expect(editor).not.toContainText(/Nested discarded|Discarded content/)
   })
 }
+
+for (const format of ['markdown', 'html'] as const) {
+  test(`${format} Basecoat alert snippets survive CMS save and reopen`, async ({
+    page,
+  }) => {
+    const markdown = format === 'markdown'
+    await page.goto(
+      markdown
+        ? '/pagescms/fixture/main/collection/posts/entry/content/posts/hello.md'
+        : '/pagescms/fixture/main/file/html-editor',
+    )
+    const label = markdown ? 'Body' : 'HTML body'
+    const editor = page.getByRole('textbox', { name: label, exact: true })
+    await expect(editor).toBeVisible()
+    await page.getByRole('tab', { name: 'Source', exact: true }).click()
+    const source = page.getByRole('textbox', {
+      name: `${label} source`,
+      exact: true,
+    })
+    await source.fill('')
+    await page.getByRole('tab', { name: 'Editor', exact: true }).click()
+    await editor.click()
+    await page.keyboard.type('/alert')
+    await page.getByRole('button', { name: 'Alert', exact: true }).click()
+    await expect(editor.locator('div.alert > section > p')).toHaveText(
+      'You can add components and dependencies to your app.',
+    )
+    await expect(editor.locator('div.alert > footer > a.btn')).toHaveAttribute(
+      'href',
+      '/enable',
+    )
+    await expect(editor.locator('div.alert > svg')).toHaveCount(1)
+    await expect(editor.locator('svg')).toHaveAttribute('viewBox', '0 0 24 24')
+    await editor
+      .locator('h2')
+      .click({ clickCount: 3, position: { x: 10, y: 10 } })
+    await expect
+      .poll(() =>
+        editor.evaluate(() => window.getSelection()?.toString().trim()),
+      )
+      .toBe('Heads up!')
+    await page.keyboard.type('Heads up! edited')
+    await expect(editor.locator('h2')).toHaveText('Heads up! edited')
+    await page.getByRole('tab', { name: 'Source', exact: true }).click()
+    await expect(source).toContainText('<h2>Heads up! edited</h2>')
+    await expect(source).toContainText(
+      '<section><p>You can add components and dependencies to your app.</p></section>',
+    )
+    await expect(source).toContainText(
+      '<footer><a href="/enable" class="btn" data-variant="outline">Enable</a></footer>',
+    )
+    await expect(source).toContainText('<svg')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByText('File saved', { exact: true })).toBeVisible()
+    await page.reload()
+    await expect(editor.locator('div.alert > h2')).toHaveText(
+      'Heads up! edited',
+    )
+    await expect(editor.locator('div.alert > section > p')).toHaveCount(1)
+    await expect(editor.locator('div.alert > footer > a.btn')).toHaveAttribute(
+      'href',
+      '/enable',
+    )
+    await expect(editor.locator('div.alert > svg')).toHaveCount(1)
+    await expect(editor.locator('svg')).toHaveAttribute('viewBox', '0 0 24 24')
+    await expect(editor.locator('svg path')).toHaveCount(2)
+    await expect(editor.locator('svg path').last()).toHaveAttribute(
+      'd',
+      'M12 8h.01',
+    )
+    await expect(editor.locator('svg')).toHaveAttribute(
+      'stroke-linecap',
+      'round',
+    )
+    await expect(editor.locator('svg')).toHaveAttribute(
+      'stroke-linejoin',
+      'round',
+    )
+    await expect(editor.locator('footer a')).toHaveAttribute(
+      'data-variant',
+      'outline',
+    )
+  })
+}
+
+for (const format of ['markdown', 'html'] as const) {
+  test(`${format} malicious SVG saved in source mode is inert when reopened`, async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      ;(window as unknown as { attacked: number }).attacked = 0
+    })
+    const externalRequests: string[] = []
+    page.on('request', (request) => {
+      if (request.url().startsWith('https://example.com/'))
+        externalRequests.push(request.url())
+    })
+    const markdown = format === 'markdown'
+    await page.goto(
+      markdown
+        ? '/pagescms/fixture/main/collection/posts/entry/content/posts/hello.md'
+        : '/pagescms/fixture/main/file/html-editor',
+    )
+    const label = markdown ? 'Body' : 'HTML body'
+    const editor = page.getByRole('textbox', { name: label, exact: true })
+    await expect(editor).toBeVisible()
+    await page.getByRole('tab', { name: 'Source', exact: true }).click()
+    const source = page.getByRole('textbox', {
+      name: `${label} source`,
+      exact: true,
+    })
+    await source.fill(
+      '<div class="alert"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" onload="window.attacked++"><script>window.attacked++</script><foreignObject><img src="/bad" onerror="window.attacked++"/></foreignObject><use href="https://example.com/bad.svg#x"/><image href="https://example.com/bad.svg"/><animate attributeName="href" values="javascript:window.attacked++"/><path d="M12 16v-4" stroke="currentColor" fill="url(https://example.com/leak)" onclick="window.attacked++"/></svg><h2>Safe title</h2><section>Safe description</section><footer><a href="javascript:window.attacked++">Unsafe link</a></footer></div>',
+    )
+    // Save the attacker source directly, without visual editing sanitizing storage.
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByText('File saved', { exact: true })).toBeVisible()
+    await page.reload()
+    await expect(editor.locator('div.alert > svg path')).toHaveAttribute(
+      'd',
+      'M12 16v-4',
+    )
+    await expect(editor.locator('h2')).toHaveText('Safe title')
+    await expect(
+      editor.locator(
+        'script, foreignObject, use, image, animate, [onload], [onclick], [onerror], [style], [href^="javascript:"]',
+      ),
+    ).toHaveCount(0)
+    await expect(editor.locator('svg path')).not.toHaveAttribute('fill')
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { attacked: number }).attacked,
+      ),
+    ).toBe(0)
+    expect(externalRequests).toEqual([])
+    await page.getByRole('tab', { name: 'Source', exact: true }).click()
+    // The unsafe source can remain stored while the editor renders only its safe form.
+    await expect(source).toContainText('onload="window.attacked++"')
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { attacked: number }).attacked,
+      ),
+    ).toBe(0)
+  })
+}

@@ -17,6 +17,7 @@ import {
 
 import type { ReferenceContext } from '#/components/structured-content-field'
 import type {
+  EditorSnippet,
   MarkdownHtmlPolicy,
   ImagePickerResult,
   ImageUploadResult,
@@ -45,6 +46,29 @@ function htmlPolicy(
       )
   }
   return policy
+}
+
+function editorSnippets(value: JsonValue | undefined): EditorSnippet[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((entry) => {
+    if (
+      !entry ||
+      typeof entry !== 'object' ||
+      Array.isArray(entry) ||
+      typeof entry.label !== 'string' ||
+      typeof entry.source !== 'string'
+    )
+      return []
+    return [
+      {
+        label: entry.label,
+        source: entry.source,
+        ...(entry.format === 'html' || entry.format === 'markdown'
+          ? { format: entry.format }
+          : {}),
+      },
+    ]
+  })
 }
 
 export default function RichTextField({
@@ -162,6 +186,7 @@ export default function RichTextField({
             enableImages
             format={format}
             markdownHtml={htmlPolicy(options.html)}
+            snippets={editorSnippets(options.snippets)}
             imageFallback={mediaContext ? 'none' : 'prompt-url'}
             value={editorValue}
             onChange={(nextValue) =>

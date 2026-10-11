@@ -28,6 +28,6 @@ export default defineConfig({
       reporter: ['text', 'json-summary'],
     },
     environment: 'node',
-    exclude: ['tests/e2e/**', 'node_modules/**', '_legacy/**'],
+    exclude: ['tests/e2e/**', 'node_modules/**', '_legacy/**', '.tmp/**'],
   },
 })

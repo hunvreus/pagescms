@@ -23,6 +23,13 @@ elements; `attributes` permits extra attributes such as `data-kind`. Class
 preservation retains all class values, not just the class used in a selector. Scripts, events,
 inline styles, unsafe URLs, frames, and form controls cannot be enabled by these rules.
 
+Static SVG icons render by default in both formats, without an SVG option or a
+`keep` selector. The shared editor preserves drawing elements and safe SVG
+attributes, while removing scripts, events, embedded HTML, animation, links and
+external resources. SVG fragments support double-click source editing. This
+sanitization also applies when reopening content saved directly in source mode;
+it protects the editing interface without requiring stored source to be rewritten.
+
 Selector rules run when content enters the visual editor. Rendering and saving do not apply them again. Prefer class or attribute selectors for stable policies: positional selectors can match different children when filtered content is reopened.
 
 Use `format: html` for HTML output. Markdown output uses normal Markdown for
@@ -33,8 +40,35 @@ source mode itself does not apply the visual editor's filtering policy.
 Markdown comments and capitalized component markup are visible source items.
 A container with nested opaque syntax becomes a source item as a whole; nested
 selectors do not filter its interior, although root strip/drop rules apply.
-Unsafe source exports as code. Shortcodes, MDX expressions, snippets, embed presets,
+Unsafe source exports as code. Shortcodes, MDX expressions, embed presets,
 custom extension registration, and custom CSS are not included yet.
 
 The CMS adapter preserves permanent media URLs and save state independently of
 the editor's HTML policy. Save/reopen browser tests cover this boundary.
+
+## Snippets
+
+Rich-text fields accept `options.snippets`. Each snippet has a `label` and a
+`source` string. Use YAML `|` to preserve source line breaks:
+
+```yaml
+options:
+  html:
+    keep: [div.alert, div.alert section]
+  snippets:
+    - label: Alert
+      source: |
+        <div class="alert">
+          <h2>Heads up!</h2>
+          <section>Your message.</section>
+        </div>
+```
+
+Type `/` and search by label to insert a snippet. Source is parsed using the
+field format unless the snippet sets `format: html` or `format: markdown`; this
+only controls insertion, while `options.format` controls saved output. The
+editor applies the same HTML policy and sanitization as ordinary input. Snippet
+HTML is not escaped into literal text, and wrappers require matching keep rules.
+Insertion replaces the slash query and supports undo. Snippets are not offered
+inside table cells. The shared editor owns insertion and filtering; Pages CMS
+validates configuration, forwards it, and handles storage and media separately.

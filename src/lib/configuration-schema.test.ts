@@ -158,3 +158,32 @@ describe('rich-text HTML configuration', () => {
     expect(ConfigurationSchema.safeParse(config(html)).success).toBe(false)
   })
 })
+
+describe('rich-text snippets', () => {
+  const config = (snippets: unknown) => ({
+    content: [
+      {
+        name: 'home',
+        type: 'file',
+        path: 'home.md',
+        fields: [{ name: 'body', type: 'rich-text', options: { snippets } }],
+      },
+    ],
+  })
+  it('accepts source, labels and optional input format without changing source', () => {
+    const source = '<div>HTML</div>\n'
+    const result = ConfigurationSchema.safeParse(
+      config([{ label: 'Alert', source, format: 'html' }]),
+    )
+    expect(result.success).toBe(true)
+    if (result.success) expect(JSON.stringify(result.data)).toContain('HTML')
+  })
+  it.each([
+    [{ label: '', source: 'hello' }],
+    [{ label: 'Alert', source: '  ' }],
+    [{ label: 'Alert', content: 'hello' }],
+    [{ label: 'Alert', source: 'hi', format: 'mdx' }],
+  ])('rejects invalid snippets', (...snippets) => {
+    expect(ConfigurationSchema.safeParse(config(snippets)).success).toBe(false)
+  })
+})

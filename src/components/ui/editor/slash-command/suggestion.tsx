@@ -6,6 +6,7 @@ import CommandsList from './commands-list'
 import type { CommandsListHandle, SlashItem } from './commands-list'
 import {
   Code,
+  FileText,
   Heading1,
   Heading2,
   Heading3,
@@ -45,7 +46,16 @@ export type ImagePickerHandler = (
 
 export type SlashImageFallback = 'prompt-url' | 'none'
 
+export type EditorSnippet = {
+  label: string
+  source: string
+  format?: 'html' | 'markdown'
+}
+
 type SuggestionOptions = {
+  getSnippets?: () => readonly EditorSnippet[]
+  onInsertSnippet?:
+    ((context: ImagePickerContext, snippet: EditorSnippet) => void) | null
   onRequestImage?: ImagePickerHandler | null
   onInsertLocalImageFile?:
     | ((
@@ -75,9 +85,6 @@ const requestImageAndInsert = async ({
   onInsertLocalImageFile,
   imageSlashFallback = 'prompt-url',
 }: RequestImageAndInsertArgs): Promise<void> => {
-  const insertionPosition = range.from
-  editor.chain().focus().deleteRange(range).run()
-
   let result: ImagePickerResult | null = null
   if (onRequestImage) {
     result = await onRequestImage({ editor, range })
@@ -90,7 +97,7 @@ const requestImageAndInsert = async ({
 
   if (result.kind === 'file') {
     if (!onInsertLocalImageFile) return
-    editor.chain().focus().setTextSelection(insertionPosition).run()
+    editor.chain().focus().deleteRange(range).run()
     const fileInsertContext: ImagePickerContext &
       Omit<ImagePickerFileResult, 'kind'> = {
       editor,
@@ -109,12 +116,7 @@ const requestImageAndInsert = async ({
     ...(result.title ? { title: result.title } : {}),
   }
 
-  editor
-    .chain()
-    .focus()
-    .setTextSelection(insertionPosition)
-    .setImage(imageAttrs)
-    .run()
+  editor.chain().focus().deleteRange(range).setImage(imageAttrs).run()
 }
 
 const getAllItems = (options: SuggestionOptions): SlashItem[] => [
@@ -206,13 +208,21 @@ const createSuggestion = (
   items: ({ query, editor }: { query: string; editor: Editor }) => {
     const isInTableCell =
       editor.isActive('tableCell') || editor.isActive('tableHeader')
-    return getAllItems(options)
+    const snippets: SlashItem[] = (options.getSnippets?.() ?? []).map(
+      (snippet) => ({
+        title: snippet.label,
+        icon: FileText,
+        command: (context) => options.onInsertSnippet?.(context, snippet),
+      }),
+    )
+    const commands = getAllItems(options)
       .filter((item) => !isInTableCell || TABLE_SAFE_COMMANDS.has(item.title))
       .filter(
         (item) => options.enableImages !== false || item.title !== 'Image',
       )
-      .filter((item) => item.title.toLowerCase().includes(query.toLowerCase()))
-      .slice(0, 10)
+    return [...commands, ...(!isInTableCell ? snippets : [])].filter((item) =>
+      item.title.toLowerCase().includes(query.toLowerCase()),
+    )
   },
 
   render: (): SuggestionRenderLifecycle => {

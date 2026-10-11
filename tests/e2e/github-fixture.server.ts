@@ -3,6 +3,8 @@ import { appendFileSync } from 'node:fs'
 export const configuration = `
 settings:
   cache: true
+  content:
+    merge: true
 actions:
   - name: deploy
     label: Deploy site
@@ -65,8 +67,13 @@ content:
         label: Body
         type: rich-text
         options:
+          snippets:
+            - label: Alert
+              source: |
+                <div class="alert"><svg class="lucide lucide-info" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg><h2>Heads up!</h2><section>You can add components and dependencies to your app.</section><footer><a href="/enable" class="btn" data-variant="outline">Enable</a></footer></div>
           html:
-            keep: [div.callout, details, summary, span.badge]
+            keep: [div.callout, details, summary, span.badge, div.alert, div.alert section, div.alert footer]
+            attributes: [data-variant]
             strip: [div.legacy]
             drop: [.discard]
   - name: html-editor
@@ -79,8 +86,13 @@ content:
         type: rich-text
         options:
           format: html
+          snippets:
+            - label: Alert
+              source: |
+                <div class="alert"><svg class="lucide lucide-info" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg><h2>Heads up!</h2><section>You can add components and dependencies to your app.</section><footer><a href="/enable" class="btn" data-variant="outline">Enable</a></footer></div>
           html:
-            keep: [div.callout, details, summary]
+            keep: [div.callout, details, summary, div.alert, div.alert section, div.alert footer]
+            attributes: [data-variant]
             strip: [div.legacy]
             drop: [.discard]
   - name: code
@@ -489,6 +501,23 @@ export function createGitHubFixtureFetch(metricsPath?: string): typeof fetch {
         .map(decodeURIComponent)
         .join('/')
       if (method === 'GET') {
+        const ref = url.searchParams.get('ref')
+        const branches =
+          repositoryName === 'fixture'
+            ? [
+                'alpha',
+                'beta',
+                'delta',
+                'gamma',
+                'main',
+                'preview',
+                'release',
+                'unconfigured',
+                ...createdBranches,
+              ]
+            : ['main']
+        if (ref && !branches.includes(ref))
+          return json({ message: `No commit found for the ref ${ref}` }, 404)
         if (
           path === '.pages.yml' &&
           url.searchParams.get('ref') === 'unconfigured'

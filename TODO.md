@@ -48,4 +48,4 @@
 
 ## Editor
 
-- Add dedicated shortcode/MDX-expression adapters, snippets, and optional embed/extension registration after the HTML-policy MVP. Nested opaque syntax currently makes its containing fragment a source item.
+- Add dedicated shortcode/MDX-expression adapters and optional embed/extension registration after the HTML-policy MVP. Nested opaque syntax currently makes its containing fragment a source item.

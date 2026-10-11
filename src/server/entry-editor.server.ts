@@ -427,8 +427,8 @@ export async function saveStructuredEntry(
     const existing = await context.api.getFile(
       input.owner,
       input.repo,
-      input.branch,
       context.path,
+      input.branch,
     )
     const parsed = parseContent(decodeBase64(existing.content), {
       format: context.schema.format as ContentFormat,

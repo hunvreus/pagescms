@@ -90,7 +90,12 @@ describe('structured persistence parity', () => {
       tags: [],
       unmanaged: 'fresh server value',
     })
-    expect(mocks.getFile).toHaveBeenCalledTimes(1)
+    expect(mocks.getFile).toHaveBeenCalledExactlyOnceWith(
+      'pagescms',
+      'Test',
+      'content/test.json',
+      'main',
+    )
   })
   it('rejects invalid named select values before writing', async () => {
     mocks.getConfiguration.mockResolvedValue({
