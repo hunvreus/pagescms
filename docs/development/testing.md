@@ -52,3 +52,9 @@ Public CI runs validation, SQLite/D1 integration, deployment composition, browse
 Prefer assertions about access, state transitions, saved data, keyboard behavior, loading accessibility and actual overflow/geometry. Avoid copying CSS classes, icons, colors or arbitrary payload compression ratios into tests.
 
 Fixtures do not verify live Stripe/S3/Turso transport, production latency, or a real PostgreSQL cutover. Those remain explicit release acceptance checks in TODO.md.
+
+### Rich-text editor
+
+`pnpm test:e2e rich-text-switch.spec.ts` checks the CMS adapter using the local GitHub fixture: HTML and Markdown saving, repeated reopen cycles, configured filtering, safe clipboard HTML, source switching without changing the body, and media upload success/failure.
+
+For Chromium, Firefox, and WebKit, install all three Playwright browsers and run `PAGESCMS_E2E_CROSS_BROWSER=true pnpm test:e2e rich-text-switch.spec.ts`. Add `PAGESCMS_E2E_PRODUCTION=true` to test the built app instead of the development server. Parsing and sanitization regression tests also live in the separate editor repository and run in all three browsers with `npm test`.

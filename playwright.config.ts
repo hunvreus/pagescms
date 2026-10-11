@@ -48,6 +48,12 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   projects: [
+    ...(process.env.PAGESCMS_E2E_CROSS_BROWSER === 'true'
+      ? [
+          { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+          { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+        ]
+      : []),
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },

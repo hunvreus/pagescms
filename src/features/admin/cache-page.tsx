@@ -1,3 +1,4 @@
+import { toast } from 'sonner'
 import { useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
@@ -23,6 +24,7 @@ import {
 import { updateCache } from '#/functions/cache'
 import { queryKeys } from '#/queries/keys'
 import { cacheStatusQueryOptions } from '#/queries/repository'
+import { CacheFiles } from './cache-files'
 import { RepositoryAdminPage } from './repository-admin-page'
 
 type CacheAction =
@@ -37,27 +39,23 @@ export function CachePage({
   owner,
   repo,
   branch,
-  embedded = false,
 }: {
   owner: string
   repo: string
   branch: string
-  embedded?: boolean
 }) {
   const params = { owner, repo, branch }
   const { data } = useSuspenseQuery(cacheStatusQueryOptions(params))
   const queryClient = useQueryClient()
   const [running, setRunning] = useState<CacheAction | null>(null)
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<unknown>(null)
   async function run(action: CacheAction) {
     setRunning(action)
-    setMessage(null)
     setError(null)
     try {
       const result = await updateCache({ data: { ...params, action } })
-      setMessage(result.message)
+      toast.success(result.message)
       await queryClient.invalidateQueries({
         queryKey: queryKeys.branch(params),
       })
@@ -105,11 +103,9 @@ export function CachePage({
   ]
   return (
     <RepositoryAdminPage
-      embedded={embedded}
       title="Cache"
       actions={
         <Button
-          size="sm"
           variant="destructive"
           disabled={running !== null || rows.every((row) => row.empty)}
           onClick={() =>
@@ -117,7 +113,7 @@ export function CachePage({
               action: 'clear-all',
               title: 'Clear all cached data?',
               description:
-                'Content, configuration, and permissions will be fetched again when next needed.',
+                'Content and configuration for this branch will be fetched again when next needed.',
             })
           }
         >
@@ -126,90 +122,102 @@ export function CachePage({
       }
     >
       <OperationError error={error} fallback="Could not update the cache." />
-      {message ? (
-        <p role="status" className="text-sm text-muted-foreground">
-          {message}
-        </p>
-      ) : null}
       <div className="divide-y rounded-xl border bg-card">
         {rows.map((row) => (
-          <div
-            key={row.title}
-            className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-sm font-medium">{row.title}</h3>
-                {row.counts ? (
-                  row.counts.map((value) => (
+          <div key={row.title}>
+            <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-sm font-medium">{row.title}</h3>
+                  {row.counts ? (
+                    row.counts.map((value) => (
+                      <Badge
+                        key={value}
+                        variant="secondary"
+                        className="text-muted-foreground"
+                      >
+                        {value}
+                      </Badge>
+                    ))
+                  ) : row.checkedAt ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge
+                            variant="secondary"
+                            className="text-muted-foreground"
+                            tabIndex={0}
+                          >
+                            {row.status}
+                            {row.title === 'Configuration' &&
+                            data.configuration?.sha ? (
+                              <span title={data.configuration.sha}>
+                                {' '}
+                                (SHA: {data.configuration.sha.slice(0, 7)})
+                              </span>
+                            ) : null}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {new Intl.DateTimeFormat(undefined, {
+                            dateStyle: 'full',
+                            timeStyle: 'long',
+                          }).format(new Date(row.checkedAt))}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
                     <Badge
-                      key={value}
                       variant="secondary"
                       className="text-muted-foreground"
                     >
-                      {value}
+                      {row.status}
+                      {row.title === 'Configuration' &&
+                      data.configuration?.sha ? (
+                        <span title={data.configuration.sha}>
+                          {' '}
+                          (SHA: {data.configuration.sha.slice(0, 7)})
+                        </span>
+                      ) : null}
                     </Badge>
-                  ))
-                ) : row.checkedAt ? (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Badge
-                          variant="secondary"
-                          className="text-muted-foreground"
-                          tabIndex={0}
-                        >
-                          {row.status}
-                        </Badge>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {new Intl.DateTimeFormat(undefined, {
-                          dateStyle: 'full',
-                          timeStyle: 'long',
-                        }).format(new Date(row.checkedAt))}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                ) : (
-                  <Badge variant="secondary" className="text-muted-foreground">
-                    {row.status}
-                  </Badge>
-                )}
+                  )}
+                </div>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  {row.description}
+                </p>
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {row.description}
-              </p>
-            </div>
-            <div className="flex shrink-0 gap-2">
-              {row.refresh ? (
+              <div className="flex shrink-0 gap-2">
+                {row.refresh ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    aria-label={`Refresh ${row.title.toLowerCase()} cache`}
+                    disabled={running !== null || !row.canRefresh}
+                    onClick={() => {
+                      if (row.refresh) void run(row.refresh)
+                    }}
+                  >
+                    {running === row.refresh ? 'Refreshing…' : 'Refresh'}
+                  </Button>
+                ) : null}
                 <Button
                   size="sm"
-                  variant="outline"
-                  aria-label={`Refresh ${row.title.toLowerCase()} cache`}
-                  disabled={running !== null || !row.canRefresh}
-                  onClick={() => {
-                    if (row.refresh) void run(row.refresh)
-                  }}
+                  variant="destructive"
+                  aria-label={`Clear ${row.title === 'Permissions' ? 'permission' : row.title.toLowerCase()} cache`}
+                  disabled={running !== null || row.empty}
+                  onClick={() =>
+                    setConfirmation({
+                      action: row.clear,
+                      title: `Clear ${row.title === 'Permissions' ? 'permission' : row.title.toLowerCase()} cache?`,
+                      description: row.description,
+                    })
+                  }
                 >
-                  {running === row.refresh ? 'Refreshing…' : 'Refresh'}
+                  Clear
                 </Button>
-              ) : null}
-              <Button
-                size="sm"
-                variant="destructive"
-                aria-label={`Clear ${row.title === 'Permissions' ? 'permission' : row.title.toLowerCase()} cache`}
-                disabled={running !== null || row.empty}
-                onClick={() =>
-                  setConfirmation({
-                    action: row.clear,
-                    title: `Clear ${row.title === 'Permissions' ? 'permission' : row.title.toLowerCase()} cache?`,
-                    description: row.description,
-                  })
-                }
-              >
-                Clear
-              </Button>
+              </div>
             </div>
+            {row.title === 'Content' ? <CacheFiles {...params} /> : null}
           </div>
         ))}
       </div>

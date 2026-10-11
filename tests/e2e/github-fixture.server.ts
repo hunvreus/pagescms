@@ -1,6 +1,8 @@
 import { appendFileSync } from 'node:fs'
 
 export const configuration = `
+settings:
+  cache: true
 actions:
   - name: deploy
     label: Deploy site
@@ -62,6 +64,25 @@ content:
       - name: body
         label: Body
         type: rich-text
+        options:
+          html:
+            keep: [div.callout, details, summary, span.badge]
+            strip: [div.legacy]
+            drop: [.discard]
+  - name: html-editor
+    label: HTML editor
+    type: file
+    path: content/html-editor.json
+    fields:
+      - name: body
+        label: HTML body
+        type: rich-text
+        options:
+          format: html
+          html:
+            keep: [div.callout, details, summary]
+            strip: [div.legacy]
+            drop: [.discard]
   - name: code
     label: Code
     type: file
@@ -112,6 +133,15 @@ content:
 
 const initialFiles = new Map([
   [
+    'content/html-editor.json',
+    {
+      content: JSON.stringify({
+        body: '<div class="callout"><h2>HTML title</h2><p>Description</p></div>',
+      }),
+      sha: 'html-editor-sha-1',
+    },
+  ],
+  [
     'content/groups.json',
     {
       content: JSON.stringify({
@@ -139,6 +169,14 @@ const initialFiles = new Map([
     { content: 'const original: number = 42', sha: 'raw-code-sha-1' },
   ],
   ['.pages.yml', { content: configuration, sha: 'config-sha' }],
+  [
+    'content/posts/unchanged.md',
+    {
+      content:
+        '---\ntitle: Unchanged rich text\n---\n![Hero](<public/images/hero.svg>)\n',
+      sha: 'unchanged-sha-1',
+    },
+  ],
   [
     'content/code.json',
     {
@@ -225,6 +263,7 @@ function encoded(value: string) {
 }
 
 export function createGitHubFixtureFetch(metricsPath?: string): typeof fetch {
+  const createdBranches = new Set<string>()
   const files = new Map(
     [...initialFiles].map(([path, file]) => [path, { ...file }]),
   )
@@ -383,6 +422,7 @@ export function createGitHubFixtureFetch(metricsPath?: string): typeof fetch {
               'preview',
               'release',
               'unconfigured',
+              ...createdBranches,
             ]
           : ['main']
         ).map((name) => ({ name })),
@@ -404,11 +444,25 @@ export function createGitHubFixtureFetch(metricsPath?: string): typeof fetch {
             'preview',
             'release',
             'unconfigured',
+            ...createdBranches,
           ]
         : ['main']
       ).includes(name)
         ? json({ name })
         : json({ message: 'Not found' }, 404)
+    }
+    if (
+      repositoryName &&
+      isFixtureRepository(repositoryName) &&
+      repositoryRoute === 'git/refs' &&
+      method === 'POST'
+    ) {
+      const { ref, sha } = JSON.parse(String(init?.body)) as {
+        ref: string
+        sha: string
+      }
+      createdBranches.add(ref.replace('refs/heads/', ''))
+      return json({ ref, object: { sha } }, 201)
     }
     if (url.pathname === '/graphql' && method === 'POST') {
       const payload = JSON.parse(String(init?.body)) as {
@@ -558,6 +612,21 @@ export function createGitHubFixtureFetch(metricsPath?: string): typeof fetch {
     ) {
       return json([])
     }
+
+    if (
+      repositoryName &&
+      isFixtureRepository(repositoryName) &&
+      repositoryRoute === 'actions/workflows/deploy.yml/dispatches' &&
+      method === 'POST'
+    )
+      return new Response(null, { status: 204 })
+    if (
+      repositoryName &&
+      isFixtureRepository(repositoryName) &&
+      repositoryRoute === 'actions/workflows/deploy.yml/runs' &&
+      method === 'GET'
+    )
+      return json({ workflow_runs: [] })
 
     return json(
       { message: `Unhandled fixture request: ${method} ${url.pathname}` },

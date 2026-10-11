@@ -1,4 +1,14 @@
-import { and, desc, eq, isNotNull, ne } from 'drizzle-orm'
+import {
+  and,
+  desc,
+  eq,
+  isNotNull,
+  isNull,
+  inArray,
+  lt,
+  or,
+  ne,
+} from 'drizzle-orm'
 
 import {
   repositoryActions,
@@ -122,6 +132,7 @@ function summary(
     triggeredBy: {
       id: triggeredBy.userId ?? null,
       name: triggeredBy.name ?? triggeredBy.email ?? 'Unknown user',
+      email: triggeredBy.email ?? null,
     },
     canCancel:
       row.status !== 'completed' &&
@@ -143,6 +154,26 @@ async function syncActionRun(
   row: typeof actionRunTable.$inferSelect,
 ) {
   if (row.status === 'completed') return row
+  const interval = row.workflowRunId === null ? 30_000 : 120_000
+  const now = new Date()
+  if (row.checkedAt && now.getTime() - row.checkedAt.getTime() < interval)
+    return row
+  // A database lease prevents different requests/Workers from repeating the same GitHub check.
+  const lease = await input.database
+    .update(actionRunTable)
+    .set({ checkedAt: now })
+    .where(
+      and(
+        eq(actionRunTable.id, row.id),
+        ne(actionRunTable.status, 'completed'),
+        or(
+          isNull(actionRunTable.checkedAt),
+          lt(actionRunTable.checkedAt, new Date(now.getTime() - interval)),
+        ),
+      ),
+    )
+    .returning({ id: actionRunTable.id })
+  if (!lease.length) return row
   try {
     if (row.workflowRunId === null) {
       const claimedRows = await input.database
@@ -195,7 +226,13 @@ async function syncActionRun(
               ? new Date(workflowRun.updatedAt)
               : null,
         })
-        .where(eq(actionRunTable.id, row.id))
+        .where(
+          and(
+            eq(actionRunTable.id, row.id),
+            eq(actionRunTable.checkedAt, now),
+            ne(actionRunTable.status, 'completed'),
+          ),
+        )
         .returning()
       return updated[0] ?? row
     }
@@ -217,11 +254,63 @@ async function syncActionRun(
             ? new Date(workflowRun.updatedAt)
             : null,
       })
-      .where(eq(actionRunTable.id, row.id))
+      .where(
+        and(
+          eq(actionRunTable.id, row.id),
+          eq(actionRunTable.checkedAt, now),
+          ne(actionRunTable.status, 'completed'),
+        ),
+      )
       .returning()
     return updated[0] ?? row
   } catch {
     return row
+  }
+}
+
+export async function readActionRunStatuses(
+  input: ActionInput & { runIds: number[] },
+) {
+  const rows = await input.database
+    .select()
+    .from(actionRunTable)
+    .where(
+      and(
+        eq(actionRunTable.owner, input.owner),
+        eq(actionRunTable.repo, input.repo),
+        eq(actionRunTable.ref, input.branch),
+        inArray(actionRunTable.id, input.runIds),
+      ),
+    )
+  const now = Date.now()
+  const due = rows.filter(
+    (row) =>
+      row.status !== 'completed' &&
+      (!row.checkedAt ||
+        now - row.checkedAt.getTime() >=
+          (row.workflowRunId === null ? 30_000 : 120_000)),
+  )
+  const updates = new Map<number, (typeof rows)[number]>()
+  if (due.length) {
+    const { api } = await input.repositoryAccess.resolve(
+      input.user,
+      input.owner,
+      input.repo,
+      input.branch,
+    )
+    // Sequential discovery also avoids competing pending runs claiming the same workflow.
+    for (const row of due.slice(0, 20))
+      updates.set(row.id, await syncActionRun(input, api, row))
+  }
+  return {
+    actions: [],
+    runs: rows.map((row) =>
+      summary(
+        updates.get(row.id) ?? row,
+        input.user,
+        input.allowCollaboratorExecution,
+      ),
+    ),
   }
 }
 

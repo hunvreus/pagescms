@@ -2,7 +2,7 @@ import { extensionCategories, getFileExtension } from './file-types'
 import type { ExtensionCategory } from './file-types'
 import { normalizeGitPath } from './git-path'
 
-export const CONFIGURATION_VERSION = '3.0'
+export const CONFIGURATION_VERSION = '3.1'
 
 type ConfigurationRecord = Record<string, unknown>
 
@@ -294,7 +294,6 @@ export function normalizeConfiguration(
   const settings = normalized.settings
   if (!isRecord(settings)) throw new Error('Configuration settings are invalid')
 
-  delete settings.cache
   if (typeof normalized.hide === 'boolean' && settings.config == null) {
     settings.config = !normalized.hide
   }
@@ -356,4 +355,8 @@ export function isConfigurationEditingEnabled(
   if (typeof settings.config === 'boolean') return settings.config
   if (typeof settings.hide === 'boolean') return !settings.hide
   return true
+}
+
+export function isCacheManagementEnabled(configuration?: ConfigurationRecord) {
+  return resolveSettings(configuration).cache === true
 }

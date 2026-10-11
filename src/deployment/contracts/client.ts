@@ -1,4 +1,4 @@
-import type { ComponentType } from 'react'
+import type { ComponentType, ReactNode } from 'react'
 import type { JsonObject, JsonValue } from '#/lib/json'
 import type {
   RepositoryRole,
@@ -23,6 +23,7 @@ export type LazyClientContribution<TProps> = () => Promise<{
 }>
 
 export interface RepositoryPermissionsContributionProps {
+  HeaderActions?: ComponentType<{ children: ReactNode }>
   branch: string
   disabled: boolean
   owner: string
@@ -30,12 +31,12 @@ export interface RepositoryPermissionsContributionProps {
   collaborators: readonly Readonly<{
     id: number
     email: string
+    name?: string | null
     userId: string | null
-    branch: string | null
   }>[]
   branches: readonly string[]
   onInvite: (input: {
-    emails: string[]
+    emails: string
     expectedVersion: string
     roles: readonly string[]
     branches: 'all' | readonly string[]

@@ -76,5 +76,5 @@ export type ExtensionCategory = keyof typeof extensionCategories
 export function getFileExtension(path: string): string {
   const filename = path.split('/').pop() ?? ''
   if (filename.startsWith('.') && !filename.includes('.', 1)) return ''
-  return /(?:\.([^.]+))?$/.exec(filename)?.[1] ?? ''
+  return /(?:\.([^.]+))?$/.exec(filename)?.[1]?.toLowerCase() ?? ''
 }

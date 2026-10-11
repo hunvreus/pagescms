@@ -114,7 +114,7 @@ export function CodeEditor({
       theme={dark ? githubDark : githubLight}
       onCreateEditor={setView}
       className={cn(
-        'pagescms-code-editor overflow-hidden rounded-md border border-input bg-background text-sm transition-colors focus-within:border-ring [&_.cm-editor]:outline-none [&_.cm-scroller]:scrollbar',
+        'pagescms-code-editor min-h-32 overflow-hidden rounded-md border border-input bg-background text-sm transition-colors focus-within:border-ring [&_.cm-editor]:outline-none [&_.cm-scroller]:scrollbar',
         disabled && 'opacity-65',
         className,
       )}

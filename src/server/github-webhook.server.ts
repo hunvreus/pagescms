@@ -405,6 +405,7 @@ async function handleWorkflowRun(
       conclusion: string(workflowRun?.conclusion),
       htmlUrl: string(workflowRun?.html_url),
       updatedAt,
+      checkedAt: new Date(),
       completedAt: status === 'completed' ? updatedAt : null,
     })
     .where(eq(actionRunTable.workflowRunId, id))

@@ -125,6 +125,7 @@ function BranchWorkspace() {
       configuration={workspace.configuration}
       discovery={workspace.discovery}
       canViewGitHub={workspace.canViewGitHub}
+      canPush={workspace.repository.canPush}
       user={authentication.user}
     >
       <Outlet />
@@ -162,7 +163,7 @@ function WorkspaceLoading() {
         <SidebarContent>
           <WorkspaceLoadingGroup label="Content" rows={1} />
           <WorkspaceLoadingGroup label="Media" rows={1} />
-          <WorkspaceLoadingGroup label="Admin" rows={1} />
+          <WorkspaceLoadingGroup label="Admin" rows={4} />
         </SidebarContent>
         <SidebarFooter className="border-t">
           <div className="flex items-center justify-between gap-2">

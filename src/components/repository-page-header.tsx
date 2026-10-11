@@ -32,7 +32,7 @@ export function RepositoryPageHeader({
   return (
     <header
       className={cn(
-        'sticky top-12 z-20 flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-transparent bg-background/95 px-4 py-3 backdrop-blur supports-backdrop-filter:bg-background/80 md:top-0 md:px-6',
+        'sticky top-12 z-20 flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-transparent bg-background px-4 py-3 md:top-0 md:px-6',
         scrolled && 'border-border',
         className,
       )}
@@ -40,7 +40,7 @@ export function RepositoryPageHeader({
     >
       <div className="min-w-0 flex-1">{children}</div>
       {actions ? (
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+        <div className="flex min-w-0 max-w-full shrink-0 flex-wrap items-center justify-end gap-2">
           {actions}
         </div>
       ) : null}

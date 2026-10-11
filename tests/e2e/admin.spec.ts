@@ -1,39 +1,39 @@
+import type { Route } from '@playwright/test'
 import { expect, test } from './test'
 import { eq, inArray } from 'drizzle-orm'
 import { createDatabase } from '#/server/database/client.server'
-import { actionRunTable, collaboratorTable } from '#/server/database/schema'
+import {
+  actionRunTable,
+  collaboratorTable,
+  userTable,
+} from '#/server/database/schema'
 import { configuration } from './github-fixture.server'
 
 const repository = '/pagescms/fixture/main'
 test.describe.configure({ mode: 'serial' })
 
-test('runs dialog keeps its geometry while loading', async ({ page }) => {
-  await page.goto(`${repository}/settings`)
+test('actions refreshes manually and selects workflows from the header', async ({
+  page,
+}) => {
+  await page.goto(`${repository}/actions`)
   await page.waitForLoadState('networkidle')
-  await page.route('**/_serverFn/**', async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, 400))
-    await route.continue()
-  })
-  await page
-    .getByRole('region', { name: 'Actions', exact: true })
-    .getByRole('button', { name: 'View runs', exact: true })
-    .first()
-    .click()
-  const dialog = page.getByRole('dialog', { name: 'Action runs' })
-  await expect(dialog).toBeVisible()
-  const heights = await dialog.evaluate(async (element) => {
-    const samples: number[] = []
-    const started = performance.now()
-    while (performance.now() - started < 1000) {
-      await new Promise<void>((resolve) =>
-        requestAnimationFrame(() => resolve()),
-      )
-      if (performance.now() - started > 120)
-        samples.push(element.getBoundingClientRect().height)
-    }
-    return samples
-  })
-  expect(Math.max(...heights) - Math.min(...heights)).toBeLessThan(2)
+  const header = page.locator('[data-slot="repository-page-header"]')
+  await expect(
+    page.getByRole('table', { name: 'Recent action runs' }),
+  ).toBeVisible()
+  await expect(
+    header.getByRole('textbox', { name: 'Search action runs' }),
+  ).toBeVisible()
+  await header.getByRole('button', { name: 'Run', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Deploy site', exact: true }).click()
+  await expect(
+    page.getByRole('alertdialog', { name: 'Deploy site?' }),
+  ).toBeVisible()
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await header.getByRole('button', { name: 'Refresh action runs' }).click()
+  await expect(
+    header.getByRole('button', { name: 'Refresh action runs' }),
+  ).toBeEnabled()
 })
 
 test('collaborator removal requires confirmation', async ({ page }) => {
@@ -48,17 +48,26 @@ test('collaborator removal requires confirmation', async ({ page }) => {
       ownerId: 1,
       owner: 'pagescms',
       repo: 'fixture',
-      branch: 'main',
       email: 'table-action@example.com',
     })
     .returning({ id: collaboratorTable.id })
   try {
-    await page.goto(`${repository}/settings`)
+    await page.goto(`${repository}/collaborators`)
     await page.waitForLoadState('networkidle')
     const remove = page.getByRole('button', {
       name: 'Remove table-action@example.com',
     })
     await expect(remove).toHaveText('Remove')
+    const search = page
+      .locator('[data-slot="repository-page-header"]')
+      .getByRole('textbox', { name: 'Search collaborators' })
+    await search.fill('no-match')
+    await expect(
+      page.getByRole('cell', { name: 'No matching collaborators.' }),
+    ).toBeVisible()
+    await search.fill('table-action')
+    await expect(remove).toBeVisible()
+    await search.clear()
     await remove.click()
     const confirmation = page.getByRole('alertdialog', {
       name: 'Remove collaborator?',
@@ -73,70 +82,21 @@ test('collaborator removal requires confirmation', async ({ page }) => {
   }
 })
 
-test('settings condenses administration and loads details on demand', async ({
-  page,
-}) => {
-  await page.goto(`${repository}/settings`)
+test('cache controls remain on the cache page', async ({ page }) => {
+  await page.goto(`${repository}/cache`)
   await page.waitForLoadState('networkidle')
   const header = page.locator('[data-slot="repository-page-header"]')
-  await expect(header.getByRole('heading', { name: 'Settings' })).toBeVisible()
-  const configurationSection = page.getByRole('region', {
-    name: 'Configuration',
-    exact: true,
-  })
-  const configurationEditor = configurationSection.getByRole('textbox', {
-    name: 'Pages CMS configuration',
-  })
-  await expect(configurationEditor).toHaveAttribute('contenteditable', 'false')
   await expect(
-    configurationSection.getByText(
-      'Define content, fields, media, and repository actions.',
-      { exact: true },
-    ),
-  ).toHaveCount(0)
-  await expect(
-    configurationSection.getByRole('button', {
-      name: 'About configuration',
-      exact: true,
-    }),
-  ).toHaveCount(0)
-  const collaboratorsEmpty = page.getByRole('cell', {
-    name: 'No collaborators yet.',
-    exact: true,
-  })
-  expect(
-    await collaboratorsEmpty.evaluate(
-      (element) => element.getBoundingClientRect().height,
-    ),
-  ).toBeLessThan(50)
-  await expect(
-    configurationSection.locator('[data-slot="configuration-preview"]'),
-  ).toHaveCSS('height', '160px')
-  await expect(page.getByRole('heading', { name: 'Recent runs' })).toHaveCount(
-    0,
-  )
-  await expect(
-    page.getByRole('table', { name: 'Cached directories' }),
-  ).not.toBeVisible()
-  const cache = page.getByRole('region', { name: 'Cache', exact: true })
-  await expect(
-    cache.getByRole('button', { name: 'Refresh content cache' }),
+    header.getByRole('button', { name: 'Clear all', exact: true }),
   ).toBeVisible()
   await expect(
-    cache.getByRole('button', { name: 'View directories' }),
-  ).toHaveCount(0)
-  const checked = cache.getByText(/^Last checked /)
-  await expect(checked).toContainText(/Last checked .+ ago/)
-  await expect(
-    checked
-      .locator('..')
-      .getByRole('heading', { name: 'Configuration', exact: true }),
+    page.getByRole('button', { name: 'Refresh content cache' }),
   ).toBeVisible()
-  await checked.hover()
-  await expect(page.getByRole('tooltip')).toContainText(/GMT|UTC/)
-  await page.mouse.move(0, 0)
-  const contentBadge = cache.getByText(/^\d+ files$/)
-  const directoryBadge = cache.getByText(/^\d+ directories$/)
+  await expect(
+    page.getByRole('button', { name: 'View directories' }),
+  ).toHaveCount(0)
+  const contentBadge = page.getByText(/^\d+ files$/)
+  const directoryBadge = page.getByText(/^\d+ directories$/)
   await expect(contentBadge).toBeVisible()
   await expect(directoryBadge).toBeVisible()
   if (
@@ -144,169 +104,185 @@ test('settings condenses administration and loads details on demand', async ({
     (await directoryBadge.textContent()) === '0 directories'
   ) {
     await expect(
-      cache.getByRole('button', { name: 'Refresh content cache', exact: true }),
+      page.getByRole('button', { name: 'Refresh content cache', exact: true }),
     ).toBeDisabled()
     await expect(
-      cache.getByRole('button', { name: 'Clear content cache', exact: true }),
+      page.getByRole('button', { name: 'Clear content cache', exact: true }),
     ).toBeDisabled()
   }
   await expect(
-    cache.getByRole('button', {
+    page.getByRole('button', {
       name: 'Refresh configuration cache',
       exact: true,
     }),
   ).toBeEnabled()
-  await cache.getByRole('button', { name: 'Clear all', exact: true }).click()
+  let releaseInitial!: () => void
+  const initialPending = new Promise<void>((resolve) => {
+    releaseInitial = resolve
+  })
+  const delayInitial = async (route: Route) => {
+    await initialPending
+    await route.continue()
+  }
+  await page.route('**/_serverFn/**', delayInitial)
+  try {
+    await page.getByRole('button', { name: 'Show cached files' }).click()
+    const loadingTable = page.getByRole('table', {
+      name: 'Cached files',
+      exact: true,
+    })
+    await expect(loadingTable).toHaveAttribute('aria-busy', 'true')
+    await expect(loadingTable.locator('tbody tr')).toHaveCount(5)
+    const initialFilter = page.getByRole('textbox', {
+      name: 'Filter cached files',
+    })
+    await expect(initialFilter).toBeDisabled()
+    await expect(
+      initialFilter.locator('..').getByLabel('Refreshing results'),
+    ).toHaveCount(0)
+  } finally {
+    const response = page.waitForResponse('**/_serverFn/**')
+    releaseInitial()
+    await response
+    await page.unroute('**/_serverFn/**', delayInitial)
+  }
+  await expect(
+    page.getByRole('textbox', { name: 'Filter cached files' }),
+  ).toBeEnabled()
+  await expect(
+    page.getByRole('table', { name: 'Cached files', exact: true }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('columnheader', { name: 'Snapshot commit' }),
+  ).toBeVisible()
+  const cachedTable = page.getByRole('table', {
+    name: 'Cached files',
+    exact: true,
+  })
+  const viewport = cachedTable.locator('..').locator('..')
+  const filter = page.getByRole('textbox', { name: 'Filter cached files' })
+  await expect(
+    filter.locator('..').getByLabel('Refreshing results'),
+  ).toHaveCount(0)
+  const previousRows = await cachedTable.textContent()
+  let release!: () => void
+  const pending = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  const delay = async (route: Route) => {
+    await pending
+    await route.continue()
+  }
+  await page.route('**/_serverFn/**', delay)
+  try {
+    await filter.fill('no-cached-file-matches-this')
+    await expect(
+      filter.locator('..').getByLabel('Refreshing results'),
+    ).toBeVisible()
+    expect(await cachedTable.textContent()).toBe(previousRows)
+  } finally {
+    const response = page.waitForResponse('**/_serverFn/**')
+    release()
+    await response
+    await page.unroute('**/_serverFn/**', delay)
+  }
+  await expect(
+    cachedTable.getByText('No cached files.', { exact: true }),
+  ).toBeVisible()
+  expect(
+    await viewport.evaluate((node) => node.scrollHeight <= node.clientHeight),
+  ).toBe(true)
+  expect(
+    await filter.evaluate((node) => node.getBoundingClientRect().height),
+  ).toBe(28)
+  await expect(
+    page.getByRole('navigation', { name: 'Cached files pagination' }),
+  ).toBeVisible()
+  await filter.fill('')
+  await page.getByRole('button', { name: 'Clear all', exact: true }).click()
   await expect(
     page.getByRole('alertdialog', { name: 'Clear all cached data?' }),
   ).toBeVisible()
   await page.getByRole('button', { name: 'Cancel', exact: true }).click()
+})
 
-  const actions = page.getByRole('region', { name: 'Actions', exact: true })
-  await expect(
-    actions.getByRole('group', { name: 'Run Deploy site' }),
-  ).toBeVisible()
-  await actions
-    .getByRole('button', { name: 'More options for Deploy site' })
-    .click()
-  const actionMenu = page.getByRole('menu')
-  await expect(
-    actionMenu.locator('[data-slot="dropdown-menu-separator"]'),
-  ).toHaveCount(1)
-  await expect(
-    actionMenu.getByRole('menuitem', { name: 'View on GitHub' }),
-  ).toHaveAttribute(
-    'href',
-    'https://github.com/pagescms/fixture/actions/workflows/deploy.yml?query=branch%3Amain',
-  )
-  await actionMenu
-    .getByRole('menuitem', { name: 'View runs', exact: true })
-    .click()
-  await expect(page).toHaveURL(/dialog=runs&action=deploy/)
-  await expect(
-    page
-      .getByRole('dialog', { name: 'Action runs' })
-      .getByRole('combobox', { name: 'Filter runs by action' }),
-  ).toContainText('Deploy site')
-  await page.keyboard.press('Escape')
-  await actions.getByRole('button', { name: 'Run', exact: true }).click()
-  await expect(
-    page.getByRole('alertdialog', { name: 'Deploy site?' }),
-  ).toBeVisible()
-  await page.getByRole('button', { name: 'Cancel', exact: true }).click()
-  await actions.getByRole('button', { name: 'View runs' }).click()
-  await expect(page).toHaveURL(/dialog=runs/)
-  await expect(page.getByRole('dialog', { name: 'Action runs' })).toBeVisible()
-  const runsDialog = page.getByRole('dialog', { name: 'Action runs' })
-  await expect(
-    runsDialog.getByRole('combobox', { name: 'Filter runs by action' }),
-  ).toContainText('All actions')
-  await expect(runsDialog.locator('[data-slot="dialog-title"]')).toBeVisible()
-  await expect(
-    runsDialog.locator('[data-slot="dialog-description"]'),
-  ).toHaveText('Inspect recent workflow runs and open their logs on GitHub.')
-  await expect(
-    runsDialog.getByRole('heading', { name: 'Recent runs' }),
-  ).toHaveCount(0)
-  await expect(
-    page.getByRole('navigation', { name: 'Action runs pagination' }),
-  ).toHaveCount(0)
-  await page.keyboard.press('Escape')
-
-  const collaborators = page.getByRole('region', {
-    name: 'Collaborators',
-    exact: true,
-  })
-  await expect(
-    collaborators.getByRole('columnheader', { name: 'Email' }),
-  ).toBeVisible()
-  await collaborators
-    .getByRole('button', { name: 'Invite collaborator' })
-    .click()
-  await expect(
-    page.getByRole('dialog', { name: 'Invite collaborators' }),
-  ).toBeVisible()
-  await expect(page.getByLabel('Email addresses')).toBeVisible()
-  await page.keyboard.press('Escape')
-
-  await page.getByRole('button', { name: 'Edit configuration' }).click()
-  await expect(page).toHaveURL(/edit=configuration/)
-  const dialog = configurationSection
-  const editor = dialog.getByRole('textbox', {
-    name: 'Pages CMS configuration',
-  })
-  await expect(editor).toContainText('content:')
-  await expect(
-    dialog.getByRole('button', { name: 'Save', exact: true }),
-  ).toBeDisabled()
+test('configuration edits source directly with validation and unsaved navigation protection', async ({
+  page,
+}) => {
+  await page.goto(`${repository}/configuration`)
+  await page.waitForLoadState('networkidle')
+  const header = page.locator('[data-slot="repository-page-header"]')
+  const editor = page.getByRole('textbox', { name: 'Pages CMS configuration' })
   await expect(editor).toHaveAttribute('contenteditable', 'true')
-  await expect(editor).toBeFocused()
-  await expect(dialog.locator('.cm-scroller')).toHaveCSS('overflow-y', 'auto')
-  await editor.fill('# Short configuration')
-  const shortHeight = await dialog
-    .locator('.pagescms-code-editor')
-    .evaluate((element) => element.getBoundingClientRect().height)
-  await editor.fill(
-    Array.from({ length: 100 }, (_, index) => `# Line ${index}`).join('\n'),
-  )
-  await expect
-    .poll(() =>
-      dialog
-        .locator('.pagescms-code-editor')
-        .evaluate((element) => element.getBoundingClientRect().height),
-    )
-    .toBeGreaterThan(shortHeight)
+  await expect(editor).toContainText('content:')
+  expect(
+    await editor.evaluate(
+      (element) => element.closest('.max-w-3xl')?.getBoundingClientRect().width,
+    ),
+  ).toBeLessThanOrEqual(768)
+  await header.getByRole('button', { name: 'Entry history' }).click()
+  await expect(page.getByText('No history found.')).toBeVisible()
+  await page.keyboard.press('Escape')
   await expect(
-    page.getByRole('dialog', { name: 'Edit configuration' }),
-  ).toHaveCount(0)
-  const footer = dialog.locator('div.flex.min-h-7').first()
+    header.getByRole('button', { name: 'Save', exact: true }),
+  ).toBeDisabled()
+  await header.getByRole('button', { name: 'Entry actions' }).click()
   await expect(
-    footer.getByRole('button', { name: 'Save', exact: true }),
-  ).toBeVisible()
-  await expect(
-    footer.getByRole('button', { name: 'Cancel', exact: true }),
-  ).toBeVisible()
-  await expect(
-    footer.getByRole('link', { name: 'View configuration on GitHub' }),
-  ).toHaveText('View on GitHub')
-  await expect(
-    dialog.getByRole('link', { name: 'View configuration on GitHub' }),
+    page.getByRole('menuitem', { name: 'View on GitHub' }),
   ).toHaveAttribute(
     'href',
     'https://github.com/pagescms/fixture/blob/main/.pages.yml',
   )
+  await expect(
+    page.getByRole('menuitem', { name: 'Rename', exact: true }),
+  ).toHaveCount(0)
+  await expect(
+    page.getByRole('menuitem', { name: 'Delete', exact: true }),
+  ).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  await expect(
+    page.getByRole('table', { name: 'Repository collaborators' }),
+  ).toHaveCount(0)
+  await expect(
+    page.getByRole('button', { name: 'Clear all', exact: true }),
+  ).toHaveCount(0)
   await editor.fill('content: [')
   await expect(
-    dialog.locator('.cm-lintRange-error, .cm-lintPoint-error'),
+    page.locator('.cm-lintRange-error, .cm-lintPoint-error'),
   ).not.toHaveCount(0)
-  await expect(dialog.locator('[data-slot="field-error"]')).toHaveCount(0)
   await expect(
-    dialog.getByRole('button', { name: 'Save', exact: true }),
+    header.getByRole('button', { name: 'Save', exact: true }),
   ).toBeDisabled()
-  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await page.getByRole('link', { name: 'Collaborators', exact: true }).click()
   await expect(
     page.getByRole('alertdialog', { name: 'Discard configuration changes?' }),
   ).toBeVisible()
   await page.getByRole('button', { name: 'Keep editing' }).click()
-  await expect(dialog).toBeVisible()
-  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(editor).toContainText('content: [')
+  await page.getByRole('link', { name: 'Collaborators', exact: true }).click()
   await page.getByRole('button', { name: 'Discard changes' }).click()
-  await expect(editor).toHaveAttribute('contenteditable', 'false')
+  await expect(page).toHaveURL(`${repository}/collaborators`)
   await expect(
-    dialog.getByRole('button', { name: 'Edit configuration' }),
+    page
+      .locator('[data-slot="repository-page-header"]')
+      .getByRole('button', { name: 'Invite collaborator' }),
   ).toBeVisible()
-  await dialog.getByRole('button', { name: 'Edit configuration' }).click()
-  await editor.fill(`# Saved inline\n${configuration}`)
-  await dialog.getByRole('button', { name: 'Save', exact: true }).click()
-  await expect(editor).toHaveAttribute('contenteditable', 'false')
-  await expect(editor).toContainText('# Saved inline')
-  await dialog.getByRole('button', { name: 'Edit configuration' }).click()
-  await editor.fill(configuration)
-  await dialog.getByRole('button', { name: 'Save', exact: true }).click()
-  await expect(editor).toHaveAttribute('contenteditable', 'false')
+  await page.getByRole('button', { name: 'Invite collaborator' }).click()
+  await expect(
+    page.getByRole('dialog', { name: 'Invite collaborators' }),
+  ).toBeVisible()
+  await page.keyboard.press('Escape')
+  await page.getByRole('link', { name: 'Configuration', exact: true }).click()
+  await editor.fill(`# Saved configuration\n${configuration}`)
+  await header.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(
+    header.getByRole('button', { name: 'Save', exact: true }),
+  ).toBeDisabled()
+  await page.reload()
+  await expect(editor).toContainText('# Saved configuration')
 })
 
-test('action run pagination shows ten rows and keeps the dialog open between pages', async ({
+test('action run pagination and search filter the runs table', async ({
   page,
 }) => {
   const url = process.env.E2E_DATABASE_URL
@@ -333,8 +309,9 @@ test('action run pagination shows ten rows and keeps the dialog open between pag
     )
     .returning({ id: actionRunTable.id })
   try {
-    await page.goto(`${repository}/settings?dialog=runs&action=deploy`)
-    const dialog = page.getByRole('dialog', { name: 'Action runs' })
+    await page.goto(`${repository}/actions?action=deploy`)
+    await page.waitForLoadState('networkidle')
+    const dialog = page.locator('main').last()
     const bodyRows = dialog.locator('tbody tr')
     await expect(bodyRows).toHaveCount(10)
     const pager = dialog.getByRole('navigation', {
@@ -380,19 +357,215 @@ test('action run pagination shows ten rows and keeps the dialog open between pag
   }
 })
 
-test('old administration links open the corresponding settings section or dialog', async ({
+test('Admin navigation opens separate pages with the selected link active', async ({
   page,
 }) => {
-  for (const section of ['cache', 'actions', 'collaborators']) {
-    await page.goto(`${repository}/${section}`)
-    await expect(page).toHaveURL(`${repository}/settings#${section}`)
+  await page.goto(`${repository}/configuration`)
+  for (const [path, title] of [
+    ['collaborators', 'Collaborators'],
+    ['actions', 'Actions'],
+    ['cache', 'Cache'],
+    ['configuration', 'Configuration'],
+  ]) {
+    await page.getByRole('link', { name: title, exact: true }).click()
+    await expect(page).toHaveURL(`${repository}/${path}`)
     await expect(
-      page.getByRole('heading', { name: 'Settings', exact: true }),
+      page
+        .locator('[data-slot="repository-page-header"]')
+        .getByRole('heading', { name: title, exact: true }),
+    ).toBeVisible()
+    await expect(
+      page.getByRole('link', { name: title, exact: true }),
+    ).toHaveAttribute('data-active', 'true')
+  }
+})
+
+test('repository pages keep the same space below the header', async ({
+  page,
+}) => {
+  for (const path of [
+    'actions',
+    'cache',
+    'collaborators',
+    'configuration',
+    'collection/posts',
+    'file/code',
+  ]) {
+    await page.goto(`${repository}/${path}`)
+    await page.waitForLoadState('networkidle')
+    const spacing = await page
+      .locator('[data-slot="repository-page-header"]')
+      .evaluate((header) => {
+        const body = header.nextElementSibling!
+        const content = body.matches('section')
+          ? body.querySelector('table')!
+          : body.firstElementChild!
+        return (
+          content.getBoundingClientRect().top -
+          header.getBoundingClientRect().bottom
+        )
+      })
+    expect(spacing, path).toBe(24)
+  }
+})
+
+test('cache management is opt-in and disabled routes cannot be opened directly', async ({
+  page,
+}) => {
+  await page.goto(`${repository}/configuration`)
+  await page.waitForLoadState('networkidle')
+  const editor = page.getByRole('textbox', { name: 'Pages CMS configuration' })
+  const original = configuration
+  try {
+    await editor.fill(original.replace('cache: true', 'cache: false'))
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(
+      page.getByRole('button', { name: 'Save', exact: true }),
+    ).toBeDisabled()
+    await expect(
+      page.getByRole('link', { name: 'Cache', exact: true }),
+    ).toHaveCount(0)
+    await page.goto(`${repository}/cache`)
+    await page.waitForLoadState('networkidle')
+    await expect(page).not.toHaveURL(`${repository}/cache`)
+    await expect(
+      page.getByRole('heading', { name: 'Cache', exact: true }),
+    ).toHaveCount(0)
+  } finally {
+    await page.goto(`${repository}/configuration`)
+    await page.waitForLoadState('networkidle')
+    await editor.fill(original)
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(
+      page.getByRole('button', { name: 'Save', exact: true }),
+    ).toBeDisabled()
+    await expect(
+      page.getByRole('link', { name: 'Cache', exact: true }),
     ).toBeVisible()
   }
-  await page.goto(`${repository}/configuration`)
-  await expect(page).toHaveURL(/settings\?edit=configuration/)
+})
+
+test('invites collaborators from an expanding email list with validation and Enter submission', async ({
+  page,
+}) => {
+  const database = createDatabase({ url: process.env.E2E_DATABASE_URL! })
+  const now = new Date()
+  await database.insert(userTable).values([
+    {
+      id: 'invite-alice',
+      name: 'Account Alice',
+      email: 'alice@example.com',
+      emailVerified: true,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'invite-bob',
+      name: 'Account Bob',
+      email: 'bob@example.com',
+      emailVerified: true,
+      createdAt: now,
+      updatedAt: now,
+    },
+  ])
+  await page.goto(`${repository}/collaborators`)
+  await page.waitForLoadState('networkidle')
+  await page
+    .getByRole('button', { name: 'Invite collaborator', exact: true })
+    .click()
+  const dialog = page.getByRole('dialog', { name: 'Invite collaborators' })
+  const emails = dialog.getByLabel('Email addresses')
+  const initialHeight = await emails.evaluate(
+    (element) => element.getBoundingClientRect().height,
+  )
+  expect(initialHeight).toBeLessThan(50)
+  await emails.fill('alice@example.com, invalid')
+  await emails.press('Enter')
+  await expect(dialog.getByRole('alert')).toContainText('valid email address')
+  await expect(dialog).toBeVisible()
   await expect(
-    page.getByRole('textbox', { name: 'Pages CMS configuration' }),
+    page
+      .getByRole('table', { name: 'Repository collaborators' })
+      .getByText('alice@example.com', { exact: true }),
+  ).toHaveCount(0)
+  await emails.fill('alice@example.com; bob@example.com\nALICE@example.com')
+  await emails.press('End')
+  await emails.press('Shift+Enter')
+  await expect(emails).toHaveValue(
+    'alice@example.com; bob@example.com\nALICE@example.com\n',
+  )
+  expect(
+    await emails.evaluate((element) => element.getBoundingClientRect().height),
+  ).toBeGreaterThan(initialHeight)
+  await emails.press('Enter')
+  await expect(dialog).not.toBeVisible()
+  const table = page.getByRole('table', { name: 'Repository collaborators' })
+  await expect(
+    table.getByText('alice@example.com', { exact: true }),
+  ).toHaveCount(1)
+  await expect(table.getByText('bob@example.com', { exact: true })).toHaveCount(
+    1,
+  )
+  await page.reload()
+  await page.waitForLoadState('networkidle')
+  await expect(
+    table.getByText('alice@example.com', { exact: true }),
   ).toBeVisible()
+  await expect(
+    table.getByText('bob@example.com', { exact: true }),
+  ).toBeVisible()
+})
+
+test('shares automatic action status updates between the table and persistent notification across navigation', async ({
+  page,
+}) => {
+  const database = createDatabase({ url: process.env.E2E_DATABASE_URL! })
+  await page.goto(`${repository}/actions`)
+  await page.waitForLoadState('networkidle')
+  await page.clock.install()
+  const header = page.locator('[data-slot="repository-page-header"]')
+  await header.getByRole('button', { name: 'Run', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Deploy site', exact: true }).click()
+  await page
+    .getByRole('alertdialog', { name: 'Deploy site?' })
+    .getByRole('button', { name: 'Deploy', exact: true })
+    .click()
+  const notification = page
+    .locator('[data-sonner-toast]')
+    .filter({ hasText: 'Deploy site' })
+  await expect(notification).toContainText('is queued')
+  await page.waitForLoadState('networkidle')
+  const [run] = await database
+    .select()
+    .from(actionRunTable)
+    .where(eq(actionRunTable.owner, 'pagescms'))
+  let statusRequests = 0
+  page.on('request', (request) => {
+    if (request.url().includes('/_serverFn/') && request.method() === 'GET')
+      statusRequests++
+  })
+  await database
+    .update(actionRunTable)
+    .set({ status: 'in_progress', workflowRunId: 123, checkedAt: new Date() })
+    .where(eq(actionRunTable.id, run.id))
+  await page.clock.fastForward(15_000)
+  await expect(notification).toContainText('is running')
+  await expect(
+    page
+      .getByRole('table', { name: 'Recent action runs' })
+      .getByText('In progress', { exact: true }),
+  ).toBeVisible()
+  expect(statusRequests).toBe(1)
+  await expect(header.getByLabel('Refreshing results')).toHaveCount(0)
+  await page.getByRole('link', { name: 'Collaborators', exact: true }).click()
+  await page.waitForLoadState('networkidle')
+  await database
+    .update(actionRunTable)
+    .set({ status: 'completed', conclusion: 'success', checkedAt: new Date() })
+    .where(eq(actionRunTable.id, run.id))
+  await page.clock.fastForward(15_000)
+  await expect(notification).toContainText('succeeded')
+  const finalRequests = statusRequests
+  await page.clock.fastForward(30_000)
+  expect(statusRequests).toBe(finalRequests)
 })

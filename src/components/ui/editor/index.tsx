@@ -1,6 +1,13 @@
+import {
+  createMarkdownHtmlExtensions,
+  createMarkdownParser,
+  selectClickedText,
+  pasteKeptHtml,
+  sanitizeEditorHtml,
+} from './html-policy'
+import type { MarkdownHtmlPolicy } from './html-policy'
 import { useEffect, useRef, useState } from 'react'
 import type { HTMLAttributes } from 'react'
-import { Node as TiptapNode, mergeAttributes } from '@tiptap/core'
 import type { Editor as TiptapEditor } from '@tiptap/core'
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
@@ -44,13 +51,10 @@ import type {
   SlashImageFallback,
 } from './slash-command/suggestion'
 
+export type { MarkdownHtmlPolicy } from './html-policy'
+
 export type EditorFormat = 'html' | 'markdown'
 export type ImageFallbackMode = 'data-url' | 'prompt-url' | 'none'
-export type MarkdownHtmlPolicy = {
-  keep?: string[]
-  strip?: string[]
-  drop?: string[]
-}
 export type ImageUploadContext = {
   editor: TiptapEditor
   source: 'paste' | 'drop' | 'slash'
@@ -70,345 +74,6 @@ const UPLOADED_IMAGE_PRELOAD_TIMEOUT_MS = 8_000
 const MARKDOWN_TABLE_ROW_PATTERN = /^\s*\|.*\|\s*$/
 const MARKDOWN_TABLE_DELIMITER_CELL_PATTERN = /^:?-{3,}:?$/
 const TABLE_CELL_NBSP_PATTERN = /^(?:&nbsp;|\u00A0)+$/i
-
-const RAW_MARKDOWN_HTML_BLOCK = 'rawMarkdownHtmlBlock'
-const RAW_MARKDOWN_HTML_INLINE = 'rawMarkdownHtmlInline'
-const DROPPED_MARKDOWN_HTML_BLOCK = 'droppedMarkdownHtmlBlock'
-const DROPPED_MARKDOWN_HTML_INLINE = 'droppedMarkdownHtmlInline'
-
-const normalizeMarkdownHtmlSelectors = (
-  selectors: string[] | undefined,
-): string[] =>
-  Array.isArray(selectors)
-    ? selectors.map((selector) => selector.trim()).filter(Boolean)
-    : []
-
-const getMarkdownHtmlRootElement = (html: string): Element | null => {
-  if (typeof window === 'undefined') return null
-  const doc = new DOMParser().parseFromString(html, 'text/html')
-  return doc.body.firstElementChild
-}
-
-const getMarkdownHtmlTopLevelNodes = (html: string): ChildNode[] => {
-  if (typeof window === 'undefined') return []
-  const template = document.createElement('template')
-  template.innerHTML = html.trim()
-  return Array.from(template.content.childNodes)
-}
-
-const createRawMarkdownHtmlDom = (
-  html: string,
-  fallbackTag: 'div' | 'span',
-): HTMLElement => {
-  const template = document.createElement('template')
-  template.innerHTML = html.trim()
-  const element = template.content.firstElementChild
-
-  if (element instanceof HTMLElement) {
-    return element
-  }
-
-  const fallback = document.createElement(fallbackTag)
-  fallback.textContent = html
-  return fallback
-}
-
-const markdownHtmlTextContent = (html: string): string => {
-  if (typeof window === 'undefined') {
-    return html
-      .replace(/<[^>]*>/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim()
-  }
-
-  const doc = new DOMParser().parseFromString(html, 'text/html')
-  return doc.body.textContent.replace(/\s+/g, ' ').trim()
-}
-
-const createMarkdownHtmlTextNode = (html: string, block?: boolean) => {
-  const text = markdownHtmlTextContent(html)
-  if (!text) return createDroppedMarkdownHtmlNode(block)
-
-  const textNode = { type: 'text', text }
-  return block ? { type: 'paragraph', content: [textNode] } : textNode
-}
-
-const createDroppedMarkdownHtmlNode = (block?: boolean) => ({
-  type: block ? DROPPED_MARKDOWN_HTML_BLOCK : DROPPED_MARKDOWN_HTML_INLINE,
-})
-
-const createRawMarkdownHtmlNode = (html: string, block?: boolean) => ({
-  type: block ? RAW_MARKDOWN_HTML_BLOCK : RAW_MARKDOWN_HTML_INLINE,
-  attrs: { html },
-})
-
-const markdownHtmlSelectorMatches = (
-  element: Element,
-  selector: string,
-): boolean => {
-  try {
-    return element.matches(selector)
-  } catch (error) {
-    console.warn(`Ignoring invalid markdownHtml selector "${selector}".`, error)
-    return false
-  }
-}
-
-const markdownHtmlMatches = (
-  element: Element,
-  selectors: string[] | undefined,
-): boolean =>
-  normalizeMarkdownHtmlSelectors(selectors).some((selector) =>
-    markdownHtmlSelectorMatches(element, selector),
-  )
-
-const getMarkdownHtmlAction = (
-  html: string,
-  policy?: MarkdownHtmlPolicy,
-): 'keep' | 'strip' | 'drop' | null => {
-  if (!policy) return null
-  const root = getMarkdownHtmlRootElement(html)
-  if (!root) return null
-  if (markdownHtmlMatches(root, policy.drop)) return 'drop'
-  if (markdownHtmlMatches(root, policy.strip)) return 'strip'
-  if (markdownHtmlMatches(root, policy.keep)) return 'keep'
-  return null
-}
-
-const createMarkdownHtmlPolicyNode = (
-  html: string,
-  action: 'keep' | 'strip' | 'drop',
-  block?: boolean,
-) => {
-  if (action === 'drop') return createDroppedMarkdownHtmlNode(block)
-  if (action === 'strip') return createMarkdownHtmlTextNode(html, block)
-  return createRawMarkdownHtmlNode(html, block)
-}
-
-const createMarkdownHtmlPolicyNodes = (
-  html: string,
-  policy: MarkdownHtmlPolicy | undefined,
-  block?: boolean,
-) => {
-  const topLevelNodes = getMarkdownHtmlTopLevelNodes(html)
-  if (topLevelNodes.length <= 1) {
-    const action = getMarkdownHtmlAction(html, policy)
-    return action ? createMarkdownHtmlPolicyNode(html, action, block) : []
-  }
-
-  const parsedNodes = topLevelNodes.flatMap((node) => {
-    if (node instanceof Text) {
-      const text = node.textContent.replace(/\s+/g, ' ').trim()
-      return text
-        ? [
-            block
-              ? { type: 'paragraph', content: [{ type: 'text', text }] }
-              : { type: 'text', text },
-          ]
-        : []
-    }
-
-    if (!(node instanceof Element)) return []
-
-    const outerHTML = node.outerHTML
-    const action = getMarkdownHtmlAction(outerHTML, policy)
-    return action
-      ? [createMarkdownHtmlPolicyNode(outerHTML, action, block)]
-      : [createMarkdownHtmlTextNode(outerHTML, block)]
-  })
-
-  return parsedNodes.some(
-    (node) =>
-      node.type === RAW_MARKDOWN_HTML_BLOCK ||
-      node.type === RAW_MARKDOWN_HTML_INLINE ||
-      node.type === DROPPED_MARKDOWN_HTML_BLOCK ||
-      node.type === DROPPED_MARKDOWN_HTML_INLINE,
-  )
-    ? parsedNodes
-    : []
-}
-
-const tokenizeInlineMarkdownHtml = (
-  src: string,
-  policy?: MarkdownHtmlPolicy,
-) => {
-  if (!src.startsWith('<')) return undefined
-
-  const selfClosingMatch = src.match(/^<[a-z][\w-]*(?:\s[^<>]*)?\/>/i)
-  if (selfClosingMatch) {
-    const raw = selfClosingMatch[0]
-    return getMarkdownHtmlAction(raw, policy)
-      ? { type: RAW_MARKDOWN_HTML_INLINE, raw, text: raw }
-      : undefined
-  }
-
-  const openMatch = src.match(/^<([a-z][\w-]*)(?:\s[^<>]*)?>/i)
-  if (!openMatch) return undefined
-
-  const closingPattern = new RegExp(`<\\/\\s*${openMatch[1]}\\s*>`, 'i')
-  const closingMatch = closingPattern.exec(src.slice(openMatch[0].length))
-  if (!closingMatch) return undefined
-
-  const end = openMatch[0].length + closingMatch.index + closingMatch[0].length
-  const raw = src.slice(0, end)
-  return getMarkdownHtmlAction(raw, policy)
-    ? { type: RAW_MARKDOWN_HTML_INLINE, raw, text: raw }
-    : undefined
-}
-
-const createRawMarkdownHtmlExtensions = (policy?: MarkdownHtmlPolicy) => [
-  TiptapNode.create({
-    name: DROPPED_MARKDOWN_HTML_INLINE,
-    group: 'inline',
-    inline: true,
-    atom: true,
-    selectable: false,
-    draggable: false,
-
-    renderHTML() {
-      return ['span', { 'data-dropped-markdown-html': '', hidden: 'true' }]
-    },
-
-    renderMarkdown() {
-      return ''
-    },
-  }),
-  TiptapNode.create({
-    name: DROPPED_MARKDOWN_HTML_BLOCK,
-    group: 'block',
-    atom: true,
-    selectable: false,
-    draggable: false,
-
-    renderHTML() {
-      return ['div', { 'data-dropped-markdown-html': '', hidden: 'true' }]
-    },
-
-    renderMarkdown() {
-      return ''
-    },
-  }),
-  TiptapNode.create({
-    name: RAW_MARKDOWN_HTML_INLINE,
-    group: 'inline',
-    inline: true,
-    atom: true,
-    selectable: false,
-    draggable: false,
-
-    addAttributes() {
-      return {
-        html: {
-          default: '',
-          parseHTML: (element: HTMLElement) =>
-            element.getAttribute('data-raw-markdown-html') ?? '',
-          renderHTML: () => ({}),
-        },
-      }
-    },
-
-    parseHTML() {
-      return [{ tag: 'span[data-raw-markdown-html]' }]
-    },
-
-    markdownTokenizer: {
-      name: RAW_MARKDOWN_HTML_INLINE,
-      level: 'inline',
-      start: '<',
-      tokenize: (src: string) => tokenizeInlineMarkdownHtml(src, policy),
-    },
-
-    markdownTokenName: RAW_MARKDOWN_HTML_INLINE,
-
-    parseMarkdown(token) {
-      const html = String(token.raw || token.text || '')
-      if (!html.trim()) return []
-      return createMarkdownHtmlPolicyNodes(html, policy, false)
-    },
-
-    addNodeView() {
-      return ({ node }) => ({
-        dom: createRawMarkdownHtmlDom(
-          typeof node.attrs['html'] === 'string' ? node.attrs['html'] : '',
-          'span',
-        ),
-      })
-    },
-
-    renderHTML({ node, HTMLAttributes }) {
-      const html =
-        typeof node.attrs['html'] === 'string' ? node.attrs['html'] : ''
-      return [
-        'span',
-        mergeAttributes(HTMLAttributes, {
-          'data-raw-markdown-html': html,
-          contenteditable: 'false',
-        }),
-        html,
-      ]
-    },
-
-    renderMarkdown(node) {
-      return typeof node.attrs?.['html'] === 'string' ? node.attrs['html'] : ''
-    },
-  }),
-  TiptapNode.create({
-    name: RAW_MARKDOWN_HTML_BLOCK,
-    group: 'block',
-    atom: true,
-    selectable: false,
-    draggable: false,
-
-    addAttributes() {
-      return {
-        html: {
-          default: '',
-          parseHTML: (element: HTMLElement) =>
-            element.getAttribute('data-raw-markdown-html') ?? '',
-          renderHTML: () => ({}),
-        },
-      }
-    },
-
-    parseHTML() {
-      return [{ tag: 'div[data-raw-markdown-html]' }]
-    },
-
-    addNodeView() {
-      return ({ node }) => ({
-        dom: createRawMarkdownHtmlDom(
-          typeof node.attrs['html'] === 'string' ? node.attrs['html'] : '',
-          'div',
-        ),
-      })
-    },
-
-    renderHTML({ node, HTMLAttributes }) {
-      const html =
-        typeof node.attrs['html'] === 'string' ? node.attrs['html'] : ''
-      return [
-        'div',
-        mergeAttributes(HTMLAttributes, {
-          'data-raw-markdown-html': html,
-          contenteditable: 'false',
-        }),
-        html,
-      ]
-    },
-
-    markdownTokenName: 'html',
-
-    parseMarkdown(token) {
-      const html = String(token.raw || token.text || '')
-      if (!html.trim()) return []
-      return createMarkdownHtmlPolicyNodes(html, policy, token['block'])
-    },
-
-    renderMarkdown(node) {
-      return typeof node.attrs?.['html'] === 'string' ? node.attrs['html'] : ''
-    },
-  }),
-]
 
 function markdownImageDestination(value: string) {
   const encoded = encodeURI(value).replace(/%25([0-9A-Fa-f]{2})/g, '%$1')
@@ -455,6 +120,7 @@ const UploadableImage = Image.extend({
 
   renderMarkdown(node) {
     const attrs = toUploadableAttrs(node.attrs)
+    if (String(attrs.src ?? '').startsWith('blob:')) return ''
     const src = markdownImageDestination(String(attrs.src ?? ''))
     const alt = String(attrs.alt ?? '')
     const title = String(attrs.title ?? '')
@@ -727,7 +393,7 @@ export function Editor({
       TableRow,
       TableHeader,
       TableCell,
-      ...createRawMarkdownHtmlExtensions(markdownHtml),
+      ...createMarkdownHtmlExtensions(markdownHtml),
       Placeholder.configure({
         placeholder: ({
           node,
@@ -743,7 +409,7 @@ export function Editor({
             : '',
         showOnlyCurrent: true,
       }),
-      Markdown,
+      Markdown.configure({ marked: createMarkdownParser() }),
       SlashCommands.configure({
         onRequestImage: enableImages ? (onRequestImage ?? null) : null,
         onInsertLocalImageFile: ({ file, alt, title }) => {
@@ -757,9 +423,14 @@ export function Editor({
           imageFallback === 'prompt-url' ? 'prompt-url' : 'none',
       }),
     ],
-    content: value || (format === 'markdown' ? '' : '<p></p>'),
+    content:
+      format === 'html'
+        ? sanitizeEditorHtml(value || '<p></p>', markdownHtml)
+        : value,
     contentType: format,
     editorProps: {
+      handleClick: (view, _pos, event) => selectClickedText(view, event),
+      transformPastedHTML: (html) => sanitizeEditorHtml(html, markdownHtml),
       attributes: {
         'aria-label': ariaLabel ?? 'Rich text editor',
         'aria-multiline': 'true',
@@ -767,7 +438,9 @@ export function Editor({
         role: 'textbox',
         ...(editorId ? { id: editorId } : {}),
       },
-      handlePaste: (_view, event) => {
+      handlePaste: (_view, event, slice) => {
+        if (!event.clipboardData?.files.length && pasteKeptHtml(_view, slice))
+          return true
         if (!enableImages || !enableImagePasteDrop) return false
         const files = Array.from(event.clipboardData?.files ?? []).filter(
           (file) => file.type.startsWith('image/'),
@@ -801,12 +474,26 @@ export function Editor({
     },
     editable: !disabled,
     immediatelyRender: false,
-    onUpdate: ({ editor: nextEditor }) => {
+    onUpdate: ({ editor: nextEditor, transaction }) => {
+      // Tiptap may append an empty paragraph on a focus/options transaction.
+      // That housekeeping must not rewrite an untouched external source value.
+      const doc = nextEditor.state.doc
+      const last = doc.lastChild
+      if (
+        !transaction.docChanged &&
+        last?.type.name === 'paragraph' &&
+        last.content.size === 0 &&
+        doc.content
+          .cut(0, doc.content.size - last.nodeSize)
+          .eq(transaction.before.content)
+      )
+        return
       const nextValue =
         format === 'markdown'
           ? normalizeMarkdown(nextEditor.getMarkdown())
           : nextEditor
               .getHTML()
+              .replace(/<img\b[^>]*\bsrc="blob:[^"]*"[^>]*>/g, '')
               .replace(/\sdata-upload-id="[^"]*"/g, '')
               .replace(/\sdata-uploading="[^"]*"/g, '')
               .replace(/\sdata-upload-error="[^"]*"/g, '')
@@ -874,7 +561,9 @@ export function Editor({
 
     if (hasChanged) {
       editor.commands.setContent(
-        value || (format === 'markdown' ? '' : '<p></p>'),
+        format === 'html'
+          ? sanitizeEditorHtml(value || '<p></p>', markdownHtml)
+          : value,
         {
           emitUpdate: false,
           contentType: format,
@@ -886,13 +575,14 @@ export function Editor({
 
   useEffect(() => {
     if (!editor) return
-    editor.setEditable(!disabled)
+    editor.setEditable(!disabled, false)
   }, [editor, disabled])
 
   useEffect(() => {
     if (!editor) return
     editor.setOptions({
       editorProps: {
+        ...editor.options.editorProps,
         attributes: {
           'aria-label': ariaLabel ?? 'Rich text editor',
           'aria-multiline': 'true',
@@ -1136,16 +826,6 @@ export function Editor({
       }
 
       const preloaded = await preloadImageSource(resolved.src)
-      if (!preloaded) {
-        finalizeImageUpload(uploadId, (attrs) => ({
-          ...attrs,
-          uploading: false,
-          uploadError: 'Image uploaded, but preview failed to load',
-        }))
-        cleanupUpload(uploadId, { revokeBlob: false })
-        return
-      }
-
       finalizeImageUpload(uploadId, (attrs): UploadableImageAttrs | null => {
         const expectedBlob = expectedBlobByUploadIdRef.current.get(uploadId)
         const currentSrc = typeof attrs.src === 'string' ? attrs.src : ''
@@ -1161,7 +841,9 @@ export function Editor({
             resolved.title ??
             (typeof attrs.title === 'string' ? attrs.title : undefined),
           uploading: false,
-          uploadError: null,
+          uploadError: preloaded
+            ? null
+            : 'Image uploaded, but preview failed to load',
           uploadId: null,
         }
       })

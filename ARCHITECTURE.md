@@ -25,7 +25,7 @@ Route files own loader and page composition. Reusable product UI belongs in `src
 
 ## Request lifecycle
 
-Repository administration lives on one Settings page. Configuration appears as a faded read-only field preview with a matching loading skeleton; Edit expands and focuses it inline with diagnostics, Save/Cancel, and unsaved-change protection. The `edit=configuration` deep link activates inline editing. View .pages.yml links to the file on the current branch. Repository GitHub links use a server-resolved access flag shared through the workspace context: direct user credentials allow links, invitation-backed installation credentials do not, even when the account has a linked GitHub username. Settings sections use title-only headers; table/list empty states use ordinary row padding rather than tall placeholders. Action discovery omits run retrieval and synchronization until the runs dialog is opened; server authorization applies to both requests. Cache maintenance uses compact rows with directory details in a dialog whose body owns scrolling; the table wrapper only provides presentation.
+Repository administration has separate Configuration, Collaborators, Actions, and Cache pages in the sidebar's Admin block. Primary controls live in each page header. Configuration shares the narrow file-editor layout, history control, and source-link menu with content editors, while excluding rename and delete. Its YAML editor retains the existing syntax colors, diagnostics, saving, and unsaved-navigation protection. Collaborator administration keeps Pro roles and branch assignments in the same table; an optional header-actions contribution lets Pro render its controls in the core page header. Repository GitHub links use a server-resolved access flag shared through the workspace context: direct user credentials allow links, invitation-backed installation credentials do not, even when the account has a linked GitHub username. Admin navigation and route guards use this access flag, with additional configuration-editing and cache-write checks; server functions remain authoritative for authorization. Table/list empty states use ordinary row padding. The Actions page retrieves tracked runs on entry and refreshes them only through its Refresh control or after a mutation. Missing configuration produces a compact empty Actions row without querying configuration-dependent workflows. Repository cache management requires `settings.cache: true` plus direct GitHub write access, enforced in navigation, route loaders, and server services. The global admin cache view remains independent. Cache maintenance remains branch-specific and uses compact rows. Its content row expands a shadcn Collapsible with paginated cached paths, file SHAs, and snapshot commits; metadata loads on expansion, without returning cached content. Configuration shows its file SHA.
 
 Requests receive a validated or generated correlation identifier. Server logs are structured JSON. Request-scoped state must be passed explicitly and never stored in mutable module globals. Request-triggered work is awaited. A real queue may be introduced later only for work that is deliberately asynchronous and operationally durable.
 
@@ -43,7 +43,7 @@ Configuration and directory snapshots use the rebuildable SQLite cache for every
 
 Repository caching is always on, independent of configuration switches. Cache administration is visible to direct GitHub users with repository write access and exposes aggregate file, directory, and permission counts plus the configuration's last-check timestamp. Clear controls remain visible but disabled for empty scopes. It does not expose a per-directory inspector or detailed directory-status payload; internal directory metadata remains necessary for cache reconciliation.
 
-Settings loads tracked action runs on demand in a viewport-bounded dialog whose scrolling body retains its dimensions while loading. The section-level control opens all actions; each action's Run menu opens its own filter. Search and action filters apply before ten-row pagination to the latest 100 tracked runs for the current repository branch; that limit is shown when reached.
+Actions displays tracked runs in a table with search, action filtering, manual Refresh, and a Run dropdown in the page header. Search and action filters apply before ten-row pagination to the latest 100 tracked runs for the current repository branch; that limit is shown when reached.
 
 Repository content services depend on the provider-neutral `RepositoryApi`; GitHub discovery, OAuth, App tokens, and webhooks remain in the GitHub adapter. A future forge or local checkout supplies the same content/commit contract and its own access resolver. Directory, media, configuration, and editor caches do not import GitHub types or errors; provider-specific product features remain separate adapters.
 
@@ -86,3 +86,14 @@ See [Deployment composition](docs/development/plugins.md) for the maintained dep
 - Secrets are never committed or stored under `vars`.
 - Runtime configuration is read from `process.env`, supported by Workers through the configured compatibility date and `nodejs_compat`.
 - Shared private content will not be placed in public CDN caches.
+
+Core collaborator records grant repository membership without a branch scope. Pro permission assignments own branch restrictions; configured-branch discovery still filters through the access policy.
+
+## Rich-text HTML policy
+
+The editor registry owns `html-policy.ts`: parsing, sanitization, editable HTML nodes,
+source items, and HTML/Markdown serialization. Pages CMS distributes that module
+unchanged with the registry primitive. `RichTextField` only adapts field
+`options.html` to `markdownHtml` and handles CMS media/storage interactions.
+Configuration validation remains in the CMS schema; editor behavior is tested
+in the editor repo, with CMS save/reopen coverage at the integration boundary.

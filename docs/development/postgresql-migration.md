@@ -12,7 +12,7 @@ Durable application data must be copied:
 | `account`                   | `account`                   | IDs, `user_id`, issuer/provider/account identity, access/refresh/ID tokens and expiries, scope, password hash and timestamps          |
 | `session`                   | `session`                   | ID/token, `user_id`, expiry, IP/user-agent and timestamps                                                                             |
 | `verification`              | `verification`              | ID, identifier/value, expiry and timestamps                                                                                           |
-| `collaborator`              | `collaborator`              | generated ID, type, installation/owner/repository identity, branch, email and user/inviter IDs                                        |
+| `collaborator`              | `collaborator`              | generated ID, type, installation/owner/repository identity, email and user/inviter IDs                                                |
 | `collaborator_invite`       | `collaborator_invite`       | generated ID, token, email, owner/repository, expiry and timestamps                                                                   |
 | `action_run`                | `action_run`                | generated ID, repository/action/context/workflow identity, run ID, status/conclusion/URL, trigger/failure/payload JSON and timestamps |
 | `github_installation_token` | `github_installation_token` | generated ID, installation ID, ciphertext, IV and expiry                                                                              |

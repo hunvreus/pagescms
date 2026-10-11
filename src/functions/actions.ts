@@ -163,6 +163,88 @@ function actionUser(user: {
   }
 }
 
+async function loadAuthorizedActions(
+  services: RequestServices,
+  user: Parameters<typeof actionUser>[0],
+  data: ReturnType<typeof coordinates> & {
+    includeRuns?: boolean
+    runIds?: number[]
+  },
+) {
+  const accessRequest = await policy(
+    data,
+    'repository.read',
+    services,
+    actionUser(user),
+  )
+  return services.access.execute(accessRequest, async () => {
+    const { loadRepositoryActions, readActionRunStatuses } =
+      await import('#/server/action-service.server')
+    const result = await (
+      data.runIds ? readActionRunStatuses : loadRepositoryActions
+    )({
+      allowCollaboratorExecution: Boolean(services.repositoryPermissionAdmin),
+      database: services.database,
+      cacheDatabase: services.cacheDatabase,
+      repositoryAccess: services.repositoryAccess,
+      user: actionUser(user),
+      ...data,
+      runIds: data.runIds ?? [],
+    })
+    const discovery = await services.access.discover({
+      principal: accessRequest.principal,
+      tenant: accessRequest.tenant,
+      target: accessRequest.target,
+      resources: result.actions.map((action) => ({
+        type: 'action',
+        name: action.name,
+      })),
+    })
+    const resources = [
+      ...new Set([
+        ...result.actions.map((action) => action.name),
+        ...result.runs.map((run) => run.actionName),
+      ]),
+    ].map((name) => ({ type: 'action' as const, name }))
+    const capabilities = await Promise.all(
+      (['action.read', 'action.cancel', 'action.rerun'] as const).map(
+        (operation) =>
+          services.access.discover({
+            principal: accessRequest.principal,
+            tenant: accessRequest.tenant,
+            target: accessRequest.target,
+            operation,
+            resources,
+          }),
+      ),
+    )
+    const visibleTo = (decision: typeof discovery, name: string) =>
+      decision.visibility === 'all' ||
+      (decision.visibility === 'filtered' &&
+        decision.resources.some(
+          (resource) => resource.type === 'action' && resource.name === name,
+        ))
+    const readableRuns = result.runs
+      .filter((run) => visibleTo(capabilities[0], run.actionName))
+      .map((run) => ({
+        ...run,
+        canCancel: run.canCancel && visibleTo(capabilities[1], run.actionName),
+        canRerun: run.canRerun && visibleTo(capabilities[2], run.actionName),
+      }))
+    if (data.runIds || discovery.visibility === 'all')
+      return { ...result, runs: readableRuns }
+    const visible = new Set(
+      discovery.visibility === 'filtered'
+        ? discovery.resources.map((resource) => resource.name)
+        : [],
+    )
+    return {
+      actions: result.actions.filter((action) => visible.has(action.name)),
+      runs: readableRuns.filter((run) => visible.has(run.actionName)),
+    }
+  })
+}
+
 export const getActions = createServerFn({ method: 'GET' })
   .validator((input: unknown) => {
     const ref = coordinates(input)
@@ -179,76 +261,40 @@ export const getActions = createServerFn({ method: 'GET' })
     const services = context.getServices()
     const session = await services.getSession()
     if (!session?.user) throw new Error('Authentication required')
-    const accessRequest = await policy(
-      data,
-      'repository.read',
-      services,
-      actionUser(session.user),
-    )
-    return services.access.execute(accessRequest, async () => {
-      const { loadRepositoryActions } =
-        await import('#/server/action-service.server')
-      const result = await loadRepositoryActions({
-        allowCollaboratorExecution: Boolean(services.repositoryPermissionAdmin),
-        database: services.database,
-        cacheDatabase: services.cacheDatabase,
-        repositoryAccess: services.repositoryAccess,
-        user: actionUser(session.user),
-        ...data,
-      })
-      const discovery = await services.access.discover({
-        principal: accessRequest.principal,
-        tenant: accessRequest.tenant,
-        target: accessRequest.target,
-        resources: result.actions.map((action) => ({
-          type: 'action',
-          name: action.name,
-        })),
-      })
-      const resources = [
-        ...new Set([
-          ...result.actions.map((action) => action.name),
-          ...result.runs.map((run) => run.actionName),
-        ]),
-      ].map((name) => ({ type: 'action' as const, name }))
-      const capabilities = await Promise.all(
-        (['action.read', 'action.cancel', 'action.rerun'] as const).map(
-          (operation) =>
-            services.access.discover({
-              principal: accessRequest.principal,
-              tenant: accessRequest.tenant,
-              target: accessRequest.target,
-              operation,
-              resources,
-            }),
-        ),
+    return loadAuthorizedActions(services, session.user, data)
+  })
+
+export const getActionRunStatuses = createServerFn({ method: 'GET' })
+  .validator((input: unknown) => {
+    if (!Array.isArray(input) || !input.length || input.length > 20)
+      throw new Error('Invalid tracked actions')
+    let count = 0
+    return input.map((value: unknown) => {
+      const ref = coordinates(value)
+      const ids = (value as Record<string, unknown>).runIds
+      if (
+        !Array.isArray(ids) ||
+        !ids.length ||
+        !ids.every(
+          (id) => typeof id === 'number' && Number.isInteger(id) && id > 0,
+        )
       )
-      const visibleTo = (decision: typeof discovery, name: string) =>
-        decision.visibility === 'all' ||
-        (decision.visibility === 'filtered' &&
-          decision.resources.some(
-            (resource) => resource.type === 'action' && resource.name === name,
-          ))
-      const readableRuns = result.runs
-        .filter((run) => visibleTo(capabilities[0], run.actionName))
-        .map((run) => ({
-          ...run,
-          canCancel:
-            run.canCancel && visibleTo(capabilities[1], run.actionName),
-          canRerun: run.canRerun && visibleTo(capabilities[2], run.actionName),
-        }))
-      if (discovery.visibility === 'all')
-        return { ...result, runs: readableRuns }
-      const visible = new Set(
-        discovery.visibility === 'filtered'
-          ? discovery.resources.map((resource) => resource.name)
-          : [],
-      )
-      return {
-        actions: result.actions.filter((action) => visible.has(action.name)),
-        runs: readableRuns.filter((run) => visible.has(run.actionName)),
-      }
+        throw new Error('Invalid tracked actions')
+      count += ids.length
+      if (count > 200) throw new Error('Too many tracked actions')
+      return { ...ref, runIds: [...new Set(ids as number[])] }
     })
+  })
+  .handler(async ({ context, data }) => {
+    const services = context.getServices()
+    const session = await services.getSession()
+    if (!session?.user) throw new Error('Authentication required')
+    return Promise.all(
+      data.map(async (ref) => ({
+        ...ref,
+        runs: (await loadAuthorizedActions(services, session.user, ref)).runs,
+      })),
+    )
   })
 
 export const runAction = createServerFn({ method: 'POST' })

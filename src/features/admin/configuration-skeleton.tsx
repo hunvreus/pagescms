@@ -1,23 +1,48 @@
+import { History, EllipsisVertical } from 'lucide-react'
 import { Button } from '#/components/ui/button'
 import { Skeleton } from '#/components/ui/skeleton'
-import { RepositoryAdminPage } from './repository-admin-page'
+import { EditorLayout } from '#/components/editor-layout'
+import {
+  RepositoryPageHeader,
+  RepositoryPageTitle,
+} from '#/components/repository-page-header'
 
 export function ConfigurationSkeleton() {
   return (
-    <RepositoryAdminPage
-      embedded
-      title="Configuration"
-      actions={
-        <Button size="sm" variant="outline" disabled>
-          Edit configuration
-        </Button>
+    <EditorLayout
+      header={
+        <RepositoryPageHeader
+          actions={
+            <>
+              <Button
+                disabled
+                variant="outline"
+                size="icon"
+                aria-label="Entry history"
+              >
+                <History />
+              </Button>
+              <Button disabled>Save</Button>
+              <Button
+                disabled
+                variant="outline"
+                size="icon"
+                aria-label="Entry actions"
+              >
+                <EllipsisVertical />
+              </Button>
+            </>
+          }
+        >
+          <RepositoryPageTitle>Configuration</RepositoryPageTitle>
+        </RepositoryPageHeader>
       }
     >
       <Skeleton
         aria-label="Loading configuration"
         aria-busy="true"
-        className="h-40 w-full rounded-xl"
+        className="min-h-32 w-full rounded-xl"
       />
-    </RepositoryAdminPage>
+    </EditorLayout>
   )
 }

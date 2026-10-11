@@ -87,6 +87,8 @@ function TemplateDialog({
         },
       }),
     onSuccess: async (repository) => {
+      const { toast } = await import('sonner')
+      toast.success(`Repository “${repository.repo}” created`)
       setOpen(false)
       await router.navigate({
         to: '/$owner/$repo/$branch',

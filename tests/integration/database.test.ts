@@ -144,7 +144,7 @@ integration('SQLite integration', () => {
   })
 
   it.each([undefined, false, true])(
-    'caches collection reads regardless of the removed cache setting: %s',
+    'caches collection reads independently of the cache management setting: %s',
     async (setting) => {
       const owner = 'always-cached'
       const repo = 'content'
@@ -185,9 +185,13 @@ integration('SQLite integration', () => {
     },
   )
 
-  it('allows empty-cache administration without configuration and preserves write-access checks', async () => {
+  it('requires enabled cache management and preserves write-access checks', async () => {
     const api = {
       getRepository: vi.fn().mockResolvedValue({ canPush: true }),
+      getFile: vi.fn().mockResolvedValue({
+        sha: 'disabled-config',
+        content: btoa('settings:\n  cache: false\n'),
+      }),
     } as unknown as GitHubApi
     const resolve = vi.fn().mockResolvedValue({ api, tokenSource: 'user' })
     const input = {
@@ -202,10 +206,17 @@ integration('SQLite integration', () => {
       repo: 'empty',
       branch: 'main',
     }
+    await expect(loadCacheStatus(input)).rejects.toThrow(
+      'Cache management is disabled',
+    )
+    vi.mocked(api.getFile).mockResolvedValue({
+      sha: 'enabled-config',
+      content: btoa('settings:\n  cache: true\n'),
+    })
     await expect(loadCacheStatus(input)).resolves.toMatchObject({
       fileCount: 0,
       directoryCount: 0,
-      configuration: null,
+      configuration: { sha: 'enabled-config' },
     })
     await expect(
       manageCache({ ...input, action: 'clear-all' }),

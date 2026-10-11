@@ -64,7 +64,7 @@ body {
 
 :root {
   color-scheme: light;
-  --background: oklch(0.99 0 0);
+  --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -81,7 +81,7 @@ body {
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.623 0.214 259.815);
+  --ring: oklch(0.6 0.13 163);
   --chart-1: oklch(0.85 0.13 165);
   --chart-2: oklch(0.77 0.15 163);
   --chart-3: oklch(0.7 0.15 162);
@@ -122,7 +122,7 @@ body {
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.707 0.165 254.624);
+  --ring: oklch(0.7 0.15 162);
   --chart-1: oklch(0.85 0.13 165);
   --chart-2: oklch(0.77 0.15 163);
   --chart-3: oklch(0.7 0.15 162);
@@ -266,10 +266,11 @@ body {
       [role='menuitemcheckbox'],
       [role='menuitemradio'],
       [role='option'],
-      [data-slot='select-trigger'],
-      [data-slot='input-group-control']
+      [data-slot='input-group-control'],
+      [data-slot='command-input']
     ),
-  [data-slot='input-otp-slot'][data-active='true'] {
+  [data-slot='input-otp-slot'][data-active='true'],
+  .tiptap[contenteditable='true']:focus {
     box-shadow: none !important;
     border-color: var(--ring) !important;
     outline: 1px solid var(--ring) !important;
@@ -296,7 +297,7 @@ body {
       [role='radio'],
       [role='switch'],
       [role='slider']
-    )[aria-invalid='true']:focus-visible:not([data-slot='select-trigger']) {
+    )[aria-invalid='true']:focus-visible {
     border-color: var(--destructive) !important;
     outline-color: var(--destructive) !important;
   }

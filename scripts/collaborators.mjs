@@ -10,8 +10,8 @@ export const columns = [
   'repoId',
   'owner',
   'repo',
-  'branch',
   'email',
+  'name',
   'userId',
   'invitedBy',
   'invitedByEmail',
@@ -91,7 +91,7 @@ export function parseCsv(input) {
 export async function exportCollaborators(client) {
   const result =
     await client.execute(`SELECT c.type, c.installation_id AS installationId, c.owner_id AS ownerId, c.repo_id AS repoId,
-    c.owner, c.repo, c.branch, c.email, c.user_id AS userId, c.invited_by AS invitedBy, u.email AS invitedByEmail
+    c.owner, c.repo, c.email, c.name, c.user_id AS userId, c.invited_by AS invitedBy, u.email AS invitedByEmail
     FROM collaborator c LEFT JOIN user u ON u.id = c.invited_by ORDER BY c.owner, c.repo, c.email`)
   return stringifyCsv(result.rows)
 }
@@ -136,11 +136,11 @@ export async function importCollaborators(client, csv, options = {}) {
       byId(row.invitedBy?.trim()) ??
       fallback
     return {
-      sql: `INSERT INTO collaborator (type, installation_id, owner_id, repo_id, owner, repo, branch, email, user_id, invited_by)
+      sql: `INSERT INTO collaborator (type, installation_id, owner_id, repo_id, owner, repo, email, name, user_id, invited_by)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT (lower(owner), lower(repo), lower(email)) DO UPDATE SET
         type=excluded.type, installation_id=excluded.installation_id, owner_id=excluded.owner_id, repo_id=excluded.repo_id,
-        owner=excluded.owner, repo=excluded.repo, branch=excluded.branch, email=excluded.email, user_id=excluded.user_id, invited_by=excluded.invited_by`,
+        owner=excluded.owner, repo=excluded.repo, email=excluded.email, name=excluded.name, user_id=excluded.user_id, invited_by=excluded.invited_by`,
       args: [
         row.type.trim(),
         number('installationId'),
@@ -148,8 +148,8 @@ export async function importCollaborators(client, csv, options = {}) {
         number('repoId', true),
         row.owner.trim(),
         row.repo.trim(),
-        row.branch?.trim() || null,
         row.email.trim().toLowerCase(),
+        row.name?.trim() || null,
         linked?.id ?? null,
         inviter?.id ?? null,
       ],

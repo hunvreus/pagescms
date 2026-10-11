@@ -18,7 +18,12 @@
     "./server/media-provider.server": "./src/server/media-provider.server.ts",
     "./components/ui/*": "./src/components/ui/*.tsx",
     "./components/operation-error": "./src/components/operation-error.tsx",
-    "./lib/collaborator-key": "./src/lib/collaborator-key.ts"
+    "./lib/collaborator-key": "./src/lib/collaborator-key.ts",
+    "./components/search-input": "./src/components/search-input.tsx",
+    "./features/collaborators/collaborator-status": "./src/features/collaborators/collaborator-status.tsx",
+    "./lib/notifications": "./src/lib/notifications.ts",
+    "./components/collaborator-invite-input": "./src/components/collaborator-invite-input.tsx",
+    "./lib/collaborator-invites": "./src/lib/collaborator-invites.ts"
   },
   "imports": {
     "#/*": "./src/*"
@@ -100,6 +105,7 @@
     "cmdk": "^1.1.1",
     "cn": "^0.4.0",
     "date-fns": "^4.4.0",
+    "dompurify": "^3.4.16",
     "drizzle-orm": "^0.45.2",
     "input-otp": "^1.5.0",
     "lucide-react": "^1.33.0",
@@ -109,6 +115,7 @@
     "react-dom": "^19.2.8",
     "shadcn": "^4.21.1",
     "smol-toml": "^1.8.0",
+    "sonner": "^2.0.8",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.3",
     "tippy.js": "^6.3.7",

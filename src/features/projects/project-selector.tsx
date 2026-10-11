@@ -104,24 +104,34 @@ export function ProjectSelector({
   })
   const lastResults = useRef({
     account: selectedKey,
+    keyword: remoteKeyword,
     values: repositories.data,
   })
   useEffect(() => {
     if (repositories.isSuccess && !repositories.isPlaceholderData) {
-      lastResults.current = { account: selectedKey, values: repositories.data }
+      lastResults.current = {
+        account: selectedKey,
+        keyword: remoteKeyword,
+        values: repositories.data,
+      }
     }
   }, [
     repositories.data,
     repositories.isSuccess,
     repositories.isPlaceholderData,
     selectedKey,
+    remoteKeyword,
   ])
   const results =
     repositories.data ??
     (lastResults.current.account === selectedKey
       ? lastResults.current.values
       : undefined)
-  const filtering = searchIsSettling || repositories.isFetching
+  const filtering =
+    searchIsSettling ||
+    (repositories.isFetching &&
+      lastResults.current.account === selectedKey &&
+      lastResults.current.keyword !== remoteKeyword)
 
   const visibleRepositories = useMemo(() => {
     const values = results ?? []
@@ -205,6 +215,7 @@ export function ProjectSelector({
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 opacity-50" />
           )}
           <Input
+            disabled={!results && repositories.isPending}
             autoComplete="off"
             className="pl-9"
             name="repository-search"

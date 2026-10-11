@@ -22,15 +22,9 @@ export interface RepositoryAccess {
   source?: string
   tokenSource: 'user' | 'installation'
   collaboratorKey?: string
-  branches?: 'all' | readonly string[]
 }
 
-function collaboratorMatches(
-  user: ProjectUser,
-  owner: string,
-  repo: string,
-  branch?: string,
-) {
+function collaboratorMatches(user: ProjectUser, owner: string, repo: string) {
   return and(
     or(
       eq(collaboratorTable.userId, user.id),
@@ -43,14 +37,6 @@ function collaboratorMatches(
     ),
     sql`lower(${collaboratorTable.owner}) = lower(${owner})`,
     sql`lower(${collaboratorTable.repo}) = lower(${repo})`,
-    ...(branch
-      ? [
-          or(
-            isNull(collaboratorTable.branch),
-            eq(collaboratorTable.branch, branch),
-          ),
-        ]
-      : []),
   )
 }
 
@@ -116,7 +102,6 @@ export function createRepositoryAccessService(input: {
     user: ProjectUser,
     owner: string,
     repo: string,
-    branch?: string,
   ) {
     const account = await database.query.accountTable.findFirst({
       columns: { accessToken: true },
@@ -133,7 +118,6 @@ export function createRepositoryAccessService(input: {
           api,
           source: DEFAULT_REPOSITORY_SOURCE,
           tokenSource: 'user' as const,
-          branches: 'all' as const,
         }
       } catch (error) {
         if (
@@ -146,8 +130,8 @@ export function createRepositoryAccessService(input: {
     }
 
     const collaborators = await database.query.collaboratorTable.findMany({
-      columns: { installationId: true, branch: true, email: true },
-      where: collaboratorMatches(user, owner, repo, branch),
+      columns: { installationId: true, email: true },
+      where: collaboratorMatches(user, owner, repo),
     })
     const collaborator = collaborators.at(0)
     if (!collaborator) {
@@ -159,9 +143,6 @@ export function createRepositoryAccessService(input: {
       source: DEFAULT_REPOSITORY_SOURCE,
       tokenSource: 'installation' as const,
       collaboratorKey: collaboratorKey(collaborator.email),
-      branches: collaborators.some((row) => row.branch === null)
-        ? ('all' as const)
-        : collaborators.flatMap((row) => (row.branch ? [row.branch] : [])),
     }
   }
 
@@ -192,19 +173,7 @@ export function createRepositoryAccessService(input: {
               ].join('\0'),
             )
           : undefined
-        resolution = unscoped
-          ? unscoped.then((admission) => {
-              if (
-                admission.branches &&
-                admission.branches !== 'all' &&
-                !admission.branches.includes(branch!)
-              )
-                throw new Error(
-                  `You do not have permission to access "${owner}/${repo}"`,
-                )
-              return admission
-            })
-          : resolveUncached(user, owner, repo, branch)
+        resolution = unscoped ? unscoped : resolveUncached(user, owner, repo)
         resolutions.set(key, resolution)
         void resolution.catch(() => resolutions.delete(key))
       }

@@ -1,4 +1,5 @@
-import { and, eq, sql } from 'drizzle-orm'
+import { isCacheManagementEnabled } from '#/lib/configuration'
+import { and, asc, eq, sql } from 'drizzle-orm'
 
 import { createConfigurationStore } from './configuration-store.server'
 import { DEFAULT_REPOSITORY_SOURCE } from './repository-provider.server'
@@ -45,6 +46,15 @@ async function cacheContext(input: CacheInput) {
   const configurationStore = createConfigurationStore({
     database: input.database,
   })
+  const configuration = await configurationStore.refresh(
+    api,
+    input.owner,
+    input.repo,
+    input.branch,
+  )
+  if (!configuration || !isCacheManagementEnabled(configuration.object)) {
+    throw new Error('Cache management is disabled for this repository')
+  }
   return { api, configurationStore }
 }
 
@@ -163,4 +173,31 @@ export async function manageCache(input: CacheInput & { action: CacheAction }) {
     'clear-all': 'All repository caches cleared',
   }
   return { message: messages[input.action] }
+}
+
+export async function loadCacheFiles(
+  input: CacheInput & { page: number; search?: string },
+) {
+  await cacheContext(input)
+  const rows = await input.database
+    .select({
+      path: cacheFileTable.path,
+      context: cacheFileTable.context,
+      type: cacheFileTable.type,
+      sha: cacheFileTable.sha,
+      commitSha: cacheFileTable.commitSha,
+    })
+    .from(cacheFileTable)
+    .where(
+      and(
+        branchConditions(input),
+        input.search
+          ? sql`instr(lower(${cacheFileTable.path}), ${input.search.toLowerCase()}) > 0`
+          : undefined,
+      ),
+    )
+    .orderBy(asc(cacheFileTable.path), asc(cacheFileTable.id))
+    .limit(11)
+    .offset(input.page * 10)
+  return { files: rows.slice(0, 10), hasMore: rows.length > 10 }
 }

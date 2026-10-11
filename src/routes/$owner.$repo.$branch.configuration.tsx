@@ -1,12 +1,16 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
+import { RepositoryConfigurationPage } from '#/features/admin/repository-configuration-page'
+import { ensureRepositoryAdmin } from '#/features/admin/repository-admin-access'
+import { ConfigurationSkeleton } from '#/features/admin/configuration-skeleton'
+import { configurationEditorQueryOptions } from '#/queries/content'
 
 export const Route = createFileRoute('/$owner/$repo/$branch/configuration')({
-  beforeLoad: ({ params }) => {
-    throw redirect({
-      to: '/$owner/$repo/$branch/settings',
-      params,
-      search: { edit: 'configuration' },
-      replace: true,
-    })
+  loader: async ({ context, params }) => {
+    await ensureRepositoryAdmin(context.queryClient, params, 'configuration')
+    await context.queryClient.ensureQueryData(
+      configurationEditorQueryOptions(params),
+    )
   },
+  pendingComponent: ConfigurationSkeleton,
+  component: RepositoryConfigurationPage,
 })

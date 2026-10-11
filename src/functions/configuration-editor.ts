@@ -115,3 +115,45 @@ export const updateConfiguration = createServerFn({ method: 'POST' })
       },
     )
   })
+export const getConfigurationHistory = createServerFn({ method: 'GET' })
+  .validator(parseCoordinates)
+  .handler(async ({ context, data }) => {
+    const services = context.getServices()
+    const session = await services.getSession()
+    if (!session?.user) throw new Error('Authentication required')
+    const user = {
+      id: session.user.id,
+      email: session.user.email,
+      emailVerified: session.user.emailVerified,
+      githubUsername: session.user.githubUsername ?? null,
+    }
+    return services.access.execute(
+      {
+        operation: 'configuration.history',
+        principal: await resolveRepositoryPrincipal(
+          services.repositoryAccess,
+          user,
+          data,
+        ),
+        tenant: {
+          type: 'repository',
+          id: `${data.owner}/${data.repo}`.toLowerCase(),
+        },
+        target: { repository: data, branch: data.branch, path: '.pages.yml' },
+      },
+      async () => {
+        const { api } = await services.repositoryAccess.resolve(
+          user,
+          data.owner,
+          data.repo,
+          data.branch,
+        )
+        return api.listFileCommits(
+          data.owner,
+          data.repo,
+          data.branch,
+          '.pages.yml',
+        )
+      },
+    )
+  })

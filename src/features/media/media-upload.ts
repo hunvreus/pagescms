@@ -1,3 +1,4 @@
+import { toast } from 'sonner'
 import {
   abortMediaUpload,
   confirmMediaUpload,
@@ -134,6 +135,16 @@ async function uploadDirectFile(
   })
 }
 
+export class MediaUploadError extends Error {
+  constructor(
+    message: string,
+    readonly paths: string[],
+  ) {
+    super(message)
+    this.name = 'MediaUploadError'
+  }
+}
+
 export async function uploadMediaFiles({
   coordinates,
   extensions,
@@ -152,38 +163,62 @@ export async function uploadMediaFiles({
   const values = Array.from(files).slice(0, limit)
   const paths: string[] = []
 
-  for (const file of values) {
-    validateMediaUpload(file, extensions)
-    const idempotencyKey = crypto.randomUUID()
-    const initiation = await initiateMediaUpload({
-      data: {
-        ...coordinates,
-        path,
-        filename: file.name,
-        size: file.size,
-        contentType: file.type || 'application/octet-stream',
-        idempotencyKey,
-        rename,
-      },
-    })
-    if (initiation.kind === 'server') {
-      const result = await createMedia({
+  if (!values.length) return paths
+  const notification = toast.loading(`Uploading 1 of ${values.length} files…`)
+  try {
+    for (const [index, file] of values.entries()) {
+      toast.loading(`Uploading ${index + 1} of ${values.length} files…`, {
+        id: notification,
+      })
+      validateMediaUpload(file, extensions)
+      const idempotencyKey = crypto.randomUUID()
+      const initiation = await initiateMediaUpload({
         data: {
           ...coordinates,
           path,
           filename: file.name,
-          content: await mediaFileBase64(file),
+          size: file.size,
+          contentType: file.type || 'application/octet-stream',
           idempotencyKey,
           rename,
         },
       })
+      if (initiation.kind === 'server') {
+        const result = await createMedia({
+          data: {
+            ...coordinates,
+            path,
+            filename: file.name,
+            content: await mediaFileBase64(file),
+            idempotencyKey,
+            rename,
+          },
+        })
+        paths.push(result.path)
+        continue
+      }
+
+      const result = await uploadDirectFile(file, {
+        ...initiation,
+        coordinates,
+      })
       paths.push(result.path)
-      continue
     }
 
-    const result = await uploadDirectFile(file, { ...initiation, coordinates })
-    paths.push(result.path)
+    toast.success(
+      `${paths.length} ${paths.length === 1 ? 'file uploaded' : 'files uploaded'}`,
+      { id: notification },
+    )
+    return paths
+  } catch (cause) {
+    const detail =
+      cause instanceof Error ? cause.message : 'Could not upload media'
+    toast.error(`${paths.length} of ${values.length} files uploaded`, {
+      id: notification,
+      description: detail,
+      duration: Infinity,
+      closeButton: true,
+    })
+    throw new MediaUploadError(detail, paths)
   }
-
-  return paths
 }

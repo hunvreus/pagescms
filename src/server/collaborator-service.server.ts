@@ -130,7 +130,7 @@ export async function listCollaborators(
     columns: {
       id: true,
       email: true,
-      branch: true,
+      name: true,
       userId: true,
     },
     where: repositoryMatch(owner, repo),
@@ -145,8 +145,8 @@ export async function inviteCollaborators(input: {
   user: Manager
   owner: string
   repo: string
-  branch?: string
   emails: string[]
+  names?: Record<string, string>
   prepare?: (emails: readonly string[]) => Promise<void>
   githubApiFactory: GitHubApiFactory
   installationLookup?: InstallationLookup
@@ -217,8 +217,8 @@ export async function inviteCollaborators(input: {
         repoId: access.repository.id,
         owner: access.repository.owner,
         repo: access.repository.repo,
-        branch: input.branch ?? null,
         email,
+        name: input.names?.[email]?.trim() || null,
         userId: verifiedUser?.id ?? null,
         invitedBy: input.user.id,
       })
@@ -252,7 +252,6 @@ export async function inviteCollaborators(input: {
     const collaborator = {
       id: Number((results[0].rows[0] as { id: number }).id),
       email,
-      branch: input.branch ?? null,
       userId: verifiedUser?.id ?? null,
     }
     const repoName = `${input.owner}/${input.repo}`
@@ -288,9 +287,7 @@ export async function inviteCollaborators(input: {
         throw error
       }
     } else if (input.emailProvider) {
-      const repositoryPath = input.branch
-        ? `/${input.owner}/${input.repo}/${encodeURIComponent(input.branch)}`
-        : `/${input.owner}/${input.repo}`
+      const repositoryPath = `/${input.owner}/${input.repo}`
       try {
         await input.emailProvider.send(
           createCollaboratorAddedEmail({
@@ -314,7 +311,7 @@ export async function inviteCollaborators(input: {
     created.push({
       id: collaborator.id,
       email: collaborator.email,
-      branch: collaborator.branch,
+      name: input.names?.[email]?.trim() || null,
       userId: collaborator.userId,
     })
   }
@@ -407,9 +404,7 @@ export async function collaboratorInviteStatus(
     ),
   })
   if (!collaborator) return { status: 'unavailable' as const }
-  const destination = collaborator.branch
-    ? `/${invite.owner}/${invite.repo}/${encodeURIComponent(collaborator.branch)}`
-    : `/${invite.owner}/${invite.repo}`
+  const destination = `/${invite.owner}/${invite.repo}`
   if (!user) {
     const [local = '', domain = ''] = invite.email.split('@')
     const visible = local.slice(0, 2)

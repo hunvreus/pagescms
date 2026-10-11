@@ -37,7 +37,6 @@ export function RepositoryActionButtons({
   const [selected, setSelected] = useState<RepositoryAction | null>(null)
   const [values, setValues] = useState<Partial<Record<string, ActionValue>>>({})
   const [running, setRunning] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<unknown>(null)
 
   async function dispatch(action: RepositoryAction) {
@@ -51,10 +50,9 @@ export function RepositoryActionButtons({
       if (!window.confirm(prompt)) return
     }
     setRunning(true)
-    setMessage(null)
     setError(null)
     try {
-      await runAction({
+      const run = await runAction({
         data: {
           ...coordinates,
           actionName: action.name,
@@ -67,7 +65,8 @@ export function RepositoryActionButtons({
       })
       setSelected(null)
       setValues({})
-      setMessage(`${action.label} started`)
+      const { actionRunTracking } = await import('#/lib/action-run-tracking')
+      actionRunTracking(queryClient).track(coordinates, run, action.label)
     } catch (cause) {
       setError(cause)
     } finally {
@@ -82,7 +81,6 @@ export function RepositoryActionButtons({
       return
     }
     setValues({})
-    setMessage(null)
     setError(null)
     setSelected(action)
   }
@@ -96,9 +94,6 @@ export function RepositoryActionButtons({
           : 'relative flex flex-wrap items-center justify-end gap-2'
       }
     >
-      {message ? (
-        <span className="text-xs text-muted-foreground">{message}</span>
-      ) : null}
       <OperationError error={error} fallback="Could not run action." />
       {layout === 'sidebar' ? (
         <SidebarMenu>

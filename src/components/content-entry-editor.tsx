@@ -1,14 +1,12 @@
+import { toast } from 'sonner'
+import { FileEditorHistory } from '#/components/file-editor-history'
+import { EditorLayout } from '#/components/editor-layout'
+import { FileEditorMenu } from '#/components/file-editor-menu'
 import { lazy, Suspense, useState } from 'react'
 import { ClientOnly, useRouter } from '@tanstack/react-router'
 import { createClientOnlyFn } from '@tanstack/react-start'
 import { useQueryClient } from '@tanstack/react-query'
-import {
-  ArrowUpRight,
-  Check,
-  History,
-  LoaderCircle,
-  EllipsisVertical,
-} from 'lucide-react'
+import { LoaderCircle } from 'lucide-react'
 
 import { StructuredContentField } from '#/components/structured-content-field'
 import { isContentField } from '#/lib/content-field'
@@ -24,7 +22,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '#/components/ui/alert-dialog'
-import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
 import { Button } from '#/components/ui/button'
 import {
   Dialog,
@@ -35,13 +32,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '#/components/ui/dialog'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '#/components/ui/dropdown-menu'
+
 import { Field, FieldGroup, FieldLabel } from '#/components/ui/field'
 import { Input } from '#/components/ui/input'
 import { Skeleton } from '#/components/ui/skeleton'
@@ -130,6 +121,7 @@ function useEntryDeletion(
       setError(null)
       try {
         await deleteEntry({ data: { ...coordinates, sha } })
+        toast.success('File deleted')
         await queryClient.invalidateQueries({
           queryKey: queryKeys.branch(coordinates),
         })
@@ -169,6 +161,7 @@ function useEntryRename(
         const result = await renameEntry({
           data: { ...coordinates, sha, filename: nextFilename },
         })
+        toast.success('File renamed')
         await queryClient.invalidateQueries({
           queryKey: queryKeys.branch(coordinates),
         })
@@ -202,7 +195,6 @@ function RawEntryEditor({
   const [savedSource, setSavedSource] = useState(initial.source)
   const [sha, setSha] = useState(initial.sha)
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
   const [error, setError] = useState<unknown>(null)
   const dirty = source !== savedSource
   const deletion = useEntryDeletion(coordinates, sha, afterDeleteHref)
@@ -211,15 +203,14 @@ function RawEntryEditor({
 
   async function save() {
     setSaving(true)
-    setSaved(false)
     setError(null)
     try {
       const result = await updateRawEntry({
         data: { ...coordinates, source, sha },
       })
+      toast.success('File saved')
       setSha(result.sha)
       setSavedSource(source)
-      setSaved(true)
       await queryClient.invalidateQueries({
         queryKey: queryKeys.branch(coordinates),
       })
@@ -231,50 +222,44 @@ function RawEntryEditor({
   }
 
   return (
-    <div className="-m-4 md:-m-6">
-      <EditorHeader
-        actionData={{
-          label: initial.label,
-          sha,
-          content: savedSource,
-        }}
-        coordinates={coordinates}
-        dirty={dirty}
-        canDelete={initial.operations.delete && Boolean(sha)}
-        initial={initial}
-        saved={saved}
-        saving={saving}
-        deleting={deletion.deleting}
-        canRename={
-          initial.operations.rename && Boolean(renameBaseHref) && Boolean(sha)
-        }
-        renaming={rename.renaming}
-        onDelete={() => deletion.remove()}
-        onRename={(filename) => rename.rename(filename)}
-        onSave={() => void save()}
-      />
-      <div className="mx-auto max-w-5xl space-y-5 p-4 md:p-6">
-        <EditorError error={error ?? deletion.error ?? rename.error} />
-        <ClientOnly
-          fallback={<Skeleton className="min-h-[calc(100vh-13rem)]" />}
-        >
-          <Suspense
-            fallback={<Skeleton className="min-h-[calc(100vh-13rem)]" />}
-          >
-            <CodeEditor
-              label="Entry source"
-              format={coordinates.path.split('.').pop() ?? 'markdown'}
-              className="[&_.cm-content]:min-h-[calc(100vh-13rem)]"
-              value={source}
-              onChange={(value) => {
-                setSource(value)
-                setSaved(false)
-              }}
-            />
-          </Suspense>
-        </ClientOnly>
-      </div>
-    </div>
+    <EditorLayout
+      header={
+        <EditorHeader
+          actionData={{
+            label: initial.label,
+            sha,
+            content: savedSource,
+          }}
+          coordinates={coordinates}
+          dirty={dirty}
+          canDelete={initial.operations.delete && Boolean(sha)}
+          initial={initial}
+          saving={saving}
+          deleting={deletion.deleting}
+          canRename={
+            initial.operations.rename && Boolean(renameBaseHref) && Boolean(sha)
+          }
+          renaming={rename.renaming}
+          onDelete={() => deletion.remove()}
+          onRename={(filename) => rename.rename(filename)}
+          onSave={() => void save()}
+        />
+      }
+    >
+      <EditorError error={error ?? deletion.error ?? rename.error} />
+      <ClientOnly fallback={<Skeleton className="min-h-32" />}>
+        <Suspense fallback={<Skeleton className="min-h-32" />}>
+          <CodeEditor
+            label="Entry source"
+            format={coordinates.path.split('.').pop() ?? 'markdown'}
+            value={source}
+            onChange={(value) => {
+              setSource(value)
+            }}
+          />
+        </Suspense>
+      </ClientOnly>
+    </EditorLayout>
   )
 }
 
@@ -296,7 +281,6 @@ function StructuredEntryEditor({
   const [savedContent, setSavedContent] = useState(initial.content)
   const [sha, setSha] = useState(initial.sha)
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
   const [error, setError] = useState<unknown>(null)
   const dirty = JSON.stringify(content) !== JSON.stringify(savedContent)
   const fields = Array.isArray(initial.fields)
@@ -308,15 +292,14 @@ function StructuredEntryEditor({
 
   async function save() {
     setSaving(true)
-    setSaved(false)
     setError(null)
     try {
       const result = await updateStructuredEntry({
         data: { ...coordinates, content, sha },
       })
+      toast.success('File saved')
       setSha(result.sha)
       setSavedContent(content)
-      setSaved(true)
       await queryClient.invalidateQueries({
         queryKey: queryKeys.branch(coordinates),
       })
@@ -328,72 +311,70 @@ function StructuredEntryEditor({
   }
 
   return (
-    <div className="-m-4 md:-m-6">
-      <EditorHeader
-        actionData={{
-          label: initial.label,
-          sha,
-          content: savedContent,
-        }}
-        coordinates={coordinates}
-        dirty={dirty}
-        canDelete={initial.operations.delete && Boolean(sha)}
-        initial={initial}
-        saved={saved}
-        saving={saving}
-        deleting={deletion.deleting}
-        canRename={
-          initial.operations.rename && Boolean(renameBaseHref) && Boolean(sha)
-        }
-        renaming={rename.renaming}
-        onDelete={() => deletion.remove()}
-        onRename={(filename) => rename.rename(filename)}
-        onSave={() => void save()}
-      />
-      <div className="mx-auto max-w-3xl space-y-5 p-4 md:p-6">
-        <EditorError error={error ?? deletion.error ?? rename.error} />
-        <FieldGroup>
-          {initial.mode === 'structured-list' ? (
-            <StructuredContentField
-              field={{
-                name: 'items',
-                label: false,
-                type: 'object',
-                fields,
-                list: initial.list ?? true,
-              }}
-              referenceContext={{ ...coordinates, media: initial.media }}
-              value={content}
-              onChange={(value) => {
-                setSaved(false)
-                setContent(Array.isArray(value) ? value : [])
-              }}
-            />
-          ) : (
-            fields.map((field) => {
-              const name = String(field.name)
-              return (
-                <StructuredContentField
-                  field={field}
-                  key={name}
-                  referenceContext={{ ...coordinates, media: initial.media }}
-                  value={Array.isArray(content) ? undefined : content[name]}
-                  onChange={(value) => {
-                    setSaved(false)
-                    setContent((current) => {
-                      const next = Array.isArray(current) ? {} : { ...current }
-                      if (value === undefined) delete next[name]
-                      else next[name] = value
-                      return next
-                    })
-                  }}
-                />
-              )
-            })
-          )}
-        </FieldGroup>
-      </div>
-    </div>
+    <EditorLayout
+      header={
+        <EditorHeader
+          actionData={{
+            label: initial.label,
+            sha,
+            content: savedContent,
+          }}
+          coordinates={coordinates}
+          dirty={dirty}
+          canDelete={initial.operations.delete && Boolean(sha)}
+          initial={initial}
+          saving={saving}
+          deleting={deletion.deleting}
+          canRename={
+            initial.operations.rename && Boolean(renameBaseHref) && Boolean(sha)
+          }
+          renaming={rename.renaming}
+          onDelete={() => deletion.remove()}
+          onRename={(filename) => rename.rename(filename)}
+          onSave={() => void save()}
+        />
+      }
+    >
+      <EditorError error={error ?? deletion.error ?? rename.error} />
+      <FieldGroup>
+        {initial.mode === 'structured-list' ? (
+          <StructuredContentField
+            field={{
+              name: 'items',
+              label: false,
+              type: 'object',
+              fields,
+              list: initial.list ?? true,
+            }}
+            referenceContext={{ ...coordinates, media: initial.media }}
+            value={content}
+            onChange={(value) => {
+              setContent(Array.isArray(value) ? value : [])
+            }}
+          />
+        ) : (
+          fields.map((field) => {
+            const name = String(field.name)
+            return (
+              <StructuredContentField
+                field={field}
+                key={name}
+                referenceContext={{ ...coordinates, media: initial.media }}
+                value={Array.isArray(content) ? undefined : content[name]}
+                onChange={(value) => {
+                  setContent((current) => {
+                    const next = Array.isArray(current) ? {} : { ...current }
+                    if (value === undefined) delete next[name]
+                    else next[name] = value
+                    return next
+                  })
+                }}
+              />
+            )
+          })
+        )}
+      </FieldGroup>
+    </EditorLayout>
   )
 }
 
@@ -402,7 +383,6 @@ function EditorHeader({
   coordinates,
   actionData,
   saving,
-  saved,
   dirty,
   canDelete,
   canRename,
@@ -416,7 +396,6 @@ function EditorHeader({
   coordinates: ContentEntryCoordinates
   actionData: Record<string, unknown>
   saving: boolean
-  saved: boolean
   dirty: boolean
   canDelete: boolean
   canRename: boolean
@@ -476,65 +455,26 @@ function EditorHeader({
               disabled={saving || deleting || renaming || !dirty}
               onClick={onSave}
             >
-              {saving ? (
-                <LoaderCircle className="animate-spin" />
-              ) : saved ? (
-                <Check />
-              ) : null}
+              {saving ? <LoaderCircle className="animate-spin" /> : null}
               {saving ? 'Saving' : 'Save'}
             </Button>
-            {canRename || canDelete || (canViewGitHub && initial.sha) ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    aria-label="Entry actions"
-                    disabled={saving || deleting || renaming}
-                    size="icon"
-                    variant="outline"
-                  >
-                    <EllipsisVertical />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {canViewGitHub && initial.sha ? (
-                    <>
-                      <DropdownMenuItem asChild>
-                        <a
-                          href={`https://github.com/${encodeURIComponent(coordinates.owner)}/${encodeURIComponent(coordinates.repo)}/blob/${encodeURIComponent(coordinates.branch)}/${coordinates.path.split('/').map(encodeURIComponent).join('/')}`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          View on GitHub{' '}
-                          <ArrowUpRight className="ml-auto opacity-50" />
-                        </a>
-                      </DropdownMenuItem>
-                      {canRename || canDelete ? (
-                        <DropdownMenuSeparator />
-                      ) : null}
-                    </>
-                  ) : null}
-                  {canRename ? (
-                    <DropdownMenuItem
-                      onSelect={() => {
-                        setRenameFilename(currentFilename)
-                        setRenameOpen(true)
-                      }}
-                    >
-                      Rename
-                    </DropdownMenuItem>
-                  ) : null}
-                  {canRename && canDelete ? <DropdownMenuSeparator /> : null}
-                  {canDelete ? (
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onSelect={() => setDeleteOpen(true)}
-                    >
-                      Delete
-                    </DropdownMenuItem>
-                  ) : null}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : null}
+            <FileEditorMenu
+              disabled={saving || deleting || renaming}
+              href={
+                canViewGitHub && initial.sha
+                  ? `https://github.com/${encodeURIComponent(coordinates.owner)}/${encodeURIComponent(coordinates.repo)}/blob/${encodeURIComponent(coordinates.branch)}/${coordinates.path.split('/').map(encodeURIComponent).join('/')}`
+                  : undefined
+              }
+              onRename={
+                canRename
+                  ? () => {
+                      setRenameFilename(currentFilename)
+                      setRenameOpen(true)
+                    }
+                  : undefined
+              }
+              onDelete={canDelete ? () => setDeleteOpen(true) : undefined}
+            />
           </div>
           <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
             <DialogContent>
@@ -627,130 +567,12 @@ function EntryHistoryButton({
 }: {
   coordinates: ContentEntryCoordinates
 }) {
-  const canViewGitHub = useRepositoryGitHubLink()
-  const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [history, setHistory] = useState<
-    Awaited<ReturnType<typeof getEntryHistory>> | undefined
-  >()
-  const [error, setError] = useState<unknown>(null)
-
-  async function loadHistory() {
-    if (history || loading) return
-    setLoading(true)
-    setError(null)
-    try {
-      setHistory(await getEntryHistory({ data: coordinates }))
-    } catch (cause) {
-      setError(cause)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
-    <DropdownMenu
-      open={open}
-      onOpenChange={(nextOpen) => {
-        setOpen(nextOpen)
-        if (nextOpen) void loadHistory()
-      }}
-    >
-      <DropdownMenuTrigger asChild>
-        <Button
-          aria-label="Entry history"
-          size="icon"
-          type="button"
-          variant="outline"
-        >
-          {loading ? <LoaderCircle className="animate-spin" /> : <History />}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        className="w-64 max-w-[calc(100vw-2rem)]"
-      >
-        {error ? (
-          <DropdownMenuItem disabled>Could not load history.</DropdownMenuItem>
-        ) : loading || !history ? (
-          <div role="status" aria-label="Loading history" className="space-y-1">
-            {Array.from({ length: 3 }, (_, index) => (
-              <div key={index} className="flex items-center gap-3 px-1.5 py-1">
-                <Skeleton className="size-6 shrink-0 rounded-full" />
-                <div className="flex-1 space-y-1">
-                  <Skeleton className="h-4 w-28" />
-                  <Skeleton className="h-3 w-36" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : history.length ? (
-          history.slice(0, 3).map((commit) => (
-            <DropdownMenuItem asChild key={commit.sha}>
-              <a
-                className="min-w-0 gap-3"
-                href={canViewGitHub ? commit.url : undefined}
-                rel="noreferrer"
-                target="_blank"
-              >
-                <Avatar size="sm">
-                  <AvatarImage
-                    alt={`${commit.authorName}'s avatar`}
-                    src={
-                      commit.authorLogin
-                        ? `https://github.com/${commit.authorLogin}.png`
-                        : undefined
-                    }
-                  />
-                  <AvatarFallback>
-                    {historyInitials(commit.authorName)}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="min-w-0">
-                  <span className="block truncate">{commit.authorName}</span>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {commit.authoredAt
-                      ? new Date(commit.authoredAt).toLocaleString()
-                      : 'Unknown date'}
-                  </span>
-                </span>
-              </a>
-            </DropdownMenuItem>
-          ))
-        ) : (
-          <DropdownMenuItem disabled className="text-muted-foreground">
-            No history found.
-          </DropdownMenuItem>
-        )}
-        {canViewGitHub ? (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <a
-                className="whitespace-nowrap"
-                href={`https://github.com/${encodeURIComponent(coordinates.owner)}/${encodeURIComponent(coordinates.repo)}/commits/${encodeURIComponent(coordinates.branch)}/${coordinates.path.split('/').map(encodeURIComponent).join('/')}`}
-                rel="noreferrer"
-                target="_blank"
-              >
-                View on GitHub
-                <ArrowUpRight className="ml-auto opacity-50" />
-              </a>
-            </DropdownMenuItem>
-          </>
-        ) : null}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <FileEditorHistory
+      coordinates={coordinates}
+      load={() => getEntryHistory({ data: coordinates })}
+    />
   )
-}
-
-function historyInitials(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join('')
-    .toUpperCase()
 }
 
 function EditorError({ error }: { error: unknown }) {

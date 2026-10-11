@@ -160,7 +160,6 @@ export function createProjectService(
           columns: {
             owner: true,
             repo: true,
-            branch: true,
           },
           where: and(
             collaboratorMatchesUser(user),
@@ -189,7 +188,7 @@ export function createProjectService(
           owner: row.owner,
           repo: row.repo,
           private: true,
-          defaultBranch: row.branch,
+          defaultBranch: null,
           updatedAt: null,
         }))
       return mergeProjectRepositories(

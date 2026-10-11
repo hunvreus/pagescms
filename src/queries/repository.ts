@@ -54,6 +54,9 @@ export function actionsQueryOptions(input: BranchRef, includeRuns = true) {
     ] as const,
     queryFn: () => getActions({ data: { ...input, includeRuns } }),
     staleTime: 5_000,
+    // The shared tracker owns focus/reconnect status updates for the runs table.
+    refetchOnWindowFocus: !includeRuns,
+    refetchOnReconnect: !includeRuns,
     gcTime: queryTimes.gc,
   })
 }

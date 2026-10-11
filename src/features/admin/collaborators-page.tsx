@@ -1,3 +1,7 @@
+import { CollaboratorInviteInput } from '#/components/collaborator-invite-input'
+import { parseCollaboratorEmails } from '#/lib/collaborator-invites'
+import { toast } from 'sonner'
+import { SearchInput } from '#/components/search-input'
 import { useState } from 'react'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { LoaderCircle, UserPlus } from 'lucide-react'
@@ -13,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '#/components/ui/alert-dialog'
-import { Badge } from '#/components/ui/badge'
+import { CollaboratorStatus } from '#/features/collaborators/collaborator-status'
 import { Button } from '#/components/ui/button'
 import {
   Dialog,
@@ -23,7 +27,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '#/components/ui/dialog'
-import { Field, FieldDescription, FieldLabel } from '#/components/ui/field'
 import {
   Table,
   TableBody,
@@ -32,7 +35,6 @@ import {
   TableHeader,
   TableRow,
 } from '#/components/ui/table'
-import { Textarea } from '#/components/ui/textarea'
 import {
   hasRepositoryCollaborators,
   RepositoryPermissionsContribution,
@@ -46,18 +48,28 @@ function BasicCollaboratorsPage({
   owner,
   repo,
   branch,
-  embedded = false,
 }: {
   owner: string
   repo: string
   branch: string
-  embedded?: boolean
 }) {
   const params = { owner, repo, branch }
   const { data: collaborators } = useSuspenseQuery(
     collaboratorsQueryOptions(params),
   )
   const queryClient = useQueryClient()
+  const [search, setSearch] = useState('')
+  const query = search.trim().toLowerCase()
+  const visibleCollaborators = collaborators.filter((collaborator) =>
+    [
+      collaborator.name,
+      collaborator.email,
+      collaborator.userId ? 'Active' : 'Invitation pending',
+    ]
+      .join(' ')
+      .toLowerCase()
+      .includes(query),
+  )
   const [inviteOpen, setInviteOpen] = useState(false)
   const [emails, setEmails] = useState('')
   const [inviting, setInviting] = useState(false)
@@ -67,19 +79,23 @@ function BasicCollaboratorsPage({
   const [error, setError] = useState<unknown>(null)
 
   async function invite() {
-    const values = [
-      ...new Set(
-        emails
-          .split(/[\n,]+/)
-          .map((value) => value.trim())
-          .filter(Boolean),
-      ),
-    ]
-    if (!values.length) return
     setInviting(true)
     setError(null)
     try {
-      await addCollaborators({ data: { ...params, emails: values } })
+      parseCollaboratorEmails(emails)
+      const added = await addCollaborators({
+        data: { ...params, emails },
+      })
+      const invited = added.filter((person) => !person.userId).length
+      toast.success(
+        invited === added.length
+          ? added.length === 1
+            ? 'Invitation sent'
+            : `${added.length} invitations sent`
+          : added.length === 1
+            ? 'Collaborator added'
+            : `${added.length} collaborators added`,
+      )
       setEmails('')
       setInviteOpen(false)
       await queryClient.invalidateQueries({
@@ -98,6 +114,7 @@ function BasicCollaboratorsPage({
     setError(null)
     try {
       await deleteCollaborator({ data: { ...params, id: collaborator.id } })
+      toast.success('Collaborator removed')
       setRemoving(null)
       await queryClient.invalidateQueries({
         queryKey: collaboratorsQueryOptions(params).queryKey,
@@ -109,17 +126,30 @@ function BasicCollaboratorsPage({
 
   return (
     <RepositoryAdminPage
-      embedded={embedded}
       title="Collaborators"
       actions={
-        <Button size="sm" variant="outline" onClick={() => setInviteOpen(true)}>
-          <UserPlus />
-          Invite collaborator
-        </Button>
+        <>
+          <SearchInput
+            aria-label="Search collaborators"
+            placeholder="Search collaborators…"
+
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+          <Button
+            onClick={() => {
+              setError(null)
+              setInviteOpen(true)
+            }}
+          >
+            <UserPlus />
+            Invite collaborator
+          </Button>
+        </>
       }
     >
       <OperationError
-        error={error}
+        error={inviteOpen ? null : error}
         fallback="Could not update collaborators."
       />
       <Table
@@ -128,25 +158,30 @@ function BasicCollaboratorsPage({
       >
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead>Email</TableHead>
+            <TableHead>Collaborator</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Access</TableHead>
             <TableHead className="w-px" />
           </TableRow>
         </TableHeader>
         <TableBody>
-          {collaborators.length ? (
-            collaborators.map((collaborator) => (
+          {visibleCollaborators.length ? (
+            visibleCollaborators.map((collaborator) => (
               <TableRow key={collaborator.id}>
                 <TableCell className="font-medium">
-                  {collaborator.email}
+                  {collaborator.name ? <div>{collaborator.name}</div> : null}
+                  <div
+                    className={
+                      collaborator.name
+                        ? 'text-sm font-normal text-muted-foreground'
+                        : undefined
+                    }
+                  >
+                    {collaborator.email}
+                  </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="secondary">
-                    {collaborator.userId ? 'Active' : 'Invitation pending'}
-                  </Badge>
+                  <CollaboratorStatus active={Boolean(collaborator.userId)} />
                 </TableCell>
-                <TableCell>{collaborator.branch ?? 'All branches'}</TableCell>
                 <TableCell className="py-0 text-right">
                   <Button
                     aria-label={`Remove ${collaborator.email}`}
@@ -163,9 +198,9 @@ function BasicCollaboratorsPage({
             <TableRow className="hover:bg-transparent">
               <TableCell
                 className="text-center text-muted-foreground"
-                colSpan={4}
+                colSpan={3}
               >
-                No collaborators yet.
+                {query ? 'No matching collaborators.' : 'No collaborators yet.'}
               </TableCell>
             </TableRow>
           )}
@@ -187,22 +222,18 @@ function BasicCollaboratorsPage({
               void invite()
             }}
           >
-            <Field>
-              <FieldLabel htmlFor="collaborator-emails">
-                Email addresses
-              </FieldLabel>
-              <Textarea
-                id="collaborator-emails"
-                placeholder="alice@example.com, bob@example.com"
-                rows={5}
-                value={emails}
-                onChange={(event) => setEmails(event.target.value)}
-              />
-              <FieldDescription>
-                Separate addresses with commas or new lines. Invitations expire
-                after 24 hours.
-              </FieldDescription>
-            </Field>
+            <OperationError
+              error={error}
+              fallback="Could not invite collaborators."
+            />
+            <CollaboratorInviteInput
+              value={emails}
+              onChange={setEmails}
+              disabled={inviting}
+            />
+            <p className="text-sm text-muted-foreground">
+              Invitations expire after 24 hours.
+            </p>
             <DialogFooter>
               <Button disabled={inviting || !emails.trim()} type="submit">
                 {inviting ? (
@@ -247,11 +278,10 @@ export function CollaboratorsPage(props: {
   owner: string
   repo: string
   branch: string
-  embedded?: boolean
 }) {
   if (hasRepositoryCollaborators) {
     return (
-      <RepositoryAdminPage embedded={props.embedded} title="Collaborators">
+      <RepositoryAdminPage title="Collaborators">
         <RepositoryPermissionsContribution {...props} />
       </RepositoryAdminPage>
     )

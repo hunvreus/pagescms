@@ -50,6 +50,27 @@ test('keeps media page chrome stable and restores cached folders immediately', a
   })
 })
 
+test('centers gallery folder labels and remembers the media view after reload', async ({
+  page,
+}) => {
+  await page.goto('/pagescms/fixture/main/media/default')
+  const folder = page.getByRole('button', { name: 'Library', exact: true })
+  await expect(folder).toBeVisible()
+  const label = folder.getByText('Library', { exact: true })
+  await expect(label).toHaveCSS('text-align', 'center')
+  await expect(label).toHaveCSS('padding-left', '12px')
+  await page.getByRole('radio', { name: 'List view' }).click()
+  const response = await page.reload()
+  expect(await response!.text()).toMatch(
+    /<button(?=[^>]*aria-label="List view")(?=[^>]*aria-checked="true")[^>]*>/,
+  )
+  await expect(page.getByRole('radio', { name: 'List view' })).toBeChecked()
+  await expect(page.getByRole('columnheader', { name: 'Name' })).toBeVisible()
+  await page.getByRole('radio', { name: 'Grid view' }).click()
+  await page.reload()
+  await expect(page.getByRole('radio', { name: 'Grid view' })).toBeChecked()
+})
+
 test('supports the full-page media browsing and mutation workflow', async ({
   page,
 }) => {

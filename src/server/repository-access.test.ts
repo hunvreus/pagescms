@@ -35,7 +35,7 @@ function databaseWith(input: {
   } | null
 }) {
   const collaboratorFind = vi.fn(async () =>
-    input.collaborator ? [{ branch: null, ...input.collaborator }] : [],
+    input.collaborator ? [input.collaborator] : [],
   )
   const database = {
     query: {
@@ -126,14 +126,13 @@ describe('repository access', () => {
       }).resolve(user, 'private-owner', 'private-repo'),
     ).rejects.toThrow('do not have permission')
   })
-  it('reuses repository admission without widening an existing core branch scope', async () => {
+  it('reuses repository-wide collaborator admission for every branch', async () => {
     const cryptoKey = btoa(String.fromCharCode(...new Uint8Array(32).fill(31)))
     const encrypted = await encryptSecret('ghs_installation', cryptoKey)
     const { database, collaboratorFind } = databaseWith({
       collaborator: {
         email: 'editor@example.com',
         installationId: 42,
-        branch: 'main',
       },
       cachedToken: { ...encrypted, expiresAt: new Date(Date.now() + 600000) },
     })
@@ -151,7 +150,6 @@ describe('repository access', () => {
       'pagescms',
       'pagescms',
     )
-    expect(admission.branches).toEqual(['main'])
     expect(
       await service.resolve(
         { ...user, githubUsername: null },
@@ -167,7 +165,7 @@ describe('repository access', () => {
         'pagescms',
         'draft',
       ),
-    ).rejects.toThrow('do not have permission')
+    ).resolves.toBe(admission)
     expect(collaboratorFind).toHaveBeenCalledTimes(1)
   })
 })

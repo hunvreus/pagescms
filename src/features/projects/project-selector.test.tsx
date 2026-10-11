@@ -37,7 +37,7 @@ describe('repository search loading', () => {
       />,
     )
   }
-  it('keeps existing rows and shows an inline spinner while fetching', () => {
+  it('keeps existing rows without a search spinner during background refresh', () => {
     Object.assign(state, {
       data: [{ owner: 'pagescms', repo: 'fixture', private: false }],
       isPending: false,
@@ -45,13 +45,16 @@ describe('repository search loading', () => {
     })
     const html = render()
     expect(html).toContain('fixture')
-    expect(html).toContain('aria-label="Filtering repositories"')
-    expect(html).toContain('aria-busy="true"')
+    expect(html).not.toContain('aria-label="Filtering repositories"')
+    expect(html).toContain('aria-busy="false"')
     expect(html).not.toContain('aria-label="Loading repositories"')
   })
   it('uses skeleton rows only before the first results load', () => {
     Object.assign(state, { data: undefined, isPending: true, isFetching: true })
-    expect(render()).toContain('aria-label="Loading repositories"')
+    const html = render()
+    expect(html).toContain('aria-label="Loading repositories"')
+    expect(html).not.toContain('aria-label="Filtering repositories"')
+    expect(html).toMatch(/<input[^>]*disabled=""/)
   })
   it('removes the spinner once fetching finishes', () => {
     Object.assign(state, { data: [], isPending: false, isFetching: false })

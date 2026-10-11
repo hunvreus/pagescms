@@ -1,3 +1,4 @@
+import { SearchInput } from '#/components/search-input'
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import {
@@ -6,7 +7,7 @@ import {
   redirect,
   useRouter,
 } from '@tanstack/react-router'
-import { FolderPlus, LoaderCircle, Plus, Search } from 'lucide-react'
+import { FolderPlus, LoaderCircle, Plus } from 'lucide-react'
 
 import { isContentField } from '#/lib/content-field'
 import { RepositoryActionButtons } from '#/components/repository-action-buttons'
@@ -239,6 +240,8 @@ function CollectionPage() {
       await moveEntry({
         data: { ...params, path: entry.path, newPath, sha: entry.sha },
       })
+      const { toast } = await import('sonner')
+      toast.success('File moved')
       await queryClient.invalidateQueries({
         queryKey: queryKeys.branch(params),
       })
@@ -262,6 +265,8 @@ function CollectionPage() {
           folder,
         },
       })
+      const { toast } = await import('sonner')
+      toast.success('Folder created')
       setCreatingFolder(false)
       setFolder('')
       await queryClient.invalidateQueries({
@@ -292,6 +297,8 @@ function CollectionPage() {
           filename: renamedFilename,
         },
       })
+      const { toast } = await import('sonner')
+      toast.success('File renamed')
       setRenaming(undefined)
       await refreshCollection()
     } catch (cause) {
@@ -313,6 +320,8 @@ function CollectionPage() {
           sha: deleting.sha,
         },
       })
+      const { toast } = await import('sonner')
+      toast.success('File deleted')
       setDeleting(undefined)
       await refreshCollection()
     } catch (cause) {
@@ -355,20 +364,16 @@ function CollectionPage() {
   }
 
   return (
-    <div className="-mt-4 space-y-5 md:-mt-6">
+    <div className="-mt-4 space-y-4 md:-mt-6 md:space-y-6">
       <CollectionHeader
         actions={
-          <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
-            <label className="relative w-full sm:w-64">
-              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                aria-label="Search collection"
-                className="pl-9"
-                placeholder="Search entries…"
-                value={tableSearch}
-                onChange={(event) => setTableSearch(event.target.value)}
-              />
-            </label>
+          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
+            <SearchInput
+              aria-label="Search collection"
+              placeholder="Search entries…"
+              value={tableSearch}
+              onChange={(event) => setTableSearch(event.target.value)}
+            />
             <RepositoryActionButtons
               actions={data.collection.actions}
               context={{

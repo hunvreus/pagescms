@@ -1,3 +1,4 @@
+import { RepositoryAdminHeaderActions } from '#/features/admin/repository-admin-page'
 import {
   repositoryWorkspaceQueryOptions,
   repositoryBranchesQueryOptions,
@@ -98,6 +99,7 @@ export function RepositoryPermissionsContribution({
       }
     >
       <RepositoryPermissions
+        HeaderActions={RepositoryAdminHeaderActions}
         branch={branch}
         disabled={query.isFetching}
         owner={owner}

@@ -4,7 +4,13 @@ import { describe, expect, it } from 'vitest'
 
 import * as schema from './schema'
 
-describe('legacy-compatible database schema', () => {
+describe('database schema', () => {
+  it('keeps core collaborators repository-wide', () => {
+    expect(getTableColumns(schema.collaboratorTable)).not.toHaveProperty(
+      'branch',
+    )
+  })
+
   it('preserves every production table name', () => {
     expect(
       [

@@ -5,6 +5,17 @@ test('raw files use the same CodeMirror editor and persist source exactly', asyn
   page,
 }) => {
   await page.goto('/pagescms/fixture/main/file/raw-code')
+  await page.waitForLoadState('networkidle')
+  await page.getByRole('button', { name: 'Entry actions' }).click()
+  const menu = page.getByRole('menu')
+  await expect(menu.getByRole('menuitem', { name: 'Rename' })).toHaveCount(0)
+  await expect(menu.getByRole('menuitem', { name: 'Delete' })).toBeVisible()
+  const github = menu.getByRole('menuitem', { name: 'View on GitHub' })
+  await expect(github).toBeVisible()
+  expect(
+    await github.evaluate((element) => getComputedStyle(element).whiteSpace),
+  ).toBe('nowrap')
+  await page.keyboard.press('Escape')
   const editor = page.getByRole('textbox', { name: 'Entry source' })
   await expect(page.getByText('Source editor', { exact: true })).toHaveCount(0)
   await expect(editor).toHaveClass(/cm-content/)
@@ -48,7 +59,7 @@ test('code fields use CodeMirror, preserve edits and undo, and respect readonly'
 test('configuration shows YAML diagnostics and blocks invalid saves', async ({
   page,
 }) => {
-  await page.goto('/pagescms/fixture/main/settings?edit=configuration')
+  await page.goto('/pagescms/fixture/main/configuration?edit=configuration')
   await page.waitForLoadState('networkidle')
   const editor = page.getByRole('textbox', { name: 'Pages CMS configuration' })
   await expect(editor).toContainText('content:')
@@ -84,12 +95,9 @@ test('configuration shows YAML diagnostics and blocks invalid saves', async ({
   )
   await page.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(
-    page.getByRole('button', { name: 'Edit configuration' }),
-  ).toBeVisible()
+    page.getByRole('button', { name: 'Save', exact: true }),
+  ).toBeDisabled()
   await page.reload()
-  await expect(editor).toHaveAttribute('contenteditable', 'false')
-  await page.getByRole('button', { name: 'Edit configuration' }).click()
-  await expect(page).toHaveURL(/edit=configuration/)
   await expect(editor).toHaveAttribute('contenteditable', 'true')
   await expect(editor).toContainText('surprise: true')
   await expect(page.locator('.cm-lintRange-warning')).toHaveText('surprise')
@@ -101,6 +109,6 @@ test('configuration shows YAML diagnostics and blocks invalid saves', async ({
   await editor.fill(configuration)
   await page.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(
-    page.getByRole('button', { name: 'Edit configuration' }),
-  ).toBeVisible()
+    page.getByRole('button', { name: 'Save', exact: true }),
+  ).toBeDisabled()
 })

@@ -3,12 +3,15 @@ import { describe, expect, it } from 'vitest'
 import { ConfigurationSchema } from './configuration-schema'
 
 describe('ConfigurationSchema', () => {
-  it.each([{ cache: false }, { settings: { cache: false } }])(
-    'rejects the removed cache setting: %j',
-    (value) => {
-      expect(ConfigurationSchema.safeParse(value).success).toBe(false)
-    },
-  )
+  it('accepts the opt-in cache management setting and rejects the legacy root switch', () => {
+    expect(
+      ConfigurationSchema.safeParse({ settings: { cache: true } }).success,
+    ).toBe(true)
+    expect(
+      ConfigurationSchema.safeParse({ settings: { cache: false } }).success,
+    ).toBe(true)
+    expect(ConfigurationSchema.safeParse({ cache: true }).success).toBe(false)
+  })
   it('accepts representative legacy content, media, settings, and actions', () => {
     expect(
       ConfigurationSchema.safeParse({
@@ -115,5 +118,43 @@ describe('ConfigurationSchema', () => {
   it('rejects unknown top-level keys', () => {
     const result = ConfigurationSchema.safeParse({ surprise: true })
     expect(result.success).toBe(false)
+  })
+})
+
+describe('rich-text HTML configuration', () => {
+  const config = (html: unknown) => ({
+    content: [
+      {
+        type: 'file',
+        name: 'home',
+        path: 'index.md',
+        fields: [
+          {
+            name: 'body',
+            type: 'rich-text',
+            options: { format: 'markdown', html },
+          },
+        ],
+      },
+    ],
+  })
+  it('accepts selector policies and attribute permissions', () => {
+    expect(
+      ConfigurationSchema.safeParse(
+        config({
+          keep: ['div.callout', 'details', 'summary'],
+          strip: ['.legacy'],
+          drop: ['.discard'],
+          attributes: ['class', 'data-kind'],
+        }),
+      ).success,
+    ).toBe(true)
+  })
+  it.each([
+    { keep: 'div' },
+    { attributes: [42] },
+    { keep: ['div'], unknown: true },
+  ])('rejects malformed HTML policies', (html) => {
+    expect(ConfigurationSchema.safeParse(config(html)).success).toBe(false)
   })
 })

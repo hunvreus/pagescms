@@ -94,7 +94,7 @@ describe('inviteCollaborators', () => {
     const collaborator = {
       id: 40,
       email: 'editor@example.com',
-      branch: null,
+      name: 'Editor Name',
       userId: 'user-2',
     }
     const database = {
@@ -138,6 +138,7 @@ describe('inviteCollaborators', () => {
         owner: 'pages-cms',
         repo: 'site',
         emails: ['editor@example.com'],
+        names: { 'editor@example.com': 'Editor Name' },
         prepare,
         githubApiFactory: () => githubApi as never,
       }),

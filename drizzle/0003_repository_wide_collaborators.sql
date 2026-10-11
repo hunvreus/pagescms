@@ -1,0 +1,1 @@
+ALTER TABLE `collaborator` DROP COLUMN `branch`;

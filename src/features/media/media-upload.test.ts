@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   MEDIA_UPLOAD_LIMIT,
+  MediaUploadError,
   uploadMediaFiles,
   validateMediaUpload,
 } from './media-upload'
@@ -14,6 +15,13 @@ const mediaFunctions = vi.hoisted(() => ({
 }))
 
 vi.mock('#/functions/media', () => mediaFunctions)
+
+const notifications = vi.hoisted(() => ({
+  loading: vi.fn(() => 'batch'),
+  success: vi.fn(),
+  error: vi.fn(),
+}))
+vi.mock('sonner', () => ({ toast: notifications }))
 
 const coordinates = {
   owner: 'owner',
@@ -140,5 +148,71 @@ describe('uploadMediaFiles direct uploads', () => {
     await expect(result).resolves.toEqual(['images/photo.jpg'])
     expect(mediaFunctions.confirmMediaUpload).toHaveBeenCalledTimes(2)
     expect(mediaFunctions.abortMediaUpload).not.toHaveBeenCalled()
+  })
+})
+
+it('reports a partial batch and preserves confirmed files when a later upload fails', async () => {
+  mediaFunctions.initiateMediaUpload.mockResolvedValue({
+    kind: 'direct',
+    path: 'images/Photo.JPG',
+    plan: {
+      kind: 'post',
+      url: 'https://uploads.example.test',
+      fields: {},
+      ticket: 'ticket',
+    },
+  })
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+    new Response(null, { status: 204 }),
+  )
+  mediaFunctions.confirmMediaUpload.mockResolvedValue({
+    path: 'images/Photo.JPG',
+  })
+  const failure = await uploadMediaFiles({
+    coordinates,
+    extensions: ['JPG'],
+    files: [new File(['a'], 'Photo.JPG'), new File(['b'], 'bad.pdf')],
+    path: 'images',
+  }).catch((error) => error)
+  expect(failure).toBeInstanceOf(MediaUploadError)
+  expect(failure.paths).toEqual(['images/Photo.JPG'])
+  expect(notifications.error).toHaveBeenCalledWith(
+    '1 of 2 files uploaded',
+    expect.objectContaining({
+      id: 'batch',
+      description: 'bad.pdf uses a disallowed file extension',
+    }),
+  )
+  expect(notifications.success).not.toHaveBeenCalled()
+})
+
+it('updates one batch notification through completion', async () => {
+  mediaFunctions.initiateMediaUpload.mockResolvedValue({
+    kind: 'direct',
+    path: 'images/photo.jpg',
+    plan: {
+      kind: 'post',
+      url: 'https://uploads.example.test',
+      fields: {},
+      ticket: 'ticket',
+    },
+  })
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+    new Response(null, { status: 204 }),
+  )
+  mediaFunctions.confirmMediaUpload.mockResolvedValue({
+    path: 'images/photo.jpg',
+  })
+  await uploadMediaFiles({
+    coordinates,
+    files: [new File(['a'], 'a.jpg'), new File(['b'], 'b.jpg')],
+    path: 'images',
+  })
+  expect(notifications.loading).toHaveBeenCalledWith(
+    'Uploading 2 of 2 files…',
+    { id: 'batch' },
+  )
+  expect(notifications.success).toHaveBeenCalledWith('2 files uploaded', {
+    id: 'batch',
   })
 })

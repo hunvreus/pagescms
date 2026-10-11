@@ -56,7 +56,6 @@ integration('security boundaries against SQLite', () => {
       ownerId: 20,
       repoId: 10,
       email: user.email,
-      branch: 'main',
     })
     await database!.insert(collaboratorInviteTable).values({
       ...coordinates,

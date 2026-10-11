@@ -17,6 +17,7 @@ import {
 
 import type { ReferenceContext } from '#/components/structured-content-field'
 import type {
+  MarkdownHtmlPolicy,
   ImagePickerResult,
   ImageUploadResult,
 } from '#/components/ui/editor'
@@ -28,6 +29,22 @@ function fieldOptions(field: JsonObject) {
     !Array.isArray(field.options)
     ? field.options
     : {}
+}
+
+function htmlPolicy(
+  value: JsonValue | undefined,
+): MarkdownHtmlPolicy | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    return undefined
+  const policy: MarkdownHtmlPolicy = {}
+  for (const key of ['keep', 'strip', 'drop', 'attributes'] as const) {
+    const entries = value[key]
+    if (Array.isArray(entries))
+      policy[key] = entries.filter(
+        (entry): entry is string => typeof entry === 'string',
+      )
+  }
+  return policy
 }
 
 export default function RichTextField({
@@ -135,7 +152,7 @@ export default function RichTextField({
 
   return (
     <>
-      <div className="space-y-2">
+      <div className="min-h-16 space-y-2">
         {mode === 'editor' ? (
           <Editor
             ariaLabel={label}
@@ -144,6 +161,7 @@ export default function RichTextField({
             enableImagePasteDrop={Boolean(mediaContext)}
             enableImages
             format={format}
+            markdownHtml={htmlPolicy(options.html)}
             imageFallback={mediaContext ? 'none' : 'prompt-url'}
             value={editorValue}
             onChange={(nextValue) =>

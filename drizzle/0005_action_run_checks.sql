@@ -1,0 +1,1 @@
+ALTER TABLE `action_run` ADD `checked_at` integer;

@@ -16,6 +16,7 @@ const row = {
   owner: 'PagesCMS',
   repo: 'Test',
   email: 'person@example.com',
+  name: 'Person Name',
   invitedByEmail: 'admin@example.com',
 }
 
@@ -37,8 +38,8 @@ async function database() {
 
 describe('collaborator migration', () => {
   it('round-trips CSV quotes, commas, and multiline values', () => {
-    const value = { ...row, branch: 'a,"quoted"\nbranch' }
-    expect(parseCsv(stringifyCsv([value]))[0].branch).toBe(value.branch)
+    const value = { ...row, repo: 'a,"quoted"\nbranch' }
+    expect(parseCsv(stringifyCsv([value]))[0].repo).toBe(value.repo)
     expect(() => parseCsv('"unclosed')).toThrow()
   })
 
@@ -48,15 +49,15 @@ describe('collaborator migration', () => {
       await importCollaborators(client, stringifyCsv([row]))
       await importCollaborators(
         client,
-        stringifyCsv([{ ...row, owner: 'pagescms', branch: 'main' }]),
+        stringifyCsv([{ ...row, owner: 'pagescms' }]),
       )
       const result = parseCsv(await exportCollaborators(client))
       expect(result).toHaveLength(1)
       expect(result[0]).toMatchObject({
         userId: 'person',
+        name: 'Person Name',
         invitedBy: 'admin',
         invitedByEmail: 'admin@example.com',
-        branch: 'main',
       })
     } finally {
       client.close()

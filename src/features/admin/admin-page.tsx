@@ -122,7 +122,6 @@ export function AdminPage() {
   }
   const [pending, setPending] = useState<PendingAction | null>(null)
   const [running, setRunning] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<unknown>(null)
   const search = {
     query: data.query || undefined,
@@ -134,14 +133,14 @@ export function AdminPage() {
     setPending(null)
     setRunning(value.userId ?? value.target ?? value.action)
     setError(null)
-    setMessage(null)
     try {
       const result = await runAdminAction({ data: value })
       if (result.signedOut) {
         window.location.assign('/sign-in')
         return
       }
-      setMessage(result.message)
+      const { toast } = await import('sonner')
+      toast.success(result.message)
       await queryClient.invalidateQueries({ queryKey: queryKeys.admin() })
     } catch (cause) {
       setError(cause)
@@ -182,14 +181,9 @@ export function AdminPage() {
   }
   return (
     <div className="flex min-h-screen flex-col">
-      <AppHeader isAdmin={false} user={data.user} />
+      <AppHeader isAdmin={true} user={data.user} />
       <main className="mx-auto w-full max-w-[808px] space-y-10 p-4 pt-20 pb-8 md:p-6 md:pt-22 md:pb-10">
         <PageHeader title="Admin settings" />
-        {message ? (
-          <p role="status" className="text-sm text-muted-foreground">
-            {message}
-          </p>
-        ) : null}
         <OperationError error={error} fallback="Admin action failed." />
         <OperationError
           error={filterError}
@@ -455,7 +449,7 @@ export function AdminPage() {
                       </Badge>
                     ))}
                   </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
+                  <p className="mt-0.5 text-sm text-muted-foreground">
                     {row.description}
                   </p>
                 </div>
@@ -556,19 +550,65 @@ export function AdminSkeleton() {
       <AppHeaderSkeleton />
       <main
         aria-label="Loading admin settings"
+        aria-busy="true"
         className="mx-auto w-full max-w-[808px] space-y-10 p-4 pt-20 pb-8 md:p-6 md:pt-22 md:pb-10"
       >
         <PageHeader title="Admin settings" />
         {['Users', 'Repositories', 'Cache'].map((title) => (
           <section key={title} className="space-y-3">
-            <h2 className="text-sm font-medium">{title}</h2>
-            <div className="divide-y rounded-xl border bg-card">
-              {Array.from({ length: 3 }, (_, index) => (
-                <div key={index} className="p-4">
-                  <Skeleton className="h-6 w-full" />
-                </div>
-              ))}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-sm font-medium">{title}</h2>
+              <Skeleton className="h-7 w-48" />
             </div>
+            {title !== 'Cache' ? (
+              <div className="scrollbar overflow-x-auto rounded-xl border bg-card">
+                <table className="w-full text-left text-sm">
+                  <thead className="border-b text-muted-foreground">
+                    <tr>
+                      {(title === 'Users'
+                        ? ['Name', 'Email', 'GitHub', 'Joined', '']
+                        : ['Repository', 'Collaborators', 'Last opened', '']
+                      ).map((label) => (
+                        <th key={label} className="px-4 py-3 font-medium">
+                          {label}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {[0, 1, 2].map((row) => (
+                      <tr key={row}>
+                        {Array.from(
+                          { length: title === 'Users' ? 5 : 4 },
+                          (_, column) => (
+                            <td key={column} className="px-4 py-3">
+                              <Skeleton className="h-4 w-20" />
+                            </td>
+                          ),
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="divide-y rounded-xl border bg-card">
+                {['Content', 'Configuration'].map((cacheTitle) => (
+                  <div
+                    key={cacheTitle}
+                    className="flex items-center justify-between gap-4 p-4"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm font-medium">{cacheTitle}</h3>
+                      <Skeleton className="mt-0.5 h-4 w-full max-w-lg" />
+                    </div>
+                    <Button disabled variant="destructive" size="sm">
+                      Clear
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         ))}
       </main>

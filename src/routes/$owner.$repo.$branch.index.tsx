@@ -76,11 +76,7 @@ function RepositoryOverview() {
         {!workspace.configuration && workspace.canViewGitHub ? (
           <EmptyContent>
             <Button asChild>
-              <Link
-                to="/$owner/$repo/$branch/settings"
-                params={params}
-                search={{ edit: 'configuration' }}
-              >
+              <Link to="/$owner/$repo/$branch/configuration" params={params}>
                 Add configuration
               </Link>
             </Button>

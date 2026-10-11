@@ -16,13 +16,13 @@ The build resolves two stable aliases:
 - `#pagescms/deployment/server` may import secrets and server-only dependencies. It exports a factory so environment variables are validated and supplied at startup, not read during module import. Core invokes that factory once per runtime instance (for example, once per Worker isolate or Node process), and reuses the returned deployment services across requests. Those services must therefore be concurrency-safe and must not retain request, session, or user state.
 - `#pagescms/deployment/client` contains only lazy client contributions and field editors. It must never import the server entry.
 
-The public build resolves both aliases to in-tree defaults. Hosted CI resolves them to entry points in `../pagescms-pro`, or to a normal hosted-only private `file:` dependency if direct sibling source cannot satisfy Vite, TypeScript, Vitest, Wrangler, HMR, and dependency-deduplication checks. Private code is never copied or generated into the public checkout.
+The public build resolves both aliases to in-tree defaults. Hosted CI resolves them to entry points in `../pagescms-hosted`, or to a normal hosted-only private `file:` dependency if direct sibling source cannot satisfy Vite, TypeScript, Vitest, Wrangler, HMR, and dependency-deduplication checks. Private code is never copied or generated into the public checkout.
 
 Select an alternate composition by setting both entries together:
 
 ```sh
-PAGESCMS_DEPLOYMENT_SERVER=../pagescms-pro/deployment.server.ts \
-PAGESCMS_DEPLOYMENT_CLIENT=../pagescms-pro/deployment-client.ts \
+PAGESCMS_DEPLOYMENT_SERVER=../pagescms-hosted/deployment.server.ts \
+PAGESCMS_DEPLOYMENT_CLIENT=../pagescms-hosted/deployment-client.ts \
 pnpm build
 ```
 
@@ -127,7 +127,7 @@ Custom field code is installed at build time. The server registry owns validatio
 ## Private repository and release flow
 
 ```text
-../pagescms-pro/
+../pagescms-hosted/
   package.json
   deployment.server.ts
   deployment-client.ts
@@ -146,13 +146,13 @@ Custom field code is installed at build time. The server registry owns validatio
     integration/
 ```
 
-The repositories are independently versioned. Pull/rebase Pages CMS normally, pull `../pagescms-pro` separately, then run the compatibility and contract/build matrices. Public migrations run before private migrations; rollback reverses that order. Private tables initially reference public records by stable identifiers without cross-repository foreign keys. Public migration discovery never scans sibling paths.
+The repositories are independently versioned. Pull/rebase Pages CMS normally, pull `../pagescms-hosted` separately, then run the compatibility and contract/build matrices. Public migrations run before private migrations; rollback reverses that order. Private tables initially reference public records by stable identifiers without cross-repository foreign keys. Public migration discovery never scans sibling paths.
 
 ## Required validation
 
 CI must cover:
 
-- a public build with `../pagescms-pro` absent;
+- a public build with `../pagescms-hosted` absent;
 - a fixture-composed public build using `tests/deployment/fake-pro/`;
 - private CI against every supported public version;
 - contract tests for denial/no-side-effect behavior, quota reservation/settlement, media capabilities, webhook idempotency, and client-safe projections;
@@ -161,10 +161,18 @@ CI must cover:
 - public and hosted Cloudflare Workers dry-runs;
 - private migration and provider integration tests.
 
-The composition spike must additionally prove sibling HMR, singleton dependency deduplication, TypeScript/Vitest/Vite resolver agreement, private Drizzle migration ownership, and Workers bundle isolation before `../pagescms-pro` becomes the production integration path.
+The composition spike must additionally prove sibling HMR, singleton dependency deduplication, TypeScript/Vitest/Vite resolver agreement, private Drizzle migration ownership, and Workers bundle isolation before `../pagescms-hosted` becomes the production integration path.
 
 The `repositoryPermissions` client contribution owns the full collaborator UI:
 core passes collaborators, branch names, configuration resources, the permission
 state and server-backed invite/remove/replace callbacks. Core renders its basic
 component only when that contribution is absent. The contribution does not append
 an assignment table to core's existing table.
+
+An optional `HeaderActions` component places contribution controls in the core
+page header. Use it for invitations, role creation, and saving permissions;
+keep row-specific controls with their rows.
+
+Client contributions can import `toast` from `pagescms/lib/notifications` to share the application’s Sonner instance. Report success after a confirmed mutation, keep errors inline, and avoid duplicate notifications for one operation. Pro’s collaborator and role editors use this shared notifier.
+
+The collaborator contribution’s `onInvite` receives `emails: string` with the selected roles and branches. Use `pagescms/components/collaborator-invite-input` and `pagescms/lib/collaborator-invites` for the shared expanding textarea and email validation. Pro retains role and branch assignments keyed by email.

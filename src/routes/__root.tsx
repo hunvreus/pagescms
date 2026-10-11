@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import {
   HeadContent,
   Link,
@@ -27,6 +28,12 @@ import type { QueryClient } from '@tanstack/react-query'
 interface MyRouterContext {
   queryClient: QueryClient
 }
+
+const Toaster = lazy(() =>
+  import('#/components/ui/sonner').then((module) => ({
+    default: module.Toaster,
+  })),
+)
 
 const description = 'The open-source CMS for GitHub repositories.'
 const socialImage = 'https://app.pagescms.org/images/social-card.png'
@@ -127,6 +134,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
+        <Suspense fallback={null}>
+          <Toaster position="bottom-right" />
+        </Suspense>
         {import.meta.env.DEV &&
         import.meta.env.VITE_DISABLE_TANSTACK_DEVTOOLS !== 'true' ? (
           <TanStackDevtools

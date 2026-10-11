@@ -40,10 +40,15 @@ test('navigates a repository and persists a structured entry update', async ({
   const collectionActionsMenu = page.getByRole('menu')
   await expect(
     collectionActionsMenu.locator('[data-slot="dropdown-menu-separator"]'),
-  ).toHaveCount(2)
+  ).toHaveCount(0)
   await expect(
     collectionActionsMenu.getByRole('menuitem', { name: 'View on GitHub' }),
   ).toBeVisible()
+  expect(
+    await collectionActionsMenu
+      .getByRole('menuitem', { name: 'View on GitHub' })
+      .evaluate((element) => getComputedStyle(element).whiteSpace),
+  ).toBe('nowrap')
   await page.keyboard.press('Escape')
 
   await page.getByRole('link', { name: 'Edit' }).click()
@@ -91,7 +96,7 @@ test('navigates a repository and persists a structured entry update', async ({
   const actionsMenu = page.getByRole('menu')
   await expect(
     actionsMenu.locator('[data-slot="dropdown-menu-separator"]'),
-  ).toHaveCount(2)
+  ).toHaveCount(0)
   await expect(
     actionsMenu.getByRole('menuitem', { name: 'View on GitHub' }),
   ).toBeVisible()
@@ -115,4 +120,25 @@ test('navigates a repository and persists a structured entry update', async ({
   await expect(page.getByLabel('Title')).toHaveValue('')
   await expect(page.getByRole('textbox', { name: 'Body' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Create entry' })).toBeVisible()
+})
+
+test('opening rich text preserves source and stays clean until editing', async ({
+  page,
+}) => {
+  await page.goto(
+    '/pagescms/fixture/main/collection/posts/entry/content/posts/unchanged.md',
+  )
+  const save = page.getByRole('button', { name: 'Save', exact: true })
+  const body = page.getByRole('textbox', { name: 'Body', exact: true })
+  await expect(body.getByRole('img', { name: 'Hero' })).toBeVisible()
+  await expect(save).toBeDisabled()
+  await page.getByRole('tab', { name: 'Source', exact: true }).click()
+  await expect(page.getByRole('textbox', { name: 'Body source' })).toHaveValue(
+    '![Hero](<public/images/hero.svg>)\n',
+  )
+  await page.getByRole('tab', { name: 'Editor', exact: true }).click()
+  await expect(body.getByRole('img', { name: 'Hero' })).toBeVisible()
+  await expect(save).toBeDisabled()
+  await body.fill('An actual edit')
+  await expect(save).toBeEnabled()
 })

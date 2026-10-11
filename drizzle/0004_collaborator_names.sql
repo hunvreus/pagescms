@@ -1,0 +1,1 @@
+ALTER TABLE `collaborator` ADD `name` text;

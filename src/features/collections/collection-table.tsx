@@ -145,7 +145,7 @@ function columnSize(
   model: CollectionViewModel,
   fluidColumn: string | undefined,
 ) {
-  if (id === 'actions') return 'w-24 min-w-24 max-w-24'
+  if (id === 'actions') return 'w-32 min-w-32 max-w-32'
   if (id === fluidColumn) return 'w-full min-w-48 max-w-px'
 
   const column = model.columns.find(({ path }) => path === id)
@@ -421,7 +421,7 @@ export function CollectionTable({
                           <EllipsisVertical />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="min-w-44">
                         {canViewGitHub ? (
                           <>
                             <DropdownMenuItem asChild>
@@ -429,17 +429,17 @@ export function CollectionTable({
                                 href={`https://github.com/${encodeURIComponent(repository.owner)}/${encodeURIComponent(repository.repo)}/blob/${encodeURIComponent(repository.branch)}/${entry.path.split('/').map(encodeURIComponent).join('/')}`}
                                 target="_blank"
                                 rel="noreferrer"
+                                className="whitespace-nowrap"
                               >
                                 View on GitHub{' '}
                                 <ArrowUpRight className="ml-auto opacity-50" />
                               </a>
                             </DropdownMenuItem>
-                            {canRename ||
-                            canDelete ||
-                            (canCreate && addable) ? (
-                              <DropdownMenuSeparator />
-                            ) : null}
                           </>
+                        ) : null}
+                        {canViewGitHub &&
+                        (canRename || canDelete || (canCreate && addable)) ? (
+                          <DropdownMenuSeparator />
                         ) : null}
                         {canCreate && addable ? (
                           <DropdownMenuItem onSelect={() => onAddChild(entry)}>
@@ -450,9 +450,6 @@ export function CollectionTable({
                           <DropdownMenuItem onSelect={() => onRename(entry)}>
                             Rename
                           </DropdownMenuItem>
-                        ) : null}
-                        {canRename && canDelete ? (
-                          <DropdownMenuSeparator />
                         ) : null}
                         {canDelete ? (
                           <DropdownMenuItem

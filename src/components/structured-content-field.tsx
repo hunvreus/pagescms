@@ -79,7 +79,10 @@ import {
   TooltipTrigger,
 } from '#/components/ui/tooltip'
 import { MediaPickerDialog } from '#/features/media/media-picker-dialog'
-import { uploadMediaFiles } from '#/features/media/media-upload'
+import {
+  MediaUploadError,
+  uploadMediaFiles,
+} from '#/features/media/media-upload'
 import { coreFieldRendererRegistry } from '#/features/editor/fields/core-field-renderers'
 import {
   getListFieldOptions,
@@ -188,8 +191,12 @@ function RichTextRenderer({
     >
       {renderField(
         <TabsContent value={mode}>
-          <ClientOnly fallback={<DeferredEditorFallback />}>
-            <Suspense fallback={<DeferredEditorFallback />}>
+          <ClientOnly
+            fallback={<DeferredEditorFallback className="min-h-16" />}
+          >
+            <Suspense
+              fallback={<DeferredEditorFallback className="min-h-16" />}
+            >
               <RichTextField
                 disabled={disabled}
                 field={field}
@@ -221,8 +228,8 @@ function CodeRenderer({
   renderField,
 }: FieldRendererProps) {
   return renderField(
-    <ClientOnly fallback={<DeferredEditorFallback />}>
-      <Suspense fallback={<DeferredEditorFallback />}>
+    <ClientOnly fallback={<DeferredEditorFallback className="min-h-32" />}>
+      <Suspense fallback={<DeferredEditorFallback className="min-h-32" />}>
         <CodeField
           disabled={disabled}
           field={field}
@@ -237,9 +244,15 @@ function CodeRenderer({
   )
 }
 
-function DeferredEditorFallback() {
+function DeferredEditorFallback({
+  className = 'min-h-48',
+}: {
+  className?: string
+}) {
   return (
-    <div className="min-h-48 animate-pulse rounded-lg border bg-muted/30" />
+    <div
+      className={`animate-pulse rounded-lg border bg-muted/30 ${className}`}
+    />
   )
 }
 
@@ -517,127 +530,137 @@ function ListFieldControl({
 
   return renderField(
     <div className="space-y-2">
-      <DndContext
-        collisionDetection={closestCenter}
-        id={`${listId}-dnd`}
-        sensors={sensors}
-        onDragEnd={({ active, over }) => {
-          if (over) reorder(String(active.id), String(over.id))
-        }}
-      >
-        <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
-          <div className="space-y-2">
-            {values.map((item, index) => {
-              const selectedBlock = selectedFieldBlock(field, item)
-              return (
-                <SortableListItem
-                  disabled={disabled}
-                  id={itemIds[index] ?? `${listId}-pending-${index}`}
-                  key={itemIds[index] ?? `${listId}-pending-${index}`}
-                >
-                  {(handle) =>
-                    options.collapsible ? (
-                      <Collapsible
-                        className="rounded-xl border bg-card"
-                        open={openItems[index] ?? !options.initiallyCollapsed}
-                        onOpenChange={(open) =>
-                          setOpenItems((current) =>
-                            current.map((itemOpen, itemIndex) =>
-                              itemIndex === index ? open : itemOpen,
-                            ),
-                          )
-                        }
-                      >
-                        <div className="flex min-h-10 items-center p-1">
-                          {handle}
-                          <CollapsibleTrigger asChild>
-                            <Button
-                              className="min-w-0 flex-1 justify-start text-left text-sm aria-expanded:bg-transparent aria-expanded:hover:bg-muted dark:aria-expanded:hover:bg-muted/50"
-                              size="sm"
-                              variant="ghost"
-                              type="button"
-                            >
-                              <ChevronRight className="text-muted-foreground transition-transform group-data-[state=open]/button:rotate-90" />
-                              <span className="truncate">
-                                {getListItemSummary(field, item, index)}
-                              </span>
-                            </Button>
-                          </CollapsibleTrigger>
-                          {selectedBlock ? (
-                            <>
-                              <Badge
-                                variant="outline"
-                                className="text-muted-foreground"
-                              >
-                                {String(
-                                  selectedBlock.label ?? selectedBlock.name,
-                                )}
-                              </Badge>
-                              {!disabled ? (
-                                <ConfirmRemoveButton
-                                  kind="block"
-                                  description="This clears the selected block and its fields, keeping the list item so you can choose another block."
-                                  label={`Reset block in item ${index + 1}`}
-                                  onConfirm={() => update(index, null)}
-                                />
-                              ) : null}
-                            </>
-                          ) : null}
-                          {!disabled ? (
-                            <ConfirmRemoveButton
-                              description="This removes the item and all of its nested fields."
-                              disabled={values.length <= options.min}
-                              label={`Remove item ${index + 1}`}
-                              onConfirm={() => remove(index)}
-                            />
-                          ) : null}
-                        </div>
-                        <MountedGroupContent
+      {values.length ? (
+        <DndContext
+          collisionDetection={closestCenter}
+          id={`${listId}-dnd`}
+          sensors={sensors}
+          onDragEnd={({ active, over }) => {
+            if (over) reorder(String(active.id), String(over.id))
+          }}
+        >
+          <SortableContext
+            items={itemIds}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-2">
+              {values.map((item, index) => {
+                const selectedBlock = selectedFieldBlock(field, item)
+                return (
+                  <SortableListItem
+                    disabled={disabled}
+                    id={itemIds[index] ?? `${listId}-pending-${index}`}
+                    key={itemIds[index] ?? `${listId}-pending-${index}`}
+                  >
+                    {(handle) =>
+                      options.collapsible ? (
+                        <Collapsible
+                          className="rounded-xl border bg-card"
                           open={openItems[index] ?? !options.initiallyCollapsed}
+                          onOpenChange={(open) =>
+                            setOpenItems((current) =>
+                              current.map((itemOpen, itemIndex) =>
+                                itemIndex === index ? open : itemOpen,
+                              ),
+                            )
+                          }
                         >
-                          <div className="border-t p-4">
+                          <div className="flex min-h-10 items-center p-1">
+                            {handle}
+                            <CollapsibleTrigger asChild>
+                              <Button
+                                className="min-w-0 flex-1 justify-start text-left text-sm aria-expanded:bg-transparent aria-expanded:hover:bg-muted dark:aria-expanded:hover:bg-muted/50"
+                                size="sm"
+                                variant="ghost"
+                                type="button"
+                              >
+                                <ChevronRight className="text-muted-foreground transition-transform group-data-[state=open]/button:rotate-90" />
+                                <span className="truncate">
+                                  {getListItemSummary(field, item, index)}
+                                </span>
+                              </Button>
+                            </CollapsibleTrigger>
+                            {selectedBlock ? (
+                              <>
+                                <Badge
+                                  variant="outline"
+                                  className="text-muted-foreground"
+                                >
+                                  {String(
+                                    selectedBlock.label ?? selectedBlock.name,
+                                  )}
+                                </Badge>
+                                {!disabled ? (
+                                  <ConfirmRemoveButton
+                                    kind="block"
+                                    description="This clears the selected block and its fields, keeping the list item so you can choose another block."
+                                    label={`Reset block in item ${index + 1}`}
+                                    onConfirm={() => update(index, null)}
+                                  />
+                                ) : null}
+                              </>
+                            ) : null}
+                            {!disabled ? (
+                              <ConfirmRemoveButton
+                                description="This removes the item and all of its nested fields."
+                                disabled={values.length <= options.min}
+                                label={`Remove item ${index + 1}`}
+                                onConfirm={() => remove(index)}
+                              />
+                            ) : null}
+                          </div>
+                          <MountedGroupContent
+                            open={
+                              openItems[index] ?? !options.initiallyCollapsed
+                            }
+                          >
+                            <div className="border-t p-4">
+                              <StructuredContentField
+                                embedded
+                                hideMetadata
+                                blockHeaderInList
+                                field={itemField}
+                                referenceContext={referenceContext}
+                                value={item}
+                                onChange={(next) => update(index, next)}
+                              />
+                            </div>
+                          </MountedGroupContent>
+                        </Collapsible>
+                      ) : (
+                        <div className="flex items-start gap-1 rounded-xl border bg-card p-4">
+                          {handle}
+                          <div className="min-w-0 flex-1">
                             <StructuredContentField
                               embedded
                               hideMetadata
-                              blockHeaderInList
                               field={itemField}
                               referenceContext={referenceContext}
                               value={item}
                               onChange={(next) => update(index, next)}
                             />
                           </div>
-                        </MountedGroupContent>
-                      </Collapsible>
-                    ) : (
-                      <div className="flex items-start gap-1 rounded-xl border bg-card p-4">
-                        {handle}
-                        <div className="min-w-0 flex-1">
-                          <StructuredContentField
-                            embedded
-                            hideMetadata
-                            field={itemField}
-                            referenceContext={referenceContext}
-                            value={item}
-                            onChange={(next) => update(index, next)}
-                          />
+                          {!disabled ? (
+                            <ConfirmRemoveButton
+                              description="This removes the item from the list."
+                              disabled={values.length <= options.min}
+                              label={`Remove item ${index + 1}`}
+                              onConfirm={() => remove(index)}
+                            />
+                          ) : null}
                         </div>
-                        {!disabled ? (
-                          <ConfirmRemoveButton
-                            description="This removes the item from the list."
-                            disabled={values.length <= options.min}
-                            label={`Remove item ${index + 1}`}
-                            onConfirm={() => remove(index)}
-                          />
-                        ) : null}
-                      </div>
-                    )
-                  }
-                </SortableListItem>
-              )
-            })}
-          </div>
-        </SortableContext>
-      </DndContext>
+                      )
+                    }
+                  </SortableListItem>
+                )
+              })}
+            </div>
+          </SortableContext>
+        </DndContext>
+      ) : null}
+      {!values.length ? (
+        <p className="text-sm text-muted-foreground">No items.</p>
+      ) : null}
       {!disabled && values.length < options.max ? (
         <Button
           size="sm"
@@ -647,9 +670,6 @@ function ListFieldControl({
         >
           <Plus /> Add item
         </Button>
-      ) : null}
-      {!values.length ? (
-        <p className="text-sm text-muted-foreground">No items.</p>
       ) : null}
     </div>,
     headerActions,
@@ -860,7 +880,10 @@ export function StructuredContentField({
               <FieldLabel htmlFor={controlId}>{label}</FieldLabel>
             ) : null}
             {!hideMetadata && required ? (
-              <Badge variant="secondary" className="text-muted-foreground">
+              <Badge
+                variant="secondary"
+                className="bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-400/15 dark:text-fuchsia-300"
+              >
                 <Asterisk className="-ml-1 -mr-0.5" />
                 Required
               </Badge>
@@ -1136,6 +1159,7 @@ function MediaFieldControl({
   const selected = mediaValues(value, multiple)
   const [open, setOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const uploadLock = useRef(false)
   const [error, setError] = useState<unknown>(null)
   const dndId = useId()
   const sensors = useSensors(
@@ -1172,7 +1196,8 @@ function MediaFieldControl({
   }
 
   async function upload(files: FileList | null) {
-    if (!files?.length) return
+    if (disabled || uploadLock.current || !files?.length) return
+    uploadLock.current = true
     setUploading(true)
     setError(null)
     try {
@@ -1194,7 +1219,13 @@ function MediaFieldControl({
       else if (uploaded[0]) onChange(uploaded[0])
     } catch (cause) {
       setError(cause)
+      if (cause instanceof MediaUploadError && cause.paths.length) {
+        if (multiple)
+          onChange([...new Set([...selected, ...cause.paths])].slice(0, max))
+        else onChange(cause.paths[0])
+      }
     } finally {
+      uploadLock.current = false
       setUploading(false)
     }
   }
@@ -1362,7 +1393,7 @@ function MediaFieldControl({
               ) : (
                 <Upload />
               )}
-              Upload
+              {uploading ? 'Uploading…' : 'Upload'}
               <input
                 accept={
                   allowedExtensions?.length

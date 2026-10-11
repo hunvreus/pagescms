@@ -497,7 +497,23 @@ const generateFieldObjectSchema = (
               .strict(),
           ])
           .optional(),
-        options: z.object({}).optional().nullable(),
+        options: z
+          .object({
+            html: z
+              .object({
+                keep: z.array(z.string().min(1)).optional(),
+                strip: z.array(z.string().min(1)).optional(),
+                drop: z.array(z.string().min(1)).optional(),
+                attributes: z
+                  .array(z.string().regex(/^[a-z][a-z0-9-]*$/))
+                  .optional(),
+              })
+              .strict()
+              .optional(),
+          })
+          .passthrough()
+          .optional()
+          .nullable(),
         blocks: z
           .array(
             z.lazy(() => generateFieldObjectSchema(false, true)),
@@ -864,6 +880,9 @@ const ConfigurationSchema = z
         z
           .object(
             {
+              cache: z
+                .boolean({ message: "'cache' must be a boolean." })
+                .optional(),
               config: z
                 .boolean({
                   message: "'config' must be a boolean.",

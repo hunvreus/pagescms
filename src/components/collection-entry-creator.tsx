@@ -1,3 +1,4 @@
+import { toast } from 'sonner'
 import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
@@ -83,6 +84,7 @@ export function CollectionEntryCreator({
         : await createRawCollectionEntry({
             data: { ...input, source },
           })
+      toast.success('File created')
       await queryClient.invalidateQueries({
         queryKey: queryKeys.branch(coordinates),
       })

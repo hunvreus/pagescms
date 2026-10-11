@@ -1,5 +1,9 @@
 # Documentation
 
+## Features
+
+- [Rich text](./features/rich-text.md)
+
 ## Development
 
 - [Testing](./development/testing.md)

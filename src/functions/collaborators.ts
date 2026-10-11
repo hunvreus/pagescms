@@ -1,3 +1,4 @@
+import { parseCollaboratorEmails } from '#/lib/collaborator-invites'
 import { logServerEvent, serverErrorDetails } from '#/server/http'
 import { collaboratorKey } from '#/lib/collaborator-key'
 import { createServerFn } from '@tanstack/react-start'
@@ -35,12 +36,9 @@ function coordinates(input: unknown) {
 function inviteRequest(input: unknown) {
   const repository = coordinates(input)
   const value = input as Record<string, unknown>
-  if (
-    !Array.isArray(value.emails) ||
-    !value.emails.every((email) => typeof email === 'string')
-  ) {
+  if (typeof value.emails !== 'string')
     throw new Error('Invalid collaborator emails')
-  }
+  const emails = parseCollaboratorEmails(value.emails)
   const permissions =
     value.permissions === undefined
       ? undefined
@@ -58,7 +56,11 @@ function inviteRequest(input: unknown) {
             },
           ],
         })
-  return { ...repository, emails: value.emails, permissions }
+  return {
+    ...repository,
+    emails,
+    permissions,
+  }
 }
 
 function removeRequest(input: unknown) {

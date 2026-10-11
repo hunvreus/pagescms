@@ -21,12 +21,7 @@ export async function configuredCollaboratorBranches(
     repository.owner,
     repository.repo,
   )
-  const coreAllows = (branch: string) =>
-    !admission.branches ||
-    admission.branches === 'all' ||
-    admission.branches.includes(branch)
-  const permitted = async (branches: string[]) => {
-    const candidates = branches.filter(coreAllows)
+  const permitted = async (candidates: string[]) => {
     if (!candidates.length) return []
     const decision = await services.access.discover({
       operation: 'branch.read',

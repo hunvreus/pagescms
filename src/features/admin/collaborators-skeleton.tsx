@@ -1,3 +1,4 @@
+import { SearchInput } from '#/components/search-input'
 import { UserPlus } from 'lucide-react'
 import { Button } from '#/components/ui/button'
 import { Skeleton } from '#/components/ui/skeleton'
@@ -14,13 +15,19 @@ import { RepositoryAdminPage } from './repository-admin-page'
 export function CollaboratorsSkeleton() {
   return (
     <RepositoryAdminPage
-      embedded
       title="Collaborators"
       actions={
-        <Button size="sm" variant="outline" disabled>
-          <UserPlus />
-          Invite collaborator
-        </Button>
+        <>
+          <SearchInput
+            disabled
+            aria-label="Search collaborators"
+            placeholder="Search collaborators…"
+          />
+          <Button disabled>
+            <UserPlus />
+            Invite collaborator
+          </Button>
+        </>
       }
     >
       <Table
@@ -30,9 +37,8 @@ export function CollaboratorsSkeleton() {
       >
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead>Email</TableHead>
+            <TableHead>Collaborator</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Access</TableHead>
             <TableHead className="w-px" />
           </TableRow>
         </TableHeader>
@@ -44,9 +50,6 @@ export function CollaboratorsSkeleton() {
               </TableCell>
               <TableCell>
                 <Skeleton className="h-5 w-20 rounded-full" />
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-4 w-20" />
               </TableCell>
               <TableCell className="py-0 text-right">
                 <Skeleton className="ml-auto h-7 w-16" />

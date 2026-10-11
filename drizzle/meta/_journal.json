@@ -22,6 +22,27 @@
       "when": 1791354335690,
       "tag": "0002_magenta_sir_ram",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1791441058507,
+      "tag": "0003_repository_wide_collaborators",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1791443456389,
+      "tag": "0004_collaborator_names",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1791445742812,
+      "tag": "0005_action_run_checks",
+      "breakpoints": true
     }
   ]
 }

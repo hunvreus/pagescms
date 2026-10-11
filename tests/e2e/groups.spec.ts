@@ -10,18 +10,18 @@ test('group headers avoid duplicate metadata and retain fields after opening', a
     sidebarHeader.getByRole('link', { name: 'All projects' }),
   ).toHaveCount(0)
   await expect(
-    sidebarHeader.getByRole('link', { name: 'Settings', exact: true }),
+    sidebarHeader.getByRole('link', { name: 'Configuration', exact: true }),
   ).toHaveCount(0)
   await expect(
     page
       .locator('[data-slot="sidebar-content"]')
-      .getByRole('link', { name: 'Settings', exact: true }),
-  ).toHaveCount(0)
+      .getByRole('link', { name: 'Configuration', exact: true }),
+  ).toBeVisible()
   await expect(
     page
       .locator('[data-slot="sidebar-content"]')
       .getByText('Admin', { exact: true }),
-  ).toHaveCount(0)
+  ).toBeVisible()
   await page.getByRole('button', { name: 'Entry actions', exact: true }).click()
   const github = page.getByRole('menuitem', {
     name: 'View on GitHub',

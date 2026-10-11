@@ -1,3 +1,5 @@
+import { toast } from 'sonner'
+import { readMediaView, saveMediaView } from './media-view'
 import {
   Fragment,
   useCallback,
@@ -118,7 +120,7 @@ import {
   needsMediaDeliveryRefetch,
   parentMediaPath,
 } from './media-model'
-import { uploadMediaFiles } from './media-upload'
+import { MediaUploadError, uploadMediaFiles } from './media-upload'
 
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
 import type { ReactNode } from 'react'
@@ -256,7 +258,7 @@ function MediaGridEntry({
     >
       {entry.type === 'dir' ? (
         <button
-          className="block w-full cursor-pointer rounded-md p-2 text-center outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="block w-full cursor-pointer rounded-md text-left outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           type="button"
           onClick={() => onNavigate(entry.path)}
         >
@@ -266,9 +268,10 @@ function MediaGridEntry({
             className="aspect-video w-full"
             variant="grid"
           />
-          <span className="mt-2 block truncate text-sm font-medium">
+          <span className="mt-2 block truncate px-3 text-center text-sm font-medium">
             {entry.name}
           </span>
+          <span aria-hidden="true" className="block h-4" />
         </button>
       ) : (
         <>
@@ -499,10 +502,11 @@ function EntryActions({
           <EllipsisVertical />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-40">
+      <DropdownMenuContent align="end" className="min-w-44">
         {canViewGitHub ? (
           <DropdownMenuItem asChild>
             <a
+              className="whitespace-nowrap"
               href={githubUrl(coordinates, entry.path)}
               rel="noreferrer"
               target="_blank"
@@ -511,9 +515,11 @@ function EntryActions({
             </a>
           </DropdownMenuItem>
         ) : null}
+        {canViewGitHub && (canRename || canDelete) ? (
+          <DropdownMenuSeparator />
+        ) : null}
         {canRename ? (
           <>
-            {canViewGitHub ? <DropdownMenuSeparator /> : null}
             <DropdownMenuItem onSelect={() => onRename(entry)}>
               Rename
             </DropdownMenuItem>
@@ -521,7 +527,6 @@ function EntryActions({
         ) : null}
         {canDelete ? (
           <>
-            <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"
               onSelect={() => onDelete(entry)}
@@ -650,9 +655,11 @@ export function MediaBrowser({
     placeholderData: keepPreviousData,
   })
   const [search, setSearch] = useState('')
-  const [view, setView] = useState<MediaView>('grid')
+  const [view, setView] = useState<MediaView>(readMediaView)
   const [error, setError] = useState<unknown>(null)
   const [busy, setBusy] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const uploadLock = useRef(false)
   const [folderOpen, setFolderOpen] = useState(false)
   const [folderName, setFolderName] = useState('')
   const [renameEntry, setRenameEntry] = useState<MediaEntry | null>(null)
@@ -784,7 +791,9 @@ export function MediaBrowser({
 
   async function upload(files: FileList | File[]) {
     const values = Array.from(files)
-    if (!canUpload || !values.length) return
+    if (!canUpload || busy || uploadLock.current || !values.length) return
+    uploadLock.current = true
+    setUploading(true)
     setBusy(true)
     setError(null)
     try {
@@ -804,7 +813,14 @@ export function MediaBrowser({
       await refresh()
     } catch (cause) {
       setError(cause)
+      if (cause instanceof MediaUploadError && cause.paths.length) {
+        if (onSelectMany) onSelectMany(cause.paths)
+        else if (onSelect) cause.paths.forEach(onSelect)
+        await refresh().catch(() => {})
+      }
     } finally {
+      uploadLock.current = false
+      setUploading(false)
       setBusy(false)
       setDraggingFiles(false)
     }
@@ -818,6 +834,7 @@ export function MediaBrowser({
       await createMediaFolder({
         data: { ...coordinates, path: directoryPath, folder: folderName },
       })
+      toast.success('Folder created')
       setFolderName('')
       setFolderOpen(false)
       await refresh()
@@ -841,6 +858,7 @@ export function MediaBrowser({
           filename: renameValue,
         },
       })
+      toast.success('File renamed')
       setRenameEntry(null)
       await refresh()
     } catch (cause) {
@@ -858,6 +876,7 @@ export function MediaBrowser({
       await removeMedia({
         data: { ...coordinates, path: deleteEntry.path, sha: deleteEntry.sha },
       })
+      toast.success('File deleted')
       setDeleteEntry(null)
       await refresh()
     } catch (cause) {
@@ -893,6 +912,7 @@ export function MediaBrowser({
           destination: destination.path,
         },
       })
+      toast.success('File moved')
       await refresh()
     } catch (cause) {
       setError(cause)
@@ -1017,7 +1037,13 @@ export function MediaBrowser({
       value={view}
       variant="outline"
       onValueChange={(value) => {
-        if (value === 'grid' || value === 'list') setView(value)
+        if (value !== 'grid' && value !== 'list') return
+        setView(value)
+        try {
+          saveMediaView(value)
+        } catch {
+          // Keep the selected view for this session when storage is unavailable.
+        }
       }}
     >
       <ToggleGroupItem
@@ -1057,8 +1083,12 @@ export function MediaBrowser({
               disabled={controlsDisabled || !canUpload}
               onClick={() => uploadInputRef.current?.click()}
             >
-              {busy ? <LoaderCircle className="animate-spin" /> : <Upload />}{' '}
-              Upload
+              {uploading ? (
+                <LoaderCircle className="animate-spin" />
+              ) : (
+                <Upload />
+              )}{' '}
+              {uploading ? 'Uploading…' : 'Upload'}
             </Button>
             <input
               multiple

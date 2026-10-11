@@ -117,3 +117,44 @@ export const updateCache = createServerFn({ method: 'POST' })
       },
     )
   })
+
+export const getCacheFiles = createServerFn({ method: 'GET' })
+  .validator((input: unknown) => {
+    const repository = coordinates(input)
+    const page = (input as Record<string, unknown>).page
+    if (
+      typeof page !== 'number' ||
+      !Number.isSafeInteger(page) ||
+      page < 0 ||
+      page > 100_000
+    )
+      throw new Error('Invalid cache page')
+    const search = (input as Record<string, unknown>).search
+    if (
+      search !== undefined &&
+      (typeof search !== 'string' || search.length > 500)
+    )
+      throw new Error('Invalid cache filter')
+    return {
+      ...repository,
+      page,
+      search: typeof search === 'string' ? search.trim() : '',
+    }
+  })
+  .handler(async ({ context, data }) => {
+    const services = context.getServices()
+    const session = await services.getSession()
+    if (!session?.user) throw new Error('Authentication required')
+    return services.access.execute(
+      await policy(data, 'cache.read', services, cacheUser(session.user)),
+      async () => {
+        const { loadCacheFiles } = await import('#/server/cache-service.server')
+        return loadCacheFiles({
+          database: services.cacheDatabase,
+          repositoryAccess: services.repositoryAccess,
+          user: cacheUser(session.user),
+          ...data,
+        })
+      },
+    )
+  })

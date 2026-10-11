@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { Laptop, LoaderCircle, Moon, Settings, Sun } from 'lucide-react'
+import { Laptop, LoaderCircle, Moon, Sun } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
 import { Button } from '#/components/ui/button'
@@ -43,22 +43,20 @@ export function AppHeader({
       <div className="flex items-center gap-2 px-2 py-2 lg:px-4 lg:py-3">
         <AboutDialog />
         <div className="ml-auto flex items-center gap-2">
-          {isAdmin ? (
-            <Button asChild size="sm" variant="ghost">
-              <Link to="/admin">
-                <Settings />
-                Admin
-              </Link>
-            </Button>
-          ) : null}
-          <AccountMenu user={user} />
+          <AccountMenu isAdmin={isAdmin} user={user} />
         </div>
       </div>
     </header>
   )
 }
 
-export function AccountMenu({ user }: { user: AppHeaderUser }) {
+export function AccountMenu({
+  user,
+  isAdmin = false,
+}: {
+  user: AppHeaderUser
+  isAdmin?: boolean
+}) {
   const queryClient = useQueryClient()
   const [signingOut, setSigningOut] = useState(false)
   const [theme, setTheme] = useState<Theme>('system')
@@ -154,6 +152,14 @@ export function AccountMenu({ user }: { user: AppHeaderUser }) {
         <DropdownMenuItem asChild>
           <Link to="/settings">Settings</Link>
         </DropdownMenuItem>
+        {isAdmin ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link to="/admin">Admin</Link>
+            </DropdownMenuItem>
+          </>
+        ) : null}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           disabled={signingOut}

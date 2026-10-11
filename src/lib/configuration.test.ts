@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   CONFIGURATION_VERSION,
   isConfigurationEditingEnabled,
+  isCacheManagementEnabled,
   normalizeConfiguration,
 } from './configuration'
 
@@ -27,9 +28,9 @@ describe('configuration settings normalization', () => {
       hide: true,
     })
 
-    expect(normalized.settings).toEqual({ config: true })
+    expect(normalized.settings).toEqual({ config: true, cache: false })
     expect(isConfigurationEditingEnabled(normalized)).toBe(true)
-    expect(CONFIGURATION_VERSION).toBe('3.0')
+    expect(CONFIGURATION_VERSION).toBe('3.1')
   })
 
   it('migrates nested settings.hide and commit.message', () => {
@@ -234,4 +235,16 @@ describe('content normalization', () => {
       ).toThrow('repository root')
     },
   )
+})
+
+describe('cache management opt-in', () => {
+  it('requires an explicit true setting', () => {
+    expect(isCacheManagementEnabled()).toBe(false)
+    expect(isCacheManagementEnabled({})).toBe(false)
+    expect(isCacheManagementEnabled({ settings: { cache: false } })).toBe(false)
+    expect(isCacheManagementEnabled({ settings: { cache: true } })).toBe(true)
+    expect(isCacheManagementEnabled({ settings: { cache: 'true' } })).toBe(
+      false,
+    )
+  })
 })

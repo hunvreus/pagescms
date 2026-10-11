@@ -7,9 +7,9 @@ test('global administration uses compact settings groups and keeps user search',
     process.env.ADMIN_EMAILS !== 'editor@example.com',
     'Requires the isolated admin fixture',
   )
-  await page.goto('/pagescms/fixture/main/settings')
+  await page.goto('/pagescms/fixture/main/configuration')
   await expect(
-    page.getByRole('heading', { name: 'Settings', exact: true }),
+    page.getByRole('heading', { name: 'Configuration', exact: true }),
   ).toBeVisible()
   await page.goto('/admin')
   await page.waitForLoadState('networkidle')

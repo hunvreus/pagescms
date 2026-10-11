@@ -1,34 +1,18 @@
 import { useState } from 'react'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { ArrowUpRight, Ellipsis, LoaderCircle, Mail } from 'lucide-react'
+import { ArrowUpRight, Ellipsis, LoaderCircle, Upload } from 'lucide-react'
 
-import { GitHubIcon } from '#/components/github-icon'
 import { OperationError } from '#/components/operation-error'
 import { PageHeader } from '#/components/page-header'
 import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
 import { Button } from '#/components/ui/button'
 import { Badge } from '#/components/ui/badge'
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '#/components/ui/card'
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '#/components/ui/dropdown-menu'
-import {
-  Field,
-  FieldContent,
-  FieldGroup,
-  FieldLabel,
-} from '#/components/ui/field'
 import { Input } from '#/components/ui/input'
 import { Skeleton } from '#/components/ui/skeleton'
 import { updateProfile } from '#/functions/account'
@@ -46,7 +30,6 @@ export function UserSettings() {
   const [billingBusy, setBillingBusy] = useState(false)
   const [connecting, setConnecting] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<unknown>(null)
   const avatar =
     data.user.image ??
@@ -56,11 +39,11 @@ export function UserSettings() {
 
   async function save() {
     setSaving(true)
-    setMessage(null)
     setError(null)
     try {
       await updateProfile({ data: { name } })
-      setMessage('Profile updated')
+      const { toast } = await import('sonner')
+      toast.success('Profile updated')
       await queryClient.invalidateQueries({ queryKey: queryKeys.settings() })
       await queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() })
     } catch (cause) {
@@ -86,7 +69,6 @@ export function UserSettings() {
 
   async function connectGithub() {
     setConnecting(true)
-    setMessage(null)
     setError(null)
     try {
       const result = await signIn.social({
@@ -108,7 +90,6 @@ export function UserSettings() {
     if (!window.confirm('Disconnect your GitHub account from Pages CMS?'))
       return
     setDisconnecting(true)
-    setMessage(null)
     setError(null)
     try {
       if (!data.githubAccountId) {
@@ -119,7 +100,8 @@ export function UserSettings() {
         accountId: data.githubAccountId,
       })
       if (result.error) throw result.error
-      setMessage('GitHub account disconnected')
+      const { toast } = await import('sonner')
+      toast.success('GitHub account disconnected')
       await queryClient.invalidateQueries({ queryKey: queryKeys.settings() })
       await queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() })
     } catch {
@@ -132,28 +114,18 @@ export function UserSettings() {
   return (
     <div className="flex min-h-screen flex-col">
       <AppHeader isAdmin={data.isAdmin} user={data.user} />
-      <main className="mx-auto w-full max-w-screen-sm space-y-8 p-4 pt-20 pb-8 md:p-6 md:pt-22 md:pb-10">
+      <main className="mx-auto w-full max-w-[808px] space-y-10 p-4 pt-20 pb-8 md:p-6 md:pt-22 md:pb-10">
         <PageHeader title="User settings" />
-        {message ? (
-          <div className="rounded-lg border bg-card p-3 text-sm">{message}</div>
-        ) : null}
         <OperationError error={error} fallback="Could not update settings." />
 
         {data.entitlement ? (
-          <Card>
-            <CardHeader className="border-b">
-              <div className="flex items-center justify-between gap-3">
-                <div className="space-y-1.5">
-                  <CardTitle>Plan</CardTitle>
-                  <CardDescription>
-                    Subscription and usage for this account.
-                  </CardDescription>
-                </div>
-                <Badge variant="secondary">{data.entitlement.planLabel}</Badge>
-              </div>
-            </CardHeader>
+          <section className="space-y-3">
+            <div className={sectionHeaderClassName}>
+              <h2 className="text-sm font-medium">Plan</h2>
+              <Badge variant="secondary">{data.entitlement.planLabel}</Badge>
+            </div>
             {data.entitlement.usage.length ? (
-              <CardContent>
+              <div className="overflow-hidden rounded-xl border bg-card">
                 <ul>
                   {data.entitlement.usage.map((counter) => (
                     <li className={rowClassName} key={counter.key}>
@@ -165,10 +137,10 @@ export function UserSettings() {
                     </li>
                   ))}
                 </ul>
-              </CardContent>
+              </div>
             ) : null}
             {data.billing ? (
-              <CardFooter className="flex-wrap justify-end gap-2">
+              <div className="flex flex-wrap justify-end gap-2">
                 {data.billing.canManage ? (
                   <Button
                     disabled={billingBusy}
@@ -190,10 +162,10 @@ export function UserSettings() {
                     </Button>
                   ))
                 )}
-              </CardFooter>
+              </div>
             ) : data.entitlement.upgradeUrl ||
               data.entitlement.billingPortalUrl ? (
-              <CardFooter className="justify-end gap-2">
+              <div className="flex justify-end gap-2">
                 {data.entitlement.billingPortalUrl ? (
                   <Button asChild size="sm" variant="outline">
                     <a
@@ -216,96 +188,107 @@ export function UserSettings() {
                     </a>
                   </Button>
                 ) : null}
-              </CardFooter>
+              </div>
             ) : null}
-          </Card>
+          </section>
         ) : null}
 
-        <Card>
-          <CardHeader className="border-b">
-            <CardTitle>Profile</CardTitle>
-            <CardDescription>
-              Information displayed to collaborators.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form
-              id="profile-form"
-              onSubmit={(event) => {
-                event.preventDefault()
-                void save()
-              }}
-            >
-              <FieldGroup className="gap-4">
-                <Field orientation="horizontal">
-                  <div className="w-20 shrink-0 pt-2">
-                    <FieldLabel htmlFor="profile-name">Name</FieldLabel>
-                  </div>
-                  <FieldContent>
-                    <Input
-                      id="profile-name"
-                      maxLength={120}
-                      required
-                      value={name}
-                      onChange={(event) => setName(event.target.value)}
-                    />
-                  </FieldContent>
-                </Field>
-                <Field orientation="horizontal">
-                  <div className="w-20 shrink-0 pt-2">
-                    <FieldLabel>Picture</FieldLabel>
-                  </div>
-                  <FieldContent>
-                    <Avatar className="size-16 rounded-lg">
-                      <AvatarImage
-                        alt={data.user.name || data.user.email}
-                        src={avatar}
-                      />
-                      <AvatarFallback>
-                        {initials(data.user.name || data.user.email)}
-                      </AvatarFallback>
-                    </Avatar>
-                  </FieldContent>
-                </Field>
-              </FieldGroup>
-            </form>
-          </CardContent>
-          <CardFooter className="justify-end">
-            <Button
-              disabled={saving || name.trim() === data.user.name.trim()}
-              form="profile-form"
-              type="submit"
-            >
-              {saving ? <LoaderCircle className="animate-spin" /> : null}
-              {saving ? 'Saving' : 'Save profile'}
-            </Button>
-          </CardFooter>
-        </Card>
+        <section className="space-y-3">
+          <div className={sectionHeaderClassName}>
+            <h2 className="text-sm font-medium">Profile</h2>
+            <div className="flex justify-end">
+              <Button
+                disabled={saving || name.trim() === data.user.name.trim()}
+                form="profile-form"
+                size="sm"
+                type="submit"
+              >
+                {saving ? <LoaderCircle className="animate-spin" /> : null}
+                {saving ? 'Saving' : 'Save profile'}
+              </Button>
+            </div>
+          </div>
+          <form
+            id="profile-form"
+            className="divide-y overflow-hidden rounded-xl border bg-card"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void save()
+            }}
+          >
+            <div className="grid items-center gap-3 p-4 sm:grid-cols-2">
+              <div>
+                <label
+                  className="block text-sm font-medium leading-5"
+                  htmlFor="profile-name"
+                >
+                  Name
+                </label>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  Displayed in your profile and collaborator lists.
+                </p>
+              </div>
+              <Input
+                id="profile-name"
+                maxLength={120}
+                required
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+              />
+            </div>
+            <div className="grid items-center gap-3 p-4 sm:grid-cols-2">
+              <div>
+                <p className="text-sm font-medium">Picture</p>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  Your account image, or initials when unavailable.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Avatar>
+                  <AvatarImage
+                    alt={data.user.name || data.user.email}
+                    src={avatar}
+                  />
+                  <AvatarFallback>
+                    {initials(data.user.name || data.user.email)}
+                  </AvatarFallback>
+                </Avatar>
+                <Button disabled size="sm" variant="outline">
+                  <Upload />
+                  Upload
+                </Button>
+              </div>
+            </div>
+          </form>
+        </section>
 
-        <Card>
-          <CardHeader className="border-b">
-            <CardTitle>Authentication</CardTitle>
-            <CardDescription>Linked sign-in methods.</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <section className="space-y-3">
+          <div className={sectionHeaderClassName}>
+            <h2 className="text-sm font-medium">Sign-in methods</h2>
+          </div>
+          <div className="overflow-hidden rounded-xl border bg-card">
             <ul>
               <li className={rowClassName}>
-                <Mail className="size-4 shrink-0" />
-                <span className="font-medium">Email</span>
-                <span className="truncate text-muted-foreground">
-                  {data.user.email}
-                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">Email</p>
+                  <p className="mt-0.5 truncate text-muted-foreground">
+                    {data.user.email}
+                  </p>
+                </div>
               </li>
               <li className={rowClassName}>
-                <GitHubIcon className="size-4 shrink-0" />
-                <span className="font-medium">GitHub</span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">GitHub</p>
+                  <p className="mt-0.5 truncate text-muted-foreground">
+                    {data.githubConnected
+                      ? data.user.githubUsername
+                        ? `@${data.user.githubUsername}`
+                        : 'Connected'
+                      : 'Connect to access your GitHub repositories.'}
+                  </p>
+                </div>
                 {data.githubConnected ? (
                   <>
-                    <span className="truncate text-muted-foreground">
-                      {data.user.githubUsername
-                        ? `@${data.user.githubUsername}`
-                        : 'Connected'}
-                    </span>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -333,9 +316,6 @@ export function UserSettings() {
                               Manage
                             </a>
                           </DropdownMenuItem>
-                        ) : null}
-                        {data.githubManageUrl ? (
-                          <DropdownMenuSeparator />
                         ) : null}
                         <DropdownMenuItem
                           variant="destructive"
@@ -366,18 +346,27 @@ export function UserSettings() {
                 )}
               </li>
             </ul>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
         {data.githubConnected ? (
-          <Card>
-            <CardHeader className="border-b">
-              <CardTitle>Installations</CardTitle>
-              <CardDescription>
-                GitHub App accounts available to Pages CMS.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          <section className="space-y-3">
+            <div className={sectionHeaderClassName}>
+              <h2 className="text-sm font-medium">Installations</h2>
+              {data.githubAppInstallAvailable ? (
+                <Button asChild size="sm" variant="outline">
+                  <a
+                    href="/api/github-app/install"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Install on another account
+                    <ArrowUpRight className="opacity-50" />
+                  </a>
+                </Button>
+              ) : null}
+            </div>
+            <div className="overflow-hidden rounded-xl border bg-card">
               {data.accounts.length ? (
                 <ul>
                   {data.accounts.map((account) => (
@@ -387,14 +376,19 @@ export function UserSettings() {
                     >
                       <img
                         alt={`${account.login}'s avatar`}
-                        className="size-6 rounded"
-                        height="24"
-                        src={`https://github.com/${encodeURIComponent(account.login)}.png?size=48`}
-                        width="24"
+                        className="size-8 shrink-0 rounded-lg"
+                        height="32"
+                        src={`https://github.com/${encodeURIComponent(account.login)}.png?size=64`}
+                        width="32"
                       />
-                      <span className="truncate font-medium">
-                        {account.login}
-                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium">{account.login}</p>
+                        <p className="mt-0.5 text-muted-foreground">
+                          {account.type === 'org'
+                            ? 'Organization'
+                            : 'Personal account'}
+                        </p>
+                      </div>
                       <Button
                         asChild
                         className="ml-auto"
@@ -414,22 +408,12 @@ export function UserSettings() {
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-muted-foreground">
+                <p className="p-4 text-sm text-muted-foreground">
                   No GitHub App installations found.
                 </p>
               )}
-            </CardContent>
-            {data.githubAppInstallAvailable ? (
-              <CardFooter className="justify-end">
-                <Button asChild size="sm" variant="outline">
-                  <a href="/api/github-app/install">
-                    Install on another account
-                    <ArrowUpRight className="opacity-50" />
-                  </a>
-                </Button>
-              </CardFooter>
-            ) : null}
-          </Card>
+            </div>
+          </section>
         ) : null}
       </main>
     </div>
@@ -437,7 +421,10 @@ export function UserSettings() {
 }
 
 const rowClassName =
-  'flex items-center gap-2 border border-b-0 px-3 py-2 text-sm first:rounded-t-md last:rounded-b-md last:border-b'
+  'flex min-w-0 items-center gap-3 border-b p-4 text-sm last:border-b-0'
+
+const sectionHeaderClassName =
+  'flex min-h-7 flex-wrap items-center justify-between gap-3'
 
 function installationUrl(account: {
   type: 'org' | 'user'
@@ -464,108 +451,102 @@ export function UserSettingsSkeleton() {
       <AppHeaderSkeleton />
       <main
         aria-label="Loading user settings"
-        className="mx-auto w-full max-w-screen-sm space-y-8 p-4 pt-20 pb-8 md:p-6 md:pt-22 md:pb-10"
+        className="mx-auto w-full max-w-[808px] space-y-10 p-4 pt-20 pb-8 md:p-6 md:pt-22 md:pb-10"
       >
         <PageHeader title="User settings" />
-        <ProfileCardSkeleton />
-        <AuthenticationCardSkeleton />
-        <InstallationsCardSkeleton />
+        <ProfileSectionSkeleton />
+        <SignInMethodsSectionSkeleton />
+        <InstallationsSectionSkeleton />
       </main>
     </div>
   )
 }
 
-function SettingsCardHeaderSkeleton({
-  descriptionWidth,
-  titleWidth,
-}: {
-  descriptionWidth: string
-  titleWidth: string
-}) {
+function SettingsSectionHeaderSkeleton({ titleWidth }: { titleWidth: string }) {
   return (
-    <CardHeader className="border-b">
-      <CardTitle className="flex h-[22px] items-center">
-        <Skeleton className={`h-4 ${titleWidth}`} />
-      </CardTitle>
-      <CardDescription className="flex h-5 items-center">
-        <Skeleton className={`h-4 max-w-full ${descriptionWidth}`} />
-      </CardDescription>
-    </CardHeader>
+    <h2 className="flex h-7 items-center text-sm font-medium">
+      <Skeleton className={`h-4 ${titleWidth}`} />
+    </h2>
   )
 }
 
-function ProfileCardSkeleton() {
+function ProfileSectionSkeleton() {
   return (
-    <Card>
-      <SettingsCardHeaderSkeleton descriptionWidth="w-60" titleWidth="w-12" />
-      <CardContent>
-        <FieldGroup className="gap-4">
-          <Field orientation="horizontal">
-            <div className="w-20 shrink-0 pt-2">
-              <Skeleton className="h-4 w-10" />
+    <section className="space-y-3">
+      <div className={sectionHeaderClassName}>
+        <SettingsSectionHeaderSkeleton titleWidth="w-12" />
+        <Skeleton className="h-7 w-24 rounded-lg" />
+      </div>
+      <div className="divide-y overflow-hidden rounded-xl border bg-card">
+        {[0, 1].map((index) => (
+          <div
+            key={index}
+            className="grid items-center gap-3 p-4 sm:grid-cols-2"
+          >
+            <div className="space-y-0.5">
+              <TextSkeleton className="w-14" />
+              <TextSkeleton className="w-full max-w-64" />
             </div>
-            <FieldContent>
+            {index === 0 ? (
               <Skeleton className="h-8 w-full rounded-lg" />
-            </FieldContent>
-          </Field>
-          <Field orientation="horizontal">
-            <div className="w-20 shrink-0 pt-2">
-              <Skeleton className="h-4 w-12" />
-            </div>
-            <FieldContent>
-              <Skeleton className="size-16 rounded-lg" />
-            </FieldContent>
-          </Field>
-        </FieldGroup>
-      </CardContent>
-      <CardFooter className="justify-end">
-        <Skeleton className="h-8 w-28 rounded-lg" />
-      </CardFooter>
-    </Card>
+            ) : (
+              <div className="flex items-center gap-3">
+                <Skeleton className="size-8 rounded-full" />
+                <Skeleton className="h-7 w-20 rounded-lg" />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
   )
 }
 
-function AuthenticationCardSkeleton() {
+function SignInMethodsSectionSkeleton() {
   return (
-    <Card>
-      <SettingsCardHeaderSkeleton descriptionWidth="w-40" titleWidth="w-28" />
-      <CardContent>
+    <section className="space-y-3">
+      <SettingsSectionHeaderSkeleton titleWidth="w-28" />
+      <div className="overflow-hidden rounded-xl border bg-card">
         <div>
           {[0, 1].map((index) => (
             <div className={rowClassName} key={index}>
-              <Skeleton className="size-4 rounded" />
-              <TextSkeleton className="w-14" />
-              <TextSkeleton className="w-28" />
+              <div className="min-w-0 flex-1 space-y-0.5">
+                <TextSkeleton className="w-14" />
+                <TextSkeleton className="w-28" />
+              </div>
               {index === 1 ? (
                 <Skeleton className="ml-auto size-6 rounded-md" />
               ) : null}
             </div>
           ))}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   )
 }
 
-function InstallationsCardSkeleton() {
+function InstallationsSectionSkeleton() {
   return (
-    <Card>
-      <SettingsCardHeaderSkeleton descriptionWidth="w-72" titleWidth="w-24" />
-      <CardContent>
+    <section className="space-y-3">
+      <div className={sectionHeaderClassName}>
+        <SettingsSectionHeaderSkeleton titleWidth="w-24" />
+        <Skeleton className="h-7 w-48 rounded-lg" />
+      </div>
+      <div className="overflow-hidden rounded-xl border bg-card">
         <div>
           {[0, 1, 2].map((index) => (
             <div className={rowClassName} key={index}>
-              <Skeleton className="size-6 rounded" />
-              <Skeleton className="h-4 w-28" />
+              <Skeleton className="size-8 shrink-0 rounded-lg" />
+              <div className="min-w-0 flex-1 space-y-0.5">
+                <TextSkeleton className="w-28" />
+                <TextSkeleton className="w-24" />
+              </div>
               <Skeleton className="ml-auto h-6 w-16 rounded-md" />
             </div>
           ))}
         </div>
-      </CardContent>
-      <CardFooter className="justify-end">
-        <Skeleton className="h-7 w-48 rounded-lg" />
-      </CardFooter>
-    </Card>
+      </div>
+    </section>
   )
 }
 

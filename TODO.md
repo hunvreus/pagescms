@@ -1,5 +1,7 @@
 # TODO
 
+- Expose invitation expiry in collaborator lists so expired links do not remain labelled Invitation pending.
+
 - Support GitHub users with repository read access but no push access: include readable repositories in discovery, expose a read-only workspace state, disable content/media/workflow mutations and repository management controls, and enforce those limits server-side.
 
 - Profile large sortable object lists: isolate heavy field content from drag-context updates, stabilize row props, avoid whole-document dirty comparisons per keystroke, and evaluate variable-height virtualization while preserving edit state.
@@ -28,8 +30,22 @@
 
 ## Later
 
+- Benchmark competitor content localization and preview workflows before designing new implementations: locale storage layouts, fallback behavior, missing translations, translation navigation, references, publishing, and preview fidelity. Use the sandbox `feature/i18n` and `feature/preview` branches as idea references only; do not port or salvage their implementations. Keep this separate from UI localization.
+- Coordinate the GitHub organization/naming cleanup: public CMS at `pagescms/pagescms`, private online application currently at `hunvreus/pagescms-hosted` (local directory and package renamed; any organization transfer remains separate), and the existing sibling `./editor` project at `pagescms/editor`. Verify destination conflicts, organization access and private-repository support, then audit Git remotes, local composition paths, package/lockfile references, build scripts, Cloudflare Git integration, CI/settings, and current documentation. Distinguish hosted-free capabilities from paid plan entitlements; do not rename persisted database identifiers or deployment bindings incidentally.
+- Define account-owned subscriptions attached to stable repository IDs, independently of GitHub access. Show all subscriptions and cancellation controls in the payer's account; restrict repository billing details to the payer. Handle multiple repository administrators, duplicate purchases, billing transfer, repository rename/transfer, and loss of payer access without restoring content access or removing cancellation rights. Retain subscriptions after access loss and notify the payer; define collaborator-grant behavior separately.
+- Define the Enterprise contact-sales offer, including private/on-premise deployment of the hosted edition, licensing, supported infrastructure, updates, and support commitments; distinguish it from free OSS self-hosting.
+- After a payer loses repository access, retain existing billing and cancellation access, but require fresh repository-management authorization to purchase again, reactivate a canceled subscription, undo cancellation, or attach a subscription to a repository. Ensure the billing portal cannot bypass that authorization.
+- Launch Free without a repository-count cap; high usage alone is not abuse.
+- Defer custom hosted analytics and OSS instrumentation hooks until existing Cloudflare telemetry and database records leave a concrete abuse, cost, or plan-policy question unanswered. No new event framework, analytics database, or dashboard is required for launch. If needed later, consider small optional typed event hooks in core with hosted handlers for actor/repository attribution, GitHub calls, application-cache hits/misses, transfer volume, and AI usage. First evaluate enriching existing Cloudflare logs; choose Analytics Engine or separate D1/SQLite only if justified by reporting/retention needs. Keep payloads free of content and credentials, isolate handler failures, and avoid duplicate counts. Analytics is advisory and must remain separate from permissions, paid-feature checks, and exact AI allowance/spending controls.
+- Add hosted AI configuration with three Free generation runs per account per month across repositories; define and display the monthly reset date. Include bounded validation/retries in one run, do not charge internal failures or reopening saved results, and reserve allowance atomically before inference. Benchmark cheap models before selecting the default; bound input/output/retries. Update the missing-configuration empty state, repository onboarding, configuration editor, and account usage display to expose generation, review/save, remaining allowance, retry/error states, and manual setup. Keep deterministic Decap import outside the AI allowance. Do not advertise generation before the hosted capability is available; preserve manual setup in OSS.
 - Add UI localization: translation catalogs, locale selection, interpolation/pluralization, and locale-aware formatting; UI strings currently remain English.
 - Extend forge support beyond the existing repository adapter: provider selection, authentication/discovery, source links, and optional workflow capabilities are still GitHub-specific.
 
 - Add the document-session seam and evaluate Yjs with Durable Objects/WebSockets for collaborative editing; multiplayer is not part of the MVP.
 - Add further plugin capabilities only behind narrow versioned contracts (for example UI slots or webhook consumers), based on a concrete hosted feature.
+
+- Add optional repository upload-size limits below the platform/provider cap; the current application limit is 20 MB per file.
+
+## Editor
+
+- Add dedicated shortcode/MDX-expression adapters, snippets, and optional embed/extension registration after the HTML-policy MVP. Nested opaque syntax currently makes its containing fragment a source item.

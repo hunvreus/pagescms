@@ -1,13 +1,22 @@
-import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import { formatDistanceToNow } from 'date-fns'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '#/components/ui/tooltip'
+import { useActionRunTracking } from './use-action-run-tracking'
+import { SearchInput } from '#/components/search-input'
+import { Fragment, useState } from 'react'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import {
-  ArrowUpRight,
-  EllipsisVertical,
-  ExternalLink,
   LoaderCircle,
   Play,
   RotateCcw,
-  X,
+  EllipsisVertical,
+  ChevronDown,
+  ArrowUpRight,
 } from 'lucide-react'
 
 import { OperationError } from '#/components/operation-error'
@@ -21,9 +30,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '#/components/ui/alert-dialog'
-import { Badge } from '#/components/ui/badge'
+import { ActionRunStatus } from './action-run-status'
 import { Button } from '#/components/ui/button'
-import { ButtonGroup } from '#/components/ui/button-group'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -60,7 +68,6 @@ import { Textarea } from '#/components/ui/textarea'
 import { manageAction, runAction } from '#/functions/actions'
 import { actionsQueryOptions } from '#/queries/repository'
 
-import { ActionsEmpty } from './actions-empty'
 import { RepositoryAdminPage } from './repository-admin-page'
 import { useRepositoryGitHubLink } from '#/hooks/use-repository-github-link'
 
@@ -68,23 +75,20 @@ export function ActionsPage({
   owner,
   repo,
   branch,
-  embedded = false,
-  runsOnly = false,
   actionName,
-  onViewRuns,
   onActionFilter,
 }: {
   owner: string
   repo: string
   branch: string
-  embedded?: boolean
-  runsOnly?: boolean
   actionName?: string
-  onViewRuns?: (name?: string) => void
   onActionFilter?: (name?: string) => void
 }) {
   const params = { owner, repo, branch }
-  const { data } = useSuspenseQuery(actionsQueryOptions(params, runsOnly))
+  const { data, isFetching, refetch, dataUpdatedAt } = useSuspenseQuery(
+    actionsQueryOptions(params),
+  )
+  useActionRunTracking(params, data.runs, dataUpdatedAt)
   const canViewGitHub = useRepositoryGitHubLink()
   const [formAction, setFormAction] = useState<string | null>(null)
   const queryClient = useQueryClient()
@@ -119,6 +123,7 @@ export function ActionsPage({
           run.actionName,
           actionOptions.get(run.actionName),
           run.triggeredBy.name,
+          run.triggeredBy.email,
           run.conclusion,
           run.status,
         ]
@@ -138,35 +143,20 @@ export function ActionsPage({
     (pageIndex + 1) * pageSize,
   )
 
-  const hasActiveRuns = data.runs.some((run) => run.status !== 'completed')
-  useEffect(() => {
-    if (!hasActiveRuns) return
-    let cancelled = false
-    let timer = window.setTimeout(refresh, 4_000)
-    async function refresh() {
-      await queryClient.invalidateQueries({
-        queryKey: actionsQueryOptions(params).queryKey,
-      })
-      if (!cancelled) timer = window.setTimeout(refresh, 4_000)
-    }
-    return () => {
-      cancelled = true
-      window.clearTimeout(timer)
-    }
-  }, [hasActiveRuns, owner, repo, branch, queryClient])
-
   async function start(action: (typeof data.actions)[number]) {
     setPendingAction(null)
     setRunning(action.name)
     setError(null)
     try {
-      await runAction({
+      const run = await runAction({
         data: {
           ...params,
           actionName: action.name,
           inputs: values[action.name] ?? {},
         },
       })
+      const { actionRunTracking } = await import('#/lib/action-run-tracking')
+      actionRunTracking(queryClient).track(params, run, action.label)
       setFormAction(null)
       await queryClient.invalidateQueries({
         queryKey: actionsQueryOptions(params).queryKey,
@@ -183,7 +173,15 @@ export function ActionsPage({
     setManaging(runId)
     setError(null)
     try {
-      await manageAction({ data: { ...params, runId, intent } })
+      const run = await manageAction({ data: { ...params, runId, intent } })
+      if (intent === 'rerun') {
+        const { actionRunTracking } = await import('#/lib/action-run-tracking')
+        actionRunTracking(queryClient).track(
+          params,
+          run,
+          actionOptions.get(run.actionName) ?? run.actionName,
+        )
+      } else toast.success('Cancellation requested')
       await queryClient.invalidateQueries({
         queryKey: actionsQueryOptions(params).queryKey,
       })
@@ -209,427 +207,425 @@ export function ActionsPage({
 
   return (
     <RepositoryAdminPage
-      embedded={embedded}
-      hideHeading={runsOnly}
-      title={runsOnly ? 'Recent runs' : 'Actions'}
+      title="Actions"
       actions={
-        !runsOnly && onViewRuns ? (
-          <Button size="sm" variant="outline" onClick={() => onViewRuns()}>
-            View runs
-          </Button>
-        ) : undefined
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button
+                    aria-label="Refresh action runs"
+                    size="icon"
+                    variant="ghost"
+                    disabled={
+                      isFetching || (!data.actions.length && !data.runs.length)
+                    }
+                    onClick={() =>
+                      void refetch().then((result) => setError(result.error))
+                    }
+                  >
+                    <RotateCcw
+                      className={isFetching ? 'animate-spin' : undefined}
+                    />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Refresh</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <Select
+            disabled={!actionOptions.size}
+            value={actionName ? `action:${actionName}` : 'all'}
+            onValueChange={(value) => {
+              const action = value === 'all' ? undefined : value.slice(7)
+              setPagination({ filter: `${action ?? ''}:${search}`, page: 0 })
+              onActionFilter?.(action)
+            }}
+          >
+            <SelectTrigger
+              aria-label="Filter runs by action"
+              className="w-full sm:w-48"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All actions</SelectItem>
+              {[...actionOptions].map(([name, label]) => (
+                <SelectItem key={name} value={`action:${name}`}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <SearchInput
+            disabled={!data.runs.length}
+            aria-label="Search action runs"
+            placeholder="Search runs…"
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value)
+              setPagination({
+                filter: `${actionName ?? ''}:${event.target.value}`,
+                page: 0,
+              })
+            }}
+          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button disabled={!data.actions.length || running !== null}>
+                <Play />
+                {running ? 'Starting' : 'Run'}
+                <ChevronDown />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-48">
+              {data.actions.map((action) => (
+                <DropdownMenuItem
+                  key={action.name}
+                  onSelect={() => {
+                    if (action.fields?.length) setFormAction(action.name)
+                    else if (action.confirm === false) void start(action)
+                    else setPendingAction(action)
+                  }}
+                >
+                  {action.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       }
     >
       <OperationError error={error} fallback="Could not update the action." />
-
-      {!runsOnly ? (
-        <section className="space-y-3">
-          {data.actions.length ? (
-            <div className="divide-y rounded-xl border bg-card">
-              {data.actions.map((action) => (
-                <div className="space-y-4 p-4" key={action.name}>
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <h3 className="text-sm font-medium">{action.label}</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {action.workflow}
-                      </p>
-                    </div>
-                    <ButtonGroup aria-label={`Run ${action.label}`}>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={running !== null}
-                        onClick={() =>
-                          action.fields?.length
-                            ? setFormAction(action.name)
-                            : action.confirm === false
-                              ? void start(action)
-                              : setPendingAction(action)
-                        }
-                      >
-                        {running === action.name ? (
-                          <LoaderCircle className="animate-spin" />
-                        ) : (
-                          <Play />
-                        )}
-                        {running === action.name ? 'Starting' : 'Run'}
-                      </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            size="icon-sm"
-                            variant="outline"
-                            aria-label={`More options for ${action.label}`}
-                          >
-                            <EllipsisVertical />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="min-w-44">
-                          {canViewGitHub ? (
-                            <DropdownMenuItem asChild>
-                              <a
-                                href={`https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/workflows/${encodeURIComponent(action.workflow.replace(/^\.github\/workflows\//, ''))}?query=${encodeURIComponent(`branch:${branch}`)}`}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                View on GitHub{' '}
-                                <ArrowUpRight className="ml-auto opacity-50" />
-                              </a>
-                            </DropdownMenuItem>
-                          ) : null}
-                          {onViewRuns ? (
-                            <>
-                              {canViewGitHub ? <DropdownMenuSeparator /> : null}
-                              <DropdownMenuItem
-                                onSelect={() => onViewRuns(action.name)}
-                              >
-                                View runs
-                              </DropdownMenuItem>
-                            </>
-                          ) : null}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </ButtonGroup>
-                  </div>
-                  {action.fields?.length ? (
-                    <Dialog
-                      open={formAction === action.name}
-                      onOpenChange={(open) => !open && setFormAction(null)}
-                    >
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>{action.label}</DialogTitle>
-                          <DialogDescription>
-                            Configure inputs before running this workflow.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <OperationError
-                          error={error}
-                          fallback="Could not run the action."
-                        />
-                        <form
-                          className="space-y-4"
-                          onSubmit={(event) => {
-                            event.preventDefault()
-                            if (action.confirm === false) void start(action)
-                            else setPendingAction(action)
-                          }}
+      {data.actions.map((action) => (
+        <Fragment key={action.name}>
+          {action.fields?.length ? (
+            <Dialog
+              open={formAction === action.name}
+              onOpenChange={(open) => !open && setFormAction(null)}
+            >
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>{action.label}</DialogTitle>
+                  <DialogDescription>
+                    Configure inputs before running this workflow.
+                  </DialogDescription>
+                </DialogHeader>
+                <OperationError
+                  error={error}
+                  fallback="Could not run the action."
+                />
+                <form
+                  className="space-y-4"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    if (action.confirm === false) void start(action)
+                    else setPendingAction(action)
+                  }}
+                >
+                  <FieldGroup className="grid gap-4 sm:grid-cols-2">
+                    {action.fields.map((field) => {
+                      const value =
+                        values[action.name]?.[field.name] ??
+                        field.default ??
+                        (field.type === 'checkbox' ? false : '')
+                      return (
+                        <Field
+                          key={field.name}
+                          orientation={
+                            field.type === 'checkbox'
+                              ? 'horizontal'
+                              : 'vertical'
+                          }
                         >
-                          <FieldGroup className="grid gap-4 sm:grid-cols-2">
-                            {action.fields.map((field) => {
-                              const value =
-                                values[action.name]?.[field.name] ??
-                                field.default ??
-                                (field.type === 'checkbox' ? false : '')
-                              return (
-                                <Field
-                                  key={field.name}
-                                  orientation={
-                                    field.type === 'checkbox'
-                                      ? 'horizontal'
-                                      : 'vertical'
+                          {field.type === 'checkbox' ? (
+                            <>
+                              <Checkbox
+                                checked={value === true}
+                                id={`${action.name}-${field.name}`}
+                                onCheckedChange={(checked) =>
+                                  update(
+                                    action.name,
+                                    field.name,
+                                    checked === true,
+                                  )
+                                }
+                              />
+                              <FieldLabel
+                                htmlFor={`${action.name}-${field.name}`}
+                              >
+                                {field.label}
+                              </FieldLabel>
+                            </>
+                          ) : (
+                            <>
+                              <FieldLabel
+                                htmlFor={`${action.name}-${field.name}`}
+                              >
+                                {field.label}
+                                {field.required ? ' *' : ''}
+                              </FieldLabel>
+                              {field.type === 'textarea' ? (
+                                <Textarea
+                                  id={`${action.name}-${field.name}`}
+                                  required={field.required}
+                                  value={String(value)}
+                                  onChange={(event) =>
+                                    update(
+                                      action.name,
+                                      field.name,
+                                      event.target.value,
+                                    )
+                                  }
+                                />
+                              ) : field.type === 'select' ? (
+                                <Select
+                                  value={String(value)}
+                                  onValueChange={(next) =>
+                                    update(action.name, field.name, next)
                                   }
                                 >
-                                  {field.type === 'checkbox' ? (
-                                    <>
-                                      <Checkbox
-                                        checked={value === true}
-                                        id={`${action.name}-${field.name}`}
-                                        onCheckedChange={(checked) =>
-                                          update(
-                                            action.name,
-                                            field.name,
-                                            checked === true,
-                                          )
-                                        }
-                                      />
-                                      <FieldLabel
-                                        htmlFor={`${action.name}-${field.name}`}
+                                  <SelectTrigger
+                                    className="w-full"
+                                    id={`${action.name}-${field.name}`}
+                                  >
+                                    <SelectValue placeholder="Select…" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {field.options?.map((option) => (
+                                      <SelectItem
+                                        key={option.value}
+                                        value={option.value}
                                       >
-                                        {field.label}
-                                      </FieldLabel>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <FieldLabel
-                                        htmlFor={`${action.name}-${field.name}`}
-                                      >
-                                        {field.label}
-                                        {field.required ? ' *' : ''}
-                                      </FieldLabel>
-                                      {field.type === 'textarea' ? (
-                                        <Textarea
-                                          id={`${action.name}-${field.name}`}
-                                          required={field.required}
-                                          value={String(value)}
-                                          onChange={(event) =>
-                                            update(
-                                              action.name,
-                                              field.name,
-                                              event.target.value,
-                                            )
-                                          }
-                                        />
-                                      ) : field.type === 'select' ? (
-                                        <Select
-                                          value={String(value)}
-                                          onValueChange={(next) =>
-                                            update(
-                                              action.name,
-                                              field.name,
-                                              next,
-                                            )
-                                          }
-                                        >
-                                          <SelectTrigger
-                                            className="w-full"
-                                            id={`${action.name}-${field.name}`}
-                                          >
-                                            <SelectValue placeholder="Select…" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            {field.options?.map((option) => (
-                                              <SelectItem
-                                                key={option.value}
-                                                value={option.value}
-                                              >
-                                                {option.label}
-                                              </SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                      ) : (
-                                        <Input
-                                          id={`${action.name}-${field.name}`}
-                                          required={field.required}
-                                          type={
-                                            field.type === 'number'
-                                              ? 'number'
-                                              : 'text'
-                                          }
-                                          value={
-                                            typeof value === 'string' ||
-                                            typeof value === 'number'
-                                              ? value
-                                              : ''
-                                          }
-                                          onChange={(event) =>
-                                            update(
-                                              action.name,
-                                              field.name,
-                                              field.type === 'number'
-                                                ? event.target.value === ''
-                                                  ? undefined
-                                                  : event.target.valueAsNumber
-                                                : event.target.value,
-                                            )
-                                          }
-                                        />
-                                      )}
-                                    </>
-                                  )}
-                                </Field>
-                              )
-                            })}
-                          </FieldGroup>
-                          <div className="flex justify-end">
-                            <Button disabled={running !== null} type="submit">
-                              Run
-                            </Button>
-                          </div>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <ActionsEmpty />
-          )}
-        </section>
-      ) : null}
-
-      {runsOnly ? (
-        <section className="space-y-3">
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Input
-              aria-label="Search action runs"
-              placeholder="Search runs…"
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value)
-                setPagination({
-                  filter: `${actionName ?? ''}:${event.target.value}`,
-                  page: 0,
-                })
-              }}
-              className="sm:flex-1"
-            />
-            <Select
-              value={actionName ? `action:${actionName}` : 'all'}
-              onValueChange={(value) => {
-                const action = value === 'all' ? undefined : value.slice(7)
-                setPagination({ filter: `${action ?? ''}:${search}`, page: 0 })
-                onActionFilter?.(action)
-              }}
-            >
-              <SelectTrigger
-                aria-label="Filter runs by action"
-                className="w-full sm:w-48"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All actions</SelectItem>
-                {[...actionOptions].map(([name, label]) => (
-                  <SelectItem key={name} value={`action:${name}`}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {data.runs.length === 100 ? (
-            <p className="text-sm text-muted-foreground">
-              Search and filters apply to the latest 100 runs.
-            </p>
+                                        {option.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <Input
+                                  id={`${action.name}-${field.name}`}
+                                  required={field.required}
+                                  type={
+                                    field.type === 'number' ? 'number' : 'text'
+                                  }
+                                  value={
+                                    typeof value === 'string' ||
+                                    typeof value === 'number'
+                                      ? value
+                                      : ''
+                                  }
+                                  onChange={(event) =>
+                                    update(
+                                      action.name,
+                                      field.name,
+                                      field.type === 'number'
+                                        ? event.target.value === ''
+                                          ? undefined
+                                          : event.target.valueAsNumber
+                                        : event.target.value,
+                                    )
+                                  }
+                                />
+                              )}
+                            </>
+                          )}
+                        </Field>
+                      )
+                    })}
+                  </FieldGroup>
+                  <div className="flex justify-end">
+                    <Button disabled={running !== null} type="submit">
+                      Run
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
           ) : null}
-          <Table
-            aria-label="Recent action runs"
-            containerClassName="overflow-visible rounded-xl border bg-card"
-          >
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead>Action</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Triggered by</TableHead>
-                <TableHead>Started</TableHead>
-                <TableHead className="w-px" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleRuns.length ? (
-                visibleRuns.map((run) => (
-                  <TableRow key={run.id}>
-                    <TableCell className="font-medium">
-                      {data.actions.find(
-                        (action) => action.name === run.actionName,
-                      )?.label ?? run.actionName}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          run.conclusion === 'failure'
-                            ? 'destructive'
-                            : 'secondary'
-                        }
-                      >
-                        {run.conclusion ?? run.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{run.triggeredBy.name}</TableCell>
-                    <TableCell>
-                      {new Date(run.createdAt).toLocaleString()}
-                    </TableCell>
-                    <TableCell className="py-0 text-right">
-                      <div className="flex justify-end gap-1">
-                        {canViewGitHub && run.htmlUrl ? (
-                          <Button asChild size="icon-sm" variant="ghost">
-                            <a
-                              aria-label="Open run on GitHub"
-                              href={run.htmlUrl}
-                              rel="noreferrer"
-                              target="_blank"
+        </Fragment>
+      ))}
+      <section className="space-y-3">
+        {data.runs.length === 100 ? (
+          <p className="text-sm text-muted-foreground">
+            Search and filters apply to the latest 100 runs.
+          </p>
+        ) : null}
+        <Table
+          aria-label="Recent action runs"
+          containerClassName="rounded-xl border bg-card"
+        >
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead>Status</TableHead>
+              <TableHead>Action</TableHead>
+              <TableHead>Triggered by</TableHead>
+              <TableHead>Started</TableHead>
+              <TableHead className="w-px" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {visibleRuns.length ? (
+              visibleRuns.map((run) => (
+                <TableRow key={run.id}>
+                  <TableCell>
+                    <ActionRunStatus
+                      status={run.status}
+                      conclusion={run.conclusion}
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {data.actions.find(
+                      (action) => action.name === run.actionName,
+                    )?.label ?? run.actionName}
+                  </TableCell>
+                  <TableCell>
+                    {run.triggeredBy.email ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span tabIndex={0}>{run.triggeredBy.name}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {run.triggeredBy.email}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      run.triggeredBy.name
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <time dateTime={run.createdAt} tabIndex={0}>
+                            {formatDistanceToNow(new Date(run.createdAt), {
+                              addSuffix: true,
+                            })}
+                          </time>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {new Intl.DateTimeFormat(undefined, {
+                            dateStyle: 'full',
+                            timeStyle: 'long',
+                            timeZone: 'UTC',
+                          }).format(new Date(run.createdAt))}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </TableCell>
+                  <TableCell className="py-0 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      {run.canRerun && run.status === 'completed' ? (
+                        <Button
+                          aria-label="Run action again"
+                          disabled={managing === run.id}
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void manage(run.id, 'rerun')}
+                        >
+                          {managing === run.id ? (
+                            <LoaderCircle className="animate-spin" />
+                          ) : null}
+                          Run again
+                        </Button>
+                      ) : null}
+                      {(canViewGitHub && run.htmlUrl) || run.canCancel ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              aria-label={`Actions for run ${run.id}`}
+                              size="icon-sm"
+                              variant="outline"
+                              disabled={managing === run.id}
                             >
-                              <ExternalLink />
-                            </a>
-                          </Button>
-                        ) : null}
-                        {run.canCancel ? (
-                          <Button
-                            aria-label="Cancel action run"
-                            disabled={managing === run.id}
-                            size="icon-sm"
-                            variant="ghost"
-                            onClick={() => setCancelRun(run.id)}
-                          >
-                            {managing === run.id ? (
-                              <LoaderCircle className="animate-spin" />
-                            ) : (
-                              <X />
-                            )}
-                          </Button>
-                        ) : null}
-                        {run.canRerun && run.status === 'completed' ? (
-                          <Button
-                            aria-label="Run action again"
-                            disabled={managing === run.id}
-                            size="icon-sm"
-                            variant="ghost"
-                            onClick={() => void manage(run.id, 'rerun')}
-                          >
-                            {managing === run.id ? (
-                              <LoaderCircle className="animate-spin" />
-                            ) : (
-                              <RotateCcw />
-                            )}
-                          </Button>
-                        ) : null}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow className="hover:bg-transparent">
-                  <TableCell
-                    className="text-center text-muted-foreground"
-                    colSpan={5}
-                  >
-                    {query || actionName
-                      ? 'No matching action runs.'
-                      : 'No action runs yet.'}
+                              <EllipsisVertical />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="min-w-44">
+                            {canViewGitHub && run.htmlUrl ? (
+                              <DropdownMenuItem asChild>
+                                <a
+                                  href={run.htmlUrl}
+                                  rel="noreferrer"
+                                  target="_blank"
+                                  className="whitespace-nowrap"
+                                >
+                                  View on GitHub
+                                  <ArrowUpRight className="ml-auto opacity-50" />
+                                </a>
+                              </DropdownMenuItem>
+                            ) : null}
+                            {canViewGitHub && run.htmlUrl && run.canCancel ? (
+                              <DropdownMenuSeparator />
+                            ) : null}
+                            {run.canCancel ? (
+                              <DropdownMenuItem
+                                variant="destructive"
+                                onSelect={() => setCancelRun(run.id)}
+                              >
+                                Cancel run
+                              </DropdownMenuItem>
+                            ) : null}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : null}
+                    </div>
                   </TableCell>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-          {pageCount > 1 ? (
-            <nav
-              aria-label="Action runs pagination"
-              className="flex flex-wrap items-center justify-between gap-3"
-            >
-              <p aria-live="polite" className="text-sm text-muted-foreground">
-                Page {pageIndex + 1} of {pageCount}
-                {data.runs.length === 100 ? ' · Latest 100 runs' : null}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={pageIndex === 0}
-                  onClick={() =>
-                    setPagination({ filter: filterKey, page: pageIndex - 1 })
-                  }
+              ))
+            ) : (
+              <TableRow className="hover:bg-transparent">
+                <TableCell
+                  className="text-center text-muted-foreground"
+                  colSpan={5}
                 >
-                  Previous
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={pageIndex === pageCount - 1}
-                  onClick={() =>
-                    setPagination({ filter: filterKey, page: pageIndex + 1 })
-                  }
-                >
-                  Next
-                </Button>
-              </div>
-            </nav>
-          ) : null}
-        </section>
-      ) : null}
+                  {query || actionName
+                    ? 'No matching action runs.'
+                    : data.actions.length
+                      ? 'No action runs yet.'
+                      : 'No actions configured.'}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+        {pageCount > 1 ? (
+          <nav
+            aria-label="Action runs pagination"
+            className="flex flex-wrap items-center justify-between gap-3"
+          >
+            <p aria-live="polite" className="text-sm text-muted-foreground">
+              Page {pageIndex + 1} of {pageCount}
+              {data.runs.length === 100 ? ' · Latest 100 runs' : null}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={pageIndex === 0}
+                onClick={() =>
+                  setPagination({ filter: filterKey, page: pageIndex - 1 })
+                }
+              >
+                Previous
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={pageIndex === pageCount - 1}
+                onClick={() =>
+                  setPagination({ filter: filterKey, page: pageIndex + 1 })
+                }
+              >
+                Next
+              </Button>
+            </div>
+          </nav>
+        ) : null}
+      </section>
 
       <AlertDialog
         open={pendingAction !== null}

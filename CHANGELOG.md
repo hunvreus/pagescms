@@ -12,6 +12,94 @@
 
 ## Unreleased
 
+### Added
+
+- Rich-text `options.html` forwards CSS-selector keep/strip/drop rules and attribute permissions to the shared editor. Permitted containers are editable and round-trip as HTML inside Markdown; source items preserve Markdown comments and component markup. HTML input and clipboard content are sanitized.
+
+### Changed
+
+- Use the shared 128px minimum height for configuration and source editors, including loading placeholders; match rich-text and code-field placeholders to their minimum heights.
+
+- Improve History skeleton contrast in dark dropdowns and shorten the Actions refresh tooltip.
+
+- Add an Actions header refresh tooltip, including disabled loading and empty states.
+
+- Show the triggering user’s recorded email in Actions tooltips and include it in run filtering.
+
+- Put action status first and show relative start times with the exact UTC timestamp in a tooltip; align loading and empty table columns.
+
+- Store the media view preference in a browser cookie so server rendering and hydration use the same gallery/list layout without a skeleton flash.
+
+- Center gallery folder labels with horizontal padding and remember the media gallery/list preference in browser storage across repositories and media pickers.
+
+- Use ghost styling for Actions and Cache refresh buttons, including loading and empty states.
+
+- Preserve the Actions table and disabled header controls without configured actions; show search spinners only while applying server-side keyword changes, rather than initial loading or background refresh.
+
+- Changing rich-text editability no longer emits a content update, keeping saved Markdown untouched and Save disabled when opening an entry.
+
+- Open GitHub installation setup in a new tab, matching installation management links.
+
+- Match History loading row spacing and line heights to loaded entries; separate View on GitHub from other dropdown actions whenever present.
+
+- Remove the post-save check icon from file editor Save buttons; retain loading indicators and success notifications.
+
+- Use a pure white main background in the light theme while preserving sidebar, border and dark-theme colors.
+
+- Move the available Admin link from the application header into the user menu, separated from user settings.
+
+- Use a consistent 2px label-to-description gap in User settings, Admin cache settings and repository Cache, including loading placeholders.
+
+- Align User settings label line heights, row padding and section headers; use a circular profile avatar with a disabled Upload control, omit sign-in method icons, and move installation setup into the header.
+
+- User settings uses label/description rows with full-width dividers, compact profile saving, and Sign-in methods; omit section descriptions and match loading placeholders.
+
+- Align User settings with Admin settings section width, spacing, headings and bordered content; move profile saving into the section header and match loading placeholders.
+
+- Select fields use the shared 1px green focus edge instead of a neutral 3px ring, preserving destructive focus for invalid values.
+
+- Rich-text editor focus uses the same 1px green edge as other fields; empty lists omit their drag-and-drop wrapper to avoid extra spacing.
+
+- Restore visible Command selection in dark mode and remove its search focus border. Align empty list spacing with other fields and distinguish Required badges with light/dark fuchsia colors.
+
+- Share one 15-second status batch between active Actions rows and triggered-run notifications; pause hidden tabs and stop completed runs. GitHub webhook updates serve routine status reads, with database-throttled discovery and recovery checks.
+
+- Actions search is disabled without a spinner during the initial table skeleton.
+- Cached files show table skeleton rows and a disabled filter on first load; subsequent filtering keeps existing rows visible.
+
+- Replace branch submenu skeleton slots with one muted loading message below known branches.
+- Invite collaborators through one expanding email textarea in core and Pro. Validate single addresses and bulk lists, deduplicate emails, and submit with Enter (Shift+Enter adds a line).
+- Actions loading dropdown explicitly displays All actions.
+
+- Add success notifications for completed mutations and one progress notification per upload batch, including partial failure counts.
+- Normalize file extensions case-insensitively and never persist temporary rich-text image URLs; successful uploads retain permanent URLs even when preview loading fails.
+
+- Branch submenu shows skeleton rows only on its first load; cached branches remain usable without a loader during refresh. Fetching still starts when the submenu opens.
+
+- Core collaborators are repository-wide; removed the legacy branch column and scope checks. Pro permission assignments own branch restrictions.
+- Command search focuses its whole input group without a second inner border; media folders match file preview dimensions.
+
+- Core collaborator tables show Email and Status without an Access column; Pro keeps its Roles and Branches fields.
+
+- Focus borders and outlines use the Pages CMS green in light and dark mode.
+
+- Branch submenu separates All branches (searchable command dialog) from Create branch (a named form using the current branch as source).
+
+- Core and Pro collaborator tables use consistent status badges: secondary badges with neutral icons and muted Invitation pending.
+
+- Actions header follows refresh, action filter, search, and Run order. Run statuses use readable labels with icons, secondary badges with neutral icons and muted queued/in-progress statuses, and destructive badges for errors; row controls use a labelled rerun button and an overflow menu.
+
+- Cached file filtering keeps existing rows visible while the search field shows loading.
+
+- Admin loading states match each page’s header controls and layout. Branch lists load only when the submenu opens, with loading feedback inside that submenu.
+
+- Cached file inspection uses an unboxed collapsible, a naturally sized table with ten rows per page, and path filtering beside pagination above the table.
+
+- Renamed repository Settings to Configuration with a direct `/configuration` editor route. Restored opt-in repository cache management through `settings.cache: true`, enforced in navigation, route guards, and all cache-management endpoints; global admin cache controls remain available.
+- Aligned repository header spacing and control sizes, removed destructive-menu separators, kept source links on one line, and added background-loading indicators to shared search fields. Repository cache inspection expands inline with paginated file metadata and SHA details.
+- Reused the narrow file-editor layout and history/menu controls for configuration, fixed wrapping in file menus, and restored legacy fixed-file and Actions icons. Actions now shows a runs table with header search, Run dropdown, and manual Refresh; collaborator search lives beside invitation controls, including Pro.
+- Split repository administration into Settings, Collaborators, Actions, and Cache pages under Admin. Primary controls move into page headers, including Pro controls; Settings opens directly in the configuration editor with diagnostics and unsaved-change protection.
+
 ### Tests
 
 - Remove tests that mirror styling and synthetic payload ratios; preserve behavior, persistence, keyboard, loading and layout coverage.

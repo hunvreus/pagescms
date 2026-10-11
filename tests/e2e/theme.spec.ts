@@ -7,31 +7,19 @@ for (const theme of ['light', 'dark'] as const) {
     await page.addInitScript((value) => {
       localStorage.setItem('theme', value)
     }, theme)
-    await page.goto('/pagescms/fixture/main/settings')
+    await page.goto('/pagescms/fixture/main/collaborators')
     await page.waitForLoadState('networkidle')
-    const collaborators = page.getByRole('region', {
-      name: 'Collaborators',
-      exact: true,
-    })
-    const invite = collaborators.getByRole('button', {
-      name: 'Invite collaborator',
-    })
+    const invite = page
+      .locator('[data-slot="repository-page-header"]')
+      .getByRole('button', { name: 'Invite collaborator' })
     await expect(invite).toBeVisible()
-    await expect(invite).toHaveCSS('height', '28px')
+    await expect(invite).toHaveCSS('height', '32px')
     await invite.focus()
-    const workflow = page
-      .getByRole('region', { name: 'Actions', exact: true })
-      .getByText('deploy.yml', { exact: true })
-    await expect(workflow).toBeVisible()
-    await expect(
-      page
-        .getByRole('region', { name: 'Actions', exact: true })
-        .getByText('Workflow: deploy.yml', { exact: true }),
-    ).toHaveCount(0)
     await expect(page.locator('html')).toHaveCSS('color-scheme', theme)
-    await expect(
-      collaborators.locator('[data-slot="table-container"]'),
-    ).toHaveCSS('overflow-x', 'auto')
+    await expect(page.locator('[data-slot="table-container"]')).toHaveCSS(
+      'overflow-x',
+      'auto',
+    )
     await invite.click()
     const dialog = page.getByRole('dialog', { name: 'Invite collaborators' })
     await expect(dialog).toBeVisible()
