@@ -1,5 +1,6 @@
 import DOMPurify from 'dompurify'
 import {
+  Extension as TiptapExtension,
   Node as TiptapNode,
   Mark as TiptapMark,
   generateJSON,
@@ -55,7 +56,7 @@ export function createMarkdownParser() {
 }
 const htmlMarkdown = createMarkdownParser()
 
-const containers = ['div', 'section', 'article', 'aside', 'details', 'summary']
+const containers = ['div', 'section', 'article', 'aside', 'header', 'footer', 'details', 'summary', 'dl', 'dt', 'dd']
 const safeAttributes = [
   'class',
   'id',
@@ -437,8 +438,10 @@ export function createMarkdownHtmlExtensions(policy?: MarkdownHtmlPolicy) {
   const nodes: ReturnType<typeof TiptapNode.create>[] = containers.map((tag) =>
     TiptapNode.create({
       name: `htmlContainer_${tag}`,
-      group: 'block',
-      content: tag === 'summary' ? 'inline*' : 'block*',
+      group: tag === 'dt' || tag === 'dd' ? undefined : 'block',
+      content: tag === 'dl'
+        ? '(htmlContainer_dt | htmlContainer_dd)*'
+        : tag === 'summary' || tag === 'dt' ? 'inline*' : 'block*',
       defining: true,
       addAttributes() {
         return {
@@ -463,8 +466,14 @@ export function createMarkdownHtmlExtensions(policy?: MarkdownHtmlPolicy) {
         return [
           {
             tag,
-            getAttrs: (element) =>
-              action(element, policy) === 'keep' ? {} : false,
+            getAttrs: (element) => {
+              if (action(element, policy) === 'keep') return {}
+              // A kept definition list needs its structural children, just as
+              // a table needs rows and cells; no extra keep rules are required.
+              const list = tag === 'dt' || tag === 'dd'
+                ? element.closest('dl') : null
+              return list && action(list, policy) === 'keep' ? {} : false
+            },
           },
         ]
       },
@@ -626,6 +635,10 @@ export function createMarkdownHtmlExtensions(policy?: MarkdownHtmlPolicy) {
                     ? { source: sanitizeStoredHtml(element.outerHTML, policy) }
                     : false
                 }
+                // A single linked image has its own editable image node.
+                if (tag === 'a' && element.children.length === 1 &&
+                  element.firstElementChild?.tagName === 'IMG' &&
+                  !element.textContent.trim()) return false
                 const nestedSpan =
                   tag === 'span' &&
                   Array.from(element.querySelectorAll('span')).some(
@@ -662,6 +675,23 @@ export function createMarkdownHtmlExtensions(policy?: MarkdownHtmlPolicy) {
             ) as HTMLElement
             dom.setAttribute('contenteditable', 'false')
             dom.setAttribute('title', 'Double-click to edit HTML')
+            // Keep native selection from replacing the fragment selection in Firefox.
+            dom.addEventListener('mousedown', event => {
+              event.preventDefault()
+              if (editor.isEditable) editor.view.focus()
+            })
+            // Preview links are content to edit, never navigation controls.
+            dom.addEventListener('click', event => {
+              event.preventDefault()
+              if (!editor.isEditable) return
+              const pos = getPos()
+              if (typeof pos !== 'number') return
+              editor.view.focus()
+              editor.view.dispatch(
+                editor.state.tr.setSelection(NodeSelection.create(editor.state.doc, pos)),
+              )
+            })
+            dom.addEventListener('auxclick', event => event.preventDefault())
             dom.addEventListener('dblclick', () => {
               if (!editor.isEditable) return
               const source = window.prompt(
@@ -833,5 +863,22 @@ export function createMarkdownHtmlExtensions(policy?: MarkdownHtmlPolicy) {
       )
     },
   })
-  return [...nodes, span]
+  const linkAttributes = TiptapExtension.create({
+    name: 'htmlLinkAttributes',
+    addGlobalAttributes() {
+      // Leave Link's own attributes (especially href) under its control so URL
+      // edits cannot be overwritten by preserved source attributes.
+      const native = ['href', 'target', 'rel', 'class', 'title']
+      const attributes = [...new Set(['id', ...(policy?.attributes ?? [])])]
+        .filter(name => !native.includes(name) && !/^on/i.test(name) && name !== 'style')
+      return [{
+        types: ['link'],
+        attributes: Object.fromEntries(attributes.map(name => [name, {
+          default: null,
+          parseHTML: (element: HTMLElement) => element.getAttribute(name),
+        }])),
+      }]
+    },
+  })
+  return [...nodes, span, linkAttributes]
 }

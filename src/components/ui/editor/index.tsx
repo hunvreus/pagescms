@@ -14,8 +14,12 @@ import { BubbleMenu } from '@tiptap/react/menus'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Underline from '@tiptap/extension-underline'
-import Link from '@tiptap/extension-link'
-import Image from '@tiptap/extension-image'
+import {
+  ImageLink,
+  LinkedImageParagraph,
+  UploadableImage,
+  imageLinkHref,
+} from './image'
 import { Table } from '@tiptap/extension-table'
 import TableRow from '@tiptap/extension-table-row'
 import TableHeader from '@tiptap/extension-table-header'
@@ -75,60 +79,6 @@ const UPLOADED_IMAGE_PRELOAD_TIMEOUT_MS = 8_000
 const MARKDOWN_TABLE_ROW_PATTERN = /^\s*\|.*\|\s*$/
 const MARKDOWN_TABLE_DELIMITER_CELL_PATTERN = /^:?-{3,}:?$/
 const TABLE_CELL_NBSP_PATTERN = /^(?:&nbsp;|\u00A0)+$/i
-
-function markdownImageDestination(value: string) {
-  const encoded = encodeURI(value).replace(/%25([0-9A-Fa-f]{2})/g, '%$1')
-  return /[()]/.test(encoded) ? `<${encoded}>` : encoded
-}
-
-const UploadableImage = Image.extend({
-  addAttributes() {
-    return {
-      ...this.parent?.(),
-      uploadId: {
-        default: null,
-        parseHTML: (element: HTMLElement) =>
-          element.getAttribute('data-upload-id'),
-        renderHTML: (attributes: { uploadId?: string | null }) =>
-          attributes.uploadId ? { 'data-upload-id': attributes.uploadId } : {},
-      },
-      uploading: {
-        default: false,
-        parseHTML: (element: HTMLElement) =>
-          element.getAttribute('data-uploading') === 'true',
-        renderHTML: (attributes: { uploading?: boolean }) =>
-          attributes.uploading ? { 'data-uploading': 'true' } : {},
-      },
-      uploadError: {
-        default: null,
-        parseHTML: (element: HTMLElement) =>
-          element.getAttribute('data-upload-error'),
-        renderHTML: (attributes: { uploadError?: string | null }) =>
-          attributes.uploadError
-            ? { 'data-upload-error': attributes.uploadError }
-            : {},
-      },
-    }
-  },
-
-  parseMarkdown(token, helpers) {
-    return helpers.createNode('image', {
-      src: token['href'],
-      title: token['title'],
-      alt: token.text,
-    })
-  },
-
-  renderMarkdown(node) {
-    const attrs = toUploadableAttrs(node.attrs)
-    if (String(attrs.src ?? '').startsWith('blob:')) return ''
-    const src = markdownImageDestination(String(attrs.src ?? ''))
-    const alt = String(attrs.alt ?? '')
-    const title = String(attrs.title ?? '')
-
-    return title ? `![${alt}](${src} "${title}")` : `![${alt}](${src})`
-  },
-})
 
 export type EditorProps = {
   value?: string
@@ -383,11 +333,12 @@ export function Editor({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
+        paragraph: false,
         link: false,
         underline: false,
       }),
       Underline,
-      Link.configure({
+      ImageLink.configure({
         openOnClick: false,
         enableClickSelection: true,
         HTMLAttributes: {
@@ -396,6 +347,7 @@ export function Editor({
         },
       }),
       UploadableImage,
+      LinkedImageParagraph,
       Table,
       TableRow,
       TableHeader,
@@ -980,9 +932,9 @@ export function Editor({
       setShowLinkInput(false)
       return
     }
-    const linkAttrs = editor.getAttributes('link')
+    const linkAttrs = editor.getAttributes(isOnImage ? 'image' : 'link')
     const href = typeof linkAttrs['href'] === 'string' ? linkAttrs['href'] : ''
-    setLinkUrl(editor.isActive('link') ? href : '')
+    setLinkUrl(isOnImage || editor.isActive('link') ? href : '')
     setShowLinkInput(true)
     setShowTableActions(false)
     setShowAltInput(false)
@@ -1012,17 +964,28 @@ export function Editor({
   const applyLink = () => {
     const trimmed = linkUrl.trim()
     if (!trimmed) return
-    editor
-      .chain()
-      .focus()
-      .extendMarkRange('link')
-      .setLink({ href: trimmed })
-      .run()
+    if (isOnImage) {
+      const href = imageLinkHref(trimmed)
+      if (!href) return
+      editor.chain().focus().updateAttributes('image', { href }).run()
+    } else
+      editor
+        .chain()
+        .focus()
+        .extendMarkRange('link')
+        .setLink({ href: trimmed })
+        .run()
     setShowLinkInput(false)
   }
 
   const removeLink = () => {
-    editor.chain().focus().extendMarkRange('link').unsetLink().run()
+    if (isOnImage)
+      editor
+        .chain()
+        .focus()
+        .updateAttributes('image', { href: null, linkTitle: null })
+        .run()
+    else editor.chain().focus().extendMarkRange('link').unsetLink().run()
     setShowLinkInput(false)
     setLinkUrl('')
   }
@@ -1157,7 +1120,10 @@ export function Editor({
               onClick: openLinkInput,
               disabled,
               toggle: true,
-              pressed: showLinkInput || activeState.link,
+              pressed:
+                showLinkInput ||
+                activeState.link ||
+                Boolean(isOnImage && editor.getAttributes('image')['href']),
             })}
             {isOnImage ? (
               <button

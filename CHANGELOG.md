@@ -14,6 +14,8 @@
 
 ### Added
 
+- Rich-text definition lists support visual term/description editing and nested lists in HTML and Markdown, using `html.keep: [dl]` and existing typography.
+
 - Rich-text `options.snippets` exposes reusable source snippets through the shared editor slash menu, with optional HTML/Markdown input format, ordinary sanitization and filtering, and undo.
 
 - Rich-text fields render static SVG icons in HTML and Markdown by default. The shared editor sanitizes SVG drawing elements and attributes, blocks active SVG and external references, and supports fragment source editing.
@@ -21,6 +23,12 @@
 - Rich-text `options.html` forwards CSS-selector keep/strip/drop rules and attribute permissions to the shared editor. Permitted containers are editable and round-trip as HTML inside Markdown; source items preserve Markdown comments and component markup. HTML input and clipboard content are sanitized.
 
 ### Changed
+
+- Preserved HTML previews select on click rather than navigating; extra link attributes require configuration, apart from standard link attributes and IDs. Document the limitation on complex MDX expressions.
+
+- Kept HTML headers and footers use shared editable containers. Editable links preserve standard and configured attributes; direct inline children normalize into paragraphs in both formats.
+
+- Slash menu keyboard selection scrolls into view, with a viewport-limited scrollable list.
 
 - Saving an existing structured entry with `settings.content.merge: true` reads the correct GitHub path and branch before merging.
 
@@ -115,6 +123,8 @@
 - Add OTP/session HTTP and authenticated billing-handler coverage; run database, composition and production media checks in CI.
 
 ### Fixed
+
+- Image link controls now attach destinations to standalone images, preserve them through HTML/Markdown save and reopen, and select images without following their links. The image extension is shared with the editor registry.
 
 - Preserve configuration diagnostics when CodeMirror reconfigures its editor extensions.
 

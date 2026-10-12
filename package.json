@@ -86,6 +86,7 @@
     "@tiptap/core": "3.31.3",
     "@tiptap/extension-image": "3.31.3",
     "@tiptap/extension-link": "3.31.3",
+    "@tiptap/extension-paragraph": "3.31.3",
     "@tiptap/extension-placeholder": "3.31.3",
     "@tiptap/extension-table": "3.31.3",
     "@tiptap/extension-table-cell": "3.31.3",

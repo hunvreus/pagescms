@@ -1,4 +1,10 @@
-import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react'
 import type { Editor } from '@tiptap/core'
 import type { LucideIcon } from 'lucide-react'
 import { Ban } from 'lucide-react'
@@ -24,6 +30,14 @@ export type CommandsListHandle = {
 const CommandsList = forwardRef<CommandsListHandle, CommandsListProps>(
   ({ items, command }, ref) => {
     const [selectedIndex, setSelectedIndex] = useState(0)
+    const selectedItemRef = useRef<HTMLButtonElement>(null)
+
+    useEffect(() => {
+      selectedItemRef.current?.scrollIntoView({
+        block: 'nearest',
+        inline: 'nearest',
+      })
+    }, [selectedIndex, items])
 
     useEffect(() => {
       setSelectedIndex(0)
@@ -63,11 +77,12 @@ const CommandsList = forwardRef<CommandsListHandle, CommandsListProps>(
     }))
 
     return (
-      <div className="bg-popover text-popover-foreground border-border z-50 max-h-80 min-w-44 overflow-y-auto rounded-md border p-1 shadow-md">
+      <div className="bg-popover text-popover-foreground border-border z-50 max-h-[min(20rem,calc(100dvh-1rem))] min-w-44 scrollbar-thin [scrollbar-width:thin] overflow-y-auto overscroll-y-contain rounded-md border p-1 shadow-md">
         {items.length ? (
           items.map((item, index) => (
             <button
               key={`${index}:${item.title}`}
+              ref={selectedIndex === index ? selectedItemRef : null}
               type="button"
               onClick={() => selectItem(index)}
               aria-selected={selectedIndex === index}

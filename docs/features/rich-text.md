@@ -15,8 +15,13 @@ field options; Pages CMS does not implement its own parsing or filtering.
       attributes: [data-kind]
 ```
 
-`keep` retains supported containers with editable children. Other permitted browser
-HTML is displayed as an atomic fragment with double-click source editing. `strip`
+`keep` retains supported containers (`div`, `section`, `article`, `aside`,
+`header`, `footer`, `details`, `summary`, and definition lists) with editable children. Flow containers
+normalize direct text and links into paragraphs. Existing paragraphs are retained;
+HTML structure is normalized rather than preserved byte-for-byte. Links retain
+standard and configured extra attributes when edited. Other permitted browser
+HTML is displayed as an atomic fragment: clicks select it without following links,
+and double-clicks open source editing. `strip`
 retains plain text only; `drop` removes the entire element. Rules apply recursively
 and `drop` wins over `strip`, then `keep`. Classes, IDs, and standard HTML attributes are retained by default on kept
 elements; `attributes` permits extra attributes such as `data-kind`. Class
@@ -40,7 +45,9 @@ source mode itself does not apply the visual editor's filtering policy.
 Markdown comments and capitalized component markup are visible source items.
 A container with nested opaque syntax becomes a source item as a whole; nested
 selectors do not filter its interior, although root strip/drop rules apply.
-Unsafe source exports as code. Shortcodes, MDX expressions, embed presets,
+Unsafe source exports as code. This is not general MDX support: complex expressions
+(such as object-valued props) are not reliably preserved and must stay in source mode.
+Shortcodes, MDX expressions, embed presets,
 custom extension registration, and custom CSS are not included yet.
 
 The CMS adapter preserves permanent media URLs and save state independently of
@@ -72,3 +79,7 @@ HTML is not escaped into literal text, and wrappers require matching keep rules.
 Insertion replaces the slash query and supports undo. Snippets are not offered
 inside table cells. The shared editor owns insertion and filtering; Pages CMS
 validates configuration, forwards it, and handles storage and media separately.
+
+Use `html.keep: [dl]` to enable editable definition lists. Terms (`dt`) and descriptions (`dd`) are retained automatically inside the kept list; descriptions support paragraphs and nested lists. Direct description text normalizes into paragraphs. The shared editor typography already styles definition lists.
+
+Images remain standalone blocks. Select an image and use Link to add, change, or remove its destination; alt-text editing and uploads retain the destination. Linked images reload from both HTML and Markdown without navigation when clicked in the editor. Plain links serialize as `[![alt](image)](destination)` in Markdown, with HTML retained when configured wrapper attributes cannot be represented. Unsafe destination protocols are rejected.

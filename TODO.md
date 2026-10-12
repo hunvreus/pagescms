@@ -48,4 +48,5 @@
 
 ## Editor
 
-- Add dedicated shortcode/MDX-expression adapters and optional embed/extension registration after the HTML-policy MVP. Nested opaque syntax currently makes its containing fragment a source item.
+- Add dedicated shortcode/MDX-expression adapters and optional embed/extension registration after the HTML-policy MVP. Nested opaque syntax currently makes its containing fragment a source item. Complex MDX object-valued props are not reliably preserved; keep them in source editing until adapter coverage exists.
+- General editable block links remain deferred; anchors wrapping mixed block content use the source-editable fallback.

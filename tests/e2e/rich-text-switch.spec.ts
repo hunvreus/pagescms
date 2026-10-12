@@ -379,10 +379,9 @@ for (const format of ['markdown', 'html'] as const) {
     await expect(editor.locator('div.alert > section > p')).toHaveText(
       'You can add components and dependencies to your app.',
     )
-    await expect(editor.locator('div.alert > footer > a.btn')).toHaveAttribute(
-      'href',
-      '/enable',
-    )
+    await expect(
+      editor.locator('div.alert > footer > p > a.btn'),
+    ).toHaveAttribute('href', '/enable')
     await expect(editor.locator('div.alert > svg')).toHaveCount(1)
     await expect(editor.locator('svg')).toHaveAttribute('viewBox', '0 0 24 24')
     await editor
@@ -395,13 +394,29 @@ for (const format of ['markdown', 'html'] as const) {
       .toBe('Heads up!')
     await page.keyboard.type('Heads up! edited')
     await expect(editor.locator('h2')).toHaveText('Heads up! edited')
+    const link = editor.locator('footer a')
+    await link.click({ clickCount: 3 })
+    await expect
+      .poll(() => editor.evaluate(() => window.getSelection()?.toString()))
+      .toBe('Enable')
+    await page.keyboard.type('Enable now')
+    await expect(link).toHaveText('Enable now')
+    await link.click({ clickCount: 3 })
+    await page.getByRole('button', { name: 'Link', exact: true }).click()
+    await page
+      .getByPlaceholder('https://example.com')
+      .fill('https://example.com/changed')
+    await page.getByRole('button', { name: 'Set link', exact: true }).click()
+    await expect(link).toHaveAttribute('href', 'https://example.com/changed')
+    await expect(link).toHaveAttribute('class', 'btn')
+    await expect(link).toHaveAttribute('data-variant', 'outline')
     await page.getByRole('tab', { name: 'Source', exact: true }).click()
     await expect(source).toContainText('<h2>Heads up! edited</h2>')
     await expect(source).toContainText(
       '<section><p>You can add components and dependencies to your app.</p></section>',
     )
     await expect(source).toContainText(
-      '<footer><a href="/enable" class="btn" data-variant="outline">Enable</a></footer>',
+      '<footer><p><a class="btn" data-variant="outline" href="https://example.com/changed">Enable now</a></p></footer>',
     )
     await expect(source).toContainText('<svg')
     await page.getByRole('button', { name: 'Save', exact: true }).click()
@@ -411,10 +426,14 @@ for (const format of ['markdown', 'html'] as const) {
       'Heads up! edited',
     )
     await expect(editor.locator('div.alert > section > p')).toHaveCount(1)
-    await expect(editor.locator('div.alert > footer > a.btn')).toHaveAttribute(
-      'href',
-      '/enable',
+    await expect(editor.locator('footer a')).toHaveText('Enable now')
+    await expect(editor.locator('footer a')).toHaveAttribute(
+      'data-variant',
+      'outline',
     )
+    await expect(
+      editor.locator('div.alert > footer > p > a.btn'),
+    ).toHaveAttribute('href', 'https://example.com/changed')
     await expect(editor.locator('div.alert > svg')).toHaveCount(1)
     await expect(editor.locator('svg')).toHaveAttribute('viewBox', '0 0 24 24')
     await expect(editor.locator('svg path')).toHaveCount(2)
@@ -495,5 +514,180 @@ for (const format of ['markdown', 'html'] as const) {
         () => (window as unknown as { attacked: number }).attacked,
       ),
     ).toBe(0)
+  })
+}
+
+for (const format of ['markdown', 'html']) {
+  test(`${format} definition lists remain editable after CMS save and reopen`, async ({
+    page,
+  }) => {
+    const markdown = format === 'markdown'
+    await page.goto(
+      markdown
+        ? '/pagescms/fixture/main/collection/posts/entry/content/posts/hello.md'
+        : '/pagescms/fixture/main/file/html-editor',
+    )
+    const editor = page.getByRole('textbox', {
+      name: markdown ? 'Body' : 'HTML body',
+      exact: true,
+    })
+    await expect(editor).toBeVisible()
+    await page.getByRole('tab', { name: 'Source', exact: true }).click()
+    const source = page.getByRole('textbox', {
+      name: markdown ? 'Body source' : 'HTML body source',
+      exact: true,
+    })
+    await source.fill(
+      '<dl class="definitions"><dt>Timeout</dt><dd>Maximum wait.</dd><dt>Retry</dt><dd><p>Try again.</p><dl><dt>Nested</dt><dd>Nested description.</dd></dl></dd></dl>',
+    )
+    await page.getByRole('tab', { name: 'Editor', exact: true }).click()
+    await expect(editor.locator('dl.definitions > dt')).toHaveCount(2)
+    await expect(editor.locator('dl [contenteditable="false"]')).toHaveCount(0)
+    await expect(editor.locator('dt').first()).toHaveCSS('font-weight', '500')
+    await editor.locator('dt').first().click({ clickCount: 3 })
+    await page.keyboard.type('Timeout edited')
+    await editor.locator('dd > p').first().click({ clickCount: 3 })
+    await page.keyboard.type('Description edited')
+    await page.getByRole('tab', { name: 'Source', exact: true }).click()
+    await expect(source).toContainText(
+      '<dt>Timeout edited</dt><dd><p>Description edited</p></dd>',
+    )
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByText('File saved', { exact: true })).toBeVisible()
+    await page.reload()
+    await expect(editor.locator('dl.definitions > dt').first()).toHaveText(
+      'Timeout edited',
+    )
+    await expect(editor.locator('dd > p').first()).toHaveText(
+      'Description edited',
+    )
+    await expect(editor.locator('dd > dl > dt')).toHaveText('Nested')
+  })
+}
+
+for (const format of ['markdown', 'html']) {
+  test(`${format} image links survive CMS save/reopen, URL/alt edits and removal`, async ({
+    page,
+  }) => {
+    const markdown = format === 'markdown'
+    await page.goto(
+      markdown
+        ? '/pagescms/fixture/main/collection/posts/entry/content/posts/hello.md'
+        : '/pagescms/fixture/main/file/html-editor',
+    )
+    const editor = page.getByRole('textbox', {
+      name: markdown ? 'Body' : 'HTML body',
+      exact: true,
+    })
+    await expect(editor).toBeVisible()
+    await page.getByRole('tab', { name: 'Source', exact: true }).click()
+    const source = page.getByRole('textbox', {
+      name: markdown ? 'Body source' : 'HTML body source',
+      exact: true,
+    })
+    await source.fill(
+      markdown ? '![Photo](/photo.png)' : '<img src="/photo.png" alt="Photo">',
+    )
+    await page.getByRole('tab', { name: 'Editor', exact: true }).click()
+    const image = editor.locator('img')
+    await image.click()
+    await page.getByRole('button', { name: 'Link', exact: true }).click()
+    await page.getByPlaceholder('https://example.com').fill('/target')
+    await page.getByRole('button', { name: 'Set link', exact: true }).click()
+
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByText('File saved', { exact: true })).toBeVisible()
+    await page.reload()
+
+    const url = page.url()
+    await image.click()
+    expect(page.url()).toBe(url)
+    await page.getByRole('button', { name: 'Link', exact: true }).click()
+    await expect(page.getByPlaceholder('https://example.com')).toHaveValue(
+      '/target',
+    )
+    await page
+      .getByPlaceholder('https://example.com')
+      .fill('https://example.com/new')
+    await page.getByRole('button', { name: 'Set link', exact: true }).click()
+    await image.click()
+    await page
+      .getByRole('button', { name: 'Image alt text', exact: true })
+      .click()
+    await page.getByPlaceholder('Describe image').fill('Photo edited')
+    await page
+      .getByRole('button', { name: 'Save alt text', exact: true })
+      .click()
+    await page.getByRole('tab', { name: 'Source', exact: true }).click()
+    await expect(source).toContainText(
+      markdown
+        ? '[![Photo edited](/photo.png)](https://example.com/new)'
+        : '<a href="https://example.com/new"><img src="/photo.png" alt="Photo edited"></a>',
+    )
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByText('File saved', { exact: true })).toBeVisible()
+    await page.reload()
+    await image.click()
+    await page.getByRole('button', { name: 'Link', exact: true }).click()
+    await expect(page.getByPlaceholder('https://example.com')).toHaveValue(
+      'https://example.com/new',
+    )
+    await page.getByRole('button', { name: 'Link', exact: true }).click()
+    await expect(image).toHaveAttribute('alt', 'Photo edited')
+    await image.click()
+    await page.getByRole('button', { name: 'Link', exact: true }).click()
+    await page.getByRole('button', { name: 'Remove link', exact: true }).click()
+    await expect(editor.locator('a')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByText('File saved', { exact: true })).toBeVisible()
+    await page.reload()
+    await expect(editor.locator('a')).toHaveCount(0)
+    await expect(image).toHaveAttribute('alt', 'Photo edited')
+    await page.getByRole('tab', { name: 'Source', exact: true }).click()
+    await expect(source).not.toContainText('https://example.com/new')
+    await expect(source).toContainText('/photo.png')
+  })
+}
+
+for (const format of ['html', 'markdown'] as const) {
+  test(`${format} atomic HTML previews do not navigate and survive source editing/save/reopen`, async ({
+    page,
+  }) => {
+    const markdown = format === 'markdown'
+    await page.goto(
+      markdown
+        ? '/pagescms/fixture/main/collection/posts/entry/content/posts/hello.md'
+        : '/pagescms/fixture/main/file/html-editor',
+    )
+    const editor = page.getByRole('textbox', {
+      name: markdown ? 'Body' : 'HTML body',
+      exact: true,
+    })
+    await expect(editor).toBeVisible()
+    await page.getByRole('tab', { name: 'Source', exact: true }).click()
+    const source = page.getByRole('textbox', {
+      name: markdown ? 'Body source' : 'HTML body source',
+      exact: true,
+    })
+    await source.fill(
+      '<figure><a href="/should-not-navigate">Preview link</a></figure><p>Tail</p>',
+    )
+    await page.getByRole('tab', { name: 'Editor', exact: true }).click()
+    const fragment = editor.locator('figure')
+    await fragment.locator('a').click()
+    await expect(fragment).toHaveClass(/ProseMirror-selectednode/)
+    page.once('dialog', (dialog) =>
+      dialog.accept('<figure><a href="/changed">Changed link</a></figure>'),
+    )
+    await fragment.locator('a').dblclick()
+    await expect(fragment).toContainText('Changed link')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByText('File saved', { exact: true })).toBeVisible()
+    await page.reload()
+    await expect(editor.locator('figure a')).toHaveAttribute('href', '/changed')
+    await editor.locator('figure a').click()
+    await expect(editor.locator('figure')).toHaveClass(
+      /ProseMirror-selectednode/,
+    )
   })
 }
