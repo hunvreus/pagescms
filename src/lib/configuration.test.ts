@@ -30,7 +30,7 @@ describe('configuration settings normalization', () => {
 
     expect(normalized.settings).toEqual({ config: true, cache: false })
     expect(isConfigurationEditingEnabled(normalized)).toBe(true)
-    expect(CONFIGURATION_VERSION).toBe('3.1')
+    expect(CONFIGURATION_VERSION).toBe('3.2')
   })
 
   it('migrates nested settings.hide and commit.message', () => {

@@ -117,3 +117,20 @@ export function createActionRunTracker<T extends TrackedRun>({
     },
   }
 }
+
+// Newly acknowledged runs belong at the start of the latest-100 window; status
+// updates retain the position of runs already shown and never duplicate them.
+export function mergeRunUpdates<T extends { id: number }>(
+  current: T[],
+  incoming: T[],
+  requested?: number[],
+) {
+  const updates = new Map(incoming.map((run) => [run.id, run]))
+  const existing = new Set(current.map((run) => run.id))
+  return [
+    ...incoming.filter((run) => !existing.has(run.id)),
+    ...current
+      .filter((run) => !requested?.includes(run.id) || updates.has(run.id))
+      .map((run) => updates.get(run.id) ?? run),
+  ].slice(0, 100)
+}

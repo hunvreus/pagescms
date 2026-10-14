@@ -1,3 +1,8 @@
+import {
+  operationKey,
+  refreshQueries,
+  useOperation,
+} from '#/features/operations/use-operation'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
 import {
@@ -85,6 +90,12 @@ export function ActionsPage({
   onActionFilter?: (name?: string) => void
 }) {
   const params = { owner, repo, branch }
+  const dispatch = useOperation<Awaited<ReturnType<typeof runAction>>>(
+    operationKey('workflow-dispatch', params),
+  )
+  const management = useOperation<Awaited<ReturnType<typeof manageAction>>>(
+    operationKey('workflow-management', params),
+  )
   const { data, isFetching, refetch, dataUpdatedAt } = useSuspenseQuery(
     actionsQueryOptions(params),
   )
@@ -144,23 +155,31 @@ export function ActionsPage({
   )
 
   async function start(action: (typeof data.actions)[number]) {
+    if (dispatch.pending) return
     setPendingAction(null)
     setRunning(action.name)
     setError(null)
     try {
-      const run = await runAction({
-        data: {
-          ...params,
-          actionName: action.name,
-          inputs: values[action.name] ?? {},
+      await dispatch.run({
+        run: () =>
+          runAction({
+            data: {
+              ...params,
+              actionName: action.name,
+              inputs: values[action.name] ?? {},
+            },
+          }),
+        failureMessage: 'Could not run action.',
+        confirmed: async (run, active) => {
+          if (!active()) return
+          const { actionRunTracking } =
+            await import('#/lib/action-run-tracking')
+          if (!active()) return
+          actionRunTracking(queryClient).track(params, run, action.label)
+          refreshQueries(queryClient, [actionsQueryOptions(params).queryKey])
         },
       })
-      const { actionRunTracking } = await import('#/lib/action-run-tracking')
-      actionRunTracking(queryClient).track(params, run, action.label)
       setFormAction(null)
-      await queryClient.invalidateQueries({
-        queryKey: actionsQueryOptions(params).queryKey,
-      })
     } catch (cause) {
       setError(cause)
     } finally {
@@ -169,21 +188,42 @@ export function ActionsPage({
   }
 
   async function manage(runId: number, intent: 'cancel' | 'rerun') {
+    if (management.pending) return
     setCancelRun(null)
     setManaging(runId)
     setError(null)
     try {
-      const run = await manageAction({ data: { ...params, runId, intent } })
-      if (intent === 'rerun') {
-        const { actionRunTracking } = await import('#/lib/action-run-tracking')
-        actionRunTracking(queryClient).track(
-          params,
-          run,
-          actionOptions.get(run.actionName) ?? run.actionName,
-        )
-      } else toast.success('Cancellation requested')
-      await queryClient.invalidateQueries({
-        queryKey: actionsQueryOptions(params).queryKey,
+      await management.run({
+        run: () => manageAction({ data: { ...params, runId, intent } }),
+        failureMessage: 'Could not manage action run.',
+        confirmed: async (run, active) => {
+          if (!active()) return
+          if (intent === 'rerun') {
+            const { actionRunTracking } =
+              await import('#/lib/action-run-tracking')
+            if (!active()) return
+            actionRunTracking(queryClient).track(
+              params,
+              run,
+              actionOptions.get(run.actionName) ?? run.actionName,
+            )
+          } else {
+            queryClient.setQueryData(
+              actionsQueryOptions(params).queryKey,
+              (previous) =>
+                previous
+                  ? {
+                      ...previous,
+                      runs: previous.runs.map((current) =>
+                        current.id === run.id ? run : current,
+                      ),
+                    }
+                  : previous,
+            )
+            toast.success('Cancellation requested')
+          }
+          refreshQueries(queryClient, [actionsQueryOptions(params).queryKey])
+        },
       })
     } catch (cause) {
       setError(cause)
@@ -273,7 +313,11 @@ export function ActionsPage({
           />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button disabled={!data.actions.length || running !== null}>
+              <Button
+                disabled={
+                  !data.actions.length || dispatch.pending || running !== null
+                }
+              >
                 <Play />
                 {running ? 'Starting' : 'Run'}
                 <ChevronDown />
@@ -297,7 +341,10 @@ export function ActionsPage({
         </div>
       }
     >
-      <OperationError error={error} fallback="Could not update the action." />
+      <OperationError
+        error={error ?? dispatch.error ?? management.error}
+        fallback="Could not update the action."
+      />
       {data.actions.map((action) => (
         <Fragment key={action.name}>
           {action.fields?.length ? (
@@ -313,7 +360,7 @@ export function ActionsPage({
                   </DialogDescription>
                 </DialogHeader>
                 <OperationError
-                  error={error}
+                  error={error ?? dispatch.error ?? management.error}
                   fallback="Could not run the action."
                 />
                 <form
@@ -436,7 +483,10 @@ export function ActionsPage({
                     })}
                   </FieldGroup>
                   <div className="flex justify-end">
-                    <Button disabled={running !== null} type="submit">
+                    <Button
+                      disabled={running !== null || dispatch.pending}
+                      type="submit"
+                    >
                       Run
                     </Button>
                   </div>
@@ -521,7 +571,7 @@ export function ActionsPage({
                       {run.canRerun && run.status === 'completed' ? (
                         <Button
                           aria-label="Run action again"
-                          disabled={managing === run.id}
+                          disabled={management.pending || managing === run.id}
                           size="sm"
                           variant="outline"
                           onClick={() => void manage(run.id, 'rerun')}
@@ -539,7 +589,9 @@ export function ActionsPage({
                               aria-label={`Actions for run ${run.id}`}
                               size="icon-sm"
                               variant="outline"
-                              disabled={managing === run.id}
+                              disabled={
+                                management.pending || managing === run.id
+                              }
                             >
                               <EllipsisVertical />
                             </Button>

@@ -57,7 +57,7 @@ describe('cached file inspection', () => {
         path: `posts/${String(i).padStart(2, '0')}.md`,
         type: 'file',
         sha: `file-sha-${i}`,
-        commitSha: 'snapshot-sha',
+        commitSha: 'change-sha',
         content: 'private content',
         updatedAt: new Date(),
       })),
@@ -68,7 +68,7 @@ describe('cached file inspection', () => {
     expect(first.files[0]).toMatchObject({
       path: 'posts/00.md',
       sha: 'file-sha-0',
-      commitSha: 'snapshot-sha',
+      commitSha: 'change-sha',
     })
     expect(first.files[0]).not.toHaveProperty('content')
     const second = await loadCacheFiles({ ...input, page: 5 })
@@ -84,6 +84,18 @@ describe('cached file inspection', () => {
     })
     expect(filtered.files.map((file) => file.path)).toEqual(['posts/51.md'])
     expect(filtered.hasMore).toBe(false)
+  })
+  it('reuses cached configuration when paging and filtering files', async () => {
+    const { input, api } = await fixture()
+    await loadCacheStatus(input)
+    api.getFile.mockClear()
+    await loadCacheFiles({ ...input, page: 0 })
+    await loadCacheFiles({ ...input, page: 1 })
+    await loadCacheFiles({ ...input, page: 0, search: 'posts' })
+    expect(api.getFile).not.toHaveBeenCalled()
+    expect(api.getRepository).toHaveBeenCalled()
+    await manageCache({ ...input, action: 'clear-content' })
+    expect(api.getFile).toHaveBeenCalledTimes(1)
   })
   it.each(['', 'settings:\n  cache: false\n'])(
     'denies every management endpoint when cache is not enabled: %s',

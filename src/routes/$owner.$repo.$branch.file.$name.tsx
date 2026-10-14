@@ -1,3 +1,4 @@
+import { pageTitle } from '#/lib/page-title'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
@@ -9,7 +10,10 @@ import { fixedFileQueryOptions } from '#/queries/content'
 export const Route = createFileRoute('/$owner/$repo/$branch/file/$name')({
   loader: async ({ context, params }) => {
     try {
-      await context.queryClient.ensureQueryData(fixedFileQueryOptions(params))
+      const data = await context.queryClient.ensureQueryData(
+        fixedFileQueryOptions(params),
+      )
+      return { label: data.label }
     } catch (error) {
       if (
         error instanceof Error &&
@@ -27,6 +31,8 @@ export const Route = createFileRoute('/$owner/$repo/$branch/file/$name')({
   pendingMs: 100,
   pendingComponent: ContentEntrySkeleton,
   component: FixedFileEditor,
+  head: ({ params, loaderData }) =>
+    pageTitle(loaderData?.label ?? params.name, params),
 })
 
 function FixedFileEditor() {

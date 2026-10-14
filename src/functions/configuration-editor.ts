@@ -1,3 +1,4 @@
+import { historyPage } from '#/lib/file-history'
 import { createServerFn } from '@tanstack/react-start'
 
 import { repositoryRef } from '#/lib/repository'
@@ -116,8 +117,12 @@ export const updateConfiguration = createServerFn({ method: 'POST' })
     )
   })
 export const getConfigurationHistory = createServerFn({ method: 'GET' })
-  .validator(parseCoordinates)
-  .handler(async ({ context, data }) => {
+  .validator((input: unknown) => ({
+    ...parseCoordinates(input),
+    page: historyPage((input as Record<string, unknown>).page),
+  }))
+  .handler(async ({ context, data: request }) => {
+    const { page, ...data } = request
     const services = context.getServices()
     const session = await services.getSession()
     if (!session?.user) throw new Error('Authentication required')
@@ -153,6 +158,7 @@ export const getConfigurationHistory = createServerFn({ method: 'GET' })
           data.repo,
           data.branch,
           '.pages.yml',
+          page,
         )
       },
     )

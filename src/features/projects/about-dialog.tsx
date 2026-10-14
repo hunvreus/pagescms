@@ -70,6 +70,7 @@ export function AboutDialog() {
                 aria-label="About Pages CMS"
                 size="icon-sm"
                 variant="ghost"
+                className="size-6 rounded-md border-0 p-0 hover:bg-transparent aria-expanded:bg-transparent focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar dark:hover:bg-transparent"
               >
                 <PagesCmsMark />
               </Button>
@@ -137,7 +138,7 @@ export function AboutDialog() {
 
 export function PagesCmsMark() {
   return (
-    <span className="flex size-6 items-center justify-center rounded-md bg-[oklch(0.60_0.13_163)] text-[oklch(0.98_0.02_166)] dark:bg-[oklch(0.70_0.15_162)] dark:text-[oklch(0.26_0.05_173)]">
+    <span className="flex size-6 items-center justify-center rounded-md bg-muted-foreground/35 text-sidebar transition-colors duration-200 motion-reduce:transition-none group-hover/button:bg-[oklch(0.60_0.13_163)] group-hover/button:text-[oklch(0.98_0.02_166)] group-focus-visible/button:bg-[oklch(0.60_0.13_163)] group-focus-visible/button:text-[oklch(0.98_0.02_166)] dark:group-hover/button:bg-[oklch(0.70_0.15_162)] dark:group-hover/button:text-[oklch(0.26_0.05_173)] dark:group-focus-visible/button:bg-[oklch(0.70_0.15_162)] dark:group-focus-visible/button:text-[oklch(0.26_0.05_173)]">
       <PagesCmsGlyph className="size-4" />
     </span>
   )

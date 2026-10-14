@@ -137,3 +137,16 @@ export function resolveCommitIdentity({
     ? 'user'
     : 'app'
 }
+
+export function allowsCustomCommitMessage(
+  configuration: unknown,
+  schema?: unknown,
+): boolean {
+  const local =
+    isRecord(schema) && isRecord(schema.commit)
+      ? schema.commit.allowCustomMessage
+      : undefined
+  return typeof local === 'boolean'
+    ? local
+    : getCommitConfiguration(configuration)?.allowCustomMessage === true
+}

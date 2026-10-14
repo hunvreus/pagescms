@@ -1,3 +1,4 @@
+import { pageTitle } from '#/lib/page-title'
 import { createFileRoute } from '@tanstack/react-router'
 
 import { MediaPage } from '#/features/media/media-page'
@@ -20,6 +21,11 @@ export const Route = createFileRoute('/$owner/$repo/$branch/media/$name')({
     )
   },
   component: MediaRoute,
+  head: ({ params, match }) =>
+    pageTitle(
+      `Media | ${params.name}${match.loaderDeps.path ? ` / ${match.loaderDeps.path}` : ''}`,
+      params,
+    ),
 })
 
 function MediaRoute() {

@@ -102,11 +102,11 @@ function swapPrefix(path: string, from: string, to: string, relative = false) {
   return result
 }
 
-export function mediaInputPath(path: string, media: FieldMediaSchema) {
+export function mediaInputPath(path: string, media: Pick<FieldMediaSchema, 'input' | 'output'>) {
   return swapPrefix(path, media.output, media.input, true)
 }
 
-export function mediaOutputPath(path: string, media: FieldMediaSchema) {
+export function mediaOutputPath(path: string, media: Pick<FieldMediaSchema, 'input' | 'output'>) {
   return swapPrefix(path, media.input, media.output)
 }
 

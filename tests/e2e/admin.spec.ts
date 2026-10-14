@@ -153,13 +153,25 @@ test('cache controls remain on the cache page', async ({ page }) => {
     page.getByRole('table', { name: 'Cached files', exact: true }),
   ).toBeVisible()
   await expect(
-    page.getByRole('columnheader', { name: 'Snapshot commit' }),
+    page.getByRole('columnheader', { name: 'Last change commit' }),
   ).toBeVisible()
   const cachedTable = page.getByRole('table', {
     name: 'Cached files',
     exact: true,
   })
   const viewport = cachedTable.locator('..').locator('..')
+  expect(
+    await cachedTable
+      .locator('..')
+      .evaluate((node) => node.scrollWidth <= node.clientWidth),
+  ).toBe(true)
+  expect(
+    await cachedTable
+      .locator('th')
+      .evaluateAll((heads) =>
+        heads.every((head) => head.scrollWidth <= head.clientWidth),
+      ),
+  ).toBe(true)
   const filter = page.getByRole('textbox', { name: 'Filter cached files' })
   await expect(
     filter.locator('..').getByLabel('Refreshing results'),
@@ -206,7 +218,7 @@ test('cache controls remain on the cache page', async ({ page }) => {
   await page.getByRole('button', { name: 'Cancel', exact: true }).click()
 })
 
-test('configuration edits source directly with validation and unsaved navigation protection', async ({
+test('configuration edits source directly with validation and draft-backed navigation', async ({
   page,
 }) => {
   await page.goto(`${repository}/configuration`)
@@ -254,13 +266,6 @@ test('configuration edits source directly with validation and unsaved navigation
     header.getByRole('button', { name: 'Save', exact: true }),
   ).toBeDisabled()
   await page.getByRole('link', { name: 'Collaborators', exact: true }).click()
-  await expect(
-    page.getByRole('alertdialog', { name: 'Discard configuration changes?' }),
-  ).toBeVisible()
-  await page.getByRole('button', { name: 'Keep editing' }).click()
-  await expect(editor).toContainText('content: [')
-  await page.getByRole('link', { name: 'Collaborators', exact: true }).click()
-  await page.getByRole('button', { name: 'Discard changes' }).click()
   await expect(page).toHaveURL(`${repository}/collaborators`)
   await expect(
     page
@@ -273,6 +278,7 @@ test('configuration edits source directly with validation and unsaved navigation
   ).toBeVisible()
   await page.keyboard.press('Escape')
   await page.getByRole('link', { name: 'Configuration', exact: true }).click()
+  await expect(editor).toContainText('content: [')
   await editor.fill(`# Saved configuration\n${configuration}`)
   await header.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(

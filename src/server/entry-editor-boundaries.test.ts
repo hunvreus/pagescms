@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { moveContentEntry } from './entry-editor.server'
+import { loadEntryHistory, moveContentEntry } from './entry-editor.server'
 import type { Database } from './database/client.server'
 
 const configuration = vi.hoisted(() => ({
@@ -20,11 +20,12 @@ vi.mock('./configuration-store.server', () => ({
 }))
 describe('content move boundaries', () => {
   const renameFile = vi.fn()
+  const listFileCommits = vi.fn().mockResolvedValue([])
   const input = {
     database: {} as Database,
     repositoryAccess: {
       resolve: vi.fn().mockResolvedValue({
-        api: { renameFile },
+        api: { renameFile, listFileCommits },
         tokenSource: 'installation',
       }),
     },
@@ -41,6 +42,16 @@ describe('content move boundaries', () => {
     path: 'posts/example.md',
     sha: 'sha',
   }
+  it('passes the history page for the resolved entry path', async () => {
+    await expect(loadEntryHistory({ ...input, page: 2 })).resolves.toEqual([])
+    expect(listFileCommits).toHaveBeenCalledWith(
+      'owner',
+      'repo',
+      'main',
+      'posts/example.md',
+      2,
+    )
+  })
   it('rejects moving outside the source collection before calling GitHub', async () => {
     await expect(
       moveContentEntry({ ...input, newPath: 'drafts/example.md' }),

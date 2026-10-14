@@ -175,7 +175,9 @@ function conformance(name: string, createHarness: () => Promise<Harness>) {
               type: 'file' as const,
               name: entryName,
               path: `content/${entryName}`,
-              sha: revision,
+              sha: `blob-${revision}`,
+              commitSha: `change-${revision}`,
+              commitTimestamp: '2026-09-26T01:00:00.000Z',
               content: entryName,
               size: entryName.length,
               downloadUrl: null,
@@ -198,7 +200,8 @@ function conformance(name: string, createHarness: () => Promise<Harness>) {
       const rows = await harness.database.select().from(cacheFileTable)
       expect(rows).toHaveLength(1)
       const meta = (await harness.database.select().from(cacheFileMetaTable))[0]
-      expect(rows[0].commitSha).toBe(meta.commitSha)
+      expect(rows[0].sha).toBe(`blob-${meta.commitSha}`)
+      expect(rows[0].commitSha).toBe(`change-${meta.commitSha}`)
     })
 
     it('publishes thousands of entries without exceeding parameter limits', async () => {

@@ -1,3 +1,4 @@
+import { pageTitle } from '#/lib/page-title'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
@@ -13,9 +14,10 @@ export const Route = createFileRoute(
     const path = params._splat
     if (!path) throw new Error('Entry path is required')
     try {
-      await context.queryClient.ensureQueryData(
+      const data = await context.queryClient.ensureQueryData(
         entryQueryOptions({ ...params, path }),
       )
+      return { label: data.label }
     } catch (error) {
       if (
         error instanceof Error &&
@@ -33,6 +35,11 @@ export const Route = createFileRoute(
   pendingMs: 100,
   pendingComponent: ContentEntrySkeleton,
   component: CollectionEntryEditor,
+  head: ({ params, loaderData }) =>
+    pageTitle(
+      `Edit ${params._splat ?? 'entry'} | ${loaderData?.label ?? params.name}`,
+      params,
+    ),
 })
 
 function CollectionEntryEditor() {

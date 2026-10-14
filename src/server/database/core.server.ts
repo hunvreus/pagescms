@@ -21,10 +21,17 @@ export type DatabaseSource =
   | Readonly<{ kind: 'd1'; binding: AnyD1Database }>
   | Readonly<{ kind: 'libsql'; url: string; authToken?: string }>
 
-const atomicExecutors = new WeakMap<
+type AtomicExecutor = (
+  statements: readonly DatabaseStatement[],
+) => Promise<AtomicResult[]>
+// Keep registrations paired with long-lived database instances across Vite reloads.
+const registry = globalThis as typeof globalThis & {
+  __pagesCmsAtomicExecutors?: WeakMap<Database, AtomicExecutor>
+}
+const atomicExecutors = (registry.__pagesCmsAtomicExecutors ??= new WeakMap<
   Database,
-  (statements: readonly DatabaseStatement[]) => Promise<AtomicResult[]>
->()
+  AtomicExecutor
+>())
 
 export function registerAtomicExecutor(
   database: Database,

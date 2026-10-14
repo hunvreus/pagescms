@@ -1,3 +1,8 @@
+import {
+  operationKey,
+  refreshQueries,
+  useOperation,
+} from '#/features/operations/use-operation'
 import { toast } from 'sonner'
 import { useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
@@ -47,22 +52,31 @@ export function CachePage({
   const params = { owner, repo, branch }
   const { data } = useSuspenseQuery(cacheStatusQueryOptions(params))
   const queryClient = useQueryClient()
-  const [running, setRunning] = useState<CacheAction | null>(null)
+  const operation = useOperation<Awaited<ReturnType<typeof updateCache>>>(
+    operationKey('cache-management', params),
+  )
+  const [runningAction, setRunningAction] = useState<CacheAction | null>(null)
+  const running = operation.pending ? (runningAction ?? 'clear-all') : null
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
   const [error, setError] = useState<unknown>(null)
   async function run(action: CacheAction) {
-    setRunning(action)
+    if (operation.pending) return
+    setRunningAction(action)
     setError(null)
     try {
-      const result = await updateCache({ data: { ...params, action } })
-      toast.success(result.message)
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.branch(params),
+      await operation.run({
+        failureMessage: 'Could not update the cache.',
+        run: () => updateCache({ data: { ...params, action } }),
+        confirmed: (result, active) => {
+          if (!active()) return
+          toast.success(result.message)
+          refreshQueries(queryClient, [queryKeys.branch(params)])
+        },
       })
     } catch (cause) {
       setError(cause)
     } finally {
-      setRunning(null)
+      setRunningAction(null)
     }
   }
   const rows: Array<{
@@ -121,7 +135,10 @@ export function CachePage({
         </Button>
       }
     >
-      <OperationError error={error} fallback="Could not update the cache." />
+      <OperationError
+        error={error ?? operation.error}
+        fallback="Could not update the cache."
+      />
       <div className="divide-y rounded-xl border bg-card">
         {rows.map((row) => (
           <div key={row.title}>

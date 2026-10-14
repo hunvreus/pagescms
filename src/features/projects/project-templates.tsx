@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
-import { ChevronsUpDown, LoaderCircle } from 'lucide-react'
+import { ChevronsUpDown } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
 import {
@@ -204,9 +204,6 @@ function TemplateDialog({
           </div>
           <DialogFooter>
             <Button disabled={copy.isPending || !name.trim()} type="submit">
-              {copy.isPending ? (
-                <LoaderCircle className="animate-spin" />
-              ) : null}
               Create copy
             </Button>
           </DialogFooter>

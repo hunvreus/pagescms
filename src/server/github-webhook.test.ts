@@ -80,3 +80,33 @@ describe('GitHub webhooks', () => {
     ).toEqual(['content/new.md', 'content/post.md'])
   })
 })
+
+it('retains the last touching commit date and SHA per path without ordering by dates', () => {
+  expect(
+    repositoryPushChanges({
+      commits: [
+        {
+          id: 'first',
+          timestamp: '2026-10-13T12:00:00Z',
+          added: ['a.md'],
+          modified: [],
+          removed: [],
+        },
+        {
+          id: 'second',
+          timestamp: '2026-10-12T12:00:00Z',
+          added: [],
+          modified: ['a.md'],
+          removed: [],
+        },
+      ],
+    }),
+  ).toEqual([
+    {
+      path: 'a.md',
+      removed: false,
+      commitSha: 'second',
+      commitTimestamp: '2026-10-12T12:00:00.000Z',
+    },
+  ])
+})

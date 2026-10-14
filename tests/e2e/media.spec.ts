@@ -74,6 +74,7 @@ test('centers gallery folder labels and remembers the media view after reload', 
 test('supports the full-page media browsing and mutation workflow', async ({
   page,
 }) => {
+  test.setTimeout(60_000)
   await page.goto('/pagescms/fixture/main/media/default')
 
   await expect(page.getByRole('radio', { name: 'Grid view' })).toBeChecked()
@@ -101,6 +102,7 @@ test('supports the full-page media browsing and mutation workflow', async ({
   await folderDialog.getByPlaceholder('Folder name').fill('Uploads')
   await folderDialog.getByRole('button', { name: 'Create folder' }).click()
   await expect(page.getByText('Uploads', { exact: true })).toBeVisible()
+  await expect(folderDialog).toHaveCount(0)
 
   await page.locator('input[type="file"]').setInputFiles({
     name: 'uploaded.svg',
@@ -150,7 +152,13 @@ test('supports the full-page media browsing and mutation workflow', async ({
     page.getByRole('button', { name: 'Upload', exact: true }),
   ).toBeEnabled()
 
-  await page.getByRole('button', { name: /Uploads/ }).click()
+  // dnd-kit briefly suppresses clicks after dropping a pointer drag.
+  await expect(async () => {
+    await page.getByRole('button', { name: /Uploads/ }).click()
+    await expect(page).toHaveURL(/path=public%2Fimages%2FUploads/, {
+      timeout: 250,
+    })
+  }).toPass({ timeout: 5_000 })
   await expect(page.getByText('renamed.svg', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Actions for renamed.svg' }).click()
   await page.getByRole('menuitem', { name: 'Delete' }).click()

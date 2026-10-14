@@ -2,6 +2,7 @@
 
 ## Features
 
+- [Local content drafts](./features/local-drafts.md)
 - [Rich text](./features/rich-text.md)
 
 ## Development

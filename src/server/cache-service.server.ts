@@ -27,7 +27,7 @@ type CacheInput = {
   branch: string
 }
 
-async function cacheContext(input: CacheInput) {
+async function cacheContext(input: CacheInput, refreshConfiguration = false) {
   if (!input.user.githubUsername) {
     throw new Error('Only GitHub users can manage the cache')
   }
@@ -46,12 +46,9 @@ async function cacheContext(input: CacheInput) {
   const configurationStore = createConfigurationStore({
     database: input.database,
   })
-  const configuration = await configurationStore.refresh(
-    api,
-    input.owner,
-    input.repo,
-    input.branch,
-  )
+  const configuration = await configurationStore[
+    refreshConfiguration ? 'refresh' : 'get'
+  ](api, input.owner, input.repo, input.branch)
   if (!configuration || !isCacheManagementEnabled(configuration.object)) {
     throw new Error('Cache management is disabled for this repository')
   }
@@ -117,7 +114,7 @@ export type CacheAction =
   | 'clear-all'
 
 export async function manageCache(input: CacheInput & { action: CacheAction }) {
-  const { api, configurationStore } = await cacheContext(input)
+  const { api, configurationStore } = await cacheContext(input, true)
   const normalizedOwner = input.owner.toLowerCase()
   const normalizedRepo = input.repo.toLowerCase()
   if (input.action === 'reconcile-content') {

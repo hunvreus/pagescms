@@ -1,3 +1,4 @@
+import { pageTitle } from '#/lib/page-title'
 import { createFileRoute } from '@tanstack/react-router'
 import { InvitePage } from '#/features/account/invite-page'
 import { collaboratorInviteQueryOptions } from '#/queries/invitations'
@@ -9,4 +10,5 @@ export const Route = createFileRoute('/invite/$token')({
     )
   },
   component: InvitePage,
+  head: () => pageTitle('Accept invitation'),
 })

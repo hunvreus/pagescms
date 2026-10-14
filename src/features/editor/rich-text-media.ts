@@ -20,7 +20,13 @@ function previewPath(
   context: RichTextMediaContext,
 ) {
   if (!path || isExternalPath(path)) return path
-  const inputPath = mediaInputPath(path, media)
+  let decodedPath = path
+  try {
+    decodedPath = decodeURIComponent(path)
+  } catch {
+    // Keep malformed URL escapes as literal filename characters.
+  }
+  const inputPath = mediaInputPath(decodedPath, media)
   if (
     media.input &&
     inputPath !== media.input &&
@@ -49,16 +55,38 @@ function persistedPath(
 function transformImageSources(
   content: string,
   transform: (source: string) => string,
+  decodedDestinations = false,
 ) {
   const markdownWithBracketedDestination = content.replace(
     /(!\[[^\]]*\]\(\s*<)([^>\n]+)(>)/g,
-    (_match, before: string, source: string, after: string) =>
-      `${before}${transform(source)}${after}`,
+    (_match, before: string, source: string, after: string) => {
+      const destination = transform(source)
+      const encoded =
+        decodedDestinations && destination !== source
+          ? destination.replace(/%/g, '%25')
+          : destination
+      return `${before}${encoded}${after}`
+    },
   )
   const markdown = markdownWithBracketedDestination.replace(
     /(!\[[^\]]*\]\(\s*)([^\s)<]+)([^)]*\))/g,
-    (_match, before: string, source: string, after: string) =>
-      `${before}${transform(source)}${after}`,
+    (_match, before: string, source: string, after: string) => {
+      // Bare Markdown destinations cannot contain spaces or closing parentheses.
+      const transformed = transform(source)
+      const destination =
+        decodedDestinations && transformed !== source
+          ? encodeURI(transformed)
+          : transformed
+      const encoded =
+        transformed !== source
+          ? destination.replace(
+              /[()<>]/g,
+              (character) =>
+                `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
+            )
+          : destination
+      return `${before}${encoded}${after}`
+    },
   )
   return markdown.replace(
     /(<img\b[^>]*?\bsrc\s*=\s*)(["'])([^"']*)(\2)/gi,
@@ -84,7 +112,9 @@ export function richTextValueForStorage(
   context: RichTextMediaContext | undefined,
 ) {
   if (!media || !context) return content
-  return transformImageSources(content, (source) =>
-    persistedPath(source, media, context),
+  return transformImageSources(
+    content,
+    (source) => persistedPath(source, media, context),
+    true,
   )
 }

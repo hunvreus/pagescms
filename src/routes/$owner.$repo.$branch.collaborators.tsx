@@ -1,3 +1,4 @@
+import { pageTitle } from '#/lib/page-title'
 import { createFileRoute } from '@tanstack/react-router'
 import { CollaboratorsPage } from '#/features/admin/collaborators-page'
 import { ensureRepositoryAdmin } from '#/features/admin/repository-admin-access'
@@ -11,4 +12,5 @@ export const Route = createFileRoute('/$owner/$repo/$branch/collaborators')({
   },
   pendingComponent: CollaboratorsSkeleton,
   component: () => <CollaboratorsPage {...Route.useParams()} />,
+  head: ({ params }) => pageTitle('Collaborators', params),
 })

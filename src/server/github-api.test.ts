@@ -548,7 +548,10 @@ describe('createGitHubApi', () => {
         requestBody = JSON.parse(String(init?.body)) as Record<string, unknown>
         return jsonResponse({
           content: { path: '.pages.yml', sha: 'new-sha' },
-          commit: { sha: 'commit-sha' },
+          commit: {
+            sha: 'commit-sha',
+            committer: { date: '2026-10-12T10:00:00Z' },
+          },
         })
       },
     )
@@ -567,6 +570,7 @@ describe('createGitHubApi', () => {
       path: '.pages.yml',
       sha: 'new-sha',
       commitSha: 'commit-sha',
+      commitTimestamp: '2026-10-12T10:00:00.000Z',
     })
     expect(requestBody).toMatchObject({
       branch: 'main',
@@ -581,7 +585,12 @@ describe('createGitHubApi', () => {
       async (_input: RequestInfo | URL, init?: RequestInit) => {
         expect(init?.method).toBe('DELETE')
         requestBody = JSON.parse(String(init?.body)) as Record<string, unknown>
-        return jsonResponse({ commit: { sha: 'delete-commit' } })
+        return jsonResponse({
+          commit: {
+            sha: 'delete-commit',
+            committer: { date: '2026-10-12T11:00:00Z' },
+          },
+        })
       },
     )
     await expect(
@@ -593,7 +602,10 @@ describe('createGitHubApi', () => {
         sha: 'old-sha',
         message: 'Delete post',
       }),
-    ).resolves.toEqual({ commitSha: 'delete-commit' })
+    ).resolves.toEqual({
+      commitSha: 'delete-commit',
+      commitTimestamp: '2026-10-12T11:00:00.000Z',
+    })
     expect(requestBody).toMatchObject({
       branch: 'main',
       sha: 'old-sha',
@@ -852,5 +864,15 @@ describe('createGitHubApi', () => {
     const url = new URL(requestedUrl)
     expect(url.searchParams.get('sha')).toBe('feature/a')
     expect(url.searchParams.get('path')).toBe('content/hello world.md')
+    expect(url.searchParams.get('per_page')).toBe('10')
+    expect(url.searchParams.get('page')).toBe('1')
+    await createGitHubApi('token', fetcher).listFileCommits(
+      'PagesCMS',
+      'pages-cms',
+      'feature/a',
+      'content/hello world.md',
+      3,
+    )
+    expect(new URL(requestedUrl).searchParams.get('page')).toBe('3')
   })
 })

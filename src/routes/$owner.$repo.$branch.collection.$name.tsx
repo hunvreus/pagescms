@@ -1,3 +1,5 @@
+import { useEntryActions } from '#/features/content/use-entry-actions'
+import { pageTitle } from '#/lib/page-title'
 import { SearchInput } from '#/components/search-input'
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
@@ -7,7 +9,7 @@ import {
   redirect,
   useRouter,
 } from '@tanstack/react-router'
-import { FolderPlus, LoaderCircle, Plus } from 'lucide-react'
+import { FolderPlus, Plus } from 'lucide-react'
 
 import { isContentField } from '#/lib/content-field'
 import { RepositoryActionButtons } from '#/components/repository-action-buttons'
@@ -59,12 +61,7 @@ import { CollectionTable } from '#/features/collections/collection-table'
 import { collectionViewModel } from '#/features/collections/collection-model'
 import { CollectionSkeleton } from '#/features/collections/collection-skeleton'
 import type { getCollection } from '#/functions/collection'
-import {
-  createCollectionFolder,
-  deleteEntry,
-  moveEntry,
-  renameEntry,
-} from '#/functions/entry-editor'
+import { createCollectionFolder, moveEntry } from '#/functions/entry-editor'
 import { getSignInUrl } from '#/lib/auth-redirect'
 import { getGitRelativePath, joinGitPath } from '#/lib/git-path'
 import { collectionQueryOptions } from '#/queries/content'
@@ -90,7 +87,7 @@ export const Route = createFileRoute('/$owner/$repo/$branch/collection/$name')({
   loaderDeps: ({ search }) => ({ path: search.path }),
   loader: async ({ context, params, deps }) => {
     try {
-      await context.queryClient.ensureQueryData(
+      const data = await context.queryClient.ensureQueryData(
         collectionQueryOptions({
           owner: params.owner,
           repo: params.repo,
@@ -99,6 +96,7 @@ export const Route = createFileRoute('/$owner/$repo/$branch/collection/$name')({
           path: deps.path,
         }),
       )
+      return { label: data.collection.label }
     } catch (error) {
       if (
         error instanceof Error &&
@@ -116,6 +114,11 @@ export const Route = createFileRoute('/$owner/$repo/$branch/collection/$name')({
   pendingMs: 100,
   pendingComponent: CollectionSkeleton,
   component: CollectionPage,
+  head: ({ params, loaderData, match }) =>
+    pageTitle(
+      `${loaderData?.label ?? params.name}${match.loaderDeps.path ? ` / ${match.loaderDeps.path}` : ''}`,
+      params,
+    ),
 })
 
 function CollectionPage() {
@@ -123,6 +126,7 @@ function CollectionPage() {
   const search = Route.useSearch()
   const router = useRouter()
   const queryClient = useQueryClient()
+  const entryActions = useEntryActions()
   const { data, isFetching } = useSuspenseQuery(
     collectionQueryOptions({ ...params, path: search.path }),
   )
@@ -279,51 +283,33 @@ function CollectionPage() {
     }
   }
 
-  async function refreshCollection() {
-    await queryClient.invalidateQueries({ queryKey: queryKeys.branch(params) })
-    setExpanded({})
-  }
-
   async function commitRename() {
-    if (!renaming?.sha || !renamedFilename.trim()) return
+    if (!renaming?.sha || !renamedFilename.trim() || saving) return
     setSaving(true)
     setCreateError(null)
     try {
-      await renameEntry({
-        data: {
-          ...params,
-          path: renaming.path,
-          sha: renaming.sha,
-          filename: renamedFilename,
-        },
-      })
-      const { toast } = await import('sonner')
-      toast.success('File renamed')
+      await entryActions.changeName(
+        { ...params, path: renaming.path },
+        renaming.sha,
+        renamedFilename.trim(),
+      )
       setRenaming(undefined)
-      await refreshCollection()
     } catch (cause) {
       setCreateError(cause)
     } finally {
       setSaving(false)
     }
   }
-
   async function confirmDelete() {
-    if (!deleting?.sha) return
+    if (!deleting?.sha || saving) return
     setSaving(true)
     setCreateError(null)
     try {
-      await deleteEntry({
-        data: {
-          ...params,
-          path: deleting.path,
-          sha: deleting.sha,
-        },
-      })
-      const { toast } = await import('sonner')
-      toast.success('File deleted')
+      await entryActions.remove(
+        { ...params, path: deleting.path },
+        deleting.sha,
+      )
       setDeleting(undefined)
-      await refreshCollection()
     } catch (cause) {
       setCreateError(cause)
     } finally {
@@ -477,11 +463,6 @@ function CollectionPage() {
                 Cancel
               </Button>
               <Button disabled={saving || !folder.trim()} type="submit">
-                {saving ? (
-                  <LoaderCircle className="animate-spin" />
-                ) : (
-                  <FolderPlus />
-                )}
                 {saving ? 'Creating' : 'Create folder'}
               </Button>
             </DialogFooter>
@@ -528,6 +509,7 @@ function CollectionPage() {
         canRename={data.collection.operations.rename}
         children={childRows}
         data={data.contents}
+        directory={data.collection.path}
         loading={loadingRows}
         media={data.media}
         model={tableModel}
@@ -579,7 +561,6 @@ function CollectionPage() {
                 disabled={saving || !renamedFilename.trim()}
                 type="submit"
               >
-                {saving ? <LoaderCircle className="animate-spin" /> : null}
                 Rename
               </Button>
             </DialogFooter>
@@ -610,7 +591,6 @@ function CollectionPage() {
                 if (promoting) void promoteToNode(promoting)
               }}
             >
-              {saving ? <LoaderCircle className="animate-spin" /> : null}
               Move and continue
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -628,7 +608,8 @@ function CollectionPage() {
             <AlertDialogTitle>Delete entry?</AlertDialogTitle>
             <AlertDialogDescription>
               This will delete {deleting?.name} from the repository. This action
-              cannot be undone from Pages CMS.
+              cannot be undone from Pages CMS. If this entry has a local draft,
+              it will also be discarded.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -638,7 +619,6 @@ function CollectionPage() {
               variant="destructive"
               onClick={() => void confirmDelete()}
             >
-              {saving ? <LoaderCircle className="animate-spin" /> : null}
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

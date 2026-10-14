@@ -1,3 +1,4 @@
+import { pageTitle } from '#/lib/page-title'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { adminDashboardQueryOptions } from '#/queries/admin'
 import { AdminPage, AdminSkeleton } from '#/features/admin/admin-page'
@@ -56,4 +57,5 @@ export const Route = createFileRoute('/admin')({
   pendingMs: 100,
   pendingComponent: AdminSkeleton,
   component: AdminPage,
+  head: () => pageTitle('Admin'),
 })

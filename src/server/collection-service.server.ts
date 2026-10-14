@@ -1,3 +1,5 @@
+import { getContentPrimaryField } from '#/lib/content-filename'
+import { allowsCustomCommitMessage } from '#/lib/commit-message'
 import {
   collectionDirectoryPath,
   configuredMediaSchemas,
@@ -232,7 +234,12 @@ export async function loadCollection({
 
   return {
     collection: {
+      allowCustomMessage: allowsCustomCommitMessage(
+        configuration.object,
+        schema,
+      ),
       name: schema.name,
+      primaryField: getContentPrimaryField(schema),
       label:
         typeof schema.label === 'string' && schema.label
           ? schema.label

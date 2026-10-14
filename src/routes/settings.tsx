@@ -1,3 +1,4 @@
+import { pageTitle } from '#/lib/page-title'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 
 import {
@@ -23,4 +24,5 @@ export const Route = createFileRoute('/settings')({
   pendingMs: 100,
   pendingComponent: UserSettingsSkeleton,
   component: UserSettings,
+  head: () => pageTitle('Settings'),
 })

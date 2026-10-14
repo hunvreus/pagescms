@@ -1,3 +1,5 @@
+import { useQueryClient } from '@tanstack/react-query'
+import { authenticationQueryOptions } from '#/queries/session'
 import { useEffect, useRef, useState } from 'react'
 
 import { Textarea } from '#/components/ui/textarea'
@@ -7,7 +9,10 @@ import {
   richTextValueForStorage,
 } from '#/features/editor/rich-text-media'
 import { MediaPickerDialog } from '#/features/media/media-picker-dialog'
-import { uploadMediaFiles } from '#/features/media/media-upload'
+import {
+  MEDIA_UPLOAD_LIMIT,
+  uploadMediaFiles,
+} from '#/features/media/media-upload'
 import { mediaAssetUrl } from '#/lib/media-assets'
 import { parseUploadRename } from '#/lib/media-upload-name'
 import {
@@ -92,6 +97,8 @@ export default function RichTextField({
   onChange: (value: JsonValue | undefined) => void
   onPendingUploadsChange: (count: number) => void
 }) {
+  const queryClient = useQueryClient()
+  const mounted = useRef(false)
   const options = fieldOptions(field)
   const format = options.format === 'html' ? 'html' : 'markdown'
   const source = typeof value === 'string' ? value : ''
@@ -116,12 +123,13 @@ export default function RichTextField({
     ((result: ImagePickerResult | null) => void) | null
   >(null)
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
       pickerResolver.current?.(null)
-    },
-    [],
-  )
+    }
+  }, [])
 
   const editorValue = richTextValueForEditor(source, media, mediaContext)
 
@@ -138,7 +146,15 @@ export default function RichTextField({
         options.path.startsWith(`${media.input}/`))
         ? options.path
         : media.input
+    const account = queryClient.getQueryData(
+      authenticationQueryOptions().queryKey,
+    )?.user?.id
+    if (!account) return null
+    const isActive = () =>
+      queryClient.getQueryData(authenticationQueryOptions().queryKey)?.user
+        ?.id === account
     const [path] = await uploadMediaFiles({
+      isActive,
       rename: parseUploadRename(options.rename),
       coordinates: {
         owner: referenceContext.owner,
@@ -151,7 +167,7 @@ export default function RichTextField({
       limit: 1,
       path: configuredPath,
     })
-    if (!path) return null
+    if (!path || !mounted.current || !isActive()) return null
     return {
       src: mediaAssetUrl({ ...mediaContext, path }),
       alt: file.name,
@@ -176,7 +192,7 @@ export default function RichTextField({
 
   return (
     <>
-      <div className="min-h-16 space-y-2">
+      <div className="min-h-32 space-y-2">
         {mode === 'editor' ? (
           <Editor
             ariaLabel={label}
@@ -194,12 +210,13 @@ export default function RichTextField({
             }
             onPendingUploadsChange={onPendingUploadsChange}
             onRequestImage={mediaContext ? requestImage : undefined}
+            maxImageBytes={MEDIA_UPLOAD_LIMIT}
             onUploadImage={mediaContext ? uploadImage : undefined}
           />
         ) : (
           <Textarea
             aria-label={`${label} source`}
-            className="font-mono"
+            className="min-h-32 font-mono"
             disabled={disabled}
             id={id}
             spellCheck={false}

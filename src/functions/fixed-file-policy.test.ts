@@ -48,6 +48,12 @@ describe('fixed-file authorization boundaries', () => {
       }),
       cacheDatabase: {},
       repositoryAccess: {
+        executeMutation: async (
+          _user: unknown,
+          _repository: unknown,
+          _kind: unknown,
+          operation: () => Promise<unknown>,
+        ) => operation(),
         resolve: vi
           .fn()
           .mockResolvedValue({ tokenSource: 'installation', api: {} }),

@@ -146,7 +146,6 @@ function upsertStatements(
   snapshot: CacheSnapshot,
   publicationToken: string,
   entries: readonly RepositoryDirectoryEntry[],
-  revision: string,
   now: Date,
 ): DatabaseStatement[] {
   const rows = entries.map((entry) => ({
@@ -156,6 +155,12 @@ function upsertStatements(
     content: scope.context === 'media' ? null : entry.content,
     sha: entry.sha,
     size: entry.size,
+    commitSha: entry.commitSha ?? null,
+    commitTimestamp:
+      entry.commitTimestamp &&
+      Number.isFinite(Date.parse(entry.commitTimestamp))
+        ? Date.parse(entry.commitTimestamp)
+        : null,
   }))
   return jsonChunks(rows).map((values) => ({
     sql: `with guarded as (
@@ -167,24 +172,31 @@ function upsertStatements(
           json_extract(value, '$.type') as type,
           json_extract(value, '$.content') as content,
           json_extract(value, '$.sha') as sha,
-          json_extract(value, '$.size') as size
+          json_extract(value, '$.size') as size,
+          json_extract(value, '$.commitSha') as commit_sha,
+          json_extract(value, '$.commitTimestamp') as commit_timestamp
         from json_each(?)
       )
       insert into cache_file (
         source, context, owner, repo, branch, parent_path, name, path, type,
-        content, sha, size, commit_sha, updated_at
+        content, sha, size, commit_sha, commit_timestamp, updated_at
       )
       select ?, ?, ?, ?, ?, ?, items.name, items.path, items.type,
-        items.content, items.sha, items.size, ?, ?
+        items.content, items.sha, items.size, items.commit_sha, items.commit_timestamp, ?
       from guarded cross join items
       where true
       on conflict(source, owner, repo, branch, path, context) do update set
         name = excluded.name,
         type = excluded.type,
         content = excluded.content,
+        commit_sha = case
+          when excluded.commit_sha is not null and excluded.commit_timestamp is not null then excluded.commit_sha
+          when cache_file.sha is excluded.sha then cache_file.commit_sha else null end,
+        commit_timestamp = case
+          when excluded.commit_sha is not null and excluded.commit_timestamp is not null then excluded.commit_timestamp
+          when cache_file.sha is excluded.sha then cache_file.commit_timestamp else null end,
         sha = excluded.sha,
         size = excluded.size,
-        commit_sha = excluded.commit_sha,
         updated_at = excluded.updated_at`,
     args: [
       snapshot.id,
@@ -196,7 +208,6 @@ function upsertStatements(
       scope.repo.toLowerCase(),
       scope.branch,
       scope.path,
-      revision,
       now.getTime(),
     ],
   }))
@@ -210,6 +221,7 @@ export async function buildCachePublication(
     entries: readonly RepositoryDirectoryEntry[]
     removed: readonly string[]
     revision: string
+    commitTimestamp?: string
     now: Date
     unchanged?: boolean
   },
@@ -241,7 +253,12 @@ export async function buildCachePublication(
           previous.sha !== entry.sha ||
           previous.type !== entry.type ||
           previous.size !== entry.size ||
-          previous.content !== content
+          previous.content !== content ||
+          (entry.commitSha != null &&
+            entry.commitTimestamp != null &&
+            (previous.commitSha !== entry.commitSha ||
+              previous.commitTimestamp?.getTime() !==
+                Date.parse(entry.commitTimestamp)))
         )
       })
   const claim = versionAfter(snapshot, now)
@@ -259,19 +276,13 @@ export async function buildCachePublication(
       ],
     },
     ...deleteStatements(scope, snapshot, publicationToken, removed),
-    ...upsertStatements(
-      scope,
-      snapshot,
-      publicationToken,
-      changed,
-      revision,
-      now,
-    ),
+    ...upsertStatements(scope, snapshot, publicationToken, changed, now),
     {
       sql: `update cache_file_meta set
           commit_sha = ?, status = 'ok', error = null,
           last_checked_at = ?,
-          commit_timestamp = case when ? then commit_timestamp else ? end,
+          refreshed_at = case when ? then refreshed_at else ? end,
+          commit_timestamp = case when commit_sha = ? and ? is null then commit_timestamp else ? end,
           updated_at = ?, publication_token = null
         where id = ? and publication_token = ?`,
       args: [
@@ -279,6 +290,9 @@ export async function buildCachePublication(
         now.getTime(),
         input.unchanged ? 1 : 0,
         now.getTime(),
+        revision,
+        input.commitTimestamp ? Date.parse(input.commitTimestamp) : null,
+        input.commitTimestamp ? Date.parse(input.commitTimestamp) : null,
         finalized.getTime(),
         snapshot.id,
         publicationToken,

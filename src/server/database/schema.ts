@@ -220,6 +220,7 @@ const cacheFileTable = sqliteTable(
     content: text('content'),
     sha: text('sha'),
     size: integer('size'),
+    // Known file-change commit; directory snapshot revisions live in cache_file_meta.
     commitSha: text('commit_sha'),
     commitTimestamp: timestamp('commit_timestamp'),
     updatedAt: timestamp('updated_at').notNull(),
@@ -253,6 +254,7 @@ const cacheFileMetaTable = sqliteTable(
     context: text('context').notNull().default('branch'),
     commitSha: text('commit_sha'),
     commitTimestamp: timestamp('commit_timestamp'),
+    refreshedAt: timestamp('refreshed_at'),
     status: text('status').notNull().default('ok'),
     error: text('error'),
     publicationToken: text('publication_token'),

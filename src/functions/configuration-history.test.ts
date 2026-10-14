@@ -66,6 +66,7 @@ describe('configuration history', () => {
       'repo',
       'preview',
       '.pages.yml',
+      1,
     )
     expect(f.authorize).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -73,6 +74,29 @@ describe('configuration history', () => {
         target: { repository: data, branch: 'preview', path: '.pages.yml' },
       }),
     )
+  })
+  it('passes the requested page without changing the authorization target', async () => {
+    const f = fixture(true)
+    await read({ context: f.context, data: { ...data, page: 3 } })
+    expect(f.listFileCommits).toHaveBeenCalledWith(
+      'owner',
+      'repo',
+      'preview',
+      '.pages.yml',
+      3,
+    )
+    expect(f.authorize).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: { repository: data, branch: 'preview', path: '.pages.yml' },
+      }),
+    )
+  })
+  it('rejects invalid history pages before querying the repository', async () => {
+    const f = fixture(true)
+    expect(() =>
+      read({ context: f.context, data: { ...data, page: -1 } }),
+    ).toThrow('positive integer')
+    expect(f.listFileCommits).not.toHaveBeenCalled()
   })
   it('does not retrieve commits when policy denies access or authentication is missing', async () => {
     const f = fixture(false)

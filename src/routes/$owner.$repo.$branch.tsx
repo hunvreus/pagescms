@@ -1,3 +1,4 @@
+import { pageTitle } from '#/lib/page-title'
 import { useEffect } from 'react'
 import {
   Navigate,
@@ -77,6 +78,7 @@ export const Route = createFileRoute('/$owner/$repo/$branch')({
   pendingMs: 120,
   pendingComponent: WorkspaceLoading,
   component: BranchWorkspace,
+  head: ({ params }) => pageTitle('Repository', params),
 })
 
 function BranchWorkspace() {

@@ -1,3 +1,4 @@
+import { pageTitle } from '#/lib/page-title'
 import { createFileRoute } from '@tanstack/react-router'
 import { RepositoryConfigurationPage } from '#/features/admin/repository-configuration-page'
 import { ensureRepositoryAdmin } from '#/features/admin/repository-admin-access'
@@ -13,4 +14,5 @@ export const Route = createFileRoute('/$owner/$repo/$branch/configuration')({
   },
   pendingComponent: ConfigurationSkeleton,
   component: RepositoryConfigurationPage,
+  head: ({ params }) => pageTitle('Configuration', params),
 })

@@ -1,10 +1,16 @@
 # TODO
 
+- Investigate a repository activity table for a fast, database-backed dashboard feed retaining individual content/media additions, edits, renames and deletions, configuration changes, and collaborator changes, alongside existing action runs. Keep activity separate from the current-state content cache; scope visibility to configured paths and permissions. Evaluate CMS-write/webhook deduplication, delayed or missed events, external rename detection, retention and indexing before implementation. Activity is deferred; Overview provides collection creation shortcuts, fixed-file edit links, local drafts and recently opened entries without collection counts.
+- Add shared/server-hosted drafts and cross-device recovery.
+- Finish mutation lifecycle coverage for collection folder creation/node promotion and account settings; keep permission changes and external authentication/billing redirects confirmation-based.
+- Investigate folder rename for media and colocated entries: moving all tracked files, updating content references, collisions, partial failures, and concurrent edits.
+- Define an explicit colocated-media configuration policy requiring the entry to be saved before media can be added; explain the destination requirement in the editor.
+
 - Expose invitation expiry in collaborator lists so expired links do not remain labelled Invitation pending.
 
 - Support GitHub users with repository read access but no push access: include readable repositories in discovery, expose a read-only workspace state, disable content/media/workflow mutations and repository management controls, and enforce those limits server-side.
 
-- Profile large sortable object lists: isolate heavy field content from drag-context updates, stabilize row props, avoid whole-document dirty comparisons per keystroke, and evaluate variable-height virtualization while preserving edit state.
+- Profile remaining large sortable object-list costs: stabilize row props across content edits, avoid whole-document dirty comparisons per keystroke, and evaluate variable-height virtualization while preserving edit state. Drag-context updates already isolate nested editor contents.
 
 ## Media overhaul
 
@@ -23,7 +29,7 @@
 - Rehearse Pro's PostgreSQL export and SQLite/D1 import on a protected copy, verify customer/subscription IDs and migrated permission behavior, then schedule the write/webhook pause and cutover. See the Pro README; the implementation pass did not migrate production data.
 - Exercise Stripe checkout, portal, signed webhook replay and plan changes in Stripe test mode against the deployed composition. Monitor `reconciliation-required` and `payload-mismatch` billing audit rows; resolve uncertain event ordering from Stripe's authoritative subscription state.
 - Rehearse preview/production migrations, GitHub callbacks/webhooks, rollback, and monitoring.
-- Complete staging GitHub App and Stripe sandbox configuration, enable the Pro-owned staging deployment workflow, and run live hosted acceptance before promoting to production. Pro now owns the combined build, core revision pin, separate staging Pro database and Worker bundle-size check.
+- Complete the hosted Cloudflare Git pipeline on the `staging` branch and use `staging.pagescms.org`, leaving `app.pagescms.org` and the existing Vercel `dev.pagescms.org` deployment unchanged. Read-only audit on 2026-10-14: Vercel production is Ready (September 30 CLI deployment), but its Git connection reports “Project Link not found” for `hunvreus/pages-cms`; app/dev domains show DNS Change Recommended. Vercel remains configured for Next.js/Node 22 with a production `next build` override; do not automatically deploy the TanStack rewrite there. The `pagescms-staging` Worker does not exist yet; `pagescms-staging-core` and `pagescms-staging-pro` D1 databases do exist. After repository transfers, update the hosted build's hardcoded core clone URL, publish the desired core changes and update `core.ref` (audit pin `837383a` was three commits behind local HEAD plus uncommitted work), reauthorize Git integrations, configure isolated staging GitHub App/auth/crypto/email/Stripe sandbox credentials and custom-domain callbacks, verify/apply migrations, then deploy and run live acceptance. Local folders must remain compatible with sibling package links. Production cutover is separate.
 - Define which paid plans include custom roles and branch restrictions, then add explicit account feature entitlement checks; installing Pro currently enables these features for the deployment.
 - Measure authenticated navigation p50/p95 against representative public and private repositories after the bundle/payload reduction, lazy branch picker (including repositories with large branch counts), and server request-path optimizations; local build sizes and fixture request counts are not deployed latency measurements.
 - Remove `_legacy/` only after parity acceptance and production cutover.

@@ -46,6 +46,40 @@ describe('rich-text media paths', () => {
     expect(richTextValueForStorage(editorValue, media, context)).toBe(original)
   })
 
+  it('previews encoded filenames without double-encoding and restores their output paths', () => {
+    const value = '![Photo](/images/photo%20one.png)'
+    const preview = richTextValueForEditor(value, media, context)
+    expect(preview).toContain('public/images/photo%20one.png')
+    expect(preview).not.toContain('%2520')
+    expect(richTextValueForStorage(preview, media, context)).toBe(
+      '![Photo](/images/photo%20one.png)',
+    )
+  })
+
+  it('preserves literal percent-escape sequences in filenames', () => {
+    for (const value of [
+      '![Photo](/images/photo%2520.png)',
+      '![Photo](</images/photo%2520.png>)',
+    ]) {
+      const preview = richTextValueForEditor(value, media, context)
+      expect(preview).toContain('photo%2520.png')
+      expect(richTextValueForStorage(preview, media, context)).toBe(value)
+    }
+  })
+
+  it('keeps encoded parentheses valid in bare Markdown destinations', () => {
+    const value = '![Photo](/images/photo%28one%29.png)'
+    const preview = richTextValueForEditor(value, media, context)
+    expect(preview).toContain('photo%28one%29.png')
+    expect(richTextValueForStorage(preview, media, context)).toBe(value)
+  })
+
+  it('keeps malformed URL escapes without crashing', () => {
+    expect(() =>
+      richTextValueForEditor('![Photo](/images/photo%ZZ.png)', media, context),
+    ).not.toThrow()
+  })
+
   it('leaves unrelated repository paths unchanged', () => {
     const value = '![Other](/uploads/photo.png)'
     expect(richTextValueForEditor(value, media, context)).toBe(value)

@@ -247,6 +247,7 @@ export function createProjectService(
       ])
       await recordRepositoryOpened(database, owner, repo)
       return {
+        source: api.source,
         repository,
         branches: [
           ...new Set([

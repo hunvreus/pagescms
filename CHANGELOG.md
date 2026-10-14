@@ -12,7 +12,17 @@
 
 ## Unreleased
 
+- Cache file pagination reuses cached configuration instead of forcing a GitHub configuration refresh on every page; visited result pages remain fresh for 30 seconds. Repository access checks remain enforced.
+
 ### Added
+
+- Configurable Lucide icons for collection/file navigation and Overview shortcuts, using local lazy loading with default fallbacks.
+- Overview shortcuts for editing configured fixed files alongside collection creation.
+
+
+- A compact repository Overview with resumable local drafts, recently opened entries, and create shortcuts.
+
+- Persistent local content drafts for existing and new entries, with reload recovery and original file SHA conflict protection.
 
 - Rich-text definition lists support visual term/description editing and nested lists in HTML and Markdown, using `html.keep: [dl]` and existing typography.
 
@@ -24,7 +34,47 @@
 
 ### Changed
 
+- Place editor History after Save, group History and the entry menu as outline buttons in content and configuration editors, and show persisted local drafts as a muted pencil icon with an “Unsaved changes” tooltip.
+
+- Consolidate known file-change commits into `cache_file.commitSha`, remove the redundant `changeCommitSha` column while preserving known commit/date pairs, and label these correctly in the cache viewer. Directory snapshot revisions remain in metadata.
+
+- Move routine local-draft feedback beside Save/Create entry; retain recovery errors above the form and clear saved acknowledgements when typing resumes.
+
+- Retain 50 local recent-entry records per user/provider/repository/branch and display 10 without pruning drafts.
+- Separate cache refresh time from genuine Git commit dates; preserve known per-file commit provenance through unchanged refreshes without additional GitHub requests.
+
+
+- Bind pending content and configuration writes to their originating account before and after local draft persistence, and recheck account identity before delayed completion effects.
+- Prevent completed branch creation from redirecting through an unmounted dialog after history navigation. Refresh media preview leases only in affected directories and release completed content-operation payloads and callbacks.
+
+- Keep media browsing usable during upload/create/rename/move/delete requests, with pending rows, per-file upload acknowledgement and rollback that preserves unrelated changes. Preserve newer field selections during uploads and stop subsequent upload writes if the signed-in account changes.
+- Preserve configuration drafts and newer edits when saving or navigating; continue workflow, branch, collaborator and cache completion handling after navigation without waiting for background refreshes.
+- Guard physical file paths across content, configuration and media views, and allow closing pending workflow/branch dialogs while requests finish.
+
+- Keep existing content editors editable and allow app navigation while saving; preserve newer edits with the confirmed file SHA. Show pending create/rename/delete changes and update confirmed caches without waiting for background collection refreshes.
+
+- Authorize read access before returning canonical editor data from saves and creates, while preserving confirmed writes if that response cannot be read.
+
+- Ordinary entry/media mutations skip the pre-write GitHub repository probe, with fresh collaborator authorization and guarded credential fallback.
+
+- Restore distinct browser titles for account, repository, collection, entry, and media pages, including repository/branch context and entry or folder paths. Separate page and repository context with ` - `, retaining ` | Pages CMS` as the app suffix.
+
+- Repository Overview uses the shared sticky page header and bordered tables with single-line draft, recent-entry, and create rows.
+
+- Restore single-file content saves and immediate media uploads; remove staged uploads, branch-wide batch commits, and server save journals.
+
+- Paginate entry and configuration History in batches of ten, display all loaded commits in a three-row scrollable viewport, and replace the GitHub footer with See more and retry controls.
+
 - Preserved HTML previews select on click rather than navigating; extra link attributes require configuration, apart from standard link attributes and IDs. Document the limitation on complex MDX expressions.
+
+- Show a separator below the sidebar repository selector while navigation is scrolled down; hide it again at the top.
+
+- Preserve isolated browser-test repository state across Vite server-module reloads; verify save/reload for existing and new rich-text blocks/entries, HTML, and all core field types through the server save/read pipeline.
+
+- Keep expanded block/object editors, file rows, and image thumbnails stable during drag updates without changing their drag appearance.
+- Use modal input dialogs and alert-dialog confirmations for sidebar and content-page actions, honoring configured confirmation text and keeping failed submissions open for retry.
+
+- Standardize Code, Text, and Rich Text fields on a 128px minimum height, including rich-text source mode and loading placeholders.
 
 - Kept HTML headers and footers use shared editable containers. Editable links preserve standard and configured attributes; direct inline children normalize into paragraphs in both formats.
 
@@ -123,6 +173,13 @@
 - Add OTP/session HTTP and authenticated billing-handler coverage; run database, composition and production media checks in CI.
 
 ### Fixed
+
+- Give the cache viewer commit heading enough room to prevent unnecessary horizontal scrolling.
+
+- Clear the local-draft loading message after opening an entry without a saved draft, and hide empty draft-status spacing.
+
+- Preserve the Overview and custom commit-message controls during content-draft simplification, retain distinct new-entry drafts, and restore the 20 MB rich-text upload limit.
+- Keep rich-text images with spaces, encoded parentheses, or literal percent escapes valid through save/reload.
 
 - Image link controls now attach destinations to standalone images, preserve them through HTML/Markdown save and reopen, and select images without following their links. The image extension is shared with the editor registry.
 

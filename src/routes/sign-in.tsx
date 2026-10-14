@@ -1,3 +1,4 @@
+import { pageTitle } from '#/lib/page-title'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
@@ -31,6 +32,7 @@ export const Route = createFileRoute('/sign-in')({
   pendingMs: 150,
   pendingComponent: SignInSkeleton,
   component: SignInPage,
+  head: () => pageTitle('Sign in'),
 })
 
 function SignInPage() {

@@ -2,7 +2,7 @@ import { extensionCategories, getFileExtension } from './file-types'
 import type { ExtensionCategory } from './file-types'
 import { normalizeGitPath } from './git-path'
 
-export const CONFIGURATION_VERSION = '3.1'
+export const CONFIGURATION_VERSION = '3.2'
 
 type ConfigurationRecord = Record<string, unknown>
 
@@ -10,6 +10,7 @@ type NavigationNode = {
   type: unknown
   name: unknown
   label: unknown
+  icon?: string
   items?: NavigationNode[]
 }
 
@@ -269,6 +270,7 @@ function normalizeContentEntries(
       type: entry.type,
       name: entry.name,
       label: entry.label ?? entry.name,
+      ...(typeof entry.icon === 'string' ? { icon: entry.icon } : {}),
     })
   }
 

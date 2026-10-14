@@ -26,6 +26,8 @@ Email-code sign-in is enabled when a trusted build-time plugin creates an email 
 
 ## Runtime behavior
 
+Ordinary entry and media mutations select the current user token without a GitHub repository probe. A bounded, credential-hashed hint can reuse the credential source selected by an earlier read; it contains no token or authorization grant. Every installation-backed mutation reads current collaborator membership and runs application policy for its branch, resource, and path. User-token rejection can retry a single-write operation once under installation credentials only after fresh membership lookup and application authorization. Conflicts, ambiguous failures, rate limits, completed writes, multi-write renames, and external upload workflows never trigger automatic credential retries. Cold multi-write operations without a credential-choice hint retain the initial probe, because they cannot safely discover credentials by retrying. Reads and repository management retain their existing GitHub access checks.
+
 - OAuth identities must report a verified email before user creation, account linking, or sign-in. GitHub is not exempted as a trusted provider. Email-code sign-in retains its own proof-of-email flow.
 - Deployment-admin allowlisting requires a verified email. Pending collaborator grants match email only for verified users; already-bound grants match the immutable user ID.
 - Invitation GET requests only report status and expose a masked address to guests. Acceptance is an authenticated POST for the matching verified account. Invitation creation, acceptance, removal, and send-failure rollback use atomic application-database batches.

@@ -20,6 +20,7 @@ const notifications = vi.hoisted(() => ({
   loading: vi.fn(() => 'batch'),
   success: vi.fn(),
   error: vi.fn(),
+  dismiss: vi.fn(),
 }))
 vi.mock('sonner', () => ({ toast: notifications }))
 
@@ -168,14 +169,22 @@ it('reports a partial batch and preserves confirmed files when a later upload fa
   mediaFunctions.confirmMediaUpload.mockResolvedValue({
     path: 'images/Photo.JPG',
   })
+  const onUploaded = vi.fn()
   const failure = await uploadMediaFiles({
     coordinates,
+    onUploaded,
     extensions: ['JPG'],
     files: [new File(['a'], 'Photo.JPG'), new File(['b'], 'bad.pdf')],
     path: 'images',
   }).catch((error) => error)
   expect(failure).toBeInstanceOf(MediaUploadError)
   expect(failure.paths).toEqual(['images/Photo.JPG'])
+  expect(onUploaded).toHaveBeenCalledOnce()
+  expect(onUploaded).toHaveBeenCalledWith(
+    { path: 'images/Photo.JPG' },
+    expect.objectContaining({ name: 'Photo.JPG' }),
+    0,
+  )
   expect(notifications.error).toHaveBeenCalledWith(
     '1 of 2 files uploaded',
     expect.objectContaining({
@@ -215,4 +224,106 @@ it('updates one batch notification through completion', async () => {
   expect(notifications.success).toHaveBeenCalledWith('2 files uploaded', {
     id: 'batch',
   })
+})
+
+it('a local acknowledgement error never retries or fails a confirmed upload', async () => {
+  mediaFunctions.initiateMediaUpload.mockResolvedValue({
+    kind: 'direct',
+    path: 'images/photo.jpg',
+    plan: {
+      kind: 'post',
+      url: 'https://uploads.example.test',
+      fields: {},
+      ticket: 'ticket',
+    },
+  })
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+    new Response(null, { status: 204 }),
+  )
+  mediaFunctions.confirmMediaUpload.mockResolvedValue({
+    path: 'images/photo.jpg',
+    version: 'confirmed-version',
+    revision: null,
+  })
+  vi.spyOn(console, 'warn').mockImplementation(() => {})
+  const onUploaded = vi.fn(() => {
+    throw new Error('local view failed')
+  })
+  await expect(
+    uploadMediaFiles({
+      coordinates,
+      files: [new File(['photo'], 'photo.jpg')],
+      path: 'images',
+      onUploaded,
+    }),
+  ).resolves.toEqual(['images/photo.jpg'])
+  expect(mediaFunctions.confirmMediaUpload).toHaveBeenCalledOnce()
+  expect(onUploaded).toHaveBeenCalledOnce()
+  expect(notifications.success).toHaveBeenCalled()
+  expect(notifications.error).not.toHaveBeenCalled()
+})
+
+it('stops a batch before another file can be written using a different signed-in account', async () => {
+  let active = true
+  mediaFunctions.initiateMediaUpload.mockResolvedValue({
+    kind: 'direct',
+    path: 'images/first.jpg',
+    plan: {
+      kind: 'post',
+      url: 'https://uploads.example.test',
+      fields: {},
+      ticket: 'ticket',
+    },
+  })
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+    new Response(null, { status: 204 }),
+  )
+  mediaFunctions.confirmMediaUpload.mockResolvedValue({
+    path: 'images/first.jpg',
+    version: 'v1',
+    revision: null,
+  })
+  const result = await uploadMediaFiles({
+    coordinates,
+    files: [new File(['a'], 'first.jpg'), new File(['b'], 'second.jpg')],
+    path: 'images',
+    isActive: () => active,
+    onUploaded: () => {
+      active = false
+    },
+  }).catch((error) => error)
+  expect(result).toBeInstanceOf(MediaUploadError)
+  expect(result.paths).toEqual(['images/first.jpg'])
+  expect(mediaFunctions.initiateMediaUpload).toHaveBeenCalledOnce()
+  expect(notifications.success).not.toHaveBeenCalled()
+  expect(notifications.error).not.toHaveBeenCalled()
+  expect(notifications.dismiss).toHaveBeenCalledWith('batch')
+})
+it('never confirms an object under a new account after its transfer finishes', async () => {
+  let active = true
+  mediaFunctions.initiateMediaUpload.mockResolvedValue({
+    kind: 'direct',
+    path: 'images/first.jpg',
+    plan: {
+      kind: 'post',
+      url: 'https://uploads.example.test',
+      fields: {},
+      ticket: 'ticket',
+    },
+  })
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+    active = false
+    return new Response(null, { status: 204 })
+  })
+  await expect(
+    uploadMediaFiles({
+      coordinates,
+      files: [new File(['a'], 'first.jpg')],
+      path: 'images',
+      isActive: () => active,
+    }),
+  ).rejects.toThrow('signed-in account changed')
+  expect(mediaFunctions.confirmMediaUpload).not.toHaveBeenCalled()
+  expect(mediaFunctions.abortMediaUpload).not.toHaveBeenCalled()
+  expect(notifications.error).not.toHaveBeenCalled()
 })

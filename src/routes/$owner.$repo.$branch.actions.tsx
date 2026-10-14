@@ -1,3 +1,4 @@
+import { pageTitle } from '#/lib/page-title'
 import { createFileRoute } from '@tanstack/react-router'
 import { RepositoryActionsPage } from '#/features/admin/repository-actions-page'
 import { ensureRepositoryAdmin } from '#/features/admin/repository-admin-access'
@@ -12,4 +13,5 @@ export const Route = createFileRoute('/$owner/$repo/$branch/actions')({
   },
   pendingComponent: () => <ActionsSkeleton />,
   component: RepositoryActionsPage,
+  head: ({ params }) => pageTitle('Actions', params),
 })

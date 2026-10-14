@@ -376,6 +376,7 @@ async function handlePush(
       before,
       after,
       changes,
+      ...pushCommitDate(payload, after),
     })
   } catch (error) {
     await staleDirectoryCache(
@@ -595,6 +596,16 @@ export async function handleGitHubWebhook(
   }
 }
 
+function pushCommitDate(payload: Record<string, unknown>, after: string) {
+  const head = record(payload.head_commit)
+  const timestamp = string(head?.timestamp)
+  return string(head?.id) === after &&
+    timestamp &&
+    Number.isFinite(Date.parse(timestamp))
+    ? { commitTimestamp: new Date(timestamp).toISOString() }
+    : {}
+}
+
 export function repositoryPushChanges(
   payload: Record<string, unknown>,
 ): RepositoryChange[] | null {
@@ -620,7 +631,18 @@ export function repositoryPushChanges(
       for (const changedPath of commit[kind]) {
         if (typeof changedPath !== 'string') return null
         const path = normalizeGitPath(changedPath)
-        changes.set(path, { path, removed: kind === 'removed' })
+        const timestamp = string(commit.timestamp)
+        const sha = string(commit.id)
+        changes.set(path, {
+          path,
+          removed: kind === 'removed',
+          ...(sha && timestamp && Number.isFinite(Date.parse(timestamp))
+            ? {
+                commitSha: sha,
+                commitTimestamp: new Date(timestamp).toISOString(),
+              }
+            : {}),
+        })
       }
     }
   }

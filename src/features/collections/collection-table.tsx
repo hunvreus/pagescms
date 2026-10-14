@@ -1,3 +1,7 @@
+import {
+  optimisticRows,
+  useContentJobs,
+} from '#/features/content/content-mutations'
 import { useEffect, useMemo, useRef } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { useQueries } from '@tanstack/react-query'
@@ -59,6 +63,7 @@ import {
 import type { getCollection } from '#/functions/collection'
 import { getReferenceOptions } from '#/functions/references'
 import { cn } from '#/lib/utils'
+import { collectionQueryOptions } from '#/queries/content'
 import { queryKeys, queryTimes } from '#/queries/keys'
 
 import { CollectionCell, collectionReferenceValues } from './collection-cell'
@@ -159,6 +164,7 @@ function columnSize(
 
 export function CollectionTable({
   data,
+  directory,
   model,
   repository,
   media,
@@ -176,6 +182,7 @@ export function CollectionTable({
   onSearchChange,
 }: {
   data: CollectionItem[]
+  directory: string
   model: CollectionViewModel
   repository: RepositoryCoordinates
   media: CollectionData['media']
@@ -192,6 +199,60 @@ export function CollectionTable({
   search: string
   onSearchChange: Dispatch<SetStateAction<string>>
 }) {
+  const jobs = useContentJobs(repository)
+  const pendingJobs = useMemo(
+    () =>
+      jobs
+        .filter((entry) => entry.status === 'pending')
+        .flatMap((entry) => (entry.job ? [entry.job] : [])),
+    [jobs],
+  )
+  const pendingRows = useMemo(
+    () =>
+      new Map(
+        pendingJobs.flatMap(
+          (job) =>
+            [
+              [
+                job.kind === 'create'
+                  ? `__creating__/${job.id}`
+                  : (job.coordinates.path ?? ''),
+                job.kind,
+              ],
+              ...(job.destination ? [[job.destination, job.kind]] : []),
+            ] as Array<[string, string]>,
+        ),
+      ),
+    [pendingJobs],
+  )
+  const displayData = useMemo(
+    () => optimisticRows(data, pendingJobs, directory, model),
+    [data, pendingJobs, directory, model],
+  )
+  const expandedEntries = [
+    ...data,
+    ...Object.values(children).flatMap((rows) => rows ?? []),
+  ]
+  function childDirectory(path: string) {
+    const entry = expandedEntries.find((row) => row.path === path)
+    return entry?.type === 'file' ? entry.parentPath : path
+  }
+  const childQueries = useQueries({
+    queries: Object.keys(children).map((path) =>
+      collectionQueryOptions({ ...repository, path: childDirectory(path) }),
+    ),
+  })
+  const displayChildren = Object.fromEntries(
+    Object.entries(children).map(([path, rows], index) => [
+      path,
+      optimisticRows(
+        childQueries[index]?.data?.contents ?? rows ?? [],
+        pendingJobs,
+        childDirectory(path),
+        model,
+      ),
+    ]),
+  )
   const canViewGitHub = useRepositoryGitHubLink()
   const fluidColumn = collectionFluidColumn(model)
   const referenceRequests = useMemo(() => {
@@ -356,6 +417,24 @@ export function CollectionTable({
                 >
                   {content}
                 </Link>
+              ) : entry.type === 'file' &&
+                isPrimary &&
+                pendingRows.get(entry.path) === 'create' ? (
+                <span className="min-w-0 flex-1 truncate font-medium">
+                  {content}
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    {
+                      {
+                        create: 'Creating…',
+                        save: 'Saving…',
+                        rename: 'Renaming…',
+                      }[
+                        pendingRows.get(entry.path) as
+                          'create' | 'save' | 'rename'
+                      ]
+                    }
+                  </span>
+                </span>
               ) : entry.type === 'file' && isPrimary ? (
                 <Link
                   className="block min-w-0 flex-1 truncate font-medium"
@@ -363,6 +442,13 @@ export function CollectionTable({
                   to="/$owner/$repo/$branch/collection/$name/entry/$"
                 >
                   {content}
+                  {pendingRows.has(entry.path) ? (
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                      {pendingRows.get(entry.path) === 'save'
+                        ? 'Saving…'
+                        : 'Renaming…'}
+                    </span>
+                  ) : null}
                 </Link>
               ) : (
                 content
@@ -399,14 +485,20 @@ export function CollectionTable({
             <div className="flex justify-end">
               {entry.type === 'file' ? (
                 <div className="flex items-center gap-2">
-                  <Button asChild size="sm" variant="outline">
-                    <Link
-                      params={{ ...repository, _splat: entry.path }}
-                      to="/$owner/$repo/$branch/collection/$name/entry/$"
-                    >
+                  {pendingRows.get(entry.path) === 'create' ? (
+                    <Button disabled size="sm" type="button" variant="outline">
                       Edit
-                    </Link>
-                  </Button>
+                    </Button>
+                  ) : (
+                    <Button asChild size="sm" variant="outline">
+                      <Link
+                        params={{ ...repository, _splat: entry.path }}
+                        to="/$owner/$repo/$branch/collection/$name/entry/$"
+                      >
+                        Edit
+                      </Link>
+                    </Button>
+                  )}
                   {canViewGitHub ||
                   canRename ||
                   canDelete ||
@@ -415,6 +507,7 @@ export function CollectionTable({
                       <DropdownMenuTrigger asChild>
                         <Button
                           aria-label={`Actions for ${entry.name}`}
+                          disabled={pendingRows.has(entry.path)}
                           size="icon-sm"
                           variant="outline"
                         >
@@ -495,15 +588,16 @@ export function CollectionTable({
     repository,
     referenceLabels,
     fluidColumn,
+    pendingRows,
   ])
 
   const table = useTable(
     {
       features,
       columns,
-      data,
+      data: displayData,
       getRowId: (entry) => entry.path,
-      getSubRows: (entry) => children[entry.path],
+      getSubRows: (entry) => displayChildren[entry.path],
       getRowCanExpand: (row) =>
         model.layout === 'tree' &&
         (row.original.type === 'dir' || row.original.isNode),
@@ -511,6 +605,8 @@ export function CollectionTable({
       globalFilterFn: 'includesString',
       enableSortingRemoval: false,
       paginateExpandedRows: false,
+      autoResetExpanded: false,
+      autoResetPageIndex: false,
       initialState: {
         sorting: model.initial.sorting,
         pagination: { pageIndex: 0, pageSize: 25 },

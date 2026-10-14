@@ -1,10 +1,15 @@
+import {
+  operationKey,
+  refreshQueries,
+  useOperation,
+} from '#/features/operations/use-operation'
 import { CollaboratorInviteInput } from '#/components/collaborator-invite-input'
 import { parseCollaboratorEmails } from '#/lib/collaborator-invites'
 import { toast } from 'sonner'
 import { SearchInput } from '#/components/search-input'
 import { useState } from 'react'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { LoaderCircle, UserPlus } from 'lucide-react'
+import { UserPlus } from 'lucide-react'
 
 import { OperationError } from '#/components/operation-error'
 import {
@@ -72,53 +77,87 @@ function BasicCollaboratorsPage({
   )
   const [inviteOpen, setInviteOpen] = useState(false)
   const [emails, setEmails] = useState('')
-  const [inviting, setInviting] = useState(false)
+  const invitation = useOperation<Awaited<ReturnType<typeof addCollaborators>>>(
+    operationKey('collaborator-invite', { owner, repo }),
+  )
+  const removal = useOperation<Awaited<ReturnType<typeof deleteCollaborator>>>(
+    operationKey('collaborator-remove', { owner, repo }),
+  )
+  const inviting = invitation.pending
   const [removing, setRemoving] = useState<
     (typeof collaborators)[number] | null
   >(null)
   const [error, setError] = useState<unknown>(null)
 
   async function invite() {
-    setInviting(true)
+    if (invitation.pending) return
     setError(null)
     try {
       parseCollaboratorEmails(emails)
-      const added = await addCollaborators({
-        data: { ...params, emails },
+      const submittedEmails = emails
+      await invitation.run({
+        failureMessage: 'Could not invite collaborators.',
+        run: () =>
+          addCollaborators({ data: { ...params, emails: submittedEmails } }),
+        confirmed: (added, active) => {
+          if (!active()) return
+          queryClient.setQueryData(
+            collaboratorsQueryOptions(params).queryKey,
+            (previous) =>
+              previous
+                ? [
+                    ...previous.filter(
+                      (person) => !added.some((item) => item.id === person.id),
+                    ),
+                    ...added,
+                  ]
+                : previous,
+          )
+          const invited = added.filter((person) => !person.userId).length
+          toast.success(
+            invited === added.length
+              ? added.length === 1
+                ? 'Invitation sent'
+                : `${added.length} invitations sent`
+              : added.length === 1
+                ? 'Collaborator added'
+                : `${added.length} collaborators added`,
+          )
+          refreshQueries(queryClient, [
+            collaboratorsQueryOptions(params).queryKey,
+          ])
+        },
       })
-      const invited = added.filter((person) => !person.userId).length
-      toast.success(
-        invited === added.length
-          ? added.length === 1
-            ? 'Invitation sent'
-            : `${added.length} invitations sent`
-          : added.length === 1
-            ? 'Collaborator added'
-            : `${added.length} collaborators added`,
-      )
       setEmails('')
       setInviteOpen(false)
-      await queryClient.invalidateQueries({
-        queryKey: collaboratorsQueryOptions(params).queryKey,
-      })
     } catch (cause) {
       setError(cause)
-    } finally {
-      setInviting(false)
     }
   }
 
   async function remove() {
-    if (!removing) return
+    if (!removing || removal.pending) return
     const collaborator = removing
     setError(null)
     try {
-      await deleteCollaborator({ data: { ...params, id: collaborator.id } })
-      toast.success('Collaborator removed')
-      setRemoving(null)
-      await queryClient.invalidateQueries({
-        queryKey: collaboratorsQueryOptions(params).queryKey,
+      await removal.run({
+        failureMessage: 'Could not remove collaborator.',
+        run: () =>
+          deleteCollaborator({ data: { ...params, id: collaborator.id } }),
+        confirmed: (_result, active) => {
+          if (!active()) return
+          queryClient.setQueryData(
+            collaboratorsQueryOptions(params).queryKey,
+            (previous) =>
+              previous?.filter((person) => person.id !== collaborator.id),
+          )
+          toast.success('Collaborator removed')
+          refreshQueries(queryClient, [
+            collaboratorsQueryOptions(params).queryKey,
+          ])
+        },
       })
+      setRemoving(null)
     } catch (cause) {
       setError(cause)
     }
@@ -149,7 +188,7 @@ function BasicCollaboratorsPage({
       }
     >
       <OperationError
-        error={inviteOpen ? null : error}
+        error={inviteOpen ? null : (error ?? invitation.error ?? removal.error)}
         fallback="Could not update collaborators."
       />
       <Table
@@ -187,6 +226,7 @@ function BasicCollaboratorsPage({
                     aria-label={`Remove ${collaborator.email}`}
                     size="sm"
                     variant="destructive"
+                    disabled={removal.pending}
                     onClick={() => setRemoving(collaborator)}
                   >
                     Remove
@@ -223,7 +263,7 @@ function BasicCollaboratorsPage({
             }}
           >
             <OperationError
-              error={error}
+              error={error ?? invitation.error}
               fallback="Could not invite collaborators."
             />
             <CollaboratorInviteInput
@@ -236,11 +276,6 @@ function BasicCollaboratorsPage({
             </p>
             <DialogFooter>
               <Button disabled={inviting || !emails.trim()} type="submit">
-                {inviting ? (
-                  <LoaderCircle className="animate-spin" />
-                ) : (
-                  <UserPlus />
-                )}
                 {inviting ? 'Inviting' : 'Send invitations'}
               </Button>
             </DialogFooter>
@@ -263,7 +298,11 @@ function BasicCollaboratorsPage({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
-              onClick={() => void remove()}
+              disabled={removal.pending}
+              onClick={(event) => {
+                event.preventDefault()
+                void remove()
+              }}
             >
               Remove
             </AlertDialogAction>

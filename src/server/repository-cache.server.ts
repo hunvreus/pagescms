@@ -27,6 +27,8 @@ export type RepositoryChange = {
   removed: boolean
   sourcePath?: string
   sha?: string
+  commitSha?: string
+  commitTimestamp?: string
 }
 export type RepositoryPush = {
   owner: string
@@ -35,6 +37,7 @@ export type RepositoryPush = {
   before: string
   after: string
   changes: RepositoryChange[]
+  commitTimestamp?: string
 }
 
 export async function updateRepositoryCacheAfterMutation(
@@ -43,7 +46,11 @@ export async function updateRepositoryCacheAfterMutation(
   owner: string,
   repo: string,
   branch: string,
-  result: { commitSha: string; parentCommitSha?: string },
+  result: {
+    commitSha: string
+    parentCommitSha?: string
+    commitTimestamp?: string
+  },
   changes: RepositoryChange[],
   knownFiles?: RepositoryDirectoryEntry[],
 ) {
@@ -70,7 +77,16 @@ export async function updateRepositoryCacheAfterMutation(
         branch,
         before: result.parentCommitSha,
         after: result.commitSha,
-        changes,
+        changes: changes.map((change) => ({
+          ...change,
+          ...(result.commitTimestamp
+            ? {
+                commitSha: result.commitSha,
+                commitTimestamp: result.commitTimestamp,
+              }
+            : {}),
+        })),
+        commitTimestamp: result.commitTimestamp,
       },
       knownFiles,
     )
@@ -262,11 +278,20 @@ export async function applyRepositoryPush(
           snapshot: scope,
           entries: affected
             .filter((change) => !change.removed)
-            .map((change) => files.get(change.path)!),
+            .map((change) => ({
+              ...files.get(change.path)!,
+              ...(change.commitTimestamp && change.commitSha
+                ? {
+                    commitTimestamp: change.commitTimestamp,
+                    commitSha: change.commitSha,
+                  }
+                : {}),
+            })),
           removed: affected
             .filter((change) => change.removed)
             .map((change) => change.path),
           revision: input.after,
+          commitTimestamp: input.commitTimestamp,
           now,
           unchanged: affected.length === 0,
         }),

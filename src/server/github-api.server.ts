@@ -1,3 +1,4 @@
+import { HISTORY_PAGE_SIZE, historyPage } from '#/lib/file-history'
 import {
   registerRepositoryReader,
   readRepositoryCached,
@@ -158,6 +159,14 @@ function parseWorkflowRun(value: unknown): GitHubWorkflowRun {
     createdAt: requiredString(value.created_at, 'workflow run creation time'),
     updatedAt: requiredString(value.updated_at, 'workflow run update time'),
   }
+}
+
+function commitDate(commit: Record<string, unknown>) {
+  const committer = isRecord(commit.committer) ? commit.committer : {}
+  const date = committer.date
+  return typeof date === 'string' && Number.isFinite(Date.parse(date))
+    ? { commitTimestamp: new Date(date).toISOString() }
+    : {}
 }
 
 function parseCommit(value: unknown): GitHubCommitSummary {
@@ -789,6 +798,7 @@ export function createGitHubApi(
         sha: requiredString(content.sha, 'updated file sha'),
         commitSha: requiredString(commit.sha, 'file commit sha'),
         ...commitParent(commit),
+        ...commitDate(commit),
       }
     },
 
@@ -823,6 +833,7 @@ export function createGitHubApi(
       return {
         commitSha: requiredString(commit.sha, 'file delete commit sha'),
         ...commitParent(commit),
+        ...commitDate(commit),
       }
     },
 
@@ -937,6 +948,7 @@ export function createGitHubApi(
         sha: input.sha,
         commitSha,
         parentCommitSha: headSha,
+        ...commitDate(commit),
       }
     },
 
@@ -1033,8 +1045,14 @@ export function createGitHubApi(
       repo: string,
       branch: string,
       path: string,
+      page = 1,
     ) {
-      const query = new URLSearchParams({ sha: branch, path, per_page: '20' })
+      const query = new URLSearchParams({
+        sha: branch,
+        path,
+        per_page: String(HISTORY_PAGE_SIZE),
+        page: String(historyPage(page)),
+      })
       const body = await githubRequest(
         fetcher,
         token,

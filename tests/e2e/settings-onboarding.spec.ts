@@ -18,7 +18,7 @@ test('unconfigured repositories open the editor and show a compact actions empty
   ).toBeDisabled()
   await page.getByRole('link', { name: 'Actions', exact: true }).click()
   await expect(
-    page.getByText('No actions configured', { exact: true }),
+    page.getByText('No actions configured.', { exact: true }),
   ).toBeVisible()
   await expect(
     page.getByText('Repository configuration not found', { exact: true }),

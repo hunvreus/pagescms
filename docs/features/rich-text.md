@@ -51,7 +51,7 @@ Shortcodes, MDX expressions, embed presets,
 custom extension registration, and custom CSS are not included yet.
 
 The CMS adapter preserves permanent media URLs and save state independently of
-the editor's HTML policy. Save/reopen browser tests cover this boundary.
+the editor's HTML policy. Save/reopen browser tests cover existing and newly added blocks, new collection entries and subsequent edits, and HTML fields. Server tests also round-trip all core field types in nested objects, object lists, blocks, and custom block keys across JSON, YAML, TOML, and frontmatter formats, with content merging enabled and disabled. JSON and YAML root lists are covered too.
 
 ## Snippets
 

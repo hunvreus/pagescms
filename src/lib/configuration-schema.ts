@@ -620,6 +620,12 @@ const ContentLeafSchema = z
         message: "'name' must be alphanumeric with dashes and underscores.",
       }),
     label: z.string().optional(),
+    icon: z
+      .string()
+      .regex(/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/, {
+        message: "'icon' must be a Lucide icon name in kebab-case.",
+      })
+      .optional(),
     description: z.string().optional().nullable(),
     type: z.enum(['collection', 'file'], {
       required_error: "'type' is required.",
@@ -820,6 +826,7 @@ const ContentLeafSchema = z
       .object(
         {
           templates: CommitTemplatesSchema.optional(),
+          allowCustomMessage: z.boolean().optional(),
           identity: CommitIdentitySchema.optional(),
         },
         {
@@ -927,6 +934,7 @@ const ConfigurationSchema = z
                 .object(
                   {
                     templates: CommitTemplatesSchema.optional(),
+                    allowCustomMessage: z.boolean().optional(),
                     identity: CommitIdentitySchema.optional(),
                   },
                   {

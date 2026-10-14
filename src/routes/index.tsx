@@ -1,3 +1,4 @@
+import { pageTitle } from '#/lib/page-title'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
@@ -24,6 +25,7 @@ export const Route = createFileRoute('/')({
   pendingMs: 120,
   pendingComponent: ProjectDashboardSkeleton,
   component: Dashboard,
+  head: () => pageTitle('Projects'),
 })
 
 function Dashboard() {

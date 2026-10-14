@@ -213,6 +213,15 @@ integration('SQLite integration', () => {
       sha: 'enabled-config',
       content: btoa('settings:\n  cache: true\n'),
     })
+    await expect(loadCacheStatus(input)).rejects.toThrow(
+      'Cache management is disabled',
+    )
+    await createConfigurationStore({ database: database! }).refresh(
+      api,
+      input.owner,
+      input.repo,
+      input.branch,
+    )
     await expect(loadCacheStatus(input)).resolves.toMatchObject({
       fileCount: 0,
       directoryCount: 0,

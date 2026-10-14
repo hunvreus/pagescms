@@ -21,6 +21,11 @@ test('named selects, formatted dates, file reordering and safe uploads persist',
   await handles.first().focus()
   await handles.first().press('Space')
   await expect(handles.first()).toHaveAttribute('aria-pressed', 'true')
+  // dnd-kit attaches the document keyboard listener after activation.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+  )
   await page.keyboard.press('ArrowDown')
   await expect(page.getByRole('status')).toContainText(
     'moved over droppable area 1:public/images/parity-b.txt',

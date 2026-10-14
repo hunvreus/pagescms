@@ -187,3 +187,19 @@ describe('rich-text snippets', () => {
     expect(ConfigurationSchema.safeParse(config(snippets)).success).toBe(false)
   })
 })
+
+it('accepts kebab-case content icons and rejects paths or non-string names', () => {
+  const config = (icon: unknown) => ({
+    content: [{ name: 'posts', type: 'collection', path: 'posts', icon }],
+  })
+  expect(ConfigurationSchema.safeParse(config('newspaper')).success).toBe(true)
+  expect(ConfigurationSchema.safeParse(config('not-a-real-icon')).success).toBe(
+    true,
+  )
+  expect(ConfigurationSchema.safeParse(config('../newspaper')).success).toBe(
+    false,
+  )
+  expect(
+    ConfigurationSchema.safeParse(config({ name: 'newspaper' })).success,
+  ).toBe(false)
+})

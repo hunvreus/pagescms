@@ -1,9 +1,20 @@
-import { toast } from 'sonner'
+import { Field, FieldLabel } from '#/components/ui/field'
+import {
+  completeMediaUpload,
+  mediaParent,
+  mediaRows,
+  patchMedia,
+  refreshMedia,
+  useMediaJobs,
+  useMediaMutation,
+} from './media-mutations'
+import { authenticationQueryOptions } from '#/queries/session'
 import { readMediaView, saveMediaView } from './media-view'
 import {
   Fragment,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -110,7 +121,6 @@ import {
 } from '#/functions/media'
 import { cn } from '#/lib/utils'
 import { mediaDeliveryQueryOptions, mediaQueryOptions } from '#/queries/content'
-import { queryKeys } from '#/queries/keys'
 
 import {
   formatMediaSize,
@@ -226,6 +236,7 @@ function MediaGridEntry({
   coordinates,
   deliveryError,
   entry,
+  pending,
   lease,
   onDelete,
   onNavigate,
@@ -240,6 +251,7 @@ function MediaGridEntry({
   coordinates: MediaCoordinates
   deliveryError: boolean
   entry: MediaEntry
+  pending?: string
   lease?: { url: string }
   onDelete: (entry: MediaEntry) => void
   onNavigate: (path: string) => void
@@ -260,6 +272,7 @@ function MediaGridEntry({
         <button
           className="block w-full cursor-pointer rounded-md text-left outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           type="button"
+          disabled={Boolean(pending)}
           onClick={() => onNavigate(entry.path)}
         >
           <EntryPreview
@@ -271,7 +284,9 @@ function MediaGridEntry({
           <span className="mt-2 block truncate px-3 text-center text-sm font-medium">
             {entry.name}
           </span>
-          <span aria-hidden="true" className="block h-4" />
+          <span className="block h-4 text-center text-xs text-muted-foreground">
+            {pending}
+          </span>
         </button>
       ) : (
         <>
@@ -309,17 +324,19 @@ function MediaGridEntry({
                 {entry.name}
               </span>
               <span className="block truncate text-xs text-muted-foreground">
-                {formatMediaSize(entry.size)}
+                {pending ?? formatMediaSize(entry.size)}
               </span>
             </button>
-            <EntryActions
-              canDelete={canDelete}
-              canRename={canRename}
-              coordinates={coordinates}
-              entry={entry}
-              onDelete={onDelete}
-              onRename={onRename}
-            />
+            {!pending ? (
+              <EntryActions
+                canDelete={canDelete}
+                canRename={canRename}
+                coordinates={coordinates}
+                entry={entry}
+                onDelete={onDelete}
+                onRename={onRename}
+              />
+            ) : null}
           </div>
         </>
       )}
@@ -647,6 +664,7 @@ export function MediaBrowser({
   variant = 'embedded',
   className,
 }: MediaBrowserProps) {
+  const fieldPrefix = useId()
   const queryClient = useQueryClient()
   const [localPath, setLocalPath] = useState(path)
   const currentPath = path ?? localPath
@@ -657,9 +675,23 @@ export function MediaBrowser({
   const [search, setSearch] = useState('')
   const [view, setView] = useState<MediaView>(readMediaView)
   const [error, setError] = useState<unknown>(null)
-  const [busy, setBusy] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const uploadLock = useRef(false)
+  const operations = useMediaJobs(coordinates)
+  const uploadMutation = useMediaMutation<string[]>()
+  const folderMutation =
+    useMediaMutation<Awaited<ReturnType<typeof createMediaFolder>>>()
+  const renameMutation =
+    useMediaMutation<Awaited<ReturnType<typeof renameMedia>>>()
+  const removalMutation =
+    useMediaMutation<Awaited<ReturnType<typeof removeMedia>>>()
+  const moveMutation = useMediaMutation<Awaited<ReturnType<typeof moveMedia>>>()
+  const mounted = useRef(false)
+  const currentView = useRef('')
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
   const [folderOpen, setFolderOpen] = useState(false)
   const [folderName, setFolderName] = useState('')
   const [renameEntry, setRenameEntry] = useState<MediaEntry | null>(null)
@@ -679,13 +711,74 @@ export function MediaBrowser({
   const data = query.data
   const folderPending = query.isPending || query.isPlaceholderData
   const manifestUnavailable = query.isError && !data
-  const entries = folderPending ? [] : (data?.entries ?? [])
+  const rootPath = data?.media.rootPath ?? currentPath ?? ''
+  const directoryPath = query.isPlaceholderData
+    ? (currentPath ?? rootPath)
+    : (data?.media.path ?? currentPath ?? rootPath)
+  currentView.current = JSON.stringify([
+    coordinates.owner.toLowerCase(),
+    coordinates.repo.toLowerCase(),
+    coordinates.branch,
+    coordinates.name,
+    directoryPath,
+  ])
+  const pendingJobs = useMemo(
+    () =>
+      operations.jobs
+        .filter((item) => item.status === 'pending')
+        .flatMap((item) => (item.job ? [item.job] : [])),
+    [operations.jobs],
+  )
+  const uploading = pendingJobs.some(
+    (job) => job.kind === 'upload' && job.directory === directoryPath,
+  )
+  const pending = useMemo(() => {
+    const result = new Map<string, string>()
+    for (const job of pendingJobs) {
+      if (job.kind === 'folder')
+        result.set(`__pending__/${job.id}`, 'Creating…')
+      if (job.kind === 'upload')
+        job.files?.forEach((_file, index) => {
+          if (!operations.completed[job.id]?.includes(index))
+            result.set(`__pending__/${job.id}/${index}`, 'Uploading…')
+        })
+      if (job.entry)
+        result.set(
+          job.entry.path,
+          job.kind === 'rename' ? 'Renaming…' : 'Moving…',
+        )
+    }
+    return result
+  }, [pendingJobs, operations.completed])
+  const entries = useMemo(
+    () =>
+      folderPending
+        ? []
+        : mediaRows(
+            data?.entries ?? [],
+            pendingJobs,
+            directoryPath,
+            operations.completed,
+          ),
+    [
+      folderPending,
+      data?.entries,
+      pendingJobs,
+      directoryPath,
+      operations.completed,
+    ],
+  )
   const imagePaths = useMemo(
     () =>
       entries
-        .filter((entry) => entry.type === 'file' && isImageMedia(entry.path))
+        .filter(
+          (entry) =>
+            entry.type === 'file' &&
+            !pending.has(entry.path) &&
+            isImageMedia(entry.path),
+        )
         .map((entry) => entry.path),
-    [entries],
+    [entries, pending],
   )
   const deliveryQuery = useQuery({
     ...mediaDeliveryQueryOptions({
@@ -753,10 +846,6 @@ export function MediaBrowser({
     },
     [deliveryQuery.refetch],
   )
-  const rootPath = data?.media.rootPath ?? currentPath ?? ''
-  const directoryPath = query.isPlaceholderData
-    ? (currentPath ?? rootPath)
-    : (data?.media.path ?? currentPath ?? rootPath)
   const visible = useMemo(
     () => mediaEntries(entries, { search, extensions }),
     [entries, extensions, search],
@@ -767,129 +856,234 @@ export function MediaBrowser({
     manage && Boolean(data?.media.capabilities.createDirectory)
   const canUpload = manage && Boolean(data?.media.capabilities.upload)
   const canMove =
-    manage && Boolean(data?.media.capabilities.move) && !busy && !folderPending
+    manage && Boolean(data?.media.capabilities.move) && !folderPending
   const canRename = manage && Boolean(data?.media.capabilities.rename)
   const canDelete = manage && Boolean(data?.media.capabilities.remove)
-  const controlsDisabled = busy || folderPending
+  const creatingFolder = pendingJobs.some(
+    (job) => job.directory === directoryPath && job.kind === 'folder',
+  )
+  const renaming = pendingJobs.some(
+    (job) => job.entry?.path === renameEntry?.path && job.kind === 'rename',
+  )
+  const deleting = pendingJobs.some(
+    (job) => job.entry?.path === deleteEntry?.path && job.kind === 'delete',
+  )
+  const controlsDisabled = folderPending
 
   function navigate(next: string) {
     setSearch('')
+    setError(null)
+    setFolderOpen(false)
+    setRenameEntry(null)
+    setDeleteEntry(null)
     if (onPathChange) onPathChange(next)
     else setLocalPath(next)
   }
 
-  async function refresh() {
-    await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.media(coordinates),
-      }),
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.mediaDelivery(coordinates),
-      }),
-    ])
+  function sameView(origin: string) {
+    return mounted.current && currentView.current === origin
   }
-
+  function confirmedMediaEntry(
+    result: { path: string; version: string | null },
+    entry?: MediaEntry,
+    file?: File,
+  ): MediaEntry {
+    return {
+      id: result.path,
+      type: entry?.type ?? 'file',
+      path: result.path,
+      name: result.path.split('/').at(-1)!,
+      sha: result.version,
+      size: file?.size ?? entry?.size ?? null,
+      contentType: file?.type ?? entry?.contentType ?? null,
+    }
+  }
   async function upload(files: FileList | File[]) {
-    const values = Array.from(files)
-    if (!canUpload || busy || uploadLock.current || !values.length) return
-    uploadLock.current = true
-    setUploading(true)
-    setBusy(true)
+    const values = Array.from(files).slice(
+      0,
+      selecting && Number.isFinite(selectionLimit) ? selectionLimit : undefined,
+    )
+    if (!canUpload || uploading || !values.length) return
+    const origin = currentView.current
+    const account = queryClient.getQueryData(
+      authenticationQueryOptions().queryKey,
+    )?.user?.id
+    if (!account) return
+    const id = crypto.randomUUID()
     setError(null)
     try {
-      const uploadLimit =
-        selecting && Number.isFinite(selectionLimit)
-          ? selectionLimit
-          : undefined
-      const uploaded = await uploadMediaFiles({
+      await uploadMutation.run({
+        id,
         coordinates,
-        extensions,
+        kind: 'upload',
+        directory: directoryPath,
+        paths: [
+          directoryPath,
+          ...values.map((file) => `${directoryPath}/${file.name}`),
+        ],
         files: values,
-        limit: uploadLimit,
-        path: directoryPath,
-      })
-      if (onSelectMany) onSelectMany(uploaded)
-      else if (onSelect) uploaded.forEach(onSelect)
-      await refresh()
-    } catch (cause) {
-      setError(cause)
-      if (cause instanceof MediaUploadError && cause.paths.length) {
-        if (onSelectMany) onSelectMany(cause.paths)
-        else if (onSelect) cause.paths.forEach(onSelect)
-        await refresh().catch(() => {})
-      }
-    } finally {
-      uploadLock.current = false
-      setUploading(false)
-      setBusy(false)
-      setDraggingFiles(false)
-    }
-  }
-
-  async function createFolder() {
-    if (!canCreateDirectory) return
-    setBusy(true)
-    setError(null)
-    try {
-      await createMediaFolder({
-        data: { ...coordinates, path: directoryPath, folder: folderName },
-      })
-      toast.success('Folder created')
-      setFolderName('')
-      setFolderOpen(false)
-      await refresh()
-    } catch (cause) {
-      setError(cause)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function rename() {
-    if (!canRename || !renameEntry?.sha) return
-    setBusy(true)
-    setError(null)
-    try {
-      await renameMedia({
-        data: {
-          ...coordinates,
-          path: renameEntry.path,
-          sha: renameEntry.sha,
-          filename: renameValue,
+        run: () =>
+          uploadMediaFiles({
+            coordinates,
+            extensions,
+            isActive: () =>
+              queryClient.getQueryData(authenticationQueryOptions().queryKey)
+                ?.user?.id === account,
+            files: values,
+            path: directoryPath,
+            onUploaded: (result, file, index) => {
+              if (
+                queryClient.getQueryData(authenticationQueryOptions().queryKey)
+                  ?.user?.id !== account
+              )
+                return
+              patchMedia(
+                queryClient,
+                coordinates,
+                [],
+                confirmedMediaEntry(result, undefined, file),
+              )
+              completeMediaUpload(queryClient, account, id, index)
+            },
+          }),
+        confirmed: (paths, active) => {
+          if (!active()) return
+          refreshMedia(queryClient, coordinates, [directoryPath])
+          if (sameView(origin)) {
+            if (onSelectMany) onSelectMany(paths)
+            else if (onSelect) paths.forEach(onSelect)
+          }
         },
       })
-      toast.success('File renamed')
-      setRenameEntry(null)
-      await refresh()
     } catch (cause) {
-      setError(cause)
+      if (
+        sameView(origin) &&
+        queryClient.getQueryData(authenticationQueryOptions().queryKey)?.user
+          ?.id === account
+      ) {
+        setError(cause)
+        if (cause instanceof MediaUploadError && cause.paths.length) {
+          if (onSelectMany) onSelectMany(cause.paths)
+          else if (onSelect) cause.paths.forEach(onSelect)
+        }
+      }
+      if (
+        queryClient.getQueryData(authenticationQueryOptions().queryKey)?.user
+          ?.id === account
+      )
+        refreshMedia(queryClient, coordinates, [directoryPath])
     } finally {
-      setBusy(false)
+      if (sameView(origin)) setDraggingFiles(false)
     }
   }
-
-  async function remove() {
-    if (!canDelete || !deleteEntry?.sha) return
-    setBusy(true)
+  async function createFolder() {
+    const filename = folderName.trim()
+    if (!canCreateDirectory || !filename || creatingFolder) return
+    const origin = currentView.current
     setError(null)
     try {
-      await removeMedia({
-        data: { ...coordinates, path: deleteEntry.path, sha: deleteEntry.sha },
+      await folderMutation.run({
+        id: crypto.randomUUID(),
+        coordinates,
+        kind: 'folder',
+        directory: directoryPath,
+        filename,
+        destination: `${directoryPath}/${filename}`,
+        paths: [`${directoryPath}/${filename}`],
+        run: () =>
+          createMediaFolder({
+            data: { ...coordinates, path: directoryPath, folder: filename },
+          }),
+        confirmed: (result, active) => {
+          if (!active()) return
+          patchMedia(queryClient, coordinates, [], {
+            ...confirmedMediaEntry(result),
+            type: 'dir',
+          })
+          refreshMedia(queryClient, coordinates, [directoryPath])
+          if (sameView(origin)) {
+            setFolderName('')
+            setFolderOpen(false)
+          }
+        },
       })
-      toast.success('File deleted')
-      setDeleteEntry(null)
-      await refresh()
     } catch (cause) {
-      setError(cause)
-    } finally {
-      setBusy(false)
+      if (sameView(origin)) setError(cause)
     }
   }
-
+  async function rename() {
+    const entry = renameEntry
+    const filename = renameValue.trim()
+    if (!canRename || !entry?.sha || !filename || renaming) return
+    const origin = currentView.current
+    const destination = [mediaParent(entry.path), filename]
+      .filter(Boolean)
+      .join('/')
+    setError(null)
+    try {
+      await renameMutation.run({
+        id: crypto.randomUUID(),
+        coordinates,
+        kind: 'rename',
+        directory: directoryPath,
+        entry,
+        filename,
+        destination,
+        paths: [entry.path, destination],
+        run: () =>
+          renameMedia({
+            data: {
+              ...coordinates,
+              path: entry.path,
+              sha: entry.sha!,
+              filename,
+            },
+          }),
+        confirmed: (result, active) => {
+          if (!active()) return
+          patchMedia(
+            queryClient,
+            coordinates,
+            [entry.path],
+            confirmedMediaEntry(result, entry),
+          )
+          refreshMedia(queryClient, coordinates, [directoryPath])
+          if (sameView(origin)) setRenameEntry(null)
+        },
+      })
+    } catch (cause) {
+      if (sameView(origin)) setError(cause)
+    }
+  }
+  async function remove() {
+    const entry = deleteEntry
+    if (!canDelete || !entry?.sha || deleting) return
+    const origin = currentView.current
+    setError(null)
+    try {
+      await removalMutation.run({
+        id: crypto.randomUUID(),
+        coordinates,
+        kind: 'delete',
+        directory: directoryPath,
+        entry,
+        paths: [entry.path],
+        run: () =>
+          removeMedia({
+            data: { ...coordinates, path: entry.path, sha: entry.sha! },
+          }),
+        confirmed: (_result, active) => {
+          if (!active()) return
+          patchMedia(queryClient, coordinates, [entry.path])
+          refreshMedia(queryClient, coordinates, [directoryPath])
+          if (sameView(origin)) setDeleteEntry(null)
+        },
+      })
+    } catch (cause) {
+      if (sameView(origin)) setError(cause)
+    }
+  }
   async function move(event: DragEndEvent) {
-    // TODO(media): Support directory rename/move. GitHub can reattach an
-    // existing tree SHA atomically; S3/R2 require prefix copy/delete with
-    // progress and partial-failure handling.
     const entry = event.active.data.current?.entry as MediaEntry | undefined
     const destination = event.over?.data.current?.entry as
       MediaEntry | undefined
@@ -898,26 +1092,48 @@ export function MediaBrowser({
       !canMove ||
       !entry?.sha ||
       entry.type !== 'file' ||
-      destination?.type !== 'dir'
+      destination?.type !== 'dir' ||
+      pending.has(entry.path) ||
+      pending.has(destination.path)
     )
       return
-    setBusy(true)
+    const origin = currentView.current
+    const newPath = `${destination.path}/${entry.name}`
     setError(null)
     try {
-      await moveMedia({
-        data: {
-          ...coordinates,
-          path: entry.path,
-          sha: entry.sha,
-          destination: destination.path,
+      await moveMutation.run({
+        id: crypto.randomUUID(),
+        coordinates,
+        kind: 'move',
+        directory: directoryPath,
+        entry,
+        destination: newPath,
+        paths: [entry.path, newPath],
+        run: () =>
+          moveMedia({
+            data: {
+              ...coordinates,
+              path: entry.path,
+              sha: entry.sha!,
+              destination: destination.path,
+            },
+          }),
+        confirmed: (result, active) => {
+          if (!active()) return
+          patchMedia(
+            queryClient,
+            coordinates,
+            [entry.path],
+            confirmedMediaEntry(result, entry),
+          )
+          refreshMedia(queryClient, coordinates, [
+            directoryPath,
+            destination.path,
+          ])
         },
       })
-      toast.success('File moved')
-      await refresh()
     } catch (cause) {
-      setError(cause)
-    } finally {
-      setBusy(false)
+      if (sameView(origin)) setError(cause)
     }
   }
 
@@ -937,6 +1153,7 @@ export function MediaBrowser({
             const isSelected = selectedPaths.has(entry.path)
             return (
               <button
+                disabled={pending.has(entry.path)}
                 aria-pressed={entry.type === 'file' ? isSelected : undefined}
                 className={cn(
                   'flex min-w-0 items-center gap-3 text-left',
@@ -948,9 +1165,11 @@ export function MediaBrowser({
                 )}
                 type="button"
                 onClick={() =>
-                  entry.type === 'dir'
-                    ? navigate(entry.path)
-                    : onSelect?.(entry.path)
+                  pending.has(entry.path)
+                    ? undefined
+                    : entry.type === 'dir'
+                      ? navigate(entry.path)
+                      : onSelect?.(entry.path)
                 }
               >
                 <EntryPreview
@@ -965,6 +1184,11 @@ export function MediaBrowser({
                   onSourceError={renewFailedLease}
                 />
                 <span className="truncate font-medium">{entry.name}</span>
+                {pending.get(entry.path) ? (
+                  <span className="text-xs text-muted-foreground">
+                    {pending.get(entry.path)}
+                  </span>
+                ) : null}
               </button>
             )
           },
@@ -979,17 +1203,19 @@ export function MediaBrowser({
           header: '',
           cell: ({ row }) => (
             <div className="flex justify-end">
-              <EntryActions
-                canDelete={canDelete}
-                canRename={canRename}
-                coordinates={coordinates}
-                entry={row.original}
-                onDelete={setDeleteEntry}
-                onRename={(entry) => {
-                  setRenameEntry(entry)
-                  setRenameValue(entry.name)
-                }}
-              />
+              {!pending.has(row.original.path) ? (
+                <EntryActions
+                  canDelete={canDelete && !pending.has(row.original.path)}
+                  canRename={canRename && !pending.has(row.original.path)}
+                  coordinates={coordinates}
+                  entry={row.original}
+                  onDelete={setDeleteEntry}
+                  onRename={(entry) => {
+                    setRenameEntry(entry)
+                    setRenameValue(entry.name)
+                  }}
+                />
+              ) : null}
             </div>
           ),
         }),
@@ -1005,6 +1231,7 @@ export function MediaBrowser({
       renewFailedLease,
       renewingSources,
       selectedPaths,
+      pending,
     ],
   )
   const mediaTable = useTable(
@@ -1080,7 +1307,7 @@ export function MediaBrowser({
         {canUpload || showPendingManageControls ? (
           <>
             <Button
-              disabled={controlsDisabled || !canUpload}
+              disabled={controlsDisabled || !canUpload || uploading}
               onClick={() => uploadInputRef.current?.click()}
             >
               {uploading ? (
@@ -1093,7 +1320,7 @@ export function MediaBrowser({
             <input
               multiple
               className="sr-only"
-              disabled={controlsDisabled || !canUpload}
+              disabled={controlsDisabled || !canUpload || uploading}
               ref={uploadInputRef}
               type="file"
               accept={extensions?.map((value) => `.${value}`).join(',')}
@@ -1149,7 +1376,7 @@ export function MediaBrowser({
         ) : null}
         {mediaTable.getRowModel().rows.map((row) => (
           <MediaTableRow
-            canMove={canMove}
+            canMove={canMove && !pending.has(row.original.path)}
             entry={row.original}
             key={row.id}
             selected={selectedPaths.has(row.original.path)}
@@ -1197,22 +1424,32 @@ export function MediaBrowser({
   const gridResults = (
     <div className={mediaGridClassName}>
       {visible.map((entry) => (
-        <DroppableFolder canMove={canMove} entry={entry} key={entry.path}>
-          <DraggableFile canMove={canMove} entry={entry}>
+        <DroppableFolder
+          canMove={canMove && !pending.has(entry.path)}
+          entry={entry}
+          key={entry.path}
+        >
+          <DraggableFile
+            canMove={canMove && !pending.has(entry.path)}
+            entry={entry}
+          >
             <MediaGridEntry
-              canDelete={canDelete}
-              canRename={canRename}
+              canDelete={canDelete && !pending.has(entry.path)}
+              canRename={canRename && !pending.has(entry.path)}
+              pending={pending.get(entry.path)}
               coordinates={coordinates}
               deliveryError={deliveryQuery.isError}
               entry={entry}
               lease={leases.get(entry.path)}
               onDelete={setDeleteEntry}
-              onNavigate={navigate}
+              onNavigate={(nextPath) => {
+                if (!pending.has(entry.path)) navigate(nextPath)
+              }}
               onRename={(value) => {
                 setRenameEntry(value)
                 setRenameValue(value.name)
               }}
-              onSelect={onSelect}
+              onSelect={pending.has(entry.path) ? undefined : onSelect}
               renewFailedLease={renewFailedLease}
               renewingSources={renewingSources}
               selected={selectedPaths.has(entry.path)}
@@ -1224,7 +1461,15 @@ export function MediaBrowser({
   )
   const mediaResults = (
     <>
-      <OperationError error={error} fallback="Could not update media." />
+      <OperationError
+        error={
+          error ??
+          operations.jobs
+            .filter((item) => item.job?.directory === directoryPath)
+            .at(-1)?.error
+        }
+        fallback="Could not update media."
+      />
       {manifestUnavailable ? (
         <Empty className="min-h-64 border">
           <EmptyHeader>
@@ -1384,26 +1629,27 @@ export function MediaBrowser({
               Create a folder under {directoryPath}.
             </DialogDescription>
           </DialogHeader>
-          <Input
-            autoFocus
-            placeholder="Folder name"
-            value={folderName}
-            onChange={(event) => setFolderName(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && folderName.trim())
-                void createFolder()
-            }}
-          />
+          <Field>
+            <FieldLabel htmlFor={`${fieldPrefix}-folder`}>
+              Folder name
+            </FieldLabel>{' '}
+            <Input
+              id={`${fieldPrefix}-folder`}
+              autoFocus
+              placeholder="Folder name"
+              value={folderName}
+              onChange={(event) => setFolderName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && folderName.trim())
+                  void createFolder()
+              }}
+            />
+          </Field>
           <DialogFooter showCloseButton>
             <Button
-              disabled={busy || !folderName.trim()}
+              disabled={creatingFolder || !folderName.trim()}
               onClick={() => void createFolder()}
             >
-              {busy ? (
-                <LoaderCircle className="animate-spin" />
-              ) : (
-                <FolderPlus />
-              )}{' '}
               Create folder
             </Button>
           </DialogFooter>
@@ -1422,17 +1668,23 @@ export function MediaBrowser({
               This creates a commit in the repository.
             </DialogDescription>
           </DialogHeader>
-          <Input
-            autoFocus
-            value={renameValue}
-            onChange={(event) => setRenameValue(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && renameValue.trim()) void rename()
-            }}
-          />
+          <Field>
+            <FieldLabel htmlFor={`${fieldPrefix}-filename`}>
+              Filename
+            </FieldLabel>{' '}
+            <Input
+              id={`${fieldPrefix}-filename`}
+              autoFocus
+              value={renameValue}
+              onChange={(event) => setRenameValue(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && renameValue.trim()) void rename()
+              }}
+            />
+          </Field>
           <DialogFooter showCloseButton>
             <Button
-              disabled={busy || !renameValue.trim()}
+              disabled={renaming || !renameValue.trim()}
               onClick={() => void rename()}
             >
               Rename
@@ -1457,7 +1709,11 @@ export function MediaBrowser({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
-              onClick={() => void remove()}
+              disabled={deleting}
+              onClick={(event) => {
+                event.preventDefault()
+                void remove()
+              }}
             >
               Delete
             </AlertDialogAction>

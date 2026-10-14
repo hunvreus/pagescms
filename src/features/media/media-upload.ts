@@ -50,12 +50,14 @@ async function confirmDirectUpload(
     ticket: string
     parts?: { number: number; etag: string }[]
   },
+  checkAccount: () => void,
 ) {
   let lastError: unknown
   for (const delay of CONFIRMATION_RETRY_DELAYS_MS) {
     if (delay > 0) {
       await new Promise<void>((resolve) => setTimeout(resolve, delay))
     }
+    checkAccount()
     try {
       return await confirmMediaUpload({ data })
     } catch (error) {
@@ -71,10 +73,12 @@ async function uploadDirectFile(
     Awaited<ReturnType<typeof initiateMediaUpload>>,
     { kind: 'direct' }
   > & { coordinates: MediaCoordinates },
+  checkAccount: () => void,
 ) {
   const { plan } = direct
   let completedParts: Array<{ number: number; etag: string }> | undefined
   try {
+    checkAccount()
     if (plan.kind === 'post') {
       const form = new FormData()
       for (const [name, value] of Object.entries(plan.fields)) {
@@ -92,6 +96,7 @@ async function uploadDirectFile(
         { length: Math.min(3, plan.parts.length) },
         async () => {
           while (next < plan.parts.length) {
+            checkAccount()
             const part = plan.parts[next++]
             const start = (part.number - 1) * plan.partSize
             const response = await requireUploadResponse(
@@ -115,6 +120,7 @@ async function uploadDirectFile(
     }
   } catch (error) {
     try {
+      checkAccount()
       await abortMediaUpload({
         data: {
           ...direct.coordinates,
@@ -127,12 +133,15 @@ async function uploadDirectFile(
     }
     throw error
   }
-  return confirmDirectUpload({
-    ...direct.coordinates,
-    path: direct.path,
-    ticket: plan.ticket,
-    ...(completedParts ? { parts: completedParts } : {}),
-  })
+  return confirmDirectUpload(
+    {
+      ...direct.coordinates,
+      path: direct.path,
+      ticket: plan.ticket,
+      ...(completedParts ? { parts: completedParts } : {}),
+    },
+    checkAccount,
+  )
 }
 
 export class MediaUploadError extends Error {
@@ -152,6 +161,8 @@ export async function uploadMediaFiles({
   limit,
   path,
   rename,
+  onUploaded,
+  isActive = () => true,
 }: {
   coordinates: MediaCoordinates
   extensions?: string[]
@@ -159,14 +170,30 @@ export async function uploadMediaFiles({
   limit?: number
   path: string
   rename?: UploadRename
+  isActive?: () => boolean
+  onUploaded?: (
+    result: Awaited<ReturnType<typeof createMedia>>,
+    file: File,
+    index: number,
+  ) => void
 }) {
   const values = Array.from(files).slice(0, limit)
   const paths: string[] = []
 
   if (!values.length) return paths
-  const notification = toast.loading(`Uploading 1 of ${values.length} files…`)
+  const notification = isActive()
+    ? toast.loading(`Uploading 1 of ${values.length} files…`)
+    : undefined
+  const checkAccount = () => {
+    if (!isActive())
+      throw new Error('Upload stopped because the signed-in account changed.')
+  }
+  const dismiss = () => {
+    if (notification !== undefined) toast.dismiss(notification)
+  }
   try {
     for (const [index, file] of values.entries()) {
+      checkAccount()
       toast.loading(`Uploading ${index + 1} of ${values.length} files…`, {
         id: notification,
       })
@@ -183,42 +210,63 @@ export async function uploadMediaFiles({
           rename,
         },
       })
+      checkAccount()
       if (initiation.kind === 'server') {
+        const content = await mediaFileBase64(file)
+        checkAccount()
         const result = await createMedia({
           data: {
             ...coordinates,
             path,
             filename: file.name,
-            content: await mediaFileBase64(file),
+            content,
             idempotencyKey,
             rename,
           },
         })
         paths.push(result.path)
+        try {
+          if (isActive()) onUploaded?.(result, file, index)
+        } catch (error) {
+          console.warn('Upload confirmed but local update failed', error)
+        }
         continue
       }
 
-      const result = await uploadDirectFile(file, {
-        ...initiation,
-        coordinates,
-      })
+      const result = await uploadDirectFile(
+        file,
+        {
+          ...initiation,
+          coordinates,
+        },
+        checkAccount,
+      )
       paths.push(result.path)
+      try {
+        if (isActive()) onUploaded?.(result, file, index)
+      } catch (error) {
+        console.warn('Upload confirmed but local update failed', error)
+      }
     }
 
-    toast.success(
-      `${paths.length} ${paths.length === 1 ? 'file uploaded' : 'files uploaded'}`,
-      { id: notification },
-    )
+    if (isActive())
+      toast.success(
+        `${paths.length} ${paths.length === 1 ? 'file uploaded' : 'files uploaded'}`,
+        { id: notification },
+      )
+    else dismiss()
     return paths
   } catch (cause) {
     const detail =
       cause instanceof Error ? cause.message : 'Could not upload media'
-    toast.error(`${paths.length} of ${values.length} files uploaded`, {
-      id: notification,
-      description: detail,
-      duration: Infinity,
-      closeButton: true,
-    })
+    if (isActive())
+      toast.error(`${paths.length} of ${values.length} files uploaded`, {
+        id: notification,
+        description: detail,
+        duration: Infinity,
+        closeButton: true,
+      })
+    else dismiss()
     throw new MediaUploadError(detail, paths)
   }
 }

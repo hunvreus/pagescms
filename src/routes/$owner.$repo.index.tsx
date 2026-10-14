@@ -1,3 +1,4 @@
+import { pageTitle } from '#/lib/page-title'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
@@ -38,6 +39,7 @@ export const Route = createFileRoute('/$owner/$repo/')({
   pendingMs: 120,
   pendingComponent: RepositoryLoading,
   component: EmptyRepository,
+  head: ({ params }) => pageTitle('Repository', params),
 })
 
 function EmptyRepository() {

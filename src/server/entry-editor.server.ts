@@ -1,4 +1,5 @@
 import {
+  allowsCustomCommitMessage,
   buildCommitTokens,
   resolveCommitIdentity,
   resolveCommitMessage,
@@ -134,6 +135,7 @@ function entrySchemaMetadata(
   const schemaName = typeof schema.name === 'string' ? schema.name : ''
   return {
     schemaName,
+    allowCustomMessage: allowsCustomCommitMessage(configuration, schema),
     schemaType: typeof schema.type === 'string' ? schema.type : 'file',
     rootPath: normalizeGitPath(String(schema.path ?? '')),
     filename: getGitFileName(path),
@@ -168,7 +170,14 @@ export async function loadRawEntry(input: {
     context.path,
     input.branch,
   )
-  const source = decodeBase64(file.content)
+  return entryData(context, decodeBase64(file.content), file.sha)
+}
+
+function entryData<TSha extends string | null>(
+  context: Awaited<ReturnType<typeof loadContext>>,
+  source: string,
+  sha: TSha,
+) {
   const fields = Array.isArray(context.schema.fields)
     ? context.schema.fields
     : []
@@ -179,7 +188,7 @@ export async function loadRawEntry(input: {
       : undefined
   const shared = {
     source,
-    sha: file.sha,
+    sha,
     path: context.path,
     label:
       typeof context.schema.label === 'string' && context.schema.label
@@ -265,6 +274,7 @@ export async function loadEntryHistory(input: {
   branch: string
   name: string
   path: string
+  page?: number
 }) {
   const context = await loadContext(
     input.database,
@@ -281,6 +291,7 @@ export async function loadEntryHistory(input: {
     input.repo,
     input.branch,
     context.path,
+    input.page,
   )
 }
 
@@ -455,6 +466,7 @@ export async function saveRawEntry(input: {
   path: string
   source: string
   sha?: string
+  message?: string
 }) {
   if (input.source.length > 5_000_000)
     throw new Error('Entry exceeds the 5 MB limit')
@@ -484,22 +496,27 @@ export async function saveRawEntry(input: {
     configuration: context.configuration.object,
     identityOverride: commit.identity,
   })
-  const message = resolveCommitMessage({
-    configuration: context.configuration.object,
-    templatesOverride: commit.templates,
-    action,
-    tokens: buildCommitTokens({
-      action,
-      owner: input.owner,
-      repo: input.repo,
-      branch: input.branch,
-      path: context.path,
-      contentName: input.name,
-      user: input.user.email,
-      userName: input.user.name,
-      userEmail: input.user.email,
-    }),
-  })
+  const message =
+    allowsCustomCommitMessage(context.configuration.object, context.schema) &&
+    input.message?.trim()
+      ? input.message.trim()
+      : resolveCommitMessage({
+          configuration: context.configuration.object,
+          templatesOverride: commit.templates,
+          action,
+          tokens: buildCommitTokens({
+            action,
+            owner: input.owner,
+            repo: input.repo,
+            branch: input.branch,
+            path: context.path,
+            contentName: input.name,
+            user: input.user.email,
+            userName: input.user.name,
+            userEmail: input.user.email,
+          }),
+        })
+  const entry = entryData(context, input.source, null)
   const result = await context.api.putFile({
     owner: input.owner,
     repo: input.repo,
@@ -537,7 +554,7 @@ export async function saveRawEntry(input: {
       },
     ],
   )
-  return result
+  return { ...result, entry: { ...entry, sha: result.sha } }
 }
 
 export async function createStructuredEntry(

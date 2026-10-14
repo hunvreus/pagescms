@@ -1,5 +1,6 @@
+import { ContentIcon } from '#/components/content-icon'
 import { CreateBranchDialog } from '#/features/projects/create-branch-dialog'
-import { Fragment, useState } from 'react'
+import { Fragment, useCallback, useState } from 'react'
 import { Link, useRouterState } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { repositoryBranchesQueryOptions } from '#/queries/repository'
@@ -234,9 +235,18 @@ function RepositorySidebar({
   repo: string
   user: AppHeaderUser
 }) {
+  const [scrolled, setScrolled] = useState(false)
+  const trackScroll = useCallback((element: HTMLDivElement | null) => {
+    if (element) setScrolled(element.scrollTop > 0)
+  }, [])
+
   return (
     <Sidebar collapsible="offcanvas">
-      <SidebarHeader>
+      <SidebarHeader
+        className={
+          scrolled ? 'shadow-[inset_0_-1px_0_var(--sidebar-border)]' : undefined
+        }
+      >
         <SidebarMenu>
           <SidebarMenuItem>
             <RepositorySwitcher
@@ -249,7 +259,32 @@ function RepositorySidebar({
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent
+        ref={trackScroll}
+        onScroll={(event) => setScrolled(event.currentTarget.scrollTop > 0)}
+      >
+        <SidebarGroup>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={
+                  pathname ===
+                    `/${owner}/${repo}/${encodeURIComponent(branch)}` ||
+                  pathname ===
+                    `/${owner}/${repo}/${encodeURIComponent(branch)}/`
+                }
+              >
+                <Link
+                  to="/$owner/$repo/$branch"
+                  params={{ owner, repo, branch }}
+                >
+                  Overview
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
         <NavigationGroup
           branch={branch}
           label="Content"
@@ -665,13 +700,16 @@ function NavigationNode({
             : '/$owner/$repo/$branch/media/$name'
       }
     >
-      {node.type === 'collection' ? (
-        <FileStack />
-      ) : node.type === 'file' ? (
-        <FileText />
-      ) : (
-        <FolderOpen />
-      )}
+      <ContentIcon
+        name={node.icon}
+        fallback={
+          node.type === 'collection'
+            ? FileStack
+            : node.type === 'file'
+              ? FileText
+              : FolderOpen
+        }
+      />
       <span>{node.label}</span>
     </Link>
   )

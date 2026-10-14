@@ -1,9 +1,23 @@
-import { toast } from 'sonner'
+import type { ReactNode } from 'react'
+import { useEntryActions } from '#/features/content/use-entry-actions'
+import type { DraftSession } from '#/features/drafts/draft-session'
+import {
+  confirmContentWrite,
+  refreshContent,
+  useContentActivity,
+  useContentMutation,
+} from '#/features/content/content-mutations'
+import { useCommitMessage } from '#/features/editor/commit-message-dialog'
+import { useContentDraft } from '#/features/drafts/use-content-draft'
+import {
+  ContentDraftRecovery,
+  ContentDraftIndicator,
+} from '#/features/drafts/content-draft-status'
 import { FileEditorHistory } from '#/components/file-editor-history'
 import { EditorLayout } from '#/components/editor-layout'
 import { FileEditorMenu } from '#/components/file-editor-menu'
-import { lazy, Suspense, useState } from 'react'
-import { ClientOnly, useRouter } from '@tanstack/react-router'
+import { lazy, Suspense, useRef, useState } from 'react'
+import { ClientOnly } from '@tanstack/react-router'
 import { createClientOnlyFn } from '@tanstack/react-start'
 import { useQueryClient } from '@tanstack/react-query'
 import { LoaderCircle } from 'lucide-react'
@@ -23,6 +37,7 @@ import {
   AlertDialogTitle,
 } from '#/components/ui/alert-dialog'
 import { Button } from '#/components/ui/button'
+import { ButtonGroup } from '#/components/ui/button-group'
 import {
   Dialog,
   DialogClose,
@@ -38,18 +53,18 @@ import { Input } from '#/components/ui/input'
 import { Skeleton } from '#/components/ui/skeleton'
 import { buildEntryBreadcrumb } from '#/features/editor/entry-breadcrumb'
 import { EntryPageHeader } from '#/features/editor/entry-page-header'
-import { getEntryDisplayTitle } from '#/features/editor/entry-title'
+import {
+  getEntryTitle,
+  getEntryDisplayTitle,
+} from '#/features/editor/entry-title'
 import { useUnsavedWarning } from '#/hooks/use-unsaved-warning'
 import { useRepositoryGitHubLink } from '#/hooks/use-repository-github-link'
 import {
-  deleteEntry,
   getEntryHistory,
-  renameEntry,
   updateRawEntry,
   updateStructuredEntry,
 } from '#/functions/entry-editor'
 import type { getRawEntry } from '#/functions/entry-editor'
-import { queryKeys } from '#/queries/keys'
 
 const CodeEditor = lazy(
   createClientOnlyFn(() =>
@@ -87,6 +102,7 @@ export function ContentEntryEditor({
 }) {
   return initial.mode === 'structured' || initial.mode === 'structured-list' ? (
     <StructuredEntryEditor
+      key={JSON.stringify(coordinates)}
       afterDeleteHref={afterDeleteHref}
       coordinates={coordinates}
       initial={initial}
@@ -94,6 +110,7 @@ export function ContentEntryEditor({
     />
   ) : (
     <RawEntryEditor
+      key={JSON.stringify(coordinates)}
       afterDeleteHref={afterDeleteHref}
       coordinates={coordinates}
       initial={initial}
@@ -102,78 +119,63 @@ export function ContentEntryEditor({
   )
 }
 
+type EntryDraftHandle = Pick<
+  DraftSession<unknown>,
+  'flush' | 'retain' | 'detach' | 'localError'
+>
 function useEntryDeletion(
   coordinates: ContentEntryCoordinates,
   sha: string | null,
-  afterDeleteHref: string,
+  href: string,
+  draft?: EntryDraftHandle,
 ) {
-  const router = useRouter()
-  const queryClient = useQueryClient()
-  const [deleting, setDeleting] = useState(false)
-  const [error, setError] = useState<unknown>(null)
-
+  const actions = useEntryActions()
+  const activity = useContentActivity(coordinates)
   return {
-    deleting,
-    error,
+    deleting: activity.pending && activity.kind === 'delete',
+    error: activity.error,
     async remove() {
-      if (!sha) return false
-      setDeleting(true)
-      setError(null)
+      if (!sha || activity.pending) return false
       try {
-        await deleteEntry({ data: { ...coordinates, sha } })
-        toast.success('File deleted')
-        await queryClient.invalidateQueries({
-          queryKey: queryKeys.branch(coordinates),
-        })
-        await router.navigate({ href: afterDeleteHref })
+        await actions.remove(coordinates, sha, href, draft)
         return true
-      } catch (cause) {
-        setError(cause)
+      } catch {
         return false
-      } finally {
-        setDeleting(false)
       }
     },
   }
 }
-
 function useEntryRename(
   coordinates: ContentEntryCoordinates,
   sha: string | null,
-  renameBaseHref?: string,
+  hrefBase?: string,
+  draft?: EntryDraftHandle,
 ) {
-  const router = useRouter()
-  const queryClient = useQueryClient()
-  const [renaming, setRenaming] = useState(false)
-  const [error, setError] = useState<unknown>(null)
-
+  const actions = useEntryActions()
+  const activity = useContentActivity(coordinates)
   return {
-    renaming,
-    error,
+    renaming: activity.pending && activity.kind === 'rename',
+    error: activity.error,
     async rename(filename: string) {
-      if (!renameBaseHref || !sha) return false
-      const current = coordinates.path.split('/').at(-1) ?? ''
-      const nextFilename = filename.trim()
-      if (!nextFilename || nextFilename === current) return false
-      setRenaming(true)
-      setError(null)
-      try {
-        const result = await renameEntry({
-          data: { ...coordinates, sha, filename: nextFilename },
-        })
-        toast.success('File renamed')
-        await queryClient.invalidateQueries({
-          queryKey: queryKeys.branch(coordinates),
-        })
-        await router.navigate({
-          href: `${renameBaseHref}/${result.newPath.split('/').map(encodeURIComponent).join('/')}`,
-        })
-        return true
-      } catch (cause) {
-        setError(cause)
+      if (
+        !hrefBase ||
+        !sha ||
+        activity.pending ||
+        !filename.trim() ||
+        filename.trim() === coordinates.path.split('/').at(-1)
+      )
         return false
-      } finally {
-        setRenaming(false)
+      try {
+        await actions.changeName(
+          coordinates,
+          sha,
+          filename.trim(),
+          hrefBase,
+          draft,
+        )
+        return true
+      } catch {
+        return false
       }
     },
   }
@@ -191,33 +193,70 @@ function RawEntryEditor({
   renameBaseHref?: string
 }) {
   const queryClient = useQueryClient()
-  const [source, setSource] = useState(initial.source)
-  const [savedSource, setSavedSource] = useState(initial.source)
-  const [sha, setSha] = useState(initial.sha)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<unknown>(null)
-  const dirty = source !== savedSource
-  const deletion = useEntryDeletion(coordinates, sha, afterDeleteHref)
-  const rename = useEntryRename(coordinates, sha, renameBaseHref)
-  useUnsavedWarning(dirty)
+  const commitMessage = useCommitMessage(initial.allowCustomMessage)
+  const [messagePending, setMessagePending] = useState(false)
+  const requestLock = useRef(false)
+  const mutation =
+    useContentMutation<Awaited<ReturnType<typeof updateRawEntry>>>()
+  const activity = useContentActivity(coordinates)
+  const saving =
+    messagePending || (activity.pending && activity.kind === 'save')
+  const error = activity.error
+  const draft = useContentDraft({
+    target: coordinates,
+    title: initial.label,
+    schema: { mode: initial.mode },
+    initialValue: initial.source,
+    initialSha: initial.sha,
+  })
+  const { value: source, baseline: savedSource, baseSha: sha, dirty } = draft
+  const setSource = draft.setValue
+  const deletion = useEntryDeletion(
+    coordinates,
+    sha,
+    afterDeleteHref,
+    draft.session,
+  )
+  const rename = useEntryRename(coordinates, sha, renameBaseHref, draft.session)
+  useUnsavedWarning(dirty || saving)
 
   async function save() {
-    setSaving(true)
-    setError(null)
+    if (requestLock.current || activity.pending || !draft.session) return
+    requestLock.current = true
+    setMessagePending(true)
+    const session = draft.session
     try {
-      const result = await updateRawEntry({
-        data: { ...coordinates, source, sha },
+      const message = await commitMessage.request()
+      if (message === null) return
+      const { value: submitted, baseSha } = session.getSnapshot()
+      await mutation.run({
+        id: session.key,
+        coordinates,
+        kind: 'save',
+        title: initial.label,
+        expectedAccount: session.summary.account,
+        retain: () => session.retain(),
+        prepare: () => session.beginSave(submitted),
+        run: () =>
+          updateRawEntry({
+            data: { ...coordinates, source: submitted, sha: baseSha, message },
+          }),
+        confirmed: async (result, isActiveAccount) => {
+          if (isActiveAccount())
+            confirmContentWrite(queryClient, coordinates, result)
+          await session.acknowledge(
+            submitted,
+            result.entry?.source ?? submitted,
+            result.sha,
+          )
+          if (isActiveAccount()) refreshContent(queryClient, coordinates)
+        },
       })
-      toast.success('File saved')
-      setSha(result.sha)
-      setSavedSource(source)
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.branch(coordinates),
-      })
-    } catch (cause) {
-      setError(cause)
+    } catch {
+      /* Mutation and draft state retain the failure across navigation. */
     } finally {
-      setSaving(false)
+      requestLock.current = false
+      setMessagePending(false)
     }
   }
 
@@ -235,6 +274,10 @@ function RawEntryEditor({
           canDelete={initial.operations.delete && Boolean(sha)}
           initial={initial}
           saving={saving}
+          draftReady={draft.ready}
+          draftIndicator={
+            <ContentDraftIndicator draft={draft} saving={saving} />
+          }
           deleting={deletion.deleting}
           canRename={
             initial.operations.rename && Boolean(renameBaseHref) && Boolean(sha)
@@ -247,18 +290,25 @@ function RawEntryEditor({
       }
     >
       <EditorError error={error ?? deletion.error ?? rename.error} />
-      <ClientOnly fallback={<Skeleton className="min-h-32" />}>
-        <Suspense fallback={<Skeleton className="min-h-32" />}>
-          <CodeEditor
-            label="Entry source"
-            format={coordinates.path.split('.').pop() ?? 'markdown'}
-            value={source}
-            onChange={(value) => {
-              setSource(value)
-            }}
-          />
-        </Suspense>
-      </ClientOnly>
+      <ContentDraftRecovery draft={draft} />
+      {commitMessage.dialog}
+      {draft.ready ? (
+        <ClientOnly fallback={<Skeleton className="min-h-32" />}>
+          <Suspense fallback={<Skeleton className="min-h-32" />}>
+            <CodeEditor
+              disabled={deletion.deleting || rename.renaming}
+              label="Entry source"
+              format={coordinates.path.split('.').pop() ?? 'markdown'}
+              value={source}
+              onChange={(value) => {
+                setSource(value)
+              }}
+            />
+          </Suspense>
+        </ClientOnly>
+      ) : (
+        <Skeleton className="min-h-32" />
+      )}
     </EditorLayout>
   )
 }
@@ -277,36 +327,85 @@ function StructuredEntryEditor({
   renameBaseHref?: string
 }) {
   const queryClient = useQueryClient()
-  const [content, setContent] = useState(initial.content)
-  const [savedContent, setSavedContent] = useState(initial.content)
-  const [sha, setSha] = useState(initial.sha)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<unknown>(null)
-  const dirty = JSON.stringify(content) !== JSON.stringify(savedContent)
+  const commitMessage = useCommitMessage(initial.allowCustomMessage)
+  const [messagePending, setMessagePending] = useState(false)
+  const requestLock = useRef(false)
+  const mutation =
+    useContentMutation<Awaited<ReturnType<typeof updateStructuredEntry>>>()
+  const activity = useContentActivity(coordinates)
+  const saving =
+    messagePending || (activity.pending && activity.kind === 'save')
+  const error = activity.error
+  const draft = useContentDraft({
+    target: coordinates,
+    schema: initial.fields,
+    initialValue: initial.content,
+    initialSha: initial.sha,
+    title: (value) =>
+      getEntryTitle({
+        content: value,
+        filename: initial.filename,
+        primaryField: initial.primaryField,
+      }),
+  })
+  const { value: content, baseline: savedContent, baseSha: sha, dirty } = draft
+  const setContent = draft.setValue
   const fields = Array.isArray(initial.fields)
     ? initial.fields.filter(isContentField)
     : []
-  const deletion = useEntryDeletion(coordinates, sha, afterDeleteHref)
-  const rename = useEntryRename(coordinates, sha, renameBaseHref)
-  useUnsavedWarning(dirty)
+  const deletion = useEntryDeletion(
+    coordinates,
+    sha,
+    afterDeleteHref,
+    draft.session,
+  )
+  const rename = useEntryRename(coordinates, sha, renameBaseHref, draft.session)
+  useUnsavedWarning(dirty || saving)
 
   async function save() {
-    setSaving(true)
-    setError(null)
+    if (requestLock.current || activity.pending || !draft.session) return
+    requestLock.current = true
+    setMessagePending(true)
+    const session = draft.session
     try {
-      const result = await updateStructuredEntry({
-        data: { ...coordinates, content, sha },
+      const message = await commitMessage.request()
+      if (message === null) return
+      const { value: submitted, baseSha } = session.getSnapshot()
+      await mutation.run({
+        id: session.key,
+        coordinates,
+        kind: 'save',
+        title: getEntryTitle({
+          content: submitted,
+          filename: initial.filename,
+          primaryField: initial.primaryField,
+        }),
+        fields: submitted,
+        expectedAccount: session.summary.account,
+        retain: () => session.retain(),
+        prepare: () => session.beginSave(submitted),
+        run: () =>
+          updateStructuredEntry({
+            data: { ...coordinates, content: submitted, sha: baseSha, message },
+          }),
+        confirmed: async (result, isActiveAccount) => {
+          if (isActiveAccount())
+            confirmContentWrite(queryClient, coordinates, result)
+          await session.acknowledge(
+            submitted,
+            result.entry && result.entry.mode !== 'raw'
+              ? result.entry.content
+              : submitted,
+            result.sha,
+          )
+          if (isActiveAccount()) refreshContent(queryClient, coordinates)
+        },
       })
-      toast.success('File saved')
-      setSha(result.sha)
-      setSavedContent(content)
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.branch(coordinates),
-      })
-    } catch (cause) {
-      setError(cause)
+    } catch {
+      /* Mutation and draft state retain the failure across navigation. */
     } finally {
-      setSaving(false)
+      requestLock.current = false
+      setMessagePending(false)
     }
   }
 
@@ -324,6 +423,10 @@ function StructuredEntryEditor({
           canDelete={initial.operations.delete && Boolean(sha)}
           initial={initial}
           saving={saving}
+          draftReady={draft.ready}
+          draftIndicator={
+            <ContentDraftIndicator draft={draft} saving={saving} />
+          }
           deleting={deletion.deleting}
           canRename={
             initial.operations.rename && Boolean(renameBaseHref) && Boolean(sha)
@@ -336,44 +439,52 @@ function StructuredEntryEditor({
       }
     >
       <EditorError error={error ?? deletion.error ?? rename.error} />
-      <FieldGroup>
-        {initial.mode === 'structured-list' ? (
-          <StructuredContentField
-            field={{
-              name: 'items',
-              label: false,
-              type: 'object',
-              fields,
-              list: initial.list ?? true,
-            }}
-            referenceContext={{ ...coordinates, media: initial.media }}
-            value={content}
-            onChange={(value) => {
-              setContent(Array.isArray(value) ? value : [])
-            }}
-          />
-        ) : (
-          fields.map((field) => {
-            const name = String(field.name)
-            return (
-              <StructuredContentField
-                field={field}
-                key={name}
-                referenceContext={{ ...coordinates, media: initial.media }}
-                value={Array.isArray(content) ? undefined : content[name]}
-                onChange={(value) => {
-                  setContent((current) => {
-                    const next = Array.isArray(current) ? {} : { ...current }
-                    if (value === undefined) delete next[name]
-                    else next[name] = value
-                    return next
-                  })
-                }}
-              />
-            )
-          })
-        )}
-      </FieldGroup>
+      <ContentDraftRecovery draft={draft} />
+      {commitMessage.dialog}
+      {draft.ready ? (
+        <FieldGroup>
+          {initial.mode === 'structured-list' ? (
+            <StructuredContentField
+              field={{
+                name: 'items',
+                label: false,
+                type: 'object',
+                fields,
+                list: initial.list ?? true,
+              }}
+              inheritedReadonly={deletion.deleting || rename.renaming}
+              referenceContext={{ ...coordinates, media: initial.media }}
+              value={content}
+              onChange={(value) => {
+                setContent(Array.isArray(value) ? value : [])
+              }}
+            />
+          ) : (
+            fields.map((field) => {
+              const name = String(field.name)
+              return (
+                <StructuredContentField
+                  field={field}
+                  key={name}
+                  inheritedReadonly={deletion.deleting || rename.renaming}
+                  referenceContext={{ ...coordinates, media: initial.media }}
+                  value={Array.isArray(content) ? undefined : content[name]}
+                  onChange={(value) => {
+                    setContent((current) => {
+                      const next = Array.isArray(current) ? {} : { ...current }
+                      if (value === undefined) delete next[name]
+                      else next[name] = value
+                      return next
+                    })
+                  }}
+                />
+              )
+            })
+          )}
+        </FieldGroup>
+      ) : (
+        <Skeleton className="min-h-32" />
+      )}
     </EditorLayout>
   )
 }
@@ -383,6 +494,8 @@ function EditorHeader({
   coordinates,
   actionData,
   saving,
+  draftReady,
+  draftIndicator,
   dirty,
   canDelete,
   canRename,
@@ -396,6 +509,8 @@ function EditorHeader({
   coordinates: ContentEntryCoordinates
   actionData: Record<string, unknown>
   saving: boolean
+  draftReady: boolean
+  draftIndicator: ReactNode
   dirty: boolean
   canDelete: boolean
   canRename: boolean
@@ -434,12 +549,6 @@ function EditorHeader({
       segments={segments}
       actions={
         <>
-          {initial.sha ? (
-            <EntryHistoryButton
-              key={coordinates.path}
-              coordinates={coordinates}
-            />
-          ) : null}
           <RepositoryActionButtons
             actions={initial.actions}
             context={{
@@ -451,30 +560,42 @@ function EditorHeader({
             coordinates={coordinates}
           />
           <div className="flex items-center gap-2">
+            {draftIndicator}
             <Button
-              disabled={saving || deleting || renaming || !dirty}
+              disabled={saving || deleting || renaming || !dirty || !draftReady}
               onClick={onSave}
             >
               {saving ? <LoaderCircle className="animate-spin" /> : null}
               {saving ? 'Saving' : 'Save'}
             </Button>
-            <FileEditorMenu
-              disabled={saving || deleting || renaming}
-              href={
-                canViewGitHub && initial.sha
-                  ? `https://github.com/${encodeURIComponent(coordinates.owner)}/${encodeURIComponent(coordinates.repo)}/blob/${encodeURIComponent(coordinates.branch)}/${coordinates.path.split('/').map(encodeURIComponent).join('/')}`
-                  : undefined
-              }
-              onRename={
-                canRename
-                  ? () => {
-                      setRenameFilename(currentFilename)
-                      setRenameOpen(true)
-                    }
-                  : undefined
-              }
-              onDelete={canDelete ? () => setDeleteOpen(true) : undefined}
-            />
+            <ButtonGroup
+              aria-label="History and entry actions"
+              className="empty:hidden"
+            >
+              {initial.sha ? (
+                <EntryHistoryButton
+                  key={`${coordinates.path}:${initial.sha}`}
+                  coordinates={coordinates}
+                />
+              ) : null}
+              <FileEditorMenu
+                disabled={saving || deleting || renaming}
+                href={
+                  canViewGitHub && initial.sha
+                    ? `https://github.com/${encodeURIComponent(coordinates.owner)}/${encodeURIComponent(coordinates.repo)}/blob/${encodeURIComponent(coordinates.branch)}/${coordinates.path.split('/').map(encodeURIComponent).join('/')}`
+                    : undefined
+                }
+                onRename={
+                  canRename
+                    ? () => {
+                        setRenameFilename(currentFilename)
+                        setRenameOpen(true)
+                      }
+                    : undefined
+                }
+                onDelete={canDelete ? () => setDeleteOpen(true) : undefined}
+              />
+            </ButtonGroup>
           </div>
           <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
             <DialogContent>
@@ -516,9 +637,6 @@ function EditorHeader({
                     }
                     type="submit"
                   >
-                    {renaming ? (
-                      <LoaderCircle className="animate-spin" />
-                    ) : null}
                     Rename
                   </Button>
                 </DialogFooter>
@@ -532,6 +650,9 @@ function EditorHeader({
                 <AlertDialogDescription>
                   This deletes {currentFilename} and creates a commit. This
                   action cannot be undone from Pages CMS.
+                  {dirty
+                    ? ' Unsaved changes and the local draft will also be discarded.'
+                    : null}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -546,7 +667,6 @@ function EditorHeader({
                     })
                   }}
                 >
-                  {deleting ? <LoaderCircle className="animate-spin" /> : null}
                   Delete
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -569,8 +689,8 @@ function EntryHistoryButton({
 }) {
   return (
     <FileEditorHistory
-      coordinates={coordinates}
-      load={() => getEntryHistory({ data: coordinates })}
+      key={JSON.stringify(coordinates)}
+      load={(page) => getEntryHistory({ data: { ...coordinates, page } })}
     />
   )
 }

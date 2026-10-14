@@ -15,7 +15,10 @@ test('navigates a repository and persists a structured entry update', async ({
     .locator('a[href="/pagescms/fixture/main"]', { hasText: 'Open' })
     .click()
 
-  await page.getByRole('link', { name: 'Posts', exact: true }).click()
+  await page
+    .locator('[data-slot=sidebar]')
+    .getByRole('link', { name: 'Posts', exact: true })
+    .click()
   await expect(page).toHaveURL(/\/pagescms\/fixture\/main\/collection\/posts$/)
   await expect(page.getByRole('columnheader', { name: /Title/ })).toBeVisible()
   const actionHeader = page.getByRole('columnheader').last()
@@ -40,7 +43,7 @@ test('navigates a repository and persists a structured entry update', async ({
   const collectionActionsMenu = page.getByRole('menu')
   await expect(
     collectionActionsMenu.locator('[data-slot="dropdown-menu-separator"]'),
-  ).toHaveCount(0)
+  ).toHaveCount(1)
   await expect(
     collectionActionsMenu.getByRole('menuitem', { name: 'View on GitHub' }),
   ).toBeVisible()
@@ -51,7 +54,7 @@ test('navigates a repository and persists a structured entry update', async ({
   ).toBe('nowrap')
   await page.keyboard.press('Escape')
 
-  await page.getByRole('link', { name: 'Edit' }).click()
+  await page.locator('a[href="/pagescms/fixture/main/collection/posts/entry/content/posts/hello.md"]', { hasText: 'Edit' }).click()
   await expect(page).toHaveURL(
     /\/pagescms\/fixture\/main\/collection\/posts\/entry\/content\/posts\/hello\.md$/,
   )
@@ -96,7 +99,7 @@ test('navigates a repository and persists a structured entry update', async ({
   const actionsMenu = page.getByRole('menu')
   await expect(
     actionsMenu.locator('[data-slot="dropdown-menu-separator"]'),
-  ).toHaveCount(0)
+  ).toHaveCount(1)
   await expect(
     actionsMenu.getByRole('menuitem', { name: 'View on GitHub' }),
   ).toBeVisible()

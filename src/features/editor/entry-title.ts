@@ -11,18 +11,15 @@ function valueAtPath(value: unknown, path: string) {
   return current
 }
 
-export function getEntryDisplayTitle({
+export function getEntryTitle({
   content,
-  creating = false,
   filename,
   primaryField,
 }: {
   content?: unknown
-  creating?: boolean
   filename: string
   primaryField?: string
 }) {
-  if (creating) return 'New entry'
   const primaryValue = primaryField
     ? valueAtPath(content, primaryField)
     : undefined
@@ -30,5 +27,11 @@ export function getEntryDisplayTitle({
     primaryValue !== undefined && primaryValue !== null && primaryValue !== ''
       ? String(primaryValue)
       : filename
-  return `Editing "${value}"`
+  return value
+}
+
+export function getEntryDisplayTitle(
+  input: Parameters<typeof getEntryTitle>[0] & { creating?: boolean },
+) {
+  return input.creating ? 'New entry' : `Editing "${getEntryTitle(input)}"`
 }

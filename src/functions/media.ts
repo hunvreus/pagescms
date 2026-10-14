@@ -338,18 +338,26 @@ export const createMedia = createServerFn({ method: 'POST' })
       emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
-    return services.access.executeQuota(
-      await policy(data, 'media.write', services, user),
-      data.idempotencyKey,
+    return services.repositoryAccess.executeMutation(
+      user,
+      data,
+      services.mediaProviderResolver ? 'multi' : 'single',
       async () => {
-        const { uploadMedia } = await import('#/server/media-service.server')
-        return uploadMedia({
-          database: services.cacheDatabase,
-          mediaProviderResolver: services.mediaProviderResolver,
-          repositoryAccess: services.repositoryAccess,
-          user,
-          ...data,
-        })
+        return services.access.executeQuota(
+          await policy(data, 'media.write', services, user),
+          data.idempotencyKey,
+          async () => {
+            const { uploadMedia } =
+              await import('#/server/media-service.server')
+            return uploadMedia({
+              database: services.cacheDatabase,
+              mediaProviderResolver: services.mediaProviderResolver,
+              repositoryAccess: services.repositoryAccess,
+              user,
+              ...data,
+            })
+          },
+        )
       },
     )
   })
@@ -367,36 +375,44 @@ export const initiateMediaUpload = createServerFn({ method: 'POST' })
       emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
-    const request = await policy(data, 'media.write', services, user)
-    await services.access.authorize(request)
-    const { prepareMediaUpload } = await import('#/server/media-service.server')
-    const prepared = await prepareMediaUpload({
-      database: services.cacheDatabase,
-      mediaProviderResolver: services.mediaProviderResolver,
-      repositoryAccess: services.repositoryAccess,
+    return services.repositoryAccess.executeMutation(
       user,
-      ...data,
-    })
-    if (!prepared.direct) return { kind: 'server' as const }
+      data,
+      'multi',
+      async () => {
+        const request = await policy(data, 'media.write', services, user)
+        await services.access.authorize(request)
+        const { prepareMediaUpload } =
+          await import('#/server/media-service.server')
+        const prepared = await prepareMediaUpload({
+          database: services.cacheDatabase,
+          mediaProviderResolver: services.mediaProviderResolver,
+          repositoryAccess: services.repositoryAccess,
+          user,
+          ...data,
+        })
+        if (!prepared.direct) return { kind: 'server' as const }
 
-    const reservation = await services.access.reserveQuota(
-      request,
-      data.idempotencyKey,
+        const reservation = await services.access.reserveQuota(
+          request,
+          data.idempotencyKey,
+        )
+        try {
+          return {
+            kind: 'direct' as const,
+            path: prepared.path,
+            plan: await prepared.direct(reservation.id),
+          }
+        } catch (error) {
+          try {
+            await services.access.settleQuota(reservation, 'released')
+          } catch {
+            // Preserve the storage failure; the policy reconciles reservations.
+          }
+          throw error
+        }
+      },
     )
-    try {
-      return {
-        kind: 'direct' as const,
-        path: prepared.path,
-        plan: await prepared.direct(reservation.id),
-      }
-    } catch (error) {
-      try {
-        await services.access.settleQuota(reservation, 'released')
-      } catch {
-        // Preserve the storage failure; the policy reconciles reservations.
-      }
-      throw error
-    }
   })
 
 export const confirmMediaUpload = createServerFn({ method: 'POST' })
@@ -411,23 +427,30 @@ export const confirmMediaUpload = createServerFn({ method: 'POST' })
       emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
-    return services.access.execute(
-      await policy(data, 'media.write', services, user),
+    return services.repositoryAccess.executeMutation(
+      user,
+      data,
+      'multi',
       async () => {
-        const { completeMediaUpload } =
-          await import('#/server/media-service.server')
-        const completed = await completeMediaUpload({
-          database: services.cacheDatabase,
-          mediaProviderResolver: services.mediaProviderResolver,
-          repositoryAccess: services.repositoryAccess,
-          user,
-          ...data,
-        })
-        await services.access.settleQuota(
-          { id: completed.reservationId },
-          'committed',
+        return services.access.execute(
+          await policy(data, 'media.write', services, user),
+          async () => {
+            const { completeMediaUpload } =
+              await import('#/server/media-service.server')
+            const completed = await completeMediaUpload({
+              database: services.cacheDatabase,
+              mediaProviderResolver: services.mediaProviderResolver,
+              repositoryAccess: services.repositoryAccess,
+              user,
+              ...data,
+            })
+            await services.access.settleQuota(
+              { id: completed.reservationId },
+              'committed',
+            )
+            return completed.result
+          },
         )
-        return completed.result
       },
     )
   })
@@ -444,23 +467,30 @@ export const abortMediaUpload = createServerFn({ method: 'POST' })
       emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
-    return services.access.execute(
-      await policy(data, 'media.write', services, user),
+    return services.repositoryAccess.executeMutation(
+      user,
+      data,
+      'multi',
       async () => {
-        const { abortMediaUpload: abort } =
-          await import('#/server/media-service.server')
-        const aborted = await abort({
-          database: services.cacheDatabase,
-          mediaProviderResolver: services.mediaProviderResolver,
-          repositoryAccess: services.repositoryAccess,
-          user,
-          ...data,
-        })
-        await services.access.settleQuota(
-          { id: aborted.reservationId },
-          'released',
+        return services.access.execute(
+          await policy(data, 'media.write', services, user),
+          async () => {
+            const { abortMediaUpload: abort } =
+              await import('#/server/media-service.server')
+            const aborted = await abort({
+              database: services.cacheDatabase,
+              mediaProviderResolver: services.mediaProviderResolver,
+              repositoryAccess: services.repositoryAccess,
+              user,
+              ...data,
+            })
+            await services.access.settleQuota(
+              { id: aborted.reservationId },
+              'released',
+            )
+            return { path: aborted.path }
+          },
         )
-        return { path: aborted.path }
       },
     )
   })
@@ -478,18 +508,25 @@ export const createMediaFolder = createServerFn({ method: 'POST' })
       emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
-    return services.access.execute(
-      await policy(data, 'media.write', services, user),
+    return services.repositoryAccess.executeMutation(
+      user,
+      data,
+      services.mediaProviderResolver ? 'multi' : 'single',
       async () => {
-        const { createMediaDirectory } =
-          await import('#/server/media-service.server')
-        return createMediaDirectory({
-          database: services.cacheDatabase,
-          mediaProviderResolver: services.mediaProviderResolver,
-          repositoryAccess: services.repositoryAccess,
-          user,
-          ...data,
-        })
+        return services.access.execute(
+          await policy(data, 'media.write', services, user),
+          async () => {
+            const { createMediaDirectory } =
+              await import('#/server/media-service.server')
+            return createMediaDirectory({
+              database: services.cacheDatabase,
+              mediaProviderResolver: services.mediaProviderResolver,
+              repositoryAccess: services.repositoryAccess,
+              user,
+              ...data,
+            })
+          },
+        )
       },
     )
   })
@@ -507,17 +544,25 @@ export const removeMedia = createServerFn({ method: 'POST' })
       emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
-    return services.access.execute(
-      await policy(data, 'media.delete', services, user),
+    return services.repositoryAccess.executeMutation(
+      user,
+      data,
+      services.mediaProviderResolver ? 'multi' : 'single',
       async () => {
-        const { deleteMedia } = await import('#/server/media-service.server')
-        return deleteMedia({
-          database: services.cacheDatabase,
-          mediaProviderResolver: services.mediaProviderResolver,
-          repositoryAccess: services.repositoryAccess,
-          user,
-          ...data,
-        })
+        return services.access.execute(
+          await policy(data, 'media.delete', services, user),
+          async () => {
+            const { deleteMedia } =
+              await import('#/server/media-service.server')
+            return deleteMedia({
+              database: services.cacheDatabase,
+              mediaProviderResolver: services.mediaProviderResolver,
+              repositoryAccess: services.repositoryAccess,
+              user,
+              ...data,
+            })
+          },
+        )
       },
     )
   })
@@ -535,18 +580,25 @@ export const renameMedia = createServerFn({ method: 'POST' })
       emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
-    return services.access.execute(
-      await policy(data, 'media.rename', services, user),
+    return services.repositoryAccess.executeMutation(
+      user,
+      data,
+      'multi',
       async () => {
-        const { renameMediaFile } =
-          await import('#/server/media-service.server')
-        return renameMediaFile({
-          database: services.cacheDatabase,
-          mediaProviderResolver: services.mediaProviderResolver,
-          repositoryAccess: services.repositoryAccess,
-          user,
-          ...data,
-        })
+        return services.access.execute(
+          await policy(data, 'media.rename', services, user),
+          async () => {
+            const { renameMediaFile } =
+              await import('#/server/media-service.server')
+            return renameMediaFile({
+              database: services.cacheDatabase,
+              mediaProviderResolver: services.mediaProviderResolver,
+              repositoryAccess: services.repositoryAccess,
+              user,
+              ...data,
+            })
+          },
+        )
       },
     )
   })
@@ -564,17 +616,25 @@ export const moveMedia = createServerFn({ method: 'POST' })
       emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
-    return services.access.execute(
-      await policy(data, 'media.rename', services, user),
+    return services.repositoryAccess.executeMutation(
+      user,
+      data,
+      'multi',
       async () => {
-        const { moveMediaFile } = await import('#/server/media-service.server')
-        return moveMediaFile({
-          database: services.cacheDatabase,
-          mediaProviderResolver: services.mediaProviderResolver,
-          repositoryAccess: services.repositoryAccess,
-          user,
-          ...data,
-        })
+        return services.access.execute(
+          await policy(data, 'media.rename', services, user),
+          async () => {
+            const { moveMediaFile } =
+              await import('#/server/media-service.server')
+            return moveMediaFile({
+              database: services.cacheDatabase,
+              mediaProviderResolver: services.mediaProviderResolver,
+              repositoryAccess: services.repositoryAccess,
+              user,
+              ...data,
+            })
+          },
+        )
       },
     )
   })

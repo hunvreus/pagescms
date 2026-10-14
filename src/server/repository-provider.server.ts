@@ -15,6 +15,8 @@ export interface RepositoryDirectoryEntry {
   content: string | null
   size: number | null
   downloadUrl: string | null
+  commitSha?: string
+  commitTimestamp?: string
 }
 
 export interface RepositoryCommitSummary {
@@ -102,6 +104,7 @@ export interface RepositoryApi {
     sha: string
     commitSha: string
     parentCommitSha?: string
+    commitTimestamp?: string
   }>
   deleteFile: (input: {
     owner: string
@@ -111,7 +114,11 @@ export interface RepositoryApi {
     sha: string
     message: string
     committer?: { name: string; email: string }
-  }) => Promise<{ commitSha: string; parentCommitSha?: string }>
+  }) => Promise<{
+    commitSha: string
+    parentCommitSha?: string
+    commitTimestamp?: string
+  }>
   renameFile: (input: {
     owner: string
     repo: string
@@ -127,12 +134,14 @@ export interface RepositoryApi {
     sha: string
     commitSha: string
     parentCommitSha: string
+    commitTimestamp?: string
   }>
   listFileCommits: (
     owner: string,
     repo: string,
     branch: string,
     path: string,
+    page?: number,
   ) => Promise<RepositoryCommitSummary[]>
   dispatchWorkflow: (input: {
     owner: string

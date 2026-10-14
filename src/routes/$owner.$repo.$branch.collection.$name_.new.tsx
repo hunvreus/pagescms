@@ -1,3 +1,4 @@
+import { pageTitle } from '#/lib/page-title'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 
@@ -7,6 +8,7 @@ import { getSignInUrl } from '#/lib/auth-redirect'
 import { collectionQueryOptions } from '#/queries/content'
 
 interface NewEntrySearch {
+  draft?: string
   parent?: string
 }
 
@@ -14,6 +16,7 @@ export const Route = createFileRoute(
   '/$owner/$repo/$branch/collection/$name_/new',
 )({
   validateSearch: (search: Record<string, unknown>): NewEntrySearch => ({
+    draft: typeof search.draft === 'string' ? search.draft : undefined,
     parent:
       typeof search.parent === 'string' && search.parent
         ? search.parent
@@ -22,9 +25,10 @@ export const Route = createFileRoute(
   loaderDeps: ({ search }) => ({ parent: search.parent }),
   loader: async ({ context, params, deps }) => {
     try {
-      await context.queryClient.ensureQueryData(
+      const data = await context.queryClient.ensureQueryData(
         collectionQueryOptions({ ...params, path: deps.parent }),
       )
+      return { label: data.collection.label }
     } catch (error) {
       if (
         error instanceof Error &&
@@ -42,6 +46,11 @@ export const Route = createFileRoute(
   pendingMs: 100,
   pendingComponent: ContentEntrySkeleton,
   component: NewCollectionEntry,
+  head: ({ params, loaderData, match }) =>
+    pageTitle(
+      `New entry | ${loaderData?.label ?? params.name}${match.loaderDeps.parent ? ` / ${match.loaderDeps.parent}` : ''}`,
+      params,
+    ),
 })
 
 function NewCollectionEntry() {
@@ -53,6 +62,7 @@ function NewCollectionEntry() {
 
   return (
     <CollectionEntryCreator
+      key={`${params.owner}:${params.repo}:${params.branch}:${params.name}:${search.parent ?? ''}:${search.draft ?? 'new'}`}
       coordinates={params}
       initial={data}
       parent={search.parent}

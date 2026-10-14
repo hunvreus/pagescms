@@ -1,3 +1,4 @@
+import { pageTitle } from '#/lib/page-title'
 import { createFileRoute } from '@tanstack/react-router'
 import { CachePage } from '#/features/admin/cache-page'
 import { ensureRepositoryAdmin } from '#/features/admin/repository-admin-access'
@@ -11,4 +12,5 @@ export const Route = createFileRoute('/$owner/$repo/$branch/cache')({
   },
   pendingComponent: () => <CacheSkeleton />,
   component: () => <CachePage {...Route.useParams()} />,
+  head: ({ params }) => pageTitle('Cache', params),
 })

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createActionRunTracker } from './action-run-tracker'
+import { createActionRunTracker, mergeRunUpdates } from './action-run-tracker'
 
 const ref = { owner: 'pagescms', repo: 'test', branch: 'main' }
 function setup() {
@@ -114,4 +114,27 @@ describe('shared action run polling', () => {
     expect(failed).toHaveBeenCalledOnce()
     tracker.dispose()
   })
+})
+
+it('puts new confirmed runs first, replaces statuses without duplicating, and retains unrelated runs', () => {
+  const current = [
+    { id: 2, status: 'queued' },
+    { id: 1, status: 'running' },
+  ]
+  expect(
+    mergeRunUpdates(current, [
+      { id: 3, status: 'queued' },
+      { id: 2, status: 'completed' },
+    ]),
+  ).toEqual([
+    { id: 3, status: 'queued' },
+    { id: 2, status: 'completed' },
+    current[1],
+  ])
+  expect(mergeRunUpdates(current, [], [2])).toEqual([current[1]])
+  const full = Array.from({ length: 100 }, (_, index) => ({ id: 100 - index }))
+  const updated = mergeRunUpdates(full, [{ id: 101 }])
+  expect(updated).toHaveLength(100)
+  expect(updated[0].id).toBe(101)
+  expect(updated.at(-1)?.id).toBe(2)
 })

@@ -17,9 +17,65 @@ actions:
 media: public/images
 content:
   - name: groups
+    icon: not-a-real-icon
     label: Groups
     type: file
     path: content/groups.json
+    actions:
+      - name: confirmed-test
+        label: Confirm workflow
+        workflow: deploy.yml
+        confirm:
+          title: Deploy site?
+          message: This will trigger the deployment workflow.
+          button: Deploy
+      - name: input-test
+        label: Test action inputs
+        workflow: deploy.yml
+        confirm:
+          title: Run input test?
+          message: Check the supplied inputs.
+          button: Start test
+        fields:
+          - name: title
+            label: Action title
+            type: text
+            required: true
+          - name: notes
+            label: Action notes
+            type: textarea
+            required: true
+          - name: environment
+            label: Environment
+            type: select
+            required: true
+            default: staging
+            options:
+              - label: Staging
+                value: staging
+              - label: Production
+                value: production
+          - name: force
+            label: Force
+            type: checkbox
+            default: true
+          - name: count
+            label: Count
+            type: number
+            default: 2
+      - name: input-no-confirm
+        label: Inputs without confirmation
+        workflow: deploy.yml
+        confirm: false
+        fields:
+          - name: message
+            label: Message
+            type: text
+            default: Hello
+      - name: immediate-test
+        label: Run immediately
+        workflow: deploy.yml
+        confirm: false
     fields:
       - name: authors
         label: Authors
@@ -43,10 +99,14 @@ content:
           - name: widget
             label: Widget
             fields:
+              - name: heading
+                label: Block heading
+                type: string
               - name: body
                 label: Body
                 type: rich-text
   - name: posts
+    icon: newspaper
     label: Posts
     type: collection
     path: content/posts
@@ -158,7 +218,7 @@ const initialFiles = new Map([
     {
       content: JSON.stringify({
         authors: [{ name: 'Ronan' }],
-        layout: [{ _block: 'widget', body: 'Hello' }],
+        layout: [{ _block: 'widget', heading: 'First block', body: 'Hello' }],
       }),
       sha: 'groups-sha-1',
     },
@@ -516,7 +576,7 @@ export function createGitHubFixtureFetch(metricsPath?: string): typeof fetch {
                 ...createdBranches,
               ]
             : ['main']
-        if (ref && !branches.includes(ref))
+        if (ref && !branches.includes(ref) && ref !== 'fixture-head-sha')
           return json({ message: `No commit found for the ref ${ref}` }, 404)
         if (
           path === '.pages.yml' &&
@@ -556,7 +616,18 @@ export function createGitHubFixtureFetch(metricsPath?: string): typeof fetch {
           : json({ message: 'Not found' }, 404)
       }
       if (method === 'PUT') {
-        const body = JSON.parse(String(init?.body)) as { content: string }
+        const body = JSON.parse(String(init?.body)) as {
+          content: string
+          sha?: string
+        }
+        if (
+          (files.has(path) && body.sha === undefined) ||
+          (body.sha !== undefined && body.sha !== files.get(path)?.sha)
+        )
+          return json(
+            { message: 'File changed since this edit was opened' },
+            409,
+          )
         const content = new TextDecoder().decode(
           Uint8Array.from(atob(body.content), (item) => item.charCodeAt(0)),
         )
@@ -639,7 +710,31 @@ export function createGitHubFixtureFetch(metricsPath?: string): typeof fetch {
       repositoryRoute === 'commits' &&
       method === 'GET'
     ) {
-      return json([])
+      const path = url.searchParams.get('path')
+      const count =
+        path === 'content/groups.json'
+          ? 23
+          : path === 'content/raw.ts'
+            ? 20
+            : path === '.pages.yml' && url.searchParams.get('sha') === 'preview'
+              ? 13
+              : 0
+      const page = Number(url.searchParams.get('page') ?? '1')
+      const limit = Number(url.searchParams.get('per_page') ?? '30')
+      return json(
+        Array.from({ length: count }, (_, index) => ({
+          sha: `history-${index + 1}`,
+          html_url: `https://github.com/pagescms/fixture/commit/history-${index + 1}`,
+          commit: {
+            message: `Update ${index + 1}`,
+            author: {
+              name: `History author ${index + 1}`,
+              date: '2026-10-12T00:00:00Z',
+            },
+          },
+          author: null,
+        })).slice((page - 1) * limit, page * limit),
+      )
     }
 
     if (

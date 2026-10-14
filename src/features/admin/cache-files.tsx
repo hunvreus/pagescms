@@ -41,6 +41,7 @@ export function CacheFiles({
       search,
     }),
     enabled: open,
+    staleTime: 30_000,
     placeholderData: keepPreviousData,
   })
   return (
@@ -107,7 +108,9 @@ export function CacheFiles({
               <TableRow className="hover:bg-transparent">
                 <TableHead>Path</TableHead>
                 <TableHead className="w-24">File SHA</TableHead>
-                <TableHead className="w-36">Snapshot commit</TableHead>
+                <TableHead className="w-44 whitespace-normal">
+                  Last change commit
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

@@ -1,3 +1,14 @@
+import { useContentDraft } from '#/features/drafts/use-content-draft'
+import {
+  ContentDraftRecovery,
+  ContentDraftIndicator,
+} from '#/features/drafts/content-draft-status'
+import { useUnsavedWarning } from '#/hooks/use-unsaved-warning'
+import {
+  operationKey,
+  refreshQueries,
+  useOperation,
+} from '#/features/operations/use-operation'
 import { toast } from 'sonner'
 import { FileEditorHistory } from '#/components/file-editor-history'
 import { useEffect, useMemo, useState } from 'react'
@@ -7,6 +18,7 @@ import { LoaderCircle } from 'lucide-react'
 import { CodeEditor } from '#/components/code-editor'
 import { OperationError } from '#/components/operation-error'
 import { Button } from '#/components/ui/button'
+import { ButtonGroup } from '#/components/ui/button-group'
 import {
   getConfigurationHistory,
   updateConfiguration,
@@ -40,11 +52,27 @@ export function ConfigurationPage({
     configurationEditorQueryOptions(params),
   )
   const queryClient = useQueryClient()
-  const [source, setSource] = useState(initial.source)
-  const [savedSource, setSavedSource] = useState(initial.source)
-  const [sha, setSha] = useState<string | null>(initial.sha)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<unknown>(null)
+  const operation = useOperation<
+    Awaited<ReturnType<typeof updateConfiguration>>
+  >(operationKey('configuration-save', params))
+  const draft = useContentDraft({
+    target: {
+      ...params,
+      name: 'Configuration',
+      path: '.pages.yml',
+      kind: 'configuration',
+    },
+    schema: { mode: 'configuration' },
+    initialValue: initial.source,
+    initialSha: initial.sha,
+    title: 'Configuration',
+  })
+  const source = draft.value
+  const setSource = draft.setValue
+  const sha = draft.baseSha
+  const saving = operation.pending
+  const [localError, setLocalError] = useState<unknown>(null)
+  const error = localError ?? operation.error
   const diagnostics = useMemo(
     () => validateConfigurationSource(source).diagnostics,
     [source],
@@ -52,55 +80,81 @@ export function ConfigurationPage({
   const errors = diagnostics.filter(
     (diagnostic) => diagnostic.severity === 'error',
   )
-  const dirty = source !== savedSource
+  const dirty = draft.dirty
+  useUnsavedWarning(dirty || saving)
   useEffect(() => {
     onDirtyChange?.(dirty)
   }, [dirty, onDirtyChange])
 
   async function save() {
-    if (errors.length) return
-    setSaving(true)
-    setError(null)
+    const session = draft.session
+    if (errors.length || !session || !draft.ready || operation.pending) return
+    const { value: submitted, baseSha } = session.getSnapshot()
+    setLocalError(null)
     try {
-      const result = await updateConfiguration({
-        data: { ...params, source, sha },
-      })
-      toast.success('Configuration saved')
-      setSha(result.sha)
-      setSavedSource(source)
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.branch(params),
+      await operation.run({
+        coordinates: params,
+        paths: ['.pages.yml'],
+        expectedAccount: session.summary.account,
+        retain: () => session.retain(),
+        failureMessage:
+          'Could not update configuration. Your local draft is retained.',
+        prepare: () => session.beginSave(submitted),
+        run: () =>
+          updateConfiguration({
+            data: { ...params, source: submitted, sha: baseSha },
+          }),
+        confirmed: async (result, active) => {
+          if (active())
+            queryClient.setQueryData(
+              configurationEditorQueryOptions(params).queryKey,
+              { source: submitted, sha: result.sha },
+            )
+          await session.acknowledge(submitted, submitted, result.sha)
+          if (active()) {
+            toast.success('Configuration saved')
+            refreshQueries(queryClient, [queryKeys.branch(params)])
+          }
+        },
       })
     } catch (cause) {
-      setError(cause)
-    } finally {
-      setSaving(false)
+      setLocalError(cause)
     }
   }
 
   const controls = (
     <>
-      {sha ? (
-        <FileEditorHistory
-          coordinates={{ ...params, path: '.pages.yml' }}
-          load={() => getConfigurationHistory({ data: params })}
-        />
-      ) : null}
-      <Button
-        disabled={saving || !dirty || errors.length > 0}
-        onClick={() => void save()}
+      <div className="flex items-center gap-2">
+        <ContentDraftIndicator draft={draft} saving={saving} />
+        <Button
+          disabled={saving || !dirty || !draft.ready || errors.length > 0}
+          onClick={() => void save()}
+        >
+          {saving ? <LoaderCircle className="animate-spin" /> : null}
+          {saving ? 'Saving' : 'Save'}
+        </Button>
+      </div>
+      <ButtonGroup
+        aria-label="History and entry actions"
+        className="empty:hidden"
       >
-        {saving ? <LoaderCircle className="animate-spin" /> : null}
-        {saving ? 'Saving' : 'Save'}
-      </Button>
-      <FileEditorMenu
-        disabled={saving}
-        href={
-          showGitHubLink && sha
-            ? `https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/blob/${encodeURIComponent(branch)}/.pages.yml`
-            : undefined
-        }
-      />
+        {sha ? (
+          <FileEditorHistory
+            key={`${JSON.stringify(params)}:${sha}`}
+            load={(page) =>
+              getConfigurationHistory({ data: { ...params, page } })
+            }
+          />
+        ) : null}
+        <FileEditorMenu
+          disabled={saving}
+          href={
+            showGitHubLink && sha
+              ? `https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/blob/${encodeURIComponent(branch)}/.pages.yml`
+              : undefined
+          }
+        />
+      </ButtonGroup>
     </>
   )
 
@@ -116,7 +170,9 @@ export function ConfigurationPage({
         error={error}
         fallback="Could not update configuration."
       />
+      <ContentDraftRecovery draft={draft} />
       <CodeEditor
+        disabled={!draft.ready}
         format="yaml"
         diagnostics={diagnostics}
         label="Pages CMS configuration"

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildCommitTokens,
   resolveCommitIdentity,
+  allowsCustomCommitMessage,
   resolveCommitMessage,
 } from './commit-message'
 
@@ -91,5 +92,21 @@ describe('resolveCommitIdentity', () => {
         identityOverride: 'app',
       }),
     ).toBe('app')
+  })
+})
+
+describe('custom commit message policy', () => {
+  it('defaults off, supports the repository setting, and honors a collection override', () => {
+    const configuration = { settings: { commit: { allowCustomMessage: true } } }
+    expect(allowsCustomCommitMessage({})).toBe(false)
+    expect(allowsCustomCommitMessage(configuration)).toBe(true)
+    expect(
+      allowsCustomCommitMessage(configuration, {
+        commit: { allowCustomMessage: false },
+      }),
+    ).toBe(false)
+    expect(
+      allowsCustomCommitMessage({}, { commit: { allowCustomMessage: true } }),
+    ).toBe(true)
   })
 })

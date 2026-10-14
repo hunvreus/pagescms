@@ -1,7 +1,7 @@
 import { toast } from 'sonner'
 import { getActionRunStatuses, manageAction } from '#/functions/actions'
 import { actionsQueryOptions } from '#/queries/repository'
-import { createActionRunTracker } from './action-run-tracker'
+import { createActionRunTracker, mergeRunUpdates } from './action-run-tracker'
 import type { ActionBranch } from './action-run-tracker'
 import type { QueryClient } from '@tanstack/react-query'
 
@@ -91,12 +91,9 @@ function createTracker(client: QueryClient) {
   function patch(ref: ActionBranch, runs: Run[], requested?: number[]) {
     client.setQueryData(actionsQueryOptions(ref).queryKey, (previous) => {
       if (!previous) return previous
-      const updates = new Map(runs.map((run) => [run.id, run]))
       return {
         ...previous,
-        runs: previous.runs
-          .filter((run) => !requested?.includes(run.id) || updates.has(run.id))
-          .map((run) => updates.get(run.id) ?? run),
+        runs: mergeRunUpdates(previous.runs, runs, requested),
       }
     })
   }

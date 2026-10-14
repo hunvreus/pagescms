@@ -1,6 +1,6 @@
 import { expect, test } from './test'
 
-test('repository menu exposes GitHub, settings and branch navigation', async ({
+test('repository menu exposes GitHub and branch navigation with sidebar administration', async ({
   page,
 }) => {
   await page.goto('/pagescms/fixture/main/collection/posts')
@@ -16,8 +16,7 @@ test('repository menu exposes GitHub, settings and branch navigation', async ({
     'href',
     'https://github.com/pagescms/fixture/tree/main',
   )
-  await expect(items.nth(1)).toHaveText('Settings')
-  await expect(items.nth(2)).toHaveText('main')
+  await expect(items.nth(1)).toHaveText('Branch: main')
   const separator = menu.locator('[role="separator"]').first()
   expect(
     await separator.evaluate(
@@ -26,7 +25,11 @@ test('repository menu exposes GitHub, settings and branch navigation', async ({
   ).toContain('View on GitHub')
   expect(
     await separator.evaluate((node) => node.nextElementSibling?.textContent),
-  ).toContain('Settings')
+  ).toContain('Branch: main')
+  await page.keyboard.press('Escape')
+  await expect(
+    page.getByRole('link', { name: 'Configuration', exact: true }),
+  ).toBeVisible()
 })
 
 test('repository menu closes before slow navigation finishes', async ({
@@ -56,7 +59,9 @@ test('branch selection closes both menus before slow navigation finishes', async
   await page
     .locator('[data-slot="sidebar-header"] [data-slot="dropdown-menu-trigger"]')
     .click()
-  await page.getByRole('menuitem', { name: 'main', exact: true }).hover()
+  await page
+    .getByRole('menuitem', { name: 'Branch: main', exact: true })
+    .hover()
   await expect(
     page.getByRole('menuitem', { name: 'alpha', exact: true }),
   ).toBeVisible()

@@ -7,10 +7,17 @@ import {
 } from '#/server/request-services.server'
 import { createGitHubFixtureFetch } from './github-fixture.server'
 
-const fixtures = new Map<
-  string,
-  { database: ReturnType<typeof createDatabase>; fetcher: typeof fetch }
->()
+type Fixture = {
+  database: ReturnType<typeof createDatabase>
+  fetcher: typeof fetch
+}
+
+// Vite may reload this module while a test is active. Keep its fake repository
+// and database together for the process lifetime, isolated by seed and test scope.
+const fixtureState = globalThis as typeof globalThis & {
+  __pagesCmsE2EFixtures?: Map<string, Fixture>
+}
+const fixtures = (fixtureState.__pagesCmsE2EFixtures ??= new Map())
 
 export function createRequestServicesForRequest(request: Request) {
   const seed = process.env.DATABASE_URL
@@ -23,15 +30,18 @@ export function createRequestServicesForRequest(request: Request) {
     scope === 'readiness'
       ? seed
       : `file:${join(dirname(seed.slice(5)), `${scope}.db`)}`
-  let fixture = fixtures.get(scope)
+  const fixtureKey = `${seed}:${scope}`
+  let fixture = fixtures.get(fixtureKey)
   if (!fixture) {
     fixture = {
       database: createDatabase({ url }),
       fetcher: createGitHubFixtureFetch(
-        `${process.env.PAGESCMS_E2E_GITHUB_METRICS_PATH}.${scope}`,
+        process.env.PAGESCMS_E2E_GITHUB_METRICS_PATH
+          ? `${process.env.PAGESCMS_E2E_GITHUB_METRICS_PATH}.${scope}`
+          : undefined,
       ),
     }
-    fixtures.set(scope, fixture)
+    fixtures.set(fixtureKey, fixture)
   }
   return createRequestServices(
     {

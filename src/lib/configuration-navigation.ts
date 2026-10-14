@@ -2,6 +2,7 @@ export interface ConfigurationNavigationItem {
   type: 'collection' | 'file' | 'media'
   name: string
   label: string
+  icon?: string
 }
 
 export interface ConfigurationNavigationGroup {
@@ -57,6 +58,7 @@ function navigationNodes(
         type: value.type as ConfigurationNavigationItem['type'],
         name: value.name,
         label,
+        ...(typeof value.icon === 'string' ? { icon: value.icon } : {}),
       },
     ]
   })

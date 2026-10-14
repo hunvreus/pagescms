@@ -1,7 +1,11 @@
-import { useState } from 'react'
+import {
+  operationKey,
+  refreshQueries,
+  useOperation,
+} from '#/features/operations/use-operation'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { LoaderCircle } from 'lucide-react'
 import { Button } from '#/components/ui/button'
 import {
   Dialog,
@@ -33,7 +37,19 @@ export function CreateBranchDialog({
   branch: string
 }) {
   const [name, setName] = useState('')
-  const [creating, setCreating] = useState(false)
+  const mounted = useRef(false)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
+  const openRef = useRef(open)
+  openRef.current = open
+  const operation = useOperation<
+    Awaited<ReturnType<typeof createRepositoryBranch>>
+  >(operationKey('branch-create', { owner, repo }))
+  const creating = operation.pending
   const [error, setError] = useState<unknown>(null)
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -43,7 +59,6 @@ export function CreateBranchDialog({
   })
   const valid = !!query.data && !creating && canCreateBranch(name, query.data)
   function changeOpen(next: boolean) {
-    if (creating) return
     onOpenChange(next)
     if (!next) {
       setName('')
@@ -52,27 +67,47 @@ export function CreateBranchDialog({
   }
   async function create() {
     if (!valid) return
-    setCreating(true)
+    const origin = router.state.location.href
     setError(null)
     try {
-      const result = await createRepositoryBranch({
-        data: { owner, repo, branch: name.trim(), source: branch },
-      })
-      const { toast } = await import('sonner')
-      toast.success(`Branch “${result.branch}” created`)
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.repository({ owner, repo }),
-      })
-      onOpenChange(false)
-      setName('')
-      await router.navigate({
-        to: '/$owner/$repo/$branch',
-        params: { owner, repo, branch: result.branch },
+      await operation.run({
+        failureMessage: 'Could not create the branch.',
+        run: () =>
+          createRepositoryBranch({
+            data: { owner, repo, branch: name.trim(), source: branch },
+          }),
+        confirmed: async (result, active) => {
+          if (!active()) return
+          const { toast } = await import('sonner')
+          if (!active()) return
+          toast.success(`Branch “${result.branch}” created`)
+          refreshQueries(queryClient, [queryKeys.repository({ owner, repo })])
+          for (const [key, branches] of queryClient.getQueriesData<string[]>({
+            queryKey: queryKeys.repository({ owner, repo }),
+          })) {
+            if (
+              key.at(-1) === 'branches' &&
+              branches &&
+              !branches.includes(result.branch)
+            )
+              queryClient.setQueryData(key, [...branches, result.branch])
+          }
+          if (
+            !mounted.current ||
+            !openRef.current ||
+            router.state.location.href !== origin
+          )
+            return
+          onOpenChange(false)
+          setName('')
+          await router.navigate({
+            to: '/$owner/$repo/$branch',
+            params: { owner, repo, branch: result.branch },
+          })
+        },
       })
     } catch (cause) {
       setError(cause)
-    } finally {
-      setCreating(false)
     }
   }
   return (
@@ -103,20 +138,18 @@ export function CreateBranchDialog({
             />
           </Field>
           <OperationError
-            error={error ?? query.error}
+            error={error ?? operation.error ?? query.error}
             fallback="Could not load or create branches."
           />
           <DialogFooter>
             <Button
               variant="outline"
               type="button"
-              disabled={creating}
               onClick={() => changeOpen(false)}
             >
               Cancel
             </Button>
             <Button type="submit" disabled={!valid}>
-              {creating ? <LoaderCircle className="animate-spin" /> : null}
               {creating ? 'Creating…' : 'Create branch'}
             </Button>
           </DialogFooter>

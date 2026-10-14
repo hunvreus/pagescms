@@ -1,4 +1,16 @@
-import { lazy, Suspense, useEffect, useId, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { authenticationQueryOptions } from '#/queries/session'
+import {
+  createContext,
+  lazy,
+  Suspense,
+  useContext,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { isContentField } from '#/lib/content-field'
 import type { ComponentType, CSSProperties, LazyExoticComponent } from 'react'
 import { ClientOnly } from '@tanstack/react-router'
@@ -192,10 +204,10 @@ function RichTextRenderer({
       {renderField(
         <TabsContent value={mode}>
           <ClientOnly
-            fallback={<DeferredEditorFallback className="min-h-16" />}
+            fallback={<DeferredEditorFallback className="min-h-32" />}
           >
             <Suspense
-              fallback={<DeferredEditorFallback className="min-h-16" />}
+              fallback={<DeferredEditorFallback className="min-h-32" />}
             >
               <RichTextField
                 disabled={disabled}
@@ -388,6 +400,28 @@ export function sortableItemStyle(
   }
 }
 
+const SortableHandleContext = createContext<Pick<
+  ReturnType<typeof useSortable>,
+  'attributes' | 'listeners'
+> | null>(null)
+
+function SortableListHandle() {
+  const sortable = useContext(SortableHandleContext)
+  return (
+    <Button
+      aria-label="Reorder item"
+      className="cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
+      size="icon-sm"
+      type="button"
+      variant="ghost"
+      {...sortable?.attributes}
+      {...sortable?.listeners}
+    >
+      <GripVertical />
+    </Button>
+  )
+}
+
 function SortableListItem({
   children,
   id,
@@ -398,18 +432,10 @@ function SortableListItem({
   disabled: boolean
 }) {
   const sortable = useSortable({ id, disabled })
-  const handle = disabled ? null : (
-    <Button
-      aria-label="Reorder item"
-      className="cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
-      size="icon-sm"
-      type="button"
-      variant="ghost"
-      {...sortable.attributes}
-      {...sortable.listeners}
-    >
-      <GripVertical />
-    </Button>
+  // Drag context updates the wrapper and handle, without rebuilding nested editors.
+  const content = useMemo(
+    () => children(disabled ? null : <SortableListHandle />),
+    [children, disabled],
   )
 
   return (
@@ -421,7 +447,9 @@ function SortableListItem({
         sortable.isDragging,
       )}
     >
-      {children(handle)}
+      <SortableHandleContext.Provider value={sortable}>
+        {content}
+      </SortableHandleContext.Provider>
     </div>
   )
 }
@@ -855,7 +883,7 @@ export function StructuredContentField({
       : typeof field.label === 'string'
         ? field.label
         : name
-  const disabled = field.readonly === true
+  const disabled = inheritedReadonly || field.readonly === true
   const required = field.required === true
   const description =
     typeof field.description === 'string' ? field.description : null
@@ -1064,6 +1092,57 @@ function ImageFieldThumbnail({
 }) {
   const sortable = useSortable({ id, disabled: readonly || !draggable })
   const canViewGitHub = useRepositoryGitHubLink()
+  const content = useMemo(
+    () => ({
+      thumbnail: (
+        <MediaThumbnail
+          {...context}
+          className="size-28 rounded-lg"
+          name={mediaName}
+          path={path}
+        />
+      ),
+      actions: (
+        <div className="absolute right-1 bottom-1 flex rounded-md bg-background/95 p-0.5 shadow-sm backdrop-blur-sm">
+          {canViewGitHub ? (
+            <Button
+              asChild
+              aria-label={`View ${path} on GitHub`}
+              size="icon-xs"
+              variant="ghost"
+            >
+              <a
+                href={`https://github.com/${encodeURIComponent(context.owner)}/${encodeURIComponent(context.repo)}/blob/${encodeURIComponent(context.branch)}/${path.split('/').map(encodeURIComponent).join('/')}`}
+                rel="noreferrer"
+                target="_blank"
+              >
+                <ArrowUpRight className="text-muted-foreground" />
+              </a>
+            </Button>
+          ) : null}
+          {!readonly ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    aria-label={`Remove ${path}`}
+                    size="icon-xs"
+                    type="button"
+                    variant="ghost"
+                    onClick={onRemove}
+                  >
+                    <Trash2 className="text-muted-foreground" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Remove image</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : null}
+        </div>
+      ),
+    }),
+    [context, mediaName, path, canViewGitHub, readonly, onRemove],
+  )
   return (
     <div
       className="relative size-28"
@@ -1082,49 +1161,9 @@ function ImageFieldThumbnail({
         {...sortable.attributes}
         {...sortable.listeners}
       >
-        <MediaThumbnail
-          {...context}
-          className="size-28 rounded-lg"
-          name={mediaName}
-          path={path}
-        />
+        {content.thumbnail}
       </div>
-      <div className="absolute right-1 bottom-1 flex rounded-md bg-background/95 p-0.5 shadow-sm backdrop-blur-sm">
-        {canViewGitHub ? (
-          <Button
-            asChild
-            aria-label={`View ${path} on GitHub`}
-            size="icon-xs"
-            variant="ghost"
-          >
-            <a
-              href={`https://github.com/${encodeURIComponent(context.owner)}/${encodeURIComponent(context.repo)}/blob/${encodeURIComponent(context.branch)}/${path.split('/').map(encodeURIComponent).join('/')}`}
-              rel="noreferrer"
-              target="_blank"
-            >
-              <ArrowUpRight className="text-muted-foreground" />
-            </a>
-          </Button>
-        ) : null}
-        {!readonly ? (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  aria-label={`Remove ${path}`}
-                  size="icon-xs"
-                  type="button"
-                  variant="ghost"
-                  onClick={onRemove}
-                >
-                  <Trash2 className="text-muted-foreground" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Remove image</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        ) : null}
-      </div>
+      {content.actions}
     </div>
   )
 }
@@ -1144,6 +1183,14 @@ function MediaFieldControl({
   image: boolean
   onChange: (value: JsonValue | undefined) => void
 }) {
+  const queryClient = useQueryClient()
+  const mounted = useRef(false)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
   const settings = isContentField(field.options) ? field.options : {}
   const canViewGitHub = useRepositoryGitHubLink()
   const media = resolveFieldMedia(field, context.media ?? [])
@@ -1157,6 +1204,8 @@ function MediaFieldControl({
       ? Number.POSITIVE_INFINITY
       : 1
   const selected = mediaValues(value, multiple)
+  const current = useRef({ selected, onChange })
+  current.current = { selected, onChange }
   const [open, setOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
   const uploadLock = useRef(false)
@@ -1197,11 +1246,19 @@ function MediaFieldControl({
 
   async function upload(files: FileList | null) {
     if (disabled || uploadLock.current || !files?.length) return
+    const account = queryClient.getQueryData(
+      authenticationQueryOptions().queryKey,
+    )?.user?.id
+    if (!account) return
+    const isActive = () =>
+      queryClient.getQueryData(authenticationQueryOptions().queryKey)?.user
+        ?.id === account
     uploadLock.current = true
     setUploading(true)
     setError(null)
     try {
       const uploaded = await uploadMediaFiles({
+        isActive,
         coordinates: {
           owner: context.owner,
           repo: context.repo,
@@ -1214,15 +1271,27 @@ function MediaFieldControl({
         limit: multiple ? Math.max(0, max - selected.length) : 1,
         path: configuredStartPath,
       })
+      if (!mounted.current || !isActive()) return
       if (multiple)
-        onChange([...new Set([...selected, ...uploaded])].slice(0, max))
-      else if (uploaded[0]) onChange(uploaded[0])
+        current.current.onChange(
+          [...new Set([...current.current.selected, ...uploaded])].slice(
+            0,
+            max,
+          ),
+        )
+      else if (uploaded[0]) current.current.onChange(uploaded[0])
     } catch (cause) {
+      if (!mounted.current || !isActive()) return
       setError(cause)
       if (cause instanceof MediaUploadError && cause.paths.length) {
         if (multiple)
-          onChange([...new Set([...selected, ...cause.paths])].slice(0, max))
-        else onChange(cause.paths[0])
+          current.current.onChange(
+            [...new Set([...current.current.selected, ...cause.paths])].slice(
+              0,
+              max,
+            ),
+          )
+        else current.current.onChange(cause.paths[0])
       }
     } finally {
       uploadLock.current = false

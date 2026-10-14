@@ -20,6 +20,7 @@ export default [
   {
     ignores: [
       '_legacy/**',
+      '.tmp/**',
       '.output/**',
       '.wrangler/**',
       'coverage/**',

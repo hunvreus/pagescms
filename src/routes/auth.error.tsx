@@ -1,3 +1,4 @@
+import { pageTitle } from '#/lib/page-title'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
 
@@ -22,6 +23,7 @@ export const Route = createFileRoute('/auth/error')({
     error: typeof search.error === 'string' ? search.error : undefined,
   }),
   component: AuthenticationErrorPage,
+  head: () => pageTitle('Sign-in error'),
 })
 
 function AuthenticationErrorPage() {

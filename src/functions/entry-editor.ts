@@ -1,3 +1,5 @@
+import type { AccessRequest } from '#/server/access-policy.server'
+import { historyPage } from '#/lib/file-history'
 import { createServerFn } from '@tanstack/react-start'
 
 import { normalizeGitPath } from '#/lib/git-path'
@@ -25,6 +27,13 @@ function parseEntryRequest(input: unknown) {
   }
 }
 
+function optionalCommitMessage(value: unknown) {
+  if (value === undefined || value === null) return undefined
+  if (typeof value !== 'string' || value.length > 4096)
+    throw new Error('Commit message must be at most 4096 characters')
+  return value
+}
+
 export function parseEntryUpdate(input: unknown) {
   const entry = parseEntryRequest(input)
   const value = input as Record<string, unknown>
@@ -34,7 +43,12 @@ export function parseEntryUpdate(input: unknown) {
   ) {
     throw new Error('Invalid entry update')
   }
-  return { ...entry, source: value.source, sha: value.sha }
+  return {
+    ...entry,
+    source: value.source,
+    sha: value.sha,
+    message: optionalCommitMessage(value.message),
+  }
 }
 
 function parseEntryDelete(input: unknown) {
@@ -76,7 +90,12 @@ export function parseStructuredEntryUpdate(input: unknown) {
   ) {
     throw new Error('Invalid structured entry update')
   }
-  return { ...entry, content: value.content, sha: value.sha }
+  return {
+    ...entry,
+    content: value.content,
+    sha: value.sha,
+    message: optionalCommitMessage(value.message),
+  }
 }
 
 export function parseStructuredEntryCreate(input: unknown) {
@@ -106,6 +125,7 @@ export function parseStructuredEntryCreate(input: unknown) {
     content: value.content,
     ...(value.parent ? { parent: normalizeGitPath(value.parent) } : {}),
     ...(value.filename !== undefined ? { filename: value.filename } : {}),
+    message: optionalCommitMessage(value.message),
   }
 }
 
@@ -135,6 +155,7 @@ export function parseRawEntryCreate(input: unknown) {
     source: value.source,
     ...(value.parent ? { parent: normalizeGitPath(value.parent) } : {}),
     ...(value.filename !== undefined ? { filename: value.filename } : {}),
+    message: optionalCommitMessage(value.message),
   }
 }
 
@@ -213,8 +234,12 @@ export const getRawEntry = createServerFn({ method: 'GET' })
   })
 
 export const getEntryHistory = createServerFn({ method: 'GET' })
-  .validator(parseEntryRequest)
-  .handler(async ({ context, data }) => {
+  .validator((input: unknown) => ({
+    ...parseEntryRequest(input),
+    page: historyPage((input as Record<string, unknown>).page),
+  }))
+  .handler(async ({ context, data: request }) => {
+    const { page, ...data } = request
     const services = context.getServices()
     const session = await services.getSession()
     if (!session?.user) throw new Error('Authentication required')
@@ -251,6 +276,7 @@ export const getEntryHistory = createServerFn({ method: 'GET' })
           repositoryAccess: services.repositoryAccess,
           user,
           ...data,
+          page,
         })
       },
     )
@@ -269,33 +295,41 @@ export const updateRawEntry = createServerFn({ method: 'POST' })
       emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
-    return services.access.execute(
-      {
-        operation: data.sha ? 'entry.update' : 'entry.create',
-        principal: await resolveRepositoryPrincipal(
-          services.repositoryAccess,
-          user,
-          data,
-        ),
-        tenant: {
-          type: 'repository',
-          id: `${data.owner}/${data.repo}`.toLowerCase(),
-        },
-        target: {
-          repository: data,
-          branch: data.branch,
-          collection: data.name,
-          path: data.path,
-        },
-      },
+    return services.repositoryAccess.executeMutation(
+      user,
+      data,
+      'single',
       async () => {
-        const { saveRawEntry } = await import('#/server/entry-editor.server')
-        return saveRawEntry({
-          database: services.cacheDatabase,
-          repositoryAccess: services.repositoryAccess,
-          user,
-          ...data,
-          sha: data.sha ?? undefined,
+        const request: AccessRequest = {
+          operation: data.sha ? 'entry.update' : 'entry.create',
+          principal: await resolveRepositoryPrincipal(
+            services.repositoryAccess,
+            user,
+            data,
+          ),
+          tenant: {
+            type: 'repository',
+            id: `${data.owner}/${data.repo}`.toLowerCase(),
+          },
+          target: {
+            repository: data,
+            branch: data.branch,
+            collection: data.name,
+            path: data.path,
+          },
+        }
+        return services.access.execute(request, async () => {
+          const { saveRawEntry } = await import('#/server/entry-editor.server')
+          const { contentWriteResponse } =
+            await import('#/server/content-write-response.server')
+          const result = await saveRawEntry({
+            database: services.cacheDatabase,
+            repositoryAccess: services.repositoryAccess,
+            user,
+            ...data,
+            sha: data.sha ?? undefined,
+          })
+          return contentWriteResponse(services.access, request, result)
         })
       },
     )
@@ -314,34 +348,42 @@ export const updateStructuredEntry = createServerFn({ method: 'POST' })
       emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
-    return services.access.execute(
-      {
-        operation: data.sha ? 'entry.update' : 'entry.create',
-        principal: await resolveRepositoryPrincipal(
-          services.repositoryAccess,
-          user,
-          data,
-        ),
-        tenant: {
-          type: 'repository',
-          id: `${data.owner}/${data.repo}`.toLowerCase(),
-        },
-        target: {
-          repository: data,
-          branch: data.branch,
-          collection: data.name,
-          path: data.path,
-        },
-      },
+    return services.repositoryAccess.executeMutation(
+      user,
+      data,
+      'single',
       async () => {
-        const { saveStructuredEntry } =
-          await import('#/server/entry-editor.server')
-        return saveStructuredEntry({
-          database: services.cacheDatabase,
-          repositoryAccess: services.repositoryAccess,
-          user,
-          ...data,
-          sha: data.sha ?? undefined,
+        const request: AccessRequest = {
+          operation: data.sha ? 'entry.update' : 'entry.create',
+          principal: await resolveRepositoryPrincipal(
+            services.repositoryAccess,
+            user,
+            data,
+          ),
+          tenant: {
+            type: 'repository',
+            id: `${data.owner}/${data.repo}`.toLowerCase(),
+          },
+          target: {
+            repository: data,
+            branch: data.branch,
+            collection: data.name,
+            path: data.path,
+          },
+        }
+        return services.access.execute(request, async () => {
+          const { saveStructuredEntry } =
+            await import('#/server/entry-editor.server')
+          const { contentWriteResponse } =
+            await import('#/server/content-write-response.server')
+          const result = await saveStructuredEntry({
+            database: services.cacheDatabase,
+            repositoryAccess: services.repositoryAccess,
+            user,
+            ...data,
+            sha: data.sha ?? undefined,
+          })
+          return contentWriteResponse(services.access, request, result)
         })
       },
     )
@@ -362,33 +404,41 @@ export const createStructuredCollectionEntry = createServerFn({
       emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
-    return services.access.execute(
-      {
-        operation: 'entry.create',
-        principal: await resolveRepositoryPrincipal(
-          services.repositoryAccess,
-          user,
-          data,
-        ),
-        tenant: {
-          type: 'repository',
-          id: `${data.owner}/${data.repo}`.toLowerCase(),
-        },
-        target: {
-          repository: data,
-          branch: data.branch,
-          collection: data.name,
-          ...(data.parent ? { path: data.parent } : {}),
-        },
-      },
+    return services.repositoryAccess.executeMutation(
+      user,
+      data,
+      'single',
       async () => {
-        const { createStructuredEntry } =
-          await import('#/server/entry-editor.server')
-        return createStructuredEntry({
-          database: services.cacheDatabase,
-          repositoryAccess: services.repositoryAccess,
-          user,
-          ...data,
+        const request: AccessRequest = {
+          operation: 'entry.create',
+          principal: await resolveRepositoryPrincipal(
+            services.repositoryAccess,
+            user,
+            data,
+          ),
+          tenant: {
+            type: 'repository',
+            id: `${data.owner}/${data.repo}`.toLowerCase(),
+          },
+          target: {
+            repository: data,
+            branch: data.branch,
+            collection: data.name,
+            ...(data.parent ? { path: data.parent } : {}),
+          },
+        }
+        return services.access.execute(request, async () => {
+          const { createStructuredEntry } =
+            await import('#/server/entry-editor.server')
+          const { contentWriteResponse } =
+            await import('#/server/content-write-response.server')
+          const result = await createStructuredEntry({
+            database: services.cacheDatabase,
+            repositoryAccess: services.repositoryAccess,
+            user,
+            ...data,
+          })
+          return contentWriteResponse(services.access, request, result)
         })
       },
     )
@@ -407,32 +457,41 @@ export const createRawCollectionEntry = createServerFn({ method: 'POST' })
       emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
-    return services.access.execute(
-      {
-        operation: 'entry.create',
-        principal: await resolveRepositoryPrincipal(
-          services.repositoryAccess,
-          user,
-          data,
-        ),
-        tenant: {
-          type: 'repository',
-          id: `${data.owner}/${data.repo}`.toLowerCase(),
-        },
-        target: {
-          repository: data,
-          branch: data.branch,
-          collection: data.name,
-          ...(data.parent ? { path: data.parent } : {}),
-        },
-      },
+    return services.repositoryAccess.executeMutation(
+      user,
+      data,
+      'single',
       async () => {
-        const { createRawEntry } = await import('#/server/entry-editor.server')
-        return createRawEntry({
-          database: services.cacheDatabase,
-          repositoryAccess: services.repositoryAccess,
-          user,
-          ...data,
+        const request: AccessRequest = {
+          operation: 'entry.create',
+          principal: await resolveRepositoryPrincipal(
+            services.repositoryAccess,
+            user,
+            data,
+          ),
+          tenant: {
+            type: 'repository',
+            id: `${data.owner}/${data.repo}`.toLowerCase(),
+          },
+          target: {
+            repository: data,
+            branch: data.branch,
+            collection: data.name,
+            ...(data.parent ? { path: data.parent } : {}),
+          },
+        }
+        return services.access.execute(request, async () => {
+          const { createRawEntry } =
+            await import('#/server/entry-editor.server')
+          const { contentWriteResponse } =
+            await import('#/server/content-write-response.server')
+          const result = await createRawEntry({
+            database: services.cacheDatabase,
+            repositoryAccess: services.repositoryAccess,
+            user,
+            ...data,
+          })
+          return contentWriteResponse(services.access, request, result)
         })
       },
     )
@@ -451,34 +510,41 @@ export const createCollectionFolder = createServerFn({ method: 'POST' })
       emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
-    return services.access.execute(
-      {
-        operation: 'entry.create',
-        principal: await resolveRepositoryPrincipal(
-          services.repositoryAccess,
-          user,
-          data,
-        ),
-        tenant: {
-          type: 'repository',
-          id: `${data.owner}/${data.repo}`.toLowerCase(),
-        },
-        target: {
-          repository: data,
-          branch: data.branch,
-          collection: data.name,
-          path: data.parent,
-        },
-      },
+    return services.repositoryAccess.executeMutation(
+      user,
+      data,
+      'single',
       async () => {
-        const { createContentFolder } =
-          await import('#/server/entry-editor.server')
-        return createContentFolder({
-          database: services.cacheDatabase,
-          repositoryAccess: services.repositoryAccess,
-          user,
-          ...data,
-        })
+        return services.access.execute(
+          {
+            operation: 'entry.create',
+            principal: await resolveRepositoryPrincipal(
+              services.repositoryAccess,
+              user,
+              data,
+            ),
+            tenant: {
+              type: 'repository',
+              id: `${data.owner}/${data.repo}`.toLowerCase(),
+            },
+            target: {
+              repository: data,
+              branch: data.branch,
+              collection: data.name,
+              path: data.parent,
+            },
+          },
+          async () => {
+            const { createContentFolder } =
+              await import('#/server/entry-editor.server')
+            return createContentFolder({
+              database: services.cacheDatabase,
+              repositoryAccess: services.repositoryAccess,
+              user,
+              ...data,
+            })
+          },
+        )
       },
     )
   })
@@ -496,34 +562,41 @@ export const deleteEntry = createServerFn({ method: 'POST' })
       emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
-    return services.access.execute(
-      {
-        operation: 'entry.delete',
-        principal: await resolveRepositoryPrincipal(
-          services.repositoryAccess,
-          user,
-          data,
-        ),
-        tenant: {
-          type: 'repository',
-          id: `${data.owner}/${data.repo}`.toLowerCase(),
-        },
-        target: {
-          repository: data,
-          branch: data.branch,
-          collection: data.name,
-          path: data.path,
-        },
-      },
+    return services.repositoryAccess.executeMutation(
+      user,
+      data,
+      'single',
       async () => {
-        const { deleteContentEntry } =
-          await import('#/server/entry-editor.server')
-        return deleteContentEntry({
-          database: services.cacheDatabase,
-          repositoryAccess: services.repositoryAccess,
-          user,
-          ...data,
-        })
+        return services.access.execute(
+          {
+            operation: 'entry.delete',
+            principal: await resolveRepositoryPrincipal(
+              services.repositoryAccess,
+              user,
+              data,
+            ),
+            tenant: {
+              type: 'repository',
+              id: `${data.owner}/${data.repo}`.toLowerCase(),
+            },
+            target: {
+              repository: data,
+              branch: data.branch,
+              collection: data.name,
+              path: data.path,
+            },
+          },
+          async () => {
+            const { deleteContentEntry } =
+              await import('#/server/entry-editor.server')
+            return deleteContentEntry({
+              database: services.cacheDatabase,
+              repositoryAccess: services.repositoryAccess,
+              user,
+              ...data,
+            })
+          },
+        )
       },
     )
   })
@@ -541,34 +614,41 @@ export const renameEntry = createServerFn({ method: 'POST' })
       emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
-    return services.access.execute(
-      {
-        operation: 'entry.rename',
-        principal: await resolveRepositoryPrincipal(
-          services.repositoryAccess,
-          user,
-          data,
-        ),
-        tenant: {
-          type: 'repository',
-          id: `${data.owner}/${data.repo}`.toLowerCase(),
-        },
-        target: {
-          repository: data,
-          branch: data.branch,
-          collection: data.name,
-          path: data.path,
-        },
-      },
+    return services.repositoryAccess.executeMutation(
+      user,
+      data,
+      'multi',
       async () => {
-        const { renameContentEntry } =
-          await import('#/server/entry-editor.server')
-        return renameContentEntry({
-          database: services.cacheDatabase,
-          repositoryAccess: services.repositoryAccess,
-          user,
-          ...data,
-        })
+        return services.access.execute(
+          {
+            operation: 'entry.rename',
+            principal: await resolveRepositoryPrincipal(
+              services.repositoryAccess,
+              user,
+              data,
+            ),
+            tenant: {
+              type: 'repository',
+              id: `${data.owner}/${data.repo}`.toLowerCase(),
+            },
+            target: {
+              repository: data,
+              branch: data.branch,
+              collection: data.name,
+              path: data.path,
+            },
+          },
+          async () => {
+            const { renameContentEntry } =
+              await import('#/server/entry-editor.server')
+            return renameContentEntry({
+              database: services.cacheDatabase,
+              repositoryAccess: services.repositoryAccess,
+              user,
+              ...data,
+            })
+          },
+        )
       },
     )
   })
@@ -586,35 +666,42 @@ export const moveEntry = createServerFn({ method: 'POST' })
       emailVerified: session.user.emailVerified,
       githubUsername: session.user.githubUsername ?? null,
     }
-    return services.access.execute(
-      {
-        operation: 'entry.rename',
-        principal: await resolveRepositoryPrincipal(
-          services.repositoryAccess,
-          user,
-          data,
-        ),
-        tenant: {
-          type: 'repository',
-          id: `${data.owner}/${data.repo}`.toLowerCase(),
-        },
-        target: {
-          repository: data,
-          branch: data.branch,
-          collection: data.name,
-          path: data.path,
-        },
-        facts: { newPath: data.newPath },
-      },
+    return services.repositoryAccess.executeMutation(
+      user,
+      data,
+      'multi',
       async () => {
-        const { moveContentEntry } =
-          await import('#/server/entry-editor.server')
-        return moveContentEntry({
-          database: services.cacheDatabase,
-          repositoryAccess: services.repositoryAccess,
-          user,
-          ...data,
-        })
+        return services.access.execute(
+          {
+            operation: 'entry.rename',
+            principal: await resolveRepositoryPrincipal(
+              services.repositoryAccess,
+              user,
+              data,
+            ),
+            tenant: {
+              type: 'repository',
+              id: `${data.owner}/${data.repo}`.toLowerCase(),
+            },
+            target: {
+              repository: data,
+              branch: data.branch,
+              collection: data.name,
+              path: data.path,
+            },
+            facts: { newPath: data.newPath },
+          },
+          async () => {
+            const { moveContentEntry } =
+              await import('#/server/entry-editor.server')
+            return moveContentEntry({
+              database: services.cacheDatabase,
+              repositoryAccess: services.repositoryAccess,
+              user,
+              ...data,
+            })
+          },
+        )
       },
     )
   })

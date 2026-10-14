@@ -259,7 +259,7 @@ export function createDirectoryCache({
     return {
       status: meta.status,
       revision: meta.commitSha,
-      filledAt: meta.commitTimestamp ?? meta.updatedAt,
+      filledAt: meta.refreshedAt ?? meta.updatedAt,
       lastCheckedAt: meta.lastCheckedAt,
       entries: rows.map((row): RepositoryDirectoryEntry => ({
         type: row.type === 'dir' ? 'dir' : 'file',
@@ -313,7 +313,7 @@ export function createDirectoryCache({
           cachePolicy(database).branchHeadMs,
           () => api.getRefSha(owner, repo, branch),
         )
-        const filledAt = snapshot.commitTimestamp ?? snapshot.updatedAt
+        const filledAt = snapshot.refreshedAt ?? snapshot.updatedAt
         const unchanged =
           snapshot.status === 'ok' &&
           snapshot.commitSha === revision &&

@@ -1,3 +1,4 @@
+import { pageTitle } from '#/lib/page-title'
 import { Link, createFileRoute, redirect } from '@tanstack/react-router'
 
 import { Button } from '#/components/ui/button'
@@ -26,6 +27,7 @@ export const Route = createFileRoute('/sign-in_/collaborator')({
     }
   },
   component: InvalidCollaboratorInvite,
+  head: () => pageTitle('Invitation unavailable'),
 })
 
 function InvalidCollaboratorInvite() {

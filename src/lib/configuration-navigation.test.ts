@@ -118,3 +118,28 @@ describe('getConfigurationNavigation', () => {
     ).toEqual([{ name: 'writing', label: 'writing' }])
   })
 })
+
+it('carries configured icons through normalization and grouped navigation', async () => {
+  const { normalizeConfiguration } = await import('./configuration')
+  const configuration = normalizeConfiguration({
+    content: [
+      {
+        type: 'group',
+        name: 'site',
+        items: [
+          {
+            type: 'collection',
+            name: 'posts',
+            path: 'posts',
+            icon: 'newspaper',
+          },
+          { type: 'file', name: 'home', path: 'home.md', icon: 'house' },
+        ],
+      },
+    ],
+  })
+  expect(getConfigurationNavigation(configuration)).toEqual([
+    { type: 'collection', name: 'posts', label: 'posts', icon: 'newspaper' },
+    { type: 'file', name: 'home', label: 'home', icon: 'house' },
+  ])
+})

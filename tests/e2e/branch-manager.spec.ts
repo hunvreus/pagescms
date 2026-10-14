@@ -73,7 +73,7 @@ test('branch commands support filtering and keyboard navigation', async ({
   await expect(branch).toBeVisible()
   await search.press('ArrowDown')
   await search.press('Enter')
-  await expect(page).toHaveURL(/\/fixture\/preview\//)
+  await expect(page).toHaveURL(/\/fixture\/preview(?:\/|$)/)
   await expect(dialog).toHaveCount(0)
   await page.waitForLoadState('networkidle')
   await page.getByRole('button', { name: /fixture preview$/ }).click()

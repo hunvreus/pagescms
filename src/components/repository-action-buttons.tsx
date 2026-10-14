@@ -1,6 +1,11 @@
-import { useState } from 'react'
+import {
+  operationKey,
+  refreshQueries,
+  useOperation,
+} from '#/features/operations/use-operation'
+import { useId, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { LoaderCircle, Play, X } from 'lucide-react'
+import { LoaderCircle, Play } from 'lucide-react'
 
 import { runAction } from '#/functions/actions'
 import { OperationError } from '#/components/operation-error'
@@ -9,6 +14,33 @@ import type { RepositoryAction } from '#/lib/actions'
 import { actionsQueryOptions } from '#/queries/repository'
 
 import { Button } from './ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog'
+import { Field, FieldGroup, FieldLabel } from './ui/field'
+import { Checkbox } from './ui/checkbox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select'
 import { Input } from './ui/input'
 import { Textarea } from './ui/textarea'
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from './ui/sidebar'
@@ -33,57 +65,86 @@ export function RepositoryActionButtons({
   disabled?: boolean
   layout?: 'header' | 'sidebar'
 }) {
+  const fieldPrefix = useId()
   const queryClient = useQueryClient()
   const [selected, setSelected] = useState<RepositoryAction | null>(null)
   const [values, setValues] = useState<Partial<Record<string, ActionValue>>>({})
-  const [running, setRunning] = useState(false)
+  const operation = useOperation<Awaited<ReturnType<typeof runAction>>>(
+    operationKey('workflow-dispatch', coordinates),
+  )
+  const running = operation.pending
+  const [activeAction, setActiveAction] = useState<string | null>(null)
+  const trigger = useRef<HTMLElement | null>(null)
+  const dispatching = useRef(false)
   const [error, setError] = useState<unknown>(null)
 
-  async function dispatch(action: RepositoryAction) {
-    if (disabled) return
-    const confirmation = action.confirm
-    if (confirmation !== false && !action.fields?.length) {
-      const prompt =
-        typeof confirmation === 'object' && confirmation.message
-          ? confirmation.message
-          : `Run ${action.label}?`
-      if (!window.confirm(prompt)) return
-    }
-    setRunning(true)
+  async function dispatch(action: RepositoryAction, inputs = values) {
+    if (disabled || running || dispatching.current) return
+    dispatching.current = true
+    setActiveAction(action.name)
     setError(null)
     try {
-      const run = await runAction({
-        data: {
-          ...coordinates,
-          actionName: action.name,
-          inputs: values,
-          context,
+      await operation.run({
+        run: () =>
+          runAction({
+            data: { ...coordinates, actionName: action.name, inputs, context },
+          }),
+        failureMessage: 'Could not run action.',
+        confirmed: async (run, active) => {
+          if (!active()) return
+          const { actionRunTracking } =
+            await import('#/lib/action-run-tracking')
+          if (!active()) return
+          actionRunTracking(queryClient).track(coordinates, run, action.label)
+          refreshQueries(queryClient, [
+            actionsQueryOptions(coordinates).queryKey,
+          ])
         },
-      })
-      await queryClient.invalidateQueries({
-        queryKey: actionsQueryOptions(coordinates).queryKey,
       })
       setSelected(null)
       setValues({})
-      const { actionRunTracking } = await import('#/lib/action-run-tracking')
-      actionRunTracking(queryClient).track(coordinates, run, action.label)
     } catch (cause) {
       setError(cause)
     } finally {
-      setRunning(false)
+      dispatching.current = false
+      setActiveAction(null)
     }
   }
 
-  function choose(action: RepositoryAction) {
-    if (disabled) return
-    if (!action.fields?.length) {
-      void dispatch(action)
-      return
-    }
+  function choose(action: RepositoryAction, element: HTMLElement) {
+    if (disabled || running || dispatching.current) return
+    trigger.current = element
     setValues({})
     setError(null)
+    if (action.confirm === false && !action.fields?.length) {
+      void dispatch(action, {})
+      return
+    }
     setSelected(action)
   }
+
+  function close(open: boolean) {
+    if (!open) {
+      setSelected(null)
+      setValues({})
+      setError(null)
+    }
+  }
+
+  function restoreFocus(event: Event) {
+    event.preventDefault()
+    trigger.current?.focus()
+  }
+
+  const confirmation =
+    selected && typeof selected.confirm === 'object'
+      ? selected.confirm
+      : undefined
+  const title =
+    confirmation?.title ?? (selected ? `Run ${selected.label}?` : '')
+  const message =
+    confirmation?.message ?? 'This will start a GitHub Actions workflow.'
+  const button = confirmation?.button ?? selected?.label
 
   if (!actions.length) return null
   return (
@@ -94,16 +155,21 @@ export function RepositoryActionButtons({
           : 'relative flex flex-wrap items-center justify-end gap-2'
       }
     >
-      <OperationError error={error} fallback="Could not run action." />
+      {!selected ? (
+        <OperationError
+          error={error ?? operation.error}
+          fallback="Could not run action."
+        />
+      ) : null}
       {layout === 'sidebar' ? (
         <SidebarMenu>
           {actions.map((action) => (
             <SidebarMenuItem key={action.name}>
               <SidebarMenuButton
                 disabled={disabled || running}
-                onClick={() => choose(action)}
+                onClick={(event) => choose(action, event.currentTarget)}
               >
-                {running && selected?.name === action.name ? (
+                {running && activeAction === action.name ? (
                   <LoaderCircle className="animate-spin" />
                 ) : (
                   <Play />
@@ -121,9 +187,9 @@ export function RepositoryActionButtons({
             size="default"
             type="button"
             variant="outline"
-            onClick={() => choose(action)}
+            onClick={(event) => choose(action, event.currentTarget)}
           >
-            {running && selected?.name === action.name ? (
+            {running && activeAction === action.name ? (
               <LoaderCircle className="animate-spin" />
             ) : (
               <Play />
@@ -132,98 +198,165 @@ export function RepositoryActionButtons({
           </Button>
         ))
       )}
-      {selected ? (
-        <form
-          className="absolute right-0 top-full z-20 mt-2 w-80 space-y-4 rounded-xl border bg-popover p-4 text-popover-foreground shadow-lg"
-          onSubmit={(event) => {
-            event.preventDefault()
-            void dispatch(selected)
-          }}
-        >
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="font-semibold">{selected.label}</h2>
-            <Button
-              aria-label="Close action form"
-              size="icon"
-              type="button"
-              variant="ghost"
-              onClick={() => setSelected(null)}
+      {selected?.fields?.length ? (
+        <Dialog open onOpenChange={close}>
+          <DialogContent
+            showCloseButton={!running}
+            onCloseAutoFocus={restoreFocus}
+          >
+            <DialogHeader>
+              <DialogTitle>{title}</DialogTitle>
+              <DialogDescription>{message}</DialogDescription>
+            </DialogHeader>
+            <form
+              className="space-y-4"
+              onSubmit={(event) => {
+                event.preventDefault()
+                void dispatch(selected)
+              }}
             >
-              <X />
-            </Button>
-          </div>
-          {selected.fields?.map((field) => {
-            const value =
-              values[field.name] ??
-              field.default ??
-              (field.type === 'checkbox' ? false : '')
-            const update = (next: ActionValue | undefined) =>
-              setValues((current) => {
-                const result = { ...current }
-                if (next === undefined) delete result[field.name]
-                else result[field.name] = next
-                return result
-              })
-            return (
-              <label className="block space-y-2" key={field.name}>
-                <span className="text-sm font-medium">
-                  {field.label}
-                  {field.required ? ' *' : ''}
-                </span>
-                {field.type === 'textarea' ? (
-                  <Textarea
-                    value={String(value)}
-                    onChange={(event) => update(event.target.value)}
-                  />
-                ) : field.type === 'select' ? (
-                  <select
-                    className="h-10 w-full rounded-lg border bg-background px-3 text-sm"
-                    required={field.required}
-                    value={String(value)}
-                    onChange={(event) => update(event.target.value)}
-                  >
-                    <option value="">Select…</option>
-                    {field.options?.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                ) : field.type === 'checkbox' ? (
-                  <input
-                    checked={value === true}
-                    className="size-4"
-                    type="checkbox"
-                    onChange={(event) => update(event.target.checked)}
-                  />
-                ) : (
-                  <Input
-                    required={field.required}
-                    type={field.type === 'number' ? 'number' : 'text'}
-                    value={
-                      typeof value === 'string' || typeof value === 'number'
-                        ? value
-                        : ''
-                    }
-                    onChange={(event) =>
-                      update(
-                        field.type === 'number'
-                          ? event.target.value === ''
-                            ? undefined
-                            : event.target.valueAsNumber
-                          : event.target.value,
-                      )
-                    }
-                  />
-                )}
-              </label>
-            )
-          })}
-          <Button disabled={running} type="submit">
-            {running ? <LoaderCircle className="animate-spin" /> : <Play />}
-            {running ? 'Starting' : selected.label}
-          </Button>
-        </form>
+              <FieldGroup className="max-h-[60vh] overflow-y-auto">
+                {selected.fields.map((field) => {
+                  const value =
+                    values[field.name] ??
+                    field.default ??
+                    (field.type === 'checkbox' ? false : '')
+                  const update = (next: ActionValue | undefined) =>
+                    setValues((current) => {
+                      const result = { ...current }
+                      if (next === undefined) delete result[field.name]
+                      else result[field.name] = next
+                      return result
+                    })
+                  const id = `${fieldPrefix}-${field.name}`
+                  const label = (
+                    <FieldLabel htmlFor={id}>
+                      {field.label}
+                      {field.required ? ' *' : ''}
+                    </FieldLabel>
+                  )
+                  return (
+                    <Field
+                      key={field.name}
+                      orientation={
+                        field.type === 'checkbox' ? 'horizontal' : 'vertical'
+                      }
+                      data-disabled={running}
+                    >
+                      {field.type !== 'checkbox' ? label : null}
+                      {field.type === 'textarea' ? (
+                        <Textarea
+                          id={id}
+                          disabled={running}
+                          required={field.required}
+                          value={String(value)}
+                          onChange={(event) => update(event.target.value)}
+                        />
+                      ) : field.type === 'select' ? (
+                        <Select
+                          name={field.name}
+                          disabled={running}
+                          required={field.required}
+                          value={String(value)}
+                          onValueChange={update}
+                        >
+                          <SelectTrigger id={id} className="w-full">
+                            <SelectValue placeholder="Select…" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {field.options?.map((option) => (
+                              <SelectItem
+                                key={option.value}
+                                value={option.value}
+                              >
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : field.type === 'checkbox' ? (
+                        <Checkbox
+                          id={id}
+                          disabled={running}
+                          checked={value === true}
+                          onCheckedChange={(checked) =>
+                            update(checked === true)
+                          }
+                        />
+                      ) : (
+                        <Input
+                          id={id}
+                          disabled={running}
+                          required={field.required}
+                          type={field.type === 'number' ? 'number' : 'text'}
+                          value={
+                            typeof value === 'string' ||
+                            typeof value === 'number'
+                              ? value
+                              : ''
+                          }
+                          onChange={(event) =>
+                            update(
+                              field.type === 'number'
+                                ? event.target.value === ''
+                                  ? undefined
+                                  : event.target.valueAsNumber
+                                : event.target.value,
+                            )
+                          }
+                        />
+                      )}
+                      {field.type === 'checkbox' ? label : null}
+                    </Field>
+                  )
+                })}
+              </FieldGroup>
+              <OperationError
+                error={error ?? operation.error}
+                fallback="Could not run action."
+              />
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => close(false)}
+                >
+                  {running ? 'Close' : 'Cancel'}
+                </Button>
+                <Button disabled={disabled || running} type="submit">
+                  {running ? 'Starting' : button}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      ) : selected ? (
+        <AlertDialog open onOpenChange={close}>
+          <AlertDialogContent onCloseAutoFocus={restoreFocus}>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{title}</AlertDialogTitle>
+              <AlertDialogDescription>{message}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <OperationError
+              error={error ?? operation.error}
+              fallback="Could not run action."
+            />
+            <AlertDialogFooter>
+              <AlertDialogCancel>
+                {running ? 'Close' : 'Cancel'}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                disabled={disabled || running}
+                onClick={(event) => {
+                  event.preventDefault()
+                  void dispatch(selected)
+                }}
+              >
+                {running ? 'Starting' : button}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       ) : null}
     </div>
   )
