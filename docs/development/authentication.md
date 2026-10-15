@@ -22,6 +22,8 @@ http://localhost:3000/api/auth/callback/github
 
 Replace `3000` with the active Vite port when it differs. Better Auth accepts the active localhost port, but GitHub requires the callback URL to match it exactly.
 
+Google sign-in is enabled when both `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are present. Create a web application OAuth client with the exact callback `<BETTER_AUTH_URL>/api/auth/callback/google`. Use separate Google Cloud projects for Local, Staging, and Production, as required by [Google's deployment-tier policy](https://developers.google.com/identity/protocols/oauth2/production-readiness/policy-compliance). Staging uses `https://staging.pagescms.org/api/auth/callback/google`. Request only `openid`, `email`, and `profile`; Google sign-in does not grant GitHub repository access. Repository access still requires a linked GitHub account or an authorized collaborator membership.
+
 Email-code sign-in is enabled when a trusted build-time plugin creates an email provider from the runtime environment. The bundled Resend plugin activates when both `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are configured. A deployment can remove it and install a custom provider without changing authentication. See [`plugins.md`](./plugins.md).
 
 ## Runtime behavior
@@ -37,5 +39,5 @@ Ordinary entry and media mutations select the current user token without a GitHu
 - Installation/repository removal atomically revokes collaborators and their pending invitations before disposable cache cleanup. Application and cache storage can be separate databases: failed cache cleanup is retried, not treated as a distributed transaction.
 - Unauthenticated application routes redirect to `/sign-in` with a validated internal return path.
 - Session reads are memoized per request and route results use short stale times to keep navigation responsive without making sign-out changes linger.
-- GitHub credentials are optional, but both values must be configured together.
+- GitHub and Google credentials are optional; each provider's client ID and secret must be configured together.
 - Hosted mode still requires an access-policy plugin; authentication never bypasses application authorization.

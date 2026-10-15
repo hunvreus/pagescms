@@ -16,6 +16,8 @@
 
 ### Added
 
+- Optional Google sign-in using a separate OAuth client per environment, verified email checks, and existing repository authorization.
+
 - Three-way local draft review after GitHub save conflicts, with nested field choices, conservative whole-list handling, desktop/mobile layouts, and direct saving of reviewed choices with stale-write checks and retryable draft recovery.
 - Show the local draft’s age beside Save in a ghost button; clicking it opens a shadcn popover with save details and a Discard draft action, including for invalid content.
 

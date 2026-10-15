@@ -64,6 +64,23 @@ describe('parseRuntimeConfiguration', () => {
     })
   })
 
+  it('enables Google independently of GitHub when both credentials are set', () => {
+    expect(
+      parseRuntimeConfiguration({
+        ...base,
+        GOOGLE_CLIENT_ID: 'google-client-id',
+        GOOGLE_CLIENT_SECRET: 'google-client-secret',
+      }).auth,
+    ).toEqual({
+      baseUrl: base.BETTER_AUTH_URL,
+      secret: base.BETTER_AUTH_SECRET,
+      google: {
+        clientId: 'google-client-id',
+        clientSecret: 'google-client-secret',
+      },
+    })
+  })
+
   it('accepts complete GitHub App server credentials', () => {
     const cryptoKey = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)))
     expect(
@@ -105,6 +122,8 @@ describe('parseRuntimeConfiguration', () => {
     [{ ...base, BETTER_AUTH_URL: 'not-a-url' }, 'valid HTTP'],
     [{ ...base, DATABASE_URL: undefined }, 'database URL or D1 binding'],
     [{ ...base, GITHUB_APP_CLIENT_ID: 'only-one' }, 'provided together'],
+    [{ ...base, GOOGLE_CLIENT_ID: 'only-one' }, 'Google OAuth credentials'],
+    [{ ...base, GOOGLE_CLIENT_SECRET: 'only-one' }, 'Google OAuth credentials'],
     [{ ...base, GITHUB_APP_ID: '123' }, 'must be provided together'],
     [
       {

@@ -12,6 +12,7 @@ export interface AuthenticationState {
   user: CurrentUser | null
   methods: {
     github: boolean
+    google: boolean
     email: boolean
   }
 }
@@ -33,6 +34,7 @@ export const getAuthenticationState = createServerFn({ method: 'GET' }).handler(
         : null,
       methods: {
         github: Boolean(services.configuration.auth.github),
+        google: Boolean(services.configuration.auth.google),
         email: services.authenticationMethods.email,
       },
     }

@@ -50,6 +50,10 @@ describe('createPagesCmsAuth', () => {
         baseUrl: 'https://app.pagescms.org',
         secret: 'a-secure-auth-secret-with-32-characters',
         github: { clientId: 'client-id', clientSecret: 'client-secret' },
+        google: {
+          clientId: 'google-client-id',
+          clientSecret: 'google-client-secret',
+        },
       },
       emailProvider: { send: vi.fn(async () => undefined) },
     })
@@ -61,20 +65,33 @@ describe('createPagesCmsAuth', () => {
     expect(auth.options.socialProviders.github?.requireEmailVerification).toBe(
       true,
     )
+    expect(auth.options.socialProviders.google).toMatchObject({
+      clientId: 'google-client-id',
+      clientSecret: 'google-client-secret',
+      disableDefaultScope: true,
+      scope: ['openid', 'email', 'profile'],
+      overrideUserInfoOnSignIn: false,
+    })
     const validate = auth.options.user.validateUserInfo
-    for (const action of ['create-user', 'link-account', 'sign-in'] as const) {
-      expect(
-        await validate({
-          user: { emailVerified: false },
-          source: { method: 'oauth', action, oauth: { providerId: 'github' } },
-        }),
-      ).toMatchObject({ error: 'email_not_verified' })
-      expect(
-        await validate({
-          user: { emailVerified: true },
-          source: { method: 'oauth', action, oauth: { providerId: 'github' } },
-        }),
-      ).toBeUndefined()
+    for (const providerId of ['github', 'google']) {
+      for (const action of [
+        'create-user',
+        'link-account',
+        'sign-in',
+      ] as const) {
+        expect(
+          await validate({
+            user: { emailVerified: false },
+            source: { method: 'oauth', action, oauth: { providerId } },
+          }),
+        ).toMatchObject({ error: 'email_not_verified' })
+        expect(
+          await validate({
+            user: { emailVerified: true },
+            source: { method: 'oauth', action, oauth: { providerId } },
+          }),
+        ).toBeUndefined()
+      }
     }
     expect(
       await validate({

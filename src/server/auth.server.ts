@@ -73,24 +73,38 @@ export function createPagesCmsAuth({
         allowUnlinkingAll: false,
       },
     },
-    socialProviders: configuration.github
-      ? {
-          github: {
-            requireEmailVerification: true,
-            clientId: configuration.github.clientId,
-            clientSecret: configuration.github.clientSecret,
-            overrideUserInfoOnSignIn: false,
-            mapProfileToUser: (profile) => ({
-              name: (profile as { name?: string | null }).name ?? profile.login,
-              image:
-                (profile as { avatar_url?: string | null }).avatar_url ??
-                undefined,
-              githubUsername: profile.login,
-            }),
-            scope: ['repo', 'user:email'],
-          },
-        }
-      : {},
+    socialProviders: {
+      ...(configuration.github
+        ? {
+            github: {
+              requireEmailVerification: true,
+              clientId: configuration.github.clientId,
+              clientSecret: configuration.github.clientSecret,
+              overrideUserInfoOnSignIn: false,
+              mapProfileToUser: (profile) => ({
+                name:
+                  (profile as { name?: string | null }).name ?? profile.login,
+                image:
+                  (profile as { avatar_url?: string | null }).avatar_url ??
+                  undefined,
+                githubUsername: profile.login,
+              }),
+              scope: ['repo', 'user:email'],
+            },
+          }
+        : {}),
+      ...(configuration.google
+        ? {
+            google: {
+              clientId: configuration.google.clientId,
+              clientSecret: configuration.google.clientSecret,
+              overrideUserInfoOnSignIn: false,
+              disableDefaultScope: true,
+              scope: ['openid', 'email', 'profile'],
+            },
+          }
+        : {}),
+    },
     database: drizzleAdapter(database, {
       provider: 'sqlite',
       schema: {

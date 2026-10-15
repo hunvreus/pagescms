@@ -12,7 +12,8 @@ import { emailOtp, signIn } from '#/lib/auth-client'
 import type { AuthenticationState } from '#/functions/auth'
 
 type SignInStep = 'email' | 'otp'
-type PendingMethod = 'github' | 'email' | 'otp' | null
+type SocialProvider = 'github' | 'google'
+type PendingMethod = SocialProvider | 'email' | 'otp' | null
 
 function errorCode(error: unknown) {
   if (typeof error !== 'object' || error === null || !('code' in error)) return
@@ -45,12 +46,12 @@ export function SignInForm({
   const [validationError, setValidationError] = useState<string>()
   const busy = pending !== null
 
-  async function signInWithGithub() {
+  async function signInWithProvider(provider: SocialProvider) {
     setError(null)
-    setPending('github')
+    setPending(provider)
     try {
       const result = await signIn.social({
-        provider: 'github',
+        provider,
         callbackURL: callbackUrl,
         errorCallbackURL: '/auth/error',
         disableRedirect: true,
@@ -62,7 +63,7 @@ export function SignInForm({
       setError(
         authenticationError(
           cause,
-          'GitHub sign-in is temporarily unavailable. Try again.',
+          `${provider === 'github' ? 'GitHub' : 'Google'} sign-in is temporarily unavailable. Try again.`,
         ),
       )
       setPending(null)
@@ -191,22 +192,40 @@ export function SignInForm({
         fallback="Sign-in is temporarily unavailable. Try again."
       />
 
-      {methods.github ? (
-        <Button
-          className="w-full"
-          disabled={busy}
-          onClick={() => void signInWithGithub()}
-          type="button"
-        >
-          <GitHubIcon />
-          Sign in with GitHub
-          {pending === 'github' ? (
-            <LoaderCircle className="animate-spin" />
+      {methods.github || methods.google ? (
+        <div className="space-y-2">
+          {methods.github ? (
+            <Button
+              className="w-full"
+              disabled={busy}
+              onClick={() => void signInWithProvider('github')}
+              type="button"
+            >
+              <GitHubIcon />
+              Sign in with GitHub
+              {pending === 'github' ? (
+                <LoaderCircle className="animate-spin" />
+              ) : null}
+            </Button>
           ) : null}
-        </Button>
+          {methods.google ? (
+            <Button
+              className="w-full"
+              disabled={busy}
+              onClick={() => void signInWithProvider('google')}
+              type="button"
+              variant="outline"
+            >
+              Sign in with Google
+              {pending === 'google' ? (
+                <LoaderCircle className="animate-spin" />
+              ) : null}
+            </Button>
+          ) : null}
+        </div>
       ) : null}
 
-      {methods.github && methods.email ? (
+      {(methods.github || methods.google) && methods.email ? (
         <div className="relative text-center text-xs uppercase text-muted-foreground before:absolute before:inset-x-0 before:top-1/2 before:border-t before:border-border">
           <span className="relative bg-background px-2">Or</span>
         </div>
@@ -246,10 +265,10 @@ export function SignInForm({
         </form>
       ) : null}
 
-      {!methods.github && !methods.email ? (
+      {!methods.github && !methods.google && !methods.email ? (
         <p className="rounded-lg border bg-muted/50 p-4 text-sm leading-6 text-muted-foreground">
-          No sign-in provider is configured. Add GitHub credentials or an email
-          plugin to this deployment.
+          No sign-in provider is configured. Add GitHub or Google credentials,
+          or an email plugin to this deployment.
         </p>
       ) : null}
 

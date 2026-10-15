@@ -8,6 +8,10 @@ export type AuthRuntimeConfiguration = Readonly<{
     clientId: string
     clientSecret: string
   }>
+  google?: Readonly<{
+    clientId: string
+    clientSecret: string
+  }>
 }>
 
 export type RuntimeConfiguration = Readonly<{
@@ -145,6 +149,11 @@ export function parseRuntimeConfiguration(
   if (Boolean(clientId) !== Boolean(clientSecret)) {
     throw new Error('GitHub OAuth credentials must be provided together')
   }
+  const googleClientId = optionalString(environment.GOOGLE_CLIENT_ID)
+  const googleClientSecret = optionalString(environment.GOOGLE_CLIENT_SECRET)
+  if (Boolean(googleClientId) !== Boolean(googleClientSecret)) {
+    throw new Error('Google OAuth credentials must be provided together')
+  }
 
   const deploymentValue =
     optionalString(environment.DEPLOYMENT_MODE) ?? 'self-hosted'
@@ -189,6 +198,14 @@ export function parseRuntimeConfiguration(
       secret,
       ...(clientId && clientSecret
         ? { github: { clientId, clientSecret } }
+        : {}),
+      ...(googleClientId && googleClientSecret
+        ? {
+            google: {
+              clientId: googleClientId,
+              clientSecret: googleClientSecret,
+            },
+          }
         : {}),
     },
     ...databases,
