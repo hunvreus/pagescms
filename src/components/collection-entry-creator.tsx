@@ -15,6 +15,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 
 import { StructuredContentField } from '#/components/structured-content-field'
+import { ContentEntryFieldsSkeleton } from '#/components/content-entry-skeleton'
 import { isContentField } from '#/lib/content-field'
 import { OperationError } from '#/components/operation-error'
 import { Button } from '#/components/ui/button'
@@ -312,7 +313,9 @@ export function CollectionEntryCreator({
               </Field>
             )}
           </FieldGroup>
-        ) : null}
+        ) : (
+          <ContentEntryFieldsSkeleton />
+        )}
       </div>
     </form>
   )

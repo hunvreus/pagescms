@@ -15,6 +15,7 @@ import { ContentDraftRecovery } from '#/features/drafts/content-draft-status'
 import { DraftSaveButton } from '#/features/drafts/draft-save-button'
 import { FileEditorHistory } from '#/components/file-editor-history'
 import { EditorLayout } from '#/components/editor-layout'
+import { ContentEntryFieldsSkeleton } from '#/components/content-entry-skeleton'
 import { FileEditorMenu } from '#/components/file-editor-menu'
 import { lazy, Suspense, useRef, useState } from 'react'
 import { ClientOnly } from '@tanstack/react-router'
@@ -49,7 +50,6 @@ import {
 
 import { Field, FieldGroup, FieldLabel } from '#/components/ui/field'
 import { Input } from '#/components/ui/input'
-import { Skeleton } from '#/components/ui/skeleton'
 import { buildEntryBreadcrumb } from '#/features/editor/entry-breadcrumb'
 import { EntryPageHeader } from '#/features/editor/entry-page-header'
 import {
@@ -320,8 +320,8 @@ function RawEntryEditor({
       {merge.dialog}
       {commitMessage.dialog}
       {draft.ready ? (
-        <ClientOnly fallback={<Skeleton className="min-h-32" />}>
-          <Suspense fallback={<Skeleton className="min-h-32" />}>
+        <ClientOnly fallback={<ContentEntryFieldsSkeleton />}>
+          <Suspense fallback={<ContentEntryFieldsSkeleton />}>
             <CodeEditor
               disabled={deletion.deleting || rename.renaming}
               label="Entry source"
@@ -334,7 +334,7 @@ function RawEntryEditor({
           </Suspense>
         </ClientOnly>
       ) : (
-        <Skeleton className="min-h-32" />
+        <ContentEntryFieldsSkeleton />
       )}
     </EditorLayout>
   )
@@ -547,7 +547,7 @@ function StructuredEntryEditor({
           )}
         </FieldGroup>
       ) : (
-        <Skeleton className="min-h-32" />
+        <ContentEntryFieldsSkeleton />
       )}
     </EditorLayout>
   )

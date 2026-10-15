@@ -115,7 +115,7 @@ export function CacheFiles({
             </TableHeader>
             <TableBody>
               {query.isPending ? (
-                Array.from({ length: 5 }, (_, row) => (
+                Array.from({ length: 10 }, (_, row) => (
                   <TableRow key={row} className="h-10 hover:bg-transparent">
                     <TableCell>
                       <Skeleton className="h-4 w-3/4" />

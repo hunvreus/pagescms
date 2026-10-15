@@ -6,8 +6,32 @@ import {
   BreadcrumbSeparator,
 } from '#/components/ui/breadcrumb'
 import { Button } from '#/components/ui/button'
-import { FieldGroup } from '#/components/ui/field'
+import { ButtonGroup } from '#/components/ui/button-group'
+import { Field, FieldGroup } from '#/components/ui/field'
 import { Skeleton } from '#/components/ui/skeleton'
+
+export function ContentEntryFieldsSkeleton() {
+  return (
+    <FieldGroup role="status" aria-label="Loading editor fields">
+      <Field>
+        <div data-slot="field-header" className="flex min-h-6 items-center">
+          <Skeleton className="h-4 w-24" />
+        </div>
+        <Skeleton className="h-8 w-full rounded-lg" />
+      </Field>
+      <Field>
+        <div
+          data-slot="field-header"
+          className="flex min-h-6 items-center justify-between gap-2"
+        >
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-7 w-24 rounded-lg" />
+        </div>
+        <Skeleton className="h-32 w-full rounded-lg" />
+      </Field>
+    </FieldGroup>
+  )
+}
 
 export function ContentEntrySkeleton() {
   return (
@@ -15,19 +39,21 @@ export function ContentEntrySkeleton() {
       <RepositoryPageHeader
         actions={
           <>
-            <Button
-              aria-label="Entry history"
-              disabled
-              size="icon"
-              variant="outline"
-            />
             <Button disabled>Save</Button>
-            <Button
-              aria-label="Entry actions"
-              disabled
-              size="icon"
-              variant="outline"
-            />
+            <ButtonGroup aria-label="History and entry actions">
+              <Button
+                aria-label="Entry history"
+                disabled
+                size="icon"
+                variant="outline"
+              />
+              <Button
+                aria-label="Entry actions"
+                disabled
+                size="icon"
+                variant="outline"
+              />
+            </ButtonGroup>
           </>
         }
       >
@@ -44,18 +70,7 @@ export function ContentEntrySkeleton() {
         </Breadcrumb>
       </RepositoryPageHeader>
       <div className="mx-auto max-w-3xl p-4 md:p-6">
-        <FieldGroup>
-          {[0, 1, 2, 3].map((index) => (
-            <div className="space-y-2" key={index}>
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-9 w-full" />
-            </div>
-          ))}
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-16" />
-            <Skeleton className="h-72 w-full" />
-          </div>
-        </FieldGroup>
+        <ContentEntryFieldsSkeleton />
       </div>
     </div>
   )

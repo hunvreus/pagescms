@@ -1,4 +1,5 @@
 import { ContentIcon } from '#/components/content-icon'
+import { RepositoryMobileHeader } from '#/components/repository-page-header'
 import { CreateBranchDialog } from '#/features/projects/create-branch-dialog'
 import { Fragment, useCallback, useState } from 'react'
 import { Link, useRouterState } from '@tanstack/react-router'
@@ -147,9 +148,9 @@ export function RepositoryWorkspace({
           user={user}
         />
         <SidebarInset className="min-h-screen">
-          <header className="sticky top-0 z-30 flex h-12 items-center border-b bg-background px-3 md:hidden">
+          <RepositoryMobileHeader>
             <SidebarTrigger />
-          </header>
+          </RepositoryMobileHeader>
           <main className="min-w-0 flex-1 p-4 md:p-6">{children}</main>
         </SidebarInset>
       </SidebarProvider>

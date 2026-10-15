@@ -810,8 +810,13 @@ test('nested conflicts keep field labels and remain inside the visible viewport 
     })
     await mine.press('Space')
     await expect(mine).toHaveAttribute('aria-checked', 'true')
-    await mine.press('ArrowRight')
-    await expect(saved).toHaveAttribute('aria-checked', 'true')
+    // Radix schedules roving focus; keep the key held through its focus handler.
+    await page.keyboard.down('ArrowRight')
+    try {
+      await expect(saved).toHaveAttribute('aria-checked', 'true')
+    } finally {
+      await page.keyboard.up('ArrowRight')
+    }
     await expect(mine).toHaveAttribute('aria-checked', 'false')
     const cdp = await context.newCDPSession(page)
     try {

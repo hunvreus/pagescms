@@ -10,7 +10,10 @@ import {
 import { useSuspenseQuery } from '@tanstack/react-query'
 
 import { RepositoryWorkspace } from '#/components/repository-workspace'
-import { RepositoryPageHeader } from '#/components/repository-page-header'
+import {
+  RepositoryMobileHeader,
+  RepositoryPageHeader,
+} from '#/components/repository-page-header'
 import { CollectionSkeleton } from '#/features/collections/collection-skeleton'
 import { trackRecentProject } from '#/features/projects/recent-projects'
 import { repositoryPendingContent } from '#/features/repository/repository-loading'
@@ -175,9 +178,9 @@ function WorkspaceLoading() {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="min-h-screen">
-        <header className="sticky top-0 z-30 flex h-12 items-center border-b bg-background px-3 md:hidden">
+        <RepositoryMobileHeader>
           <Skeleton className="size-8 rounded-md" />
-        </header>
+        </RepositoryMobileHeader>
         <main className="min-w-0 flex-1 p-4 md:p-6">
           {repositoryPendingContent(pathname) === 'collection' ? (
             <CollectionSkeleton />

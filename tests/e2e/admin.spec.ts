@@ -132,7 +132,11 @@ test('cache controls remain on the cache page', async ({ page }) => {
       exact: true,
     })
     await expect(loadingTable).toHaveAttribute('aria-busy', 'true')
-    await expect(loadingTable.locator('tbody tr')).toHaveCount(5)
+    await expect(loadingTable.locator('tbody tr')).toHaveCount(10)
+    await loadingTable.screenshot({
+      path: test.info().outputPath('cached-files-loading.png'),
+      animations: 'disabled',
+    })
     const initialFilter = page.getByRole('textbox', {
       name: 'Filter cached files',
     })

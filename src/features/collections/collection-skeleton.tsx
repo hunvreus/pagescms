@@ -121,7 +121,7 @@ export function CollectionSkeleton() {
         </TableHeader>
         <TableBody>
           {Array.from({ length: 8 }, (_, row) => (
-            <TableRow key={row}>
+            <TableRow key={row} className="hover:bg-transparent">
               <TableCell className={`py-0 ${columns[0].visibility}`}>
                 <Skeleton className="size-8" />
               </TableCell>

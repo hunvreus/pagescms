@@ -1,5 +1,45 @@
 import { expect, test } from './test'
 
+test('repository header borders appear only while the page is scrolled', async ({
+  page,
+}) => {
+  await page.goto(
+    '/pagescms/fixture/main/collection/posts/entry/content/posts/hello.md',
+  )
+  await expect(
+    page.getByRole('textbox', { name: 'Body', exact: true }),
+  ).toBeVisible()
+  for (const width of [390, 1280]) {
+    await page.setViewportSize({ width, height: 360 })
+    await page.evaluate(() => window.scrollTo(0, 0))
+    const headers = [page.locator('[data-slot="repository-page-header"]')]
+    if (width < 768)
+      headers.push(page.locator('[data-slot="repository-mobile-header"]'))
+    for (const header of headers)
+      await expect(header).toHaveCSS('border-bottom-color', 'rgba(0, 0, 0, 0)')
+    await page.screenshot({
+      path: test.info().outputPath(`header-top-${width}.png`),
+      animations: 'disabled',
+    })
+    await page.evaluate(() => window.scrollTo(0, 150))
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY))
+      .toBeGreaterThan(0)
+    for (const header of headers)
+      await expect(header).not.toHaveCSS(
+        'border-bottom-color',
+        'rgba(0, 0, 0, 0)',
+      )
+    await page.screenshot({
+      path: test.info().outputPath(`header-scrolled-${width}.png`),
+      animations: 'disabled',
+    })
+    await page.evaluate(() => window.scrollTo(0, 0))
+    for (const header of headers)
+      await expect(header).toHaveCSS('border-bottom-color', 'rgba(0, 0, 0, 0)')
+  }
+})
+
 test('editor breadcrumbs preload and navigate without reloading the document', async ({
   page,
 }) => {

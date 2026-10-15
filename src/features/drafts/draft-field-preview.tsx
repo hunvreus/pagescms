@@ -111,7 +111,7 @@ export function DraftFieldPreview({
     )
   }
   return (
-    <div className="pointer-events-none min-w-0 [&_input]:text-foreground! [&_textarea]:text-foreground! [&_input]:opacity-100! [&_textarea]:opacity-100! [&_[data-slot=select-trigger]]:opacity-100! [&_[data-slot=switch]]:opacity-100! [&_[data-slot=field-header]_[data-slot=badge]]:hidden">
+    <div className="pointer-events-none min-w-0 [&_input]:bg-transparent! [&_textarea]:bg-transparent! dark:[&_input]:bg-input/30! dark:[&_textarea]:bg-input/30! [&_input]:text-foreground! [&_textarea]:text-foreground! [&_input]:opacity-100! [&_textarea]:opacity-100! [&_[data-slot=select-trigger]]:opacity-100! [&_[data-slot=switch]]:opacity-100! [&_[data-slot=field-header]_[data-slot=badge]]:hidden">
       <StructuredContentField
         embedded
         inheritedReadonly

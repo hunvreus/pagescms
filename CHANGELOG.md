@@ -36,11 +36,19 @@
 
 ### Changed
 
+- Match read-only conflict input and textarea backgrounds to the rich-text preview; keep selection dimming on the whole unselected field.
+
+- Keep collection skeleton rows from highlighting on hover, matching other loading tables.
+
+- Show the mobile repository toolbar’s bottom border only after scrolling, including its loading state, matching page headers.
+
+- Use a labelled input and rich-text skeleton during entry loading, local draft lookup, and source-editor loading; match editor label heights, control sizes and field spacing, and show the same placeholders for new entries. Show ten rows while loading cached files.
+
 - Remove decorative icons from empty-state messages and their actions; label the missing-page link “Return home”.
 
 - Rework conflict review with plain copy, labelled read-only field comparisons, registry shadcn radios beside each field, dimmed unselected previews without card borders or selection backgrounds, sticky version headings aligned with the full column’s left edge, an inset header separator, and “Use all my changes” at the right edge of the “Your changes” column header on desktop. Align desktop version headings and mobile version labels with the radio/option’s left edge, keeping field controls inset on shared grid tracks. Ignore ProseMirror cursor widgets in first-content spacing rules so activating a Markdown label cannot add a leading-image gap. Save reviewed choices directly while preserving non-conflicting changes. Use standard dialog typography and cap its width at twice the editor maximum, centered in the visible viewport when zoomed or panned. Remove the original-value disclosure and provider-specific comparison labels.
 
-- Place editor History after Save, group History and the entry menu as outline buttons in content and configuration editors, and show persisted local drafts as a muted pencil icon with an “Unsaved changes” tooltip.
+- Place editor History after Save, group History and the entry menu as outline buttons in content and configuration editors.
 
 - Consolidate known file-change commits into `cache_file.commitSha`, remove the redundant `changeCommitSha` column while preserving known commit/date pairs, and label these correctly in the cache viewer. Directory snapshot revisions remain in metadata.
 

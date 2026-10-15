@@ -4,6 +4,35 @@ import { cn } from '#/lib/utils'
 
 import type { ReactNode } from 'react'
 
+function usePageScrolled() {
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const update = () => setScrolled(window.scrollY > 0)
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    return () => window.removeEventListener('scroll', update)
+  }, [])
+
+  return scrolled
+}
+
+export function RepositoryMobileHeader({ children }: { children: ReactNode }) {
+  const scrolled = usePageScrolled()
+
+  return (
+    <header
+      className={cn(
+        'sticky top-0 z-30 flex h-12 items-center border-b border-transparent bg-background px-3 md:hidden',
+        scrolled && 'border-border',
+      )}
+      data-slot="repository-mobile-header"
+    >
+      {children}
+    </header>
+  )
+}
+
 export function RepositoryPageHeader({
   actions,
   children,
@@ -15,15 +44,8 @@ export function RepositoryPageHeader({
   className?: string
   refreshing?: boolean
 }) {
-  const [scrolled, setScrolled] = useState(false)
+  const scrolled = usePageScrolled()
   const [announcedRefreshing, setAnnouncedRefreshing] = useState(false)
-
-  useEffect(() => {
-    const update = () => setScrolled(window.scrollY > 0)
-    update()
-    window.addEventListener('scroll', update, { passive: true })
-    return () => window.removeEventListener('scroll', update)
-  }, [])
 
   useEffect(() => {
     setAnnouncedRefreshing(refreshing)
