@@ -1,10 +1,34 @@
 import { expect, test } from './test'
+import type { Page } from '@playwright/test'
 
 const entry =
   '/pagescms/fixture/main/collection/posts/entry/content/posts/hello.md'
 test.setTimeout(60_000)
 
-const persisted = 'Unsaved changes'
+async function expectDraft(page: Page, text: string) {
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          new Promise<string>((resolve, reject) => {
+            const request = indexedDB.open('pagescms-content-drafts')
+            request.onsuccess = () => {
+              const read = request.result
+                .transaction('drafts')
+                .objectStore('drafts')
+                .getAll()
+              read.onsuccess = () => {
+                request.result.close()
+                resolve(JSON.stringify(read.result.map((draft) => draft.value)))
+              }
+              read.onerror = () => reject(read.error)
+            }
+            request.onerror = () => reject(request.error)
+          }),
+      ),
+    )
+    .toContain(text)
+}
 
 test('structured drafts survive reload and successful file saves clear them', async ({
   page,
@@ -16,24 +40,16 @@ test('structured drafts survive reload and successful file saves clear them', as
     page.getByText('Loading local draft…', { exact: true }),
   ).toHaveCount(0)
   await title.fill('Local recovered title')
+  await expectDraft(page, 'Local recovered title')
   await expect(
-    page
-      .locator('[data-slot="repository-page-header"]')
-      .getByRole('img', { name: persisted, exact: true }),
-  ).toBeVisible()
-  await page.getByRole('img', { name: persisted, exact: true }).focus()
-  await expect(page.getByRole('tooltip')).toContainText('Unsaved changes')
-  await page.keyboard.press('Escape')
+    page.getByRole('img', { name: 'Unsaved changes', exact: true }),
+  ).toHaveCount(0)
   await page.screenshot({
     path: test.info().outputPath('local-draft-status.png'),
   })
   await page.reload()
   await expect(title).toHaveValue('Local recovered title')
-  await expect(
-    page
-      .locator('[data-slot="repository-page-header"]')
-      .getByRole('img', { name: persisted, exact: true }),
-  ).toBeVisible()
+  await expectDraft(page, 'Local recovered title')
   await page.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(page.getByText('File saved', { exact: true })).toBeVisible()
   await expect
@@ -68,9 +84,7 @@ test('failed saves keep recoverable content and retry through the original file 
   const title = page.getByRole('textbox', { name: 'Title', exact: true })
   await page.waitForLoadState('networkidle')
   await title.fill('Keep this after failure')
-  await expect(
-    page.getByRole('img', { name: persisted, exact: true }),
-  ).toBeVisible()
+  await expectDraft(page, 'Keep this after failure')
   await page.route('**/*', async (route) => {
     if (route.request().method() === 'POST') await route.abort('failed')
     else await route.continue()
@@ -91,9 +105,7 @@ test('new-entry drafts restore before creation', async ({ page }) => {
   const title = page.getByRole('textbox', { name: 'Title', exact: true })
   await page.waitForLoadState('networkidle')
   await title.fill('Draft before creation')
-  await expect(
-    page.getByRole('img', { name: persisted, exact: true }),
-  ).toBeVisible()
+  await expectDraft(page, 'Draft before creation')
   await page.reload()
   await expect(title).toHaveValue('Draft before creation')
   await page.getByRole('button', { name: 'Create entry', exact: true }).click()
@@ -109,9 +121,7 @@ test('another tab cannot silently overwrite a newer local draft', async ({
   const title = page.getByRole('textbox', { name: 'Title', exact: true })
   await page.waitForLoadState('networkidle')
   await title.fill('First revision')
-  await expect(
-    page.getByRole('img', { name: persisted, exact: true }),
-  ).toBeVisible()
+  await expectDraft(page, 'First revision')
   const second = await context.newPage()
   await second.goto(entry)
   const secondTitle = second.getByRole('textbox', {
@@ -120,9 +130,7 @@ test('another tab cannot silently overwrite a newer local draft', async ({
   })
   await expect(secondTitle).toHaveValue('First revision')
   await secondTitle.fill('Newer revision in second tab')
-  await expect(
-    second.getByRole('img', { name: persisted, exact: true }),
-  ).toBeVisible()
+  await expectDraft(second, 'Newer revision in second tab')
   await page.waitForLoadState('networkidle')
   await title.fill('Stale tab revision')
   await expect(
@@ -142,16 +150,14 @@ test('raw content drafts survive reload', async ({ page }) => {
     exact: true,
   })
   await source.fill('const draftValue = 42;')
-  await expect(
-    page.getByRole('img', { name: persisted, exact: true }),
-  ).toBeVisible()
+  await expectDraft(page, 'const draftValue = 42;')
   await page.reload()
   await expect(source).toHaveText('const draftValue = 42;')
   await page.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(page.getByText('File saved', { exact: true })).toBeVisible()
 })
 
-test('restored drafts cannot overwrite a remotely changed file', async ({
+test('restored drafts require review before replacing a remotely changed field', async ({
   page,
   browser,
   context,
@@ -161,9 +167,7 @@ test('restored drafts cannot overwrite a remotely changed file', async ({
   await page.waitForLoadState('networkidle')
   const title = page.getByRole('textbox', { name: 'Title', exact: true })
   await title.fill('My local unsaved edit')
-  await expect(
-    page.getByRole('img', { name: persisted, exact: true }),
-  ).toBeVisible()
+  await expectDraft(page, 'My local unsaved edit')
   const otherContext = await browser.newContext({
     storageState: await context.storageState(),
     extraHTTPHeaders: { 'x-pagescms-e2e-scope': isolation.scope },
@@ -182,11 +186,17 @@ test('restored drafts cannot overwrite a remotely changed file', async ({
     await page.reload()
     await expect(title).toHaveValue('My local unsaved edit')
     await page.getByRole('button', { name: 'Save', exact: true }).click()
+    const review = page.getByRole('dialog', {
+      name: /Some changes need your review|Your changes are ready to combine|Choose which version to keep/,
+    })
+    await expect(review).toBeVisible()
     await expect(
-      page.getByText('File changed since this edit was opened', {
-        exact: true,
-      }),
+      review.getByRole('region', { name: 'Title', exact: true }),
     ).toBeVisible()
+    await expect(
+      review.getByRole('button', { name: 'Save changes' }),
+    ).toBeDisabled()
+    await review.getByRole('button', { name: 'Cancel', exact: true }).click()
     await expect(title).toHaveValue('My local unsaved edit')
     await other.reload()
     await expect(otherTitle).toHaveValue('Other editor published this')
@@ -201,14 +211,9 @@ test('undoing all edits clears the obsolete local draft', async ({ page }) => {
   const title = page.getByRole('textbox', { name: 'Title', exact: true })
   const original = await title.inputValue()
   await title.fill('An abandoned local edit')
-  await expect(
-    page.getByRole('img', { name: persisted, exact: true }),
-  ).toBeVisible()
+  await expectDraft(page, 'An abandoned local edit')
   await title.fill(original)
-  await expect(
-    page.getByRole('img', { name: persisted, exact: true }),
-  ).toHaveCount(0)
-  // The indicator clears immediately; wait for the debounced storage cleanup itself.
+  // Wait for the debounced storage cleanup before reloading.
   await expect
     .poll(() =>
       page.evaluate(
@@ -237,9 +242,7 @@ test('a draft based on a missing file cannot overwrite a file that appeared late
   await page.goto(entry)
   const title = page.getByRole('textbox', { name: 'Title', exact: true })
   await title.fill('Draft from before the file existed')
-  await expect(
-    page.getByRole('img', { name: persisted, exact: true }),
-  ).toBeVisible()
+  await expectDraft(page, 'Draft from before the file existed')
   // Model a previously saved local draft from the missing-file editor.
   await page.evaluate(
     () =>
@@ -262,6 +265,8 @@ test('a draft based on a missing file cannot overwrite a file that appeared late
   await page.reload()
   await expect(title).toHaveValue('Draft from before the file existed')
   await page.getByRole('button', { name: 'Save', exact: true }).click()
+  // With no original SHA, a collection entry is a create. A collision must
+  // remain a failure, rather than silently turning creation into an update.
   await expect(
     page.getByText('File changed since this edit was opened', { exact: true }),
   ).toBeVisible()

@@ -1,7 +1,10 @@
 # TODO
 
+- Propagate the editor’s widget-aware first-content spacing rule to the upstream editor registry before the next component refresh.
+
 - Investigate a repository activity table for a fast, database-backed dashboard feed retaining individual content/media additions, edits, renames and deletions, configuration changes, and collaborator changes, alongside existing action runs. Keep activity separate from the current-state content cache; scope visibility to configured paths and permissions. Evaluate CMS-write/webhook deduplication, delayed or missed events, external rename detection, retention and indexing before implementation. Activity is deferred; Overview provides collection creation shortcuts, fixed-file edit links, local drafts and recently opened entries without collection counts.
 - Add shared/server-hosted drafts and cross-device recovery.
+- Evaluate richer text conflict comparisons and list merging only with explicit, stable item identities; the current draft review deliberately treats lists and source text as whole values.
 - Finish mutation lifecycle coverage for collection folder creation/node promotion and account settings; keep permission changes and external authentication/billing redirects confirmation-based.
 - Investigate folder rename for media and colocated entries: moving all tracked files, updating content references, collisions, partial failures, and concurrent edits.
 - Define an explicit colocated-media configuration policy requiring the entry to be saved before media can be added; explain the destination requirement in the editor.

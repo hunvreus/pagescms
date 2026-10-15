@@ -5,20 +5,25 @@ import {
   writeDraft,
 } from './draft-store'
 import type { ContentDraft, EntrySummary } from './draft-store'
+import { equalMergeValue } from './merge-draft'
 
 export function sameDraftValue(a: unknown, b: unknown) {
-  return JSON.stringify(a) === JSON.stringify(b)
+  return equalMergeValue(a, b)
 }
 
 export interface DraftState<T> {
   value: T
+  // Latest loaded or confirmed values, used for dirty checks and discard.
   baseline: T
   baseSha: string | null
+  // Original values at baseSha; these can predate the latest loaded version.
+  base?: { value: T }
   ready: boolean
   dirty: boolean
   pending: number
   error: unknown
   status: string
+  savedAt: number | null
 }
 
 // Kept alive by the editor or a mutation, so acknowledgement still owns the
@@ -50,11 +55,13 @@ export class DraftSession<T> {
       value,
       baseline: value,
       baseSha: sha,
+      base: { value },
       ready: false,
       dirty: false,
       pending: 0,
       error: null,
       status: 'Loading local draft…',
+      savedAt: null,
     }
   }
 
@@ -106,9 +113,11 @@ export class DraftSession<T> {
       .then(async (draft) => {
         if (draft) {
           this.revision = draft.revision
+          this.set({ savedAt: draft.summary?.updatedAt ?? null })
           this.persisted = JSON.stringify([
             draft.schema,
             draft.baseSha,
+            draft.base,
             draft.value,
             draft.pendingSave,
           ])
@@ -126,6 +135,11 @@ export class DraftSession<T> {
           this.set({
             value: draft.value,
             baseSha: draft.baseSha,
+            base:
+              draft.base ??
+              (draft.baseSha === this.confirmedSha
+                ? { value: this.state.baseline }
+                : undefined),
             status: 'Restored draft saved on this device',
           })
           // A reload lost the running request, but the fresh server value proves
@@ -136,7 +150,10 @@ export class DraftSession<T> {
             sameDraftValue(this.state.baseline, this.attempt.value)
           ) {
             this.attempt = undefined
-            this.set({ baseSha: this.confirmedSha })
+            this.set({
+              baseSha: this.confirmedSha,
+              base: { value: this.state.baseline },
+            })
             await this.persist()
           }
         }
@@ -169,12 +186,13 @@ export class DraftSession<T> {
       if (this.revision) await discardDraft(this.key, this.revision)
       this.revision = 0
       this.persisted = undefined
-      this.set({ status: '', error: null })
+      this.set({ status: '', error: null, savedAt: null })
       return
     }
     const fingerprint = JSON.stringify([
       this.schema,
       this.state.baseSha,
+      this.state.base,
       this.state.value,
       this.attempt,
     ])
@@ -186,6 +204,7 @@ export class DraftSession<T> {
       key: this.key,
       schema: this.schema,
       baseSha: this.state.baseSha,
+      base: this.state.base,
       value: this.state.value,
       summary: {
         ...this.summary,
@@ -196,7 +215,11 @@ export class DraftSession<T> {
     }
     this.revision = await writeDraft(snapshot, this.revision)
     this.persisted = fingerprint
-    this.set({ status: 'Saved on this device', error: null })
+    this.set({
+      status: 'Saved on this device',
+      error: null,
+      savedAt: snapshot.summary.updatedAt,
+    })
   }
   async flush() {
     clearTimeout(this.timer)
@@ -215,6 +238,7 @@ export class DraftSession<T> {
       this.attempt = undefined
       this.set({
         baseline: persisted,
+        base: { value: persisted },
         baseSha: sha,
         ...(sameDraftValue(this.state.value, submitted)
           ? { value: persisted }
@@ -233,7 +257,7 @@ export class DraftSession<T> {
     await this.enqueue(async () => {
       if (!sameDraftValue(this.state.value, submitted)) return
       this.attempt = undefined
-      this.set({ baseline: submitted })
+      this.set({ baseline: submitted, base: { value: submitted } })
       await this.persist()
     }).catch(() => {})
   }
@@ -247,11 +271,27 @@ export class DraftSession<T> {
       this.set({
         value: this.state.baseline,
         baseSha: this.confirmedSha,
+        base: { value: this.state.baseline },
         error: null,
         status: '',
+        savedAt: null,
         ready: true,
       })
     }).catch(() => {})
+  }
+  async applyMerge(value: T, latest: T, sha: string | null) {
+    clearTimeout(this.timer)
+    await this.enqueue(async () => {
+      this.confirmedSha = sha
+      this.attempt = undefined
+      this.set({
+        value,
+        baseline: latest,
+        base: { value: latest },
+        baseSha: sha,
+      })
+      await this.persist()
+    })
   }
   detach() {
     clearTimeout(this.timer)

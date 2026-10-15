@@ -8,14 +8,11 @@ import {
 import { getEntryTitle } from '#/features/editor/entry-title'
 import { useCommitMessage } from '#/features/editor/commit-message-dialog'
 import { useContentDraft } from '#/features/drafts/use-content-draft'
-import {
-  ContentDraftRecovery,
-  ContentDraftIndicator,
-} from '#/features/drafts/content-draft-status'
+import { ContentDraftRecovery } from '#/features/drafts/content-draft-status'
+import { DraftSaveButton } from '#/features/drafts/draft-save-button'
 import { useMemo, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
-import { LoaderCircle, Plus } from 'lucide-react'
 
 import { StructuredContentField } from '#/components/structured-content-field'
 import { isContentField } from '#/lib/content-field'
@@ -224,13 +221,16 @@ export function CollectionEntryCreator({
             >
               Cancel
             </Button>
-            <div className="flex items-center gap-2">
-              <ContentDraftIndicator draft={draft} saving={saving} />
-              <Button disabled={saving || !draft.ready} type="submit">
-                {saving ? <LoaderCircle className="animate-spin" /> : <Plus />}
-                {saving ? 'Creating' : 'Create entry'}
-              </Button>
-            </div>
+            <DraftSaveButton
+              dirty={draft.dirty}
+              ready={draft.ready}
+              savedAt={draft.savedAt}
+              busy={saving}
+              label="Create entry"
+              requireChanges={false}
+              onSave={() => void createEntry()}
+              onDiscard={draft.discard}
+            />
           </>
         }
       />

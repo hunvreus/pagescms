@@ -40,6 +40,7 @@ import {
 } from '#/lib/media-field-values'
 
 import { createConfigurationStore } from './configuration-store.server'
+import { withContentConflict } from './content-conflict.server'
 import { updateRepositoryCacheAfterMutation } from './repository-cache.server'
 import { isRepositoryProviderError } from './repository-provider.server'
 
@@ -517,23 +518,27 @@ export async function saveRawEntry(input: {
           }),
         })
   const entry = entryData(context, input.source, null)
-  const result = await context.api.putFile({
-    owner: input.owner,
-    repo: input.repo,
-    branch: input.branch,
-    path: context.path,
-    content: encodeBase64(input.source),
-    message,
-    ...(input.sha ? { sha: input.sha } : {}),
-    ...(identity === 'user'
-      ? {
-          committer: {
-            name: input.user.name || input.user.email,
-            email: input.user.email,
-          },
-        }
-      : {}),
-  })
+  const write = () =>
+    context.api.putFile({
+      owner: input.owner,
+      repo: input.repo,
+      branch: input.branch,
+      path: context.path,
+      content: encodeBase64(input.source),
+      message,
+      ...(input.sha ? { sha: input.sha } : {}),
+      ...(identity === 'user'
+        ? {
+            committer: {
+              name: input.user.name || input.user.email,
+              email: input.user.email,
+            },
+          }
+        : {}),
+    })
+  const result = await (input.sha || context.schema.type === 'file'
+    ? withContentConflict(write)
+    : write())
   await updateRepositoryCacheAfterMutation(
     input.database,
     context.api,

@@ -1,8 +1,8 @@
 import { useContentDraft } from '#/features/drafts/use-content-draft'
-import {
-  ContentDraftRecovery,
-  ContentDraftIndicator,
-} from '#/features/drafts/content-draft-status'
+import { useDraftMerge } from '#/features/drafts/use-draft-merge'
+import { isContentConflict } from '#/lib/content-conflict'
+import { ContentDraftRecovery } from '#/features/drafts/content-draft-status'
+import { DraftSaveButton } from '#/features/drafts/draft-save-button'
 import { useUnsavedWarning } from '#/hooks/use-unsaved-warning'
 import {
   operationKey,
@@ -13,14 +13,13 @@ import { toast } from 'sonner'
 import { FileEditorHistory } from '#/components/file-editor-history'
 import { useEffect, useMemo, useState } from 'react'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { LoaderCircle } from 'lucide-react'
 
 import { CodeEditor } from '#/components/code-editor'
 import { OperationError } from '#/components/operation-error'
-import { Button } from '#/components/ui/button'
 import { ButtonGroup } from '#/components/ui/button-group'
 import {
   getConfigurationHistory,
+  getConfigurationEditor,
   updateConfiguration,
 } from '#/functions/configuration-editor'
 import { validateConfigurationSource } from '#/lib/configuration-source'
@@ -68,11 +67,15 @@ export function ConfigurationPage({
     title: 'Configuration',
   })
   const source = draft.value
+  const merge = useDraftMerge(draft.session, 'Configuration')
   const setSource = draft.setValue
   const sha = draft.baseSha
-  const saving = operation.pending
+  const saving = operation.pending || merge.loading
   const [localError, setLocalError] = useState<unknown>(null)
-  const error = localError ?? operation.error
+  const error =
+    merge.error ??
+    localError ??
+    (isContentConflict(operation.error) ? null : operation.error)
   const diagnostics = useMemo(
     () => validateConfigurationSource(source).diagnostics,
     [source],
@@ -86,54 +89,85 @@ export function ConfigurationPage({
     onDirtyChange?.(dirty)
   }, [dirty, onDirtyChange])
 
+  async function persist() {
+    const session = draft.session
+    if (!session)
+      throw new Error('Your draft is not ready. Reload and try again.')
+    const { value: submitted, baseSha } = session.getSnapshot()
+    if (
+      validateConfigurationSource(submitted).diagnostics.some(
+        (item) => item.severity === 'error',
+      )
+    )
+      throw new Error('Fix the configuration errors before saving.')
+    await operation.run({
+      coordinates: params,
+      paths: ['.pages.yml'],
+      expectedAccount: session.summary.account,
+      retain: () => session.retain(),
+      failureMessage:
+        'Could not update configuration. Your local draft is retained.',
+      prepare: () => session.beginSave(submitted),
+      run: () =>
+        updateConfiguration({
+          data: { ...params, source: submitted, sha: baseSha },
+        }),
+      confirmed: async (result, active) => {
+        if (active())
+          queryClient.setQueryData(
+            configurationEditorQueryOptions(params).queryKey,
+            { source: submitted, sha: result.sha },
+          )
+        await session.acknowledge(submitted, submitted, result.sha)
+        if (active()) {
+          toast.success('Configuration saved')
+          refreshQueries(queryClient, [queryKeys.branch(params)])
+        }
+      },
+    })
+  }
+
   async function save() {
     const session = draft.session
-    if (errors.length || !session || !draft.ready || operation.pending) return
-    const { value: submitted, baseSha } = session.getSnapshot()
+    if (errors.length || !session || !draft.ready || saving) return
     setLocalError(null)
+    merge.clearError()
     try {
-      await operation.run({
-        coordinates: params,
-        paths: ['.pages.yml'],
-        expectedAccount: session.summary.account,
-        retain: () => session.retain(),
-        failureMessage:
-          'Could not update configuration. Your local draft is retained.',
-        prepare: () => session.beginSave(submitted),
-        run: () =>
-          updateConfiguration({
-            data: { ...params, source: submitted, sha: baseSha },
-          }),
-        confirmed: async (result, active) => {
-          if (active())
-            queryClient.setQueryData(
-              configurationEditorQueryOptions(params).queryKey,
-              { source: submitted, sha: result.sha },
-            )
-          await session.acknowledge(submitted, submitted, result.sha)
-          if (active()) {
-            toast.success('Configuration saved')
-            refreshQueries(queryClient, [queryKeys.branch(params)])
-          }
-        },
-      })
+      await persist()
     } catch (cause) {
-      setLocalError(cause)
+      if (
+        !(await merge.handle(
+          cause,
+          async () => {
+            const latest = await getConfigurationEditor({ data: params })
+            return {
+              value: latest.source,
+              sha: latest.sha,
+              onApplied: () =>
+                queryClient.setQueryData(
+                  configurationEditorQueryOptions(params).queryKey,
+                  latest,
+                ),
+            }
+          },
+          persist,
+        ))
+      )
+        setLocalError(cause)
     }
   }
 
   const controls = (
     <>
-      <div className="flex items-center gap-2">
-        <ContentDraftIndicator draft={draft} saving={saving} />
-        <Button
-          disabled={saving || !dirty || !draft.ready || errors.length > 0}
-          onClick={() => void save()}
-        >
-          {saving ? <LoaderCircle className="animate-spin" /> : null}
-          {saving ? 'Saving' : 'Save'}
-        </Button>
-      </div>
+      <DraftSaveButton
+        dirty={dirty}
+        ready={draft.ready}
+        savedAt={draft.savedAt}
+        busy={saving}
+        invalid={errors.length > 0}
+        onSave={() => void save()}
+        onDiscard={draft.discard}
+      />
       <ButtonGroup
         aria-label="History and entry actions"
         className="empty:hidden"
@@ -171,6 +205,7 @@ export function ConfigurationPage({
         fallback="Could not update configuration."
       />
       <ContentDraftRecovery draft={draft} />
+      {merge.dialog}
       <CodeEditor
         disabled={!draft.ready}
         format="yaml"

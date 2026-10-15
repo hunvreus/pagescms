@@ -8,6 +8,7 @@ import { validateConfigurationSource } from '#/lib/configuration-source'
 import { toJsonObject } from '#/lib/json'
 
 import { createConfigurationStore } from './configuration-store.server'
+import { withContentConflict } from './content-conflict.server'
 import { requireRepositoryManager } from './repository-policy.server'
 import { updateRepositoryCacheAfterMutation } from './repository-cache.server'
 import { isRepositoryProviderError } from './repository-provider.server'
@@ -112,18 +113,20 @@ export async function saveConfigurationSource({
       userEmail: user.email,
     }),
   })
-  const result = await api.putFile({
-    owner,
-    repo,
-    branch,
-    path: '.pages.yml',
-    content: encodeBase64Utf8(source),
-    message,
-    ...(sha ? { sha } : {}),
-    ...(identity === 'user'
-      ? { committer: { name: user.name || user.email, email: user.email } }
-      : {}),
-  })
+  const result = await withContentConflict(() =>
+    api.putFile({
+      owner,
+      repo,
+      branch,
+      path: '.pages.yml',
+      content: encodeBase64Utf8(source),
+      message,
+      ...(sha ? { sha } : {}),
+      ...(identity === 'user'
+        ? { committer: { name: user.name || user.email, email: user.email } }
+        : {}),
+    }),
+  )
   const store = createConfigurationStore({ database })
   try {
     await store.save(owner, repo, branch, result.sha, normalized)

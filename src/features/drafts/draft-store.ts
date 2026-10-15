@@ -21,6 +21,7 @@ export interface ContentDraft<T = unknown> {
   revision: number
   schema: string
   baseSha: string | null
+  base?: { value: T }
   value: T
   pendingSave?: { value: T; baseSha: string | null }
   summary?: EntrySummary

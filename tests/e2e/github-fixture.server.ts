@@ -201,9 +201,50 @@ content:
         options:
           multiple: true
           rename: safe
+  - name: merge-review
+    label: Merge review
+    type: file
+    path: content/merge-review.json
+    fields:
+      - name: title
+        label: Title
+        type: string
+      - name: published
+        label: Published
+        type: string
+      - name: author
+        label: Author
+        type: object
+        fields:
+          - name: name
+            label: Author name
+            type: string
+          - name: email
+            label: Author email
+            type: string
+      - name: items
+        label: Items
+        type: object
+        list: true
+        fields:
+          - name: title
+            label: Item title
+            type: string
 `
 
 const initialFiles = new Map([
+  [
+    'content/merge-review.json',
+    {
+      content: JSON.stringify({
+        title: 'Original title',
+        published: 'Original date',
+        author: { name: 'Original author', email: 'original@example.com' },
+        items: [{ title: 'First item' }, { title: 'Second item' }],
+      }),
+      sha: 'merge-review-sha-1',
+    },
+  ],
   [
     'content/html-editor.json',
     {

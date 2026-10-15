@@ -7,7 +7,6 @@ import {
 } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
-import { FileQuestion } from 'lucide-react'
 
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 import { Button } from '#/components/ui/button'
@@ -17,7 +16,6 @@ import {
   EmptyContent,
   EmptyDescription,
   EmptyHeader,
-  EmptyMedia,
   EmptyTitle,
 } from '#/components/ui/empty'
 
@@ -163,9 +161,6 @@ function NotFound() {
     <main className="flex min-h-screen items-center justify-center p-4 md:p-6">
       <Empty className="max-w-xs p-0">
         <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <FileQuestion />
-          </EmptyMedia>
           <EmptyTitle>Page not found</EmptyTitle>
           <EmptyDescription>
             The page you requested does not exist or may have moved.
@@ -173,7 +168,7 @@ function NotFound() {
         </EmptyHeader>
         <EmptyContent>
           <Button asChild>
-            <Link to="/">Return to Pages CMS</Link>
+            <Link to="/">Return home</Link>
           </Button>
         </EmptyContent>
       </Empty>

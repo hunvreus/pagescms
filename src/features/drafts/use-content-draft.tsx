@@ -62,11 +62,13 @@ export function useContentDraft<T>({
       value: initialValue,
       baseline: initialValue,
       baseSha: initialSha,
+      base: { value: initialValue },
       ready: false,
       dirty: false,
       pending: 0,
       error: null,
       status: 'Loading local draft…',
+      savedAt: null,
     }),
     [initialValue, initialSha],
   )

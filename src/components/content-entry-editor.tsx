@@ -1,18 +1,18 @@
-import type { ReactNode } from 'react'
 import { useEntryActions } from '#/features/content/use-entry-actions'
 import type { DraftSession } from '#/features/drafts/draft-session'
 import {
   confirmContentWrite,
+  confirmEntry,
   refreshContent,
   useContentActivity,
   useContentMutation,
 } from '#/features/content/content-mutations'
 import { useCommitMessage } from '#/features/editor/commit-message-dialog'
 import { useContentDraft } from '#/features/drafts/use-content-draft'
-import {
-  ContentDraftRecovery,
-  ContentDraftIndicator,
-} from '#/features/drafts/content-draft-status'
+import { useDraftMerge } from '#/features/drafts/use-draft-merge'
+import { isContentConflict } from '#/lib/content-conflict'
+import { ContentDraftRecovery } from '#/features/drafts/content-draft-status'
+import { DraftSaveButton } from '#/features/drafts/draft-save-button'
 import { FileEditorHistory } from '#/components/file-editor-history'
 import { EditorLayout } from '#/components/editor-layout'
 import { FileEditorMenu } from '#/components/file-editor-menu'
@@ -20,7 +20,6 @@ import { lazy, Suspense, useRef, useState } from 'react'
 import { ClientOnly } from '@tanstack/react-router'
 import { createClientOnlyFn } from '@tanstack/react-start'
 import { useQueryClient } from '@tanstack/react-query'
-import { LoaderCircle } from 'lucide-react'
 
 import { StructuredContentField } from '#/components/structured-content-field'
 import { isContentField } from '#/lib/content-field'
@@ -61,10 +60,10 @@ import { useUnsavedWarning } from '#/hooks/use-unsaved-warning'
 import { useRepositoryGitHubLink } from '#/hooks/use-repository-github-link'
 import {
   getEntryHistory,
+  getRawEntry,
   updateRawEntry,
   updateStructuredEntry,
 } from '#/functions/entry-editor'
-import type { getRawEntry } from '#/functions/entry-editor'
 
 const CodeEditor = lazy(
   createClientOnlyFn(() =>
@@ -210,6 +209,7 @@ function RawEntryEditor({
     initialSha: initial.sha,
   })
   const { value: source, baseline: savedSource, baseSha: sha, dirty } = draft
+  const merge = useDraftMerge(draft.session, 'Content')
   const setSource = draft.setValue
   const deletion = useEntryDeletion(
     coordinates,
@@ -220,39 +220,64 @@ function RawEntryEditor({
   const rename = useEntryRename(coordinates, sha, renameBaseHref, draft.session)
   useUnsavedWarning(dirty || saving)
 
+  async function persist(message?: string) {
+    const session = draft.session
+    if (!session)
+      throw new Error('Your draft is not ready. Reload and try again.')
+    const { value: submitted, baseSha } = session.getSnapshot()
+    await mutation.run({
+      id: session.key,
+      coordinates,
+      kind: 'save',
+      title: initial.label,
+      expectedAccount: session.summary.account,
+      retain: () => session.retain(),
+      prepare: () => session.beginSave(submitted),
+      run: () =>
+        updateRawEntry({
+          data: { ...coordinates, source: submitted, sha: baseSha, message },
+        }),
+      confirmed: async (result, isActiveAccount) => {
+        if (isActiveAccount())
+          confirmContentWrite(queryClient, coordinates, result)
+        await session.acknowledge(
+          submitted,
+          result.entry?.source ?? submitted,
+          result.sha,
+        )
+        if (isActiveAccount()) refreshContent(queryClient, coordinates)
+      },
+    })
+  }
+
   async function save() {
     if (requestLock.current || activity.pending || !draft.session) return
     requestLock.current = true
     setMessagePending(true)
-    const session = draft.session
+    merge.clearError()
+    let message: string | undefined
     try {
-      const message = await commitMessage.request()
-      if (message === null) return
-      const { value: submitted, baseSha } = session.getSnapshot()
-      await mutation.run({
-        id: session.key,
-        coordinates,
-        kind: 'save',
-        title: initial.label,
-        expectedAccount: session.summary.account,
-        retain: () => session.retain(),
-        prepare: () => session.beginSave(submitted),
-        run: () =>
-          updateRawEntry({
-            data: { ...coordinates, source: submitted, sha: baseSha, message },
-          }),
-        confirmed: async (result, isActiveAccount) => {
-          if (isActiveAccount())
-            confirmContentWrite(queryClient, coordinates, result)
-          await session.acknowledge(
-            submitted,
-            result.entry?.source ?? submitted,
-            result.sha,
-          )
-          if (isActiveAccount()) refreshContent(queryClient, coordinates)
+      const requested = await commitMessage.request()
+      if (requested === null) return
+      message = requested
+      await persist(message)
+    } catch (cause) {
+      await merge.handle(
+        cause,
+        async () => {
+          const latest = await getRawEntry({ data: coordinates })
+          if (latest.mode !== initial.mode)
+            throw new Error(
+              'The content configuration changed. Reload before reviewing your draft.',
+            )
+          return {
+            value: latest.source,
+            sha: latest.sha,
+            onApplied: () => confirmEntry(queryClient, coordinates, latest),
+          }
         },
-      })
-    } catch {
+        () => persist(message),
+      )
       /* Mutation and draft state retain the failure across navigation. */
     } finally {
       requestLock.current = false
@@ -275,9 +300,8 @@ function RawEntryEditor({
           initial={initial}
           saving={saving}
           draftReady={draft.ready}
-          draftIndicator={
-            <ContentDraftIndicator draft={draft} saving={saving} />
-          }
+          draftSavedAt={draft.savedAt}
+          onDiscard={() => draft.discard()}
           deleting={deletion.deleting}
           canRename={
             initial.operations.rename && Boolean(renameBaseHref) && Boolean(sha)
@@ -289,8 +313,11 @@ function RawEntryEditor({
         />
       }
     >
-      <EditorError error={error ?? deletion.error ?? rename.error} />
+      <EditorError
+        error={merge.error ?? error ?? deletion.error ?? rename.error}
+      />
       <ContentDraftRecovery draft={draft} />
+      {merge.dialog}
       {commitMessage.dialog}
       {draft.ready ? (
         <ClientOnly fallback={<Skeleton className="min-h-32" />}>
@@ -349,6 +376,12 @@ function StructuredEntryEditor({
       }),
   })
   const { value: content, baseline: savedContent, baseSha: sha, dirty } = draft
+  const merge = useDraftMerge(
+    draft.session,
+    initial.mode === 'structured-list' ? 'Items' : 'Content',
+    initial.fields,
+    { ...coordinates, media: initial.media },
+  )
   const setContent = draft.setValue
   const fields = Array.isArray(initial.fields)
     ? initial.fields.filter(isContentField)
@@ -362,46 +395,75 @@ function StructuredEntryEditor({
   const rename = useEntryRename(coordinates, sha, renameBaseHref, draft.session)
   useUnsavedWarning(dirty || saving)
 
+  async function persist(message?: string) {
+    const session = draft.session
+    if (!session)
+      throw new Error('Your draft is not ready. Reload and try again.')
+    const { value: submitted, baseSha } = session.getSnapshot()
+    await mutation.run({
+      id: session.key,
+      coordinates,
+      kind: 'save',
+      title: getEntryTitle({
+        content: submitted,
+        filename: initial.filename,
+        primaryField: initial.primaryField,
+      }),
+      fields: submitted,
+      expectedAccount: session.summary.account,
+      retain: () => session.retain(),
+      prepare: () => session.beginSave(submitted),
+      run: () =>
+        updateStructuredEntry({
+          data: { ...coordinates, content: submitted, sha: baseSha, message },
+        }),
+      confirmed: async (result, isActiveAccount) => {
+        if (isActiveAccount())
+          confirmContentWrite(queryClient, coordinates, result)
+        await session.acknowledge(
+          submitted,
+          result.entry && result.entry.mode !== 'raw'
+            ? result.entry.content
+            : submitted,
+          result.sha,
+        )
+        if (isActiveAccount()) refreshContent(queryClient, coordinates)
+      },
+    })
+  }
+
   async function save() {
     if (requestLock.current || activity.pending || !draft.session) return
     requestLock.current = true
     setMessagePending(true)
-    const session = draft.session
+    merge.clearError()
+    let message: string | undefined
     try {
-      const message = await commitMessage.request()
-      if (message === null) return
-      const { value: submitted, baseSha } = session.getSnapshot()
-      await mutation.run({
-        id: session.key,
-        coordinates,
-        kind: 'save',
-        title: getEntryTitle({
-          content: submitted,
-          filename: initial.filename,
-          primaryField: initial.primaryField,
-        }),
-        fields: submitted,
-        expectedAccount: session.summary.account,
-        retain: () => session.retain(),
-        prepare: () => session.beginSave(submitted),
-        run: () =>
-          updateStructuredEntry({
-            data: { ...coordinates, content: submitted, sha: baseSha, message },
-          }),
-        confirmed: async (result, isActiveAccount) => {
-          if (isActiveAccount())
-            confirmContentWrite(queryClient, coordinates, result)
-          await session.acknowledge(
-            submitted,
-            result.entry && result.entry.mode !== 'raw'
-              ? result.entry.content
-              : submitted,
-            result.sha,
+      const requested = await commitMessage.request()
+      if (requested === null) return
+      message = requested
+      await persist(message)
+    } catch (cause) {
+      await merge.handle(
+        cause,
+        async () => {
+          const latest = await getRawEntry({ data: coordinates })
+          if (
+            latest.mode === 'raw' ||
+            latest.mode !== initial.mode ||
+            JSON.stringify(latest.fields) !== JSON.stringify(initial.fields)
           )
-          if (isActiveAccount()) refreshContent(queryClient, coordinates)
+            throw new Error(
+              'The content configuration changed. Reload before reviewing your draft.',
+            )
+          return {
+            value: latest.content,
+            sha: latest.sha,
+            onApplied: () => confirmEntry(queryClient, coordinates, latest),
+          }
         },
-      })
-    } catch {
+        () => persist(message),
+      )
       /* Mutation and draft state retain the failure across navigation. */
     } finally {
       requestLock.current = false
@@ -424,9 +486,8 @@ function StructuredEntryEditor({
           initial={initial}
           saving={saving}
           draftReady={draft.ready}
-          draftIndicator={
-            <ContentDraftIndicator draft={draft} saving={saving} />
-          }
+          draftSavedAt={draft.savedAt}
+          onDiscard={() => draft.discard()}
           deleting={deletion.deleting}
           canRename={
             initial.operations.rename && Boolean(renameBaseHref) && Boolean(sha)
@@ -438,8 +499,11 @@ function StructuredEntryEditor({
         />
       }
     >
-      <EditorError error={error ?? deletion.error ?? rename.error} />
+      <EditorError
+        error={merge.error ?? error ?? deletion.error ?? rename.error}
+      />
       <ContentDraftRecovery draft={draft} />
+      {merge.dialog}
       {commitMessage.dialog}
       {draft.ready ? (
         <FieldGroup>
@@ -495,7 +559,8 @@ function EditorHeader({
   actionData,
   saving,
   draftReady,
-  draftIndicator,
+  draftSavedAt,
+  onDiscard,
   dirty,
   canDelete,
   canRename,
@@ -510,7 +575,8 @@ function EditorHeader({
   actionData: Record<string, unknown>
   saving: boolean
   draftReady: boolean
-  draftIndicator: ReactNode
+  draftSavedAt: number | null
+  onDiscard: () => Promise<void>
   dirty: boolean
   canDelete: boolean
   canRename: boolean
@@ -560,14 +626,15 @@ function EditorHeader({
             coordinates={coordinates}
           />
           <div className="flex items-center gap-2">
-            {draftIndicator}
-            <Button
-              disabled={saving || deleting || renaming || !dirty || !draftReady}
-              onClick={onSave}
-            >
-              {saving ? <LoaderCircle className="animate-spin" /> : null}
-              {saving ? 'Saving' : 'Save'}
-            </Button>
+            <DraftSaveButton
+              dirty={dirty}
+              ready={draftReady}
+              savedAt={draftSavedAt}
+              busy={saving}
+              disabled={deleting || renaming}
+              onSave={onSave}
+              onDiscard={onDiscard}
+            />
             <ButtonGroup
               aria-label="History and entry actions"
               className="empty:hidden"
@@ -696,5 +763,6 @@ function EntryHistoryButton({
 }
 
 function EditorError({ error }: { error: unknown }) {
+  if (isContentConflict(error)) return null
   return <OperationError error={error} fallback="Could not update entry." />
 }

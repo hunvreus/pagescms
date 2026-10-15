@@ -64,6 +64,132 @@ beforeEach(() => {
   store.opened.mockReset().mockResolvedValue(undefined)
 })
 describe('draft session acknowledgement', () => {
+  it('reports the actual local save time across reloads without advancing it on unchanged flushes', async () => {
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(1_000)
+    try {
+      const session = create()
+      await session.load()
+      expect(session.getSnapshot().savedAt).toBeNull()
+      session.setValue('First edit')
+      expect(session.getSnapshot().savedAt).toBeNull()
+      await session.flush()
+      expect(session.getSnapshot().savedAt).toBe(1_000)
+
+      clock.mockReturnValue(4_000)
+      session.setValue('Second edit')
+      expect(session.getSnapshot().savedAt).toBe(1_000)
+      await session.flush()
+      expect(session.getSnapshot().savedAt).toBe(4_000)
+
+      const restored = create()
+      await restored.load()
+      expect(restored.getSnapshot().savedAt).toBe(4_000)
+      clock.mockReturnValue(10_000)
+      await restored.flush()
+      expect(restored.getSnapshot().savedAt).toBe(4_000)
+      await restored.discard()
+      expect(restored.getSnapshot().savedAt).toBeNull()
+
+      const saved = create()
+      await saved.load()
+      saved.setValue('Saved edit')
+      await saved.flush()
+      await saved.acknowledge('Saved edit', 'Saved edit', 'saved-sha')
+      expect(saved.getSnapshot().savedAt).toBeNull()
+    } finally {
+      clock.mockRestore()
+    }
+  })
+
+  it('persists the original values and retains them when restoring against newer GitHub data', async () => {
+    const first = create()
+    await first.load()
+    first.setValue('Local')
+    await first.flush()
+    expect(store.drafts.get('entry')?.base).toEqual({ value: 'Original' })
+    const restored = create('GitHub changed it', 'remote-sha')
+    await restored.load()
+    expect(restored.getSnapshot()).toMatchObject({
+      base: { value: 'Original' },
+      baseline: 'GitHub changed it',
+      value: 'Local',
+      baseSha: 'original-sha',
+    })
+  })
+  it('does not invent original values for older drafts restored against a changed file', async () => {
+    store.drafts.set('entry', {
+      key: 'entry',
+      schema: 'schema',
+      revision: 1,
+      baseSha: 'old-sha',
+      value: 'Local',
+    })
+    const restored = create('Remote', 'new-sha')
+    await restored.load()
+    expect(restored.getSnapshot().base).toBeUndefined()
+    restored.setValue('Still local')
+    await restored.flush()
+    expect(store.drafts.get('entry')?.base).toBeUndefined()
+  })
+  it('applies choices locally and saves the latest baseline for reload and a subsequent save', async () => {
+    const first = create()
+    await first.load()
+    first.setValue('Local')
+    await first.beginSave('Local')
+    await first.applyMerge('Combined', 'Remote', 'remote-sha')
+    expect(first.getSnapshot()).toMatchObject({
+      value: 'Combined',
+      baseline: 'Remote',
+      base: { value: 'Remote' },
+      baseSha: 'remote-sha',
+      dirty: true,
+    })
+    expect(store.drafts.get('entry')?.pendingSave).toBeUndefined()
+    const restored = create('Remote', 'remote-sha')
+    await restored.load()
+    expect(restored.getSnapshot()).toMatchObject({
+      value: 'Combined',
+      base: { value: 'Remote' },
+      baseSha: 'remote-sha',
+    })
+    await restored.discard()
+    expect(restored.getSnapshot()).toMatchObject({
+      value: 'Remote',
+      dirty: false,
+    })
+    expect(store.drafts.size).toBe(0)
+  })
+  it('clears the local draft when the GitHub version is chosen unchanged', async () => {
+    const session = create()
+    await session.load()
+    session.setValue('Local')
+    await session.flush()
+    await session.applyMerge('Remote', 'Remote', 'remote-sha')
+    expect(session.getSnapshot()).toMatchObject({
+      value: 'Remote',
+      dirty: false,
+      baseSha: 'remote-sha',
+    })
+    expect(store.drafts.size).toBe(0)
+  })
+  it('preserves another tab’s draft if it changes during merge review', async () => {
+    const session = create()
+    await session.load()
+    session.setValue('Local')
+    await session.flush()
+    const current = store.drafts.get('entry')!
+    store.drafts.set('entry', {
+      ...current,
+      revision: current.revision + 1,
+      value: 'Other tab',
+    })
+    await expect(
+      session.applyMerge('Combined', 'Remote', 'remote-sha'),
+    ).rejects.toThrow('Draft changed')
+    expect(store.drafts.get('entry')?.value).toBe('Other tab')
+    expect(session.getSnapshot().value).toBe('Combined')
+    expect(session.getSnapshot().error).toBeInstanceOf(Error)
+  })
   it('acknowledges undoing to an already persisted draft without another write', async () => {
     const session = create()
     await session.load()

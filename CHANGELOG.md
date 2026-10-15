@@ -16,9 +16,11 @@
 
 ### Added
 
+- Three-way local draft review after GitHub save conflicts, with nested field choices, conservative whole-list handling, desktop/mobile layouts, and direct saving of reviewed choices with stale-write checks and retryable draft recovery.
+- Show the local draft’s age beside Save in a ghost button; clicking it opens a shadcn popover with save details and a Discard draft action, including for invalid content.
+
 - Configurable Lucide icons for collection/file navigation and Overview shortcuts, using local lazy loading with default fallbacks.
 - Overview shortcuts for editing configured fixed files alongside collection creation.
-
 
 - A compact repository Overview with resumable local drafts, recently opened entries, and create shortcuts.
 
@@ -34,6 +36,10 @@
 
 ### Changed
 
+- Remove decorative icons from empty-state messages and their actions; label the missing-page link “Return home”.
+
+- Rework conflict review with plain copy, labelled read-only field comparisons, registry shadcn radios beside each field, dimmed unselected previews without card borders or selection backgrounds, sticky version headings aligned with the full column’s left edge, an inset header separator, and “Use all my changes” at the right edge of the “Your changes” column header on desktop. Align desktop version headings and mobile version labels with the radio/option’s left edge, keeping field controls inset on shared grid tracks. Ignore ProseMirror cursor widgets in first-content spacing rules so activating a Markdown label cannot add a leading-image gap. Save reviewed choices directly while preserving non-conflicting changes. Use standard dialog typography and cap its width at twice the editor maximum, centered in the visible viewport when zoomed or panned. Remove the original-value disclosure and provider-specific comparison labels.
+
 - Place editor History after Save, group History and the entry menu as outline buttons in content and configuration editors, and show persisted local drafts as a muted pencil icon with an “Unsaved changes” tooltip.
 
 - Consolidate known file-change commits into `cache_file.commitSha`, remove the redundant `changeCommitSha` column while preserving known commit/date pairs, and label these correctly in the cache viewer. Directory snapshot revisions remain in metadata.
@@ -42,7 +48,6 @@
 
 - Retain 50 local recent-entry records per user/provider/repository/branch and display 10 without pruning drafts.
 - Separate cache refresh time from genuine Git commit dates; preserve known per-file commit provenance through unchanged refreshes without additional GitHub requests.
-
 
 - Bind pending content and configuration writes to their originating account before and after local draft persistence, and recheck account identity before delayed completion effects.
 - Prevent completed branch creation from redirecting through an unmounted dialog after history navigation. Refresh media preview leases only in affected directories and release completed content-operation payloads and callbacks.
@@ -57,7 +62,7 @@
 
 - Ordinary entry/media mutations skip the pre-write GitHub repository probe, with fresh collaborator authorization and guarded credential fallback.
 
-- Restore distinct browser titles for account, repository, collection, entry, and media pages, including repository/branch context and entry or folder paths. Separate page and repository context with ` - `, retaining ` | Pages CMS` as the app suffix.
+- Restore distinct browser titles for account, repository, collection, entry, and media pages, including repository/branch context and entry or folder paths. Separate page and repository context with `-`, retaining ` | Pages CMS` as the app suffix.
 
 - Repository Overview uses the shared sticky page header and bordered tables with single-line draft, recent-entry, and create rows.
 

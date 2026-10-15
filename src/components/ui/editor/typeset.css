@@ -1077,8 +1077,10 @@
     }
   }
 
+  /* Cursor decorations are DOM siblings, not document content. Ignore them
+     when trimming the first content margin so selecting a gap cannot move it. */
   .typeset
-    > :where(:first-child):not(
+    > :where(:nth-child(1 of :not(.ProseMirror-widget))):not(
       :where(
         .not-typeset,
         [data-not-typeset],
@@ -1087,8 +1089,8 @@
       )
     ),
   .typeset
-    > :where(:first-child)
-    > :where(:first-child):not(
+    > :where(:nth-child(1 of :not(.ProseMirror-widget)))
+    > :where(:nth-child(1 of :not(.ProseMirror-widget))):not(
       :where(
         .not-typeset,
         [data-not-typeset],
@@ -1098,12 +1100,12 @@
     ),
   .typeset
     :where(
-      li > :first-child,
-      blockquote > :first-child,
-      td > :first-child,
-      th > :first-child,
-      dd > :first-child,
-      figure > :first-child,
+      li > :nth-child(1 of :not(.ProseMirror-widget)),
+      blockquote > :nth-child(1 of :not(.ProseMirror-widget)),
+      td > :nth-child(1 of :not(.ProseMirror-widget)),
+      th > :nth-child(1 of :not(.ProseMirror-widget)),
+      dd > :nth-child(1 of :not(.ProseMirror-widget)),
+      figure > :nth-child(1 of :not(.ProseMirror-widget)),
       figure > picture > img
     ):not(
       :where(

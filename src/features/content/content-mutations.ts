@@ -19,6 +19,7 @@ import {
 } from '#/features/collections/collection-model'
 import { toJsonValue } from '#/lib/json'
 import { queryKeys } from '#/queries/keys'
+import { isContentConflict } from '#/lib/content-conflict'
 import type { QueryClient } from '@tanstack/react-query'
 import type { JsonValue } from '#/lib/json'
 import type { getRawEntry } from '#/functions/entry-editor'
@@ -212,6 +213,7 @@ export function useContentMutation<T>() {
       job.confirmed = () => {}
     },
     onError: (_error, job) => {
+      if (isContentConflict(_error)) return
       if (
         client.getQueryData(authenticationQueryOptions().queryKey)?.user?.id ===
         job.account

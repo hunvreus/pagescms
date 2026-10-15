@@ -1,6 +1,5 @@
 import { pageTitle } from '#/lib/page-title'
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { ArrowLeft } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
 import {
@@ -40,10 +39,7 @@ function AuthenticationErrorPage() {
         </EmptyHeader>
         <EmptyContent>
           <Button asChild>
-            <Link to="/sign-in">
-              <ArrowLeft data-icon="inline-start" />
-              Back to sign in
-            </Link>
+            <Link to="/sign-in">Back to sign in</Link>
           </Button>
         </EmptyContent>
       </Empty>

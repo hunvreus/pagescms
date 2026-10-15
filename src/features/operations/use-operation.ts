@@ -11,6 +11,7 @@ import {
 } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { authenticationQueryOptions } from '#/queries/session'
+import { isContentConflict } from '#/lib/content-conflict'
 import type { QueryClient, QueryKey } from '@tanstack/react-query'
 
 export interface Operation<T> {
@@ -73,6 +74,7 @@ export function useOperation<T>(lock: string) {
       operation.prepare = undefined
     },
     onError: (_error, operation) => {
+      if (isContentConflict(_error)) return
       if (
         operation.failureMessage &&
         client.getQueryData(authenticationQueryOptions().queryKey)?.user?.id ===

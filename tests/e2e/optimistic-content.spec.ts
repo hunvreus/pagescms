@@ -271,9 +271,9 @@ test('delete never discards a draft changed in another tab after submission', as
     .click()
   const route = await held
   await title(second).fill('Newer draft from another tab')
-  await expect(
-    second.getByText('Saved on this device', { exact: true }),
-  ).toBeVisible()
+  await expect
+    .poll(async () => JSON.stringify(await drafts(second)))
+    .toContain('Newer draft from another tab')
   await page
     .getByRole('alertdialog')
     .getByRole('button', { name: 'Cancel', exact: true })
