@@ -12,6 +12,7 @@
     "./deployment/contracts/hosted.server": "./src/deployment/contracts/hosted.server.ts",
     "./deployment/contracts/server.server": "./src/deployment/contracts/server.server.ts",
     "./deployment/contracts/version": "./src/deployment/contracts/version.ts",
+    "./deployment/builtins/resend-email.server": "./src/deployment/builtins/resend-email.server.ts",
     "./deployment/conformance/media-storage": "./src/deployment/conformance/media-storage.ts",
     "./lib/application-operations": "./src/lib/application-operations.ts",
     "./server/access-policy.server": "./src/server/access-policy.server.ts",

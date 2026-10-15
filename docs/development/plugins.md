@@ -18,6 +18,8 @@ The build resolves two stable aliases:
 
 The public build resolves both aliases to in-tree defaults. Hosted CI resolves them to entry points in `../pagescms-hosted`, or to a normal hosted-only private `file:` dependency if direct sibling source cannot satisfy Vite, TypeScript, Vitest, Wrangler, HMR, and dependency-deduplication checks. Private code is never copied or generated into the public checkout.
 
+An alternate server composition can retain the bundled Resend adapter by importing `createResendEmailProvider` from `pagescms/deployment/builtins/resend-email.server` and returning `emailProvider: createResendEmailProvider(environment)`. Replacing the default composition does not automatically inherit its email provider.
+
 Select an alternate composition by setting both entries together:
 
 ```sh

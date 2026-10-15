@@ -189,6 +189,8 @@
 
 ### Fixed
 
+- Export the bundled Resend email factory for alternate deployment compositions so hosted builds can enable email sign-in and invitations with their configured credentials.
+
 - Give the cache viewer commit heading enough room to prevent unnecessary horizontal scrolling.
 
 - Clear the local-draft loading message after opening an entry without a saved draft, and hide empty draft-status spacing.
