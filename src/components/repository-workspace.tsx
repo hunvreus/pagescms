@@ -14,6 +14,7 @@ import {
   FileText,
   FileStack,
   FolderOpen,
+  LayoutDashboard,
   Database,
   Users,
   ListVideo,
@@ -280,7 +281,8 @@ function RepositorySidebar({
                   to="/$owner/$repo/$branch"
                   params={{ owner, repo, branch }}
                 >
-                  Overview
+                  <LayoutDashboard />
+                  <span>Overview</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

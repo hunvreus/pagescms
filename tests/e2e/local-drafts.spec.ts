@@ -30,6 +30,53 @@ async function expectDraft(page: Page, text: string) {
     .toContain(text)
 }
 
+for (const width of [1280, 390]) {
+  test(`discarding an editor draft requires confirmation at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto(entry)
+    await page.waitForLoadState('networkidle')
+    const title = page.getByRole('textbox', { name: 'Title', exact: true })
+    const original = await title.inputValue()
+    await title.fill('Keep this until I confirm discard')
+    await expectDraft(page, 'Keep this until I confirm discard')
+
+    await page.getByRole('button', { name: /^Local draft:/ }).click()
+    await page
+      .getByRole('button', { name: 'Discard draft', exact: true })
+      .click()
+    const confirmation = page.getByRole('alertdialog', {
+      name: 'Discard local draft?',
+    })
+    await expect(confirmation).toBeVisible()
+    await expectDraft(page, 'Keep this until I confirm discard')
+    await page.screenshot({
+      path: test.info().outputPath('discard-confirmation.png'),
+    })
+    await confirmation
+      .getByRole('button', { name: 'Cancel', exact: true })
+      .click()
+    await expect(confirmation).not.toBeVisible()
+    await expect(title).toHaveValue('Keep this until I confirm discard')
+    await expectDraft(page, 'Keep this until I confirm discard')
+
+    await page
+      .getByRole('button', { name: 'Discard draft', exact: true })
+      .click()
+    await confirmation
+      .getByRole('button', { name: 'Discard draft', exact: true })
+      .click()
+    await expect(confirmation).not.toBeVisible()
+    await expect(title).toHaveValue(original)
+    await expect(
+      page.getByRole('button', { name: 'Save', exact: true }),
+    ).toBeDisabled()
+    await page.reload()
+    await expect(title).toHaveValue(original)
+  })
+}
+
 test('structured drafts survive reload and successful file saves clear them', async ({
   page,
 }) => {

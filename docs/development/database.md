@@ -10,6 +10,37 @@ Application data and rebuildable repository/cache data are separately addressabl
 
 The Node/libSQL adapter is isolated from the Worker-safe database core. Do not import the Node client from code bundled into the Cloudflare Worker.
 
+## Hosted capacity
+
+Registered user count is not a database throughput measurement. Before moving a
+hosted installation to D1, measure durable data, rebuildable cache, growth and peak
+query/write workloads separately. PostgreSQL relation sizes include indexes and
+may include dead space; they do not predict the size of a SQLite import directly.
+
+Use the separate `CACHE_DATABASE` binding for hosted repository/configuration
+cache data so refresh bursts and cache growth do not share the application
+database. Keep an explicit cache storage policy and verify it under representative
+collection loads before production cutover. A freshness TTL controls when data is
+checked; it is not automatic storage eviction.
+
+D1 has a fixed per-database size limit and serializes work within each database.
+Avoid assuming that account-wide storage allowances increase a single database's
+capacity. The current adapter uses the primary binding directly; it does not use
+the Sessions API required for D1 read replicas. Adding replica support requires
+an explicit consistency design for authentication, permissions and read-after-write
+behavior.
+
+For a future activity feed, measure the complete indexed schema rather than
+assuming a fixed JSON payload size. Budget from total events across the deployment,
+set retention and database headroom, and prune in bounded batches. Keep content
+bodies and binary assets out of event rows. Database-only cursor queries should
+serve the feed; webhook enrichment must not delay dashboard reads. For hosted
+deployments, isolate activity ingestion and retention from application and cache
+databases. A separate activity database does not remove D1's per-database ceiling;
+additional partitioning needs measured volume or throughput evidence. See
+[D1 limits](https://developers.cloudflare.com/d1/platform/limits/) and
+[read replication](https://developers.cloudflare.com/d1/best-practices/read-replication/).
+
 ## Configuration
 
 ```dotenv

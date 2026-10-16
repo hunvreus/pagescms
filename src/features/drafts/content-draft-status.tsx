@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { Button } from '#/components/ui/button'
 import { OperationError } from '#/components/operation-error'
+import { DraftDiscardDialog } from './draft-discard-dialog'
 
 export function ContentDraftRecovery({
   draft,
@@ -11,6 +13,7 @@ export function ContentDraftRecovery({
     discard: () => Promise<void>
   }
 }) {
+  const [confirmDiscard, setConfirmDiscard] = useState(false)
   if (!draft.error) return null
   return (
     <div className="space-y-2">
@@ -24,7 +27,7 @@ export function ContentDraftRecovery({
         <Button
           type="button"
           variant="outline"
-          onClick={() => void draft.discard()}
+          onClick={() => setConfirmDiscard(true)}
         >
           Discard local draft
         </Button>
@@ -32,6 +35,11 @@ export function ContentDraftRecovery({
       <OperationError
         error={draft.error}
         fallback="Could not restore or save the draft on this device. Keep this tab open."
+      />
+      <DraftDiscardDialog
+        open={confirmDiscard}
+        onOpenChange={setConfirmDiscard}
+        onDiscard={draft.discard}
       />
     </div>
   )

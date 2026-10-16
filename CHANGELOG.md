@@ -38,6 +38,8 @@
 
 ### Changed
 
+- Use the same discard confirmation in Overview, editor draft details and recovery messages; show the LayoutDashboard icon beside Overview in the sidebar.
+
 - Match read-only conflict input and textarea backgrounds to the rich-text preview; keep selection dimming on the whole unselected field.
 
 - Keep collection skeleton rows from highlighting on hover, matching other loading tables.

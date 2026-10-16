@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { LoaderCircle } from 'lucide-react'
 import { Button } from '#/components/ui/button'
+import { DraftDiscardDialog } from './draft-discard-dialog'
 import {
   Popover,
   PopoverContent,
@@ -22,7 +23,7 @@ function DraftDetails({
 }) {
   const titleId = useId()
   const [open, setOpen] = useState(false)
-  const [discarding, setDiscarding] = useState(false)
+  const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [now, setNow] = useState(Date.now)
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 30_000)
@@ -40,47 +41,54 @@ function DraftDetails({
     ? `${Math.floor(elapsed / unit[0])}${unit[1]} ago`
     : 'Just now'
   return (
-    <Popover open={open} onOpenChange={(next) => !discarding && setOpen(next)}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          className="font-normal text-muted-foreground"
-          disabled={disabled}
-          aria-label={`Local draft: ${age}`}
-        >
-          <time dateTime={new Date(savedAt).toISOString()}>{age}</time>
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" aria-labelledby={titleId}>
-        <PopoverHeader>
-          <PopoverTitle id={titleId}>Local draft</PopoverTitle>
-          <PopoverDescription>
-            Last saved in this browser{' '}
-            {formatDistanceToNow(savedAt, { addSuffix: true })}. These changes
-            haven’t been saved to your project.
-          </PopoverDescription>
-        </PopoverHeader>
-        <p className="text-muted-foreground">
-          Discarding removes your unsaved changes and restores the last loaded
-          or saved version.
-        </p>
-        <Button
-          type="button"
-          variant="destructive"
-          disabled={disabled || discarding}
-          onClick={() => {
-            setDiscarding(true)
-            void onDiscard()
-              .then(() => setOpen(false))
-              .catch(() => {})
-              .finally(() => setDiscarding(false))
-          }}
-        >
-          {discarding ? 'Discarding…' : 'Discard draft'}
-        </Button>
-      </PopoverContent>
-    </Popover>
+    <>
+      <Popover
+        open={open}
+        onOpenChange={(next) => !confirmDiscard && setOpen(next)}
+      >
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            className="font-normal text-muted-foreground"
+            disabled={disabled}
+            aria-label={`Local draft: ${age}`}
+          >
+            <time dateTime={new Date(savedAt).toISOString()}>{age}</time>
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="end" aria-labelledby={titleId}>
+          <PopoverHeader>
+            <PopoverTitle id={titleId}>Local draft</PopoverTitle>
+            <PopoverDescription>
+              Last saved in this browser{' '}
+              {formatDistanceToNow(savedAt, { addSuffix: true })}. These changes
+              haven’t been saved to your project.
+            </PopoverDescription>
+          </PopoverHeader>
+          <p className="text-muted-foreground">
+            Discarding removes your unsaved changes and restores the last loaded
+            or saved version.
+          </p>
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={disabled}
+            onClick={() => setConfirmDiscard(true)}
+          >
+            Discard draft
+          </Button>
+        </PopoverContent>
+      </Popover>
+      <DraftDiscardDialog
+        open={confirmDiscard}
+        onOpenChange={setConfirmDiscard}
+        onDiscard={async () => {
+          await onDiscard()
+          setOpen(false)
+        }}
+      />
+    </>
   )
 }
 

@@ -17,16 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from '#/components/ui/table'
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogCancel,
-  AlertDialogAction,
-} from '#/components/ui/alert-dialog'
+import { DraftDiscardDialog } from './draft-discard-dialog'
 import { OperationError } from '#/components/operation-error'
 import { authenticationQueryOptions } from '#/queries/session'
 import { repositoryWorkspaceQueryOptions } from '#/queries/repository'
@@ -48,7 +39,6 @@ export function RepositoryDashboard({
   const [recent, setRecent] = useState<EntrySummary[]>([])
   const [error, setError] = useState<unknown>(null)
   const [discarding, setDiscarding] = useState<ListedDraft | null>(null)
-  const [busy, setBusy] = useState(false)
   const account = auth?.user?.id
   const key = JSON.stringify(coordinates)
   useEffect(() => {
@@ -87,18 +77,6 @@ export function RepositoryDashboard({
         (item) => item.type === 'collection' || item.type === 'file',
       )
     : []
-  async function discard(draft: ListedDraft) {
-    setBusy(true)
-    setError(null)
-    try {
-      await discardDraft(draft.key, draft.revision)
-      setDiscarding(null)
-    } catch (cause) {
-      setError(cause)
-    } finally {
-      setBusy(false)
-    }
-  }
   return (
     <div className="-m-4 md:-m-6">
       <RepositoryPageHeader>
@@ -288,37 +266,17 @@ export function RepositoryDashboard({
           </section>
         </div>
       </div>
-      <AlertDialog
+      <DraftDiscardDialog
         open={Boolean(discarding)}
         onOpenChange={(open) => {
-          if (!open && !busy) setDiscarding(null)
+          if (!open) setDiscarding(null)
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Discard local draft?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Discard “{discarding?.summary.title}” from this device.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <OperationError
-            error={error}
-            fallback="Could not discard this draft."
-          />
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={busy}
-              onClick={(event) => {
-                event.preventDefault()
-                if (discarding) void discard(discarding)
-              }}
-            >
-              {busy ? 'Discarding…' : 'Discard draft'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        entryTitle={discarding?.summary.title}
+        onDiscard={async () => {
+          if (discarding)
+            await discardDraft(discarding.key, discarding.revision)
+        }}
+      />
     </div>
   )
 }

@@ -2,7 +2,7 @@
 
 - Propagate the editor’s widget-aware first-content spacing rule to the upstream editor registry before the next component refresh.
 
-- Investigate a repository activity table for a fast, database-backed dashboard feed retaining individual content/media additions, edits, renames and deletions, configuration changes, and collaborator changes, alongside existing action runs. Keep activity separate from the current-state content cache; scope visibility to configured paths and permissions. Evaluate CMS-write/webhook deduplication, delayed or missed events, external rename detection, retention and indexing before implementation. Activity is deferred; Overview provides collection creation shortcuts, fixed-file edit links, local drafts and recently opened entries without collection counts.
+- Investigate a repository activity table for a fast, database-backed dashboard feed retaining individual content/media additions, edits, renames and deletions, configuration changes, and collaborator changes, alongside existing action runs. Keep activity separate from the current-state content cache; scope visibility to configured paths and permissions. Evaluate CMS-write/webhook deduplication, delayed or missed events, external rename detection, measured indexed event size, deployment-wide volume, retention and D1 database headroom before implementation. Activity is deferred; Overview provides collection creation shortcuts, fixed-file edit links, local drafts and recently opened entries without collection counts.
 - Add shared/server-hosted drafts and cross-device recovery.
 - Evaluate richer text conflict comparisons and list merging only with explicit, stable item identities; the current draft review deliberately treats lists and source text as whole values.
 - Finish mutation lifecycle coverage for collection folder creation/node promotion and account settings; keep permission changes and external authentication/billing redirects confirmation-based.
@@ -22,6 +22,8 @@
 - Evaluate the private Cloudflare signed-delivery and optional image-transformation plugin only after portable baseline measurements pass.
 
 ## Release and cutover
+
+- Provision a separate hosted `CACHE_DATABASE` D1 binding before production cutover; staging currently shares application and cache data. Rehearse the actual SQLite import size, cache growth policy and peak mixed read/write workloads. If activity is implemented, isolate its ingestion/retention in a separate database and keep retention within a measured deployment-wide storage budget. Do not count on D1 read replicas until the adapter explicitly uses Sessions with appropriate authentication/permission consistency.
 
 - Audit existing production account links and unverified admin identities before rollout; the hardened sign-in checks do not retroactively establish the provenance of existing links.
 - Decide whether loss of an inviter's personal GitHub permission should revoke their repository's collaborator grants. Current installation/repository removal revokes access; individual inviter revocation retains legacy behavior.
