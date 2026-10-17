@@ -276,7 +276,21 @@ const fetchMediaDirectoryEntries = async (
       throw new Error("Expected a directory but found a file.");
     }
 
-    return response.data;
+    // Directory listings return Git LFS pointers (126+ bytes) as-is, fetching the
+    // file itself resolves the actual download URL and size.
+    return Promise.all(response.data.map(async (entry) => {
+      if (entry.type !== "file" || entry.size < 126 || entry.size > 200) return entry;
+
+      const fileResponse = await octokit.rest.repos.getContent({
+        owner,
+        repo,
+        path: entry.path,
+        ref: branch,
+      });
+      if (Array.isArray(fileResponse.data) || fileResponse.data.type !== "file") return entry;
+
+      return { ...entry, size: fileResponse.data.size, download_url: fileResponse.data.download_url };
+    }));
   } catch (error: any) {
     if (error?.status === 404 && error?.response?.data?.message === "Not Found") {
       return [];

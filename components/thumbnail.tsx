@@ -19,7 +19,7 @@ export function Thumbnail({
   const [rawUrl, setRawUrl] = useState<string | null>(null);
   const [error, setError] = useState(null);
 
-  const { owner, repo, isPrivate } = useRepo();
+  const { owner, repo } = useRepo();
   
   const { config } = useConfig();
   const branch = config?.branch!;
@@ -30,7 +30,7 @@ export function Thumbnail({
         setError(null);
         if (!rawUrl) setRawUrl(null);
         try {
-          const url = await getRawUrl(owner, repo, branch, name, path, isPrivate);
+          const url = await getRawUrl(owner, repo, branch, name, path);
           setRawUrl(url);
         } catch (error: any) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -41,7 +41,7 @@ export function Thumbnail({
     };
 
     fetchRawUrl();
-  }, [path, owner, repo, branch, isPrivate, name, rawUrl]);
+  }, [path, owner, repo, branch, name, rawUrl]);
 
   return (
     <div

@@ -19,10 +19,10 @@ import {
   type MediaDialogHandle,
 } from "@/components/media/media-dialog";
 import { useConfig } from "@/contexts/config-context";
-import { useRepo } from "@/contexts/repo-context";
 import { getSchemaByName } from "@/lib/schema";
 import {
   getRawUrl,
+  isRawUrl,
   getRelativeUrl,
   htmlSwapPrefix,
   rawToRelativeUrls,
@@ -317,7 +317,6 @@ const rewriteMarkdownImagesAsync = async (
 const EditComponent = forwardRef(
   (props: EditProps, ref: React.Ref<HTMLDivElement>) => {
     const { config } = useConfig();
-    const { isPrivate } = useRepo();
 
     const {
       value,
@@ -450,7 +449,6 @@ const EditComponent = forwardRef(
             config.branch,
             mediaConfig.name,
             normalizedInputPath,
-            isPrivate,
             true,
           );
           // Keep output-space path canonical when raw URL resolution misses.
@@ -459,14 +457,14 @@ const EditComponent = forwardRef(
           return canonicalOutputPath;
         }
       },
-      [config, isPrivate, mediaConfig],
+      [config, mediaConfig],
     );
 
     const toCanonicalImageUrl = useCallback(
       (url: string) => {
         if (!config || !mediaConfig) return url;
         if (!url) return url;
-        if (isExternalUrl(url) && !url.startsWith("https://raw.githubusercontent.com/")) {
+        if (isExternalUrl(url) && !isRawUrl(url)) {
           return url;
         }
 
@@ -507,7 +505,6 @@ const EditComponent = forwardRef(
             config.branch,
             mediaConfig.name,
             withInputPrefix,
-            isPrivate,
           );
         }
 
@@ -526,11 +523,10 @@ const EditComponent = forwardRef(
           config.branch,
           mediaConfig.name,
           withInputPrefixEverywhere,
-          isPrivate,
         );
         return rewriteMarkdownImagesAsync(htmlNormalized, toDisplayImageUrl);
       },
-      [config, format, isPrivate, mediaConfig, toDisplayImageUrl],
+      [config, format, mediaConfig, toDisplayImageUrl],
     );
 
     const editorToSource = useCallback(

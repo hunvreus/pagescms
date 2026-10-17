@@ -2,6 +2,7 @@ import { getRepoReadContext } from "@/lib/api-repo-context";
 import { getFileExtension, normalizePath } from "@/lib/utils/file";
 import { getMediaCache } from "@/lib/github-cache-file";
 import { createHttpError, toErrorResponse } from "@/lib/api-error";
+import { isRawUrl } from "@/lib/github-image";
 
 /**
  * Get the list of media files in a directory.
@@ -101,12 +102,12 @@ const normalizeMediaPath = (
     || decodedPath
   ).trim();
 
-  // If caller accidentally passes a raw.githubusercontent URL, map it back to repo-relative path.
+  // If caller accidentally passes a GitHub raw URL, map it back to repo-relative path.
   let repoRelativePath = candidate;
-  if (candidate.startsWith("https://raw.githubusercontent.com/")) {
+  if (isRawUrl(candidate)) {
     try {
       const url = new URL(candidate);
-      const pathname = decodeURIComponent(url.pathname || "");
+      const pathname = decodeURIComponent(url.pathname || "").replace(/^\/media\//, "/");
       const branchPrefix = `/${owner}/${repo}/${branch}/`;
       if (pathname.startsWith(branchPrefix)) {
         repoRelativePath = pathname.slice(branchPrefix.length);
