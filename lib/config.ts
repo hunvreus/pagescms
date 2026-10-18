@@ -44,6 +44,7 @@ const isCacheEnabled = (configObject?: Record<string, any>) => {
 
 // Parse the config file (YAML to JSON)
 const parseConfig = (content: string) => {
+  // TODO(yaml@2.9.1): parseDocument()/parseAllDocuments() are no longer documented as never throwing (e.g. RangeError); wrap in try/catch if failures must not escape.
   const document = YAML.parseDocument(content, {
     strict: false,
     prettyErrors: false,
