@@ -1030,14 +1030,14 @@ SingleField.displayName = "SingleField";
 const EntryForm = ({
   fields,
   contentObject,
-  onSubmit = () => {},
+  onSubmit = () => false,
   filePath,
   onDirtyChange,
   onChangeRegistered,
 }: {
   fields: Field[];
   contentObject?: Record<string, unknown>;
-  onSubmit: (values: Record<string, unknown>) => void;
+  onSubmit: (values: Record<string, unknown>) => boolean | Promise<boolean>;
   filePath?: React.ReactNode;
   onDirtyChange?: (isDirty: boolean) => void;
   onChangeRegistered?: () => void;
@@ -1056,13 +1056,18 @@ const EntryForm = ({
     reValidateMode: "onSubmit",
   });
 
+  const { isDirty } = form.formState;
+  const isSavingRef = useRef(false);
+
   useEffect(() => {
-    form.reset(defaultValues);
+    if (!form.formState.isDirty && !isSavingRef.current) {
+      form.reset(defaultValues);
+    }
   }, [defaultValues, form]);
 
   useEffect(() => {
-    onDirtyChange?.(form.formState.isDirty);
-  }, [form.formState.isDirty, onDirtyChange]);
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   const beforeSubmitHooksRef = useRef<Map<string, BeforeSubmitHook>>(new Map());
 
@@ -1139,8 +1144,20 @@ const EntryForm = ({
 
   const handleSubmit = useCallback(
     async (values: Record<string, unknown>) => {
-      const latestValues = form.getValues() as Record<string, unknown>;
-      await onSubmit(latestValues);
+      const submittedValues = structuredClone(form.getValues());
+      isSavingRef.current = true;
+      try {
+        const saved = await onSubmit(submittedValues);
+        if (saved) {
+          const currentValues = form.getValues();
+          // Use the saved snapshot as the baseline without replacing newer edits
+          // or remounting field arrays, then recalculate dirty state against it.
+          form.reset(submittedValues, { keepValues: true });
+          form.reset(currentValues, { keepValues: true, keepDefaultValues: true });
+        }
+      } finally {
+        isSavingRef.current = false;
+      }
     },
     [form, onSubmit],
   );
