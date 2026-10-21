@@ -412,12 +412,14 @@ export function Entry({
       if (submitStartChangeVersion === changeVersionRef.current) {
         setHasRegisteredChanges(false);
       }
+      return true;
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error(error.message);
       } else {
         console.error(error);
       }
+      return false;
     } finally {
       setIsSaving(false);
     }
