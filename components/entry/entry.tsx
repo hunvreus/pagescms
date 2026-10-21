@@ -137,6 +137,7 @@ export function Entry({
   const canRename = operations.rename;
   const canDelete = operations.delete;
   const isFileEditorMode = !schema?.fields || schema.fields.length === 0;
+  const isRootList = !isFileEditorMode && !!schema?.list;
   const filenameFieldMode = useMemo(() => {
     if (!schema || schema.type !== "collection") return "hidden";
     if (schema.filenameField === true) return "enabled";
@@ -169,26 +170,26 @@ export function Entry({
               : undefined
           }
         }]
-      : schema?.list === true
+      : isRootList
         ? [{
             name: "listWrapper",
             label: false,
             type: "object",
-            list: true,
+            list: schema.list,
             fields: schema.fields
           }]
         : schema.fields;
-  }, [schema, entry, path, showFilenameField]);
+  }, [schema, entry, path, showFilenameField, isRootList]);
 
   const entryContentObject = useMemo(() => {
     return path
-      ? schema?.list === true
+      ? isRootList
         ? { listWrapper: entry?.contentObject }
         : entry?.contentObject
-      : schema?.list === true
+      : isRootList
         ? { listWrapper: [] }
         : {};
-  }, [schema, entry, path]);
+  }, [isRootList, entry, path]);
 
   useEffect(() => {
     if (!showFilenameField || schemaType !== "collection" || !schema) return;
@@ -370,7 +371,7 @@ export function Entry({
           body: JSON.stringify({
             type: path === ".pages.yml" ? "settings" : "content",
             name,
-            content: schema?.list === true
+            content: isRootList
               ? contentObject.listWrapper
               : contentObject,
             sha: sha
