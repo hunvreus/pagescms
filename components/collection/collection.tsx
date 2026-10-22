@@ -369,6 +369,11 @@ export function Collection({ name, path }: { name: string; path?: string }) {
     setData((prevData) => prevData?.filter((item: any) => item.path !== path));
   }, []);
 
+  // The copy is already cached server-side: refetch the folder to show it
+  const handleDuplicate = useCallback(() => {
+    void mutate(rootCollectionKey);
+  }, [mutate, rootCollectionKey]);
+
   const handleRename = useCallback((path: string, newPath: string) => {
     setData((prevData: any) => {
       if (!prevData) return prevData;
@@ -559,8 +564,10 @@ export function Collection({ name, path }: { name: string; path?: string }) {
                 name={name}
                 canDelete={canDelete}
                 canRename={canRename}
+                canDuplicate={canCreate && schema.view?.layout !== "tree"}
                 onDelete={handleDelete}
                 onRename={handleRename}
+                onDuplicate={handleDuplicate}
               >
                 <Button variant="outline" size="icon-sm">
                   <EllipsisVertical />
@@ -661,6 +668,7 @@ export function Collection({ name, path }: { name: string; path?: string }) {
     primaryField,
     handleDelete,
     handleRename,
+    handleDuplicate,
     schema.view?.foldersFirst,
     schema.view?.layout,
     schema.view?.node?.filename,

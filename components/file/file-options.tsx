@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useConfig } from "@/contexts/config-context";
-import { getParentPath, getRelativePath, joinPathSegments, normalizePath } from "@/lib/utils/file";
+import { getFileName, getParentPath, getRelativePath, joinPathSegments, normalizePath } from "@/lib/utils/file";
 import { getSchemaByName } from "@/lib/schema";
 import { requireApiSuccess } from "@/lib/api-client";
 import {
@@ -34,9 +34,11 @@ export function FileOptions({
   name,
   canDelete,
   canRename,
+  canDuplicate,
   portalProps,
   onDelete,
   onRename,
+  onDuplicate,
   children
 }: {
   path: string;
@@ -45,9 +47,11 @@ export function FileOptions({
   name?: string;
   canDelete?: boolean;
   canRename?: boolean;
+  canDuplicate?: boolean;
   portalProps?: any;
   onDelete?: (path: string) => void;
   onRename?: (path: string, newPath: string) => void;
+  onDuplicate?: (path: string, newPath: string) => void;
   children: React.ReactNode;
 }) {
   const { config } = useConfig();
@@ -68,9 +72,51 @@ export function FileOptions({
   const relativePath = useMemo(() => getRelativePath(normalizedPath, rootPath), [normalizedPath, rootPath]);
   const showRename = type !== "settings" && type !== "file" && canRename !== false;
   const showDelete = type !== "settings" && canDelete !== false;
+  // Opt-in: only collection entries can be duplicated
+  const showDuplicate = type === "collection" && !!name && canDuplicate === true;
 
   const [newPath, setNewPath] = useState(relativePath);
   const [isRenameOpen, setIsRenameOpen] = useState(false);
+
+  // Creates a copy of the entry next to the original ("my-page-copy.md"). If the
+  // name is taken, the files API picks the next free one ("my-page-copy-1.md").
+  const handleDuplicate = () => {
+    const apiUrl = `/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}`;
+
+    const duplicatePromise = (async () => {
+      const entryResponse = await fetch(
+        `${apiUrl}/entries/${encodeURIComponent(normalizedPath)}?name=${encodeURIComponent(name!)}`,
+      );
+      const entry = await requireApiSuccess<any>(entryResponse, "Failed to read the entry");
+
+      const fileName = getFileName(normalizedPath);
+      const dotIndex = fileName.lastIndexOf(".");
+      const copyName = dotIndex > 0
+        ? `${fileName.slice(0, dotIndex)}-copy${fileName.slice(dotIndex)}`
+        : `${fileName}-copy`;
+      const copyPath = joinPathSegments([getParentPath(normalizedPath), copyName]);
+
+      const response = await fetch(`${apiUrl}/files/${encodeURIComponent(copyPath)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "content",
+          name,
+          content: entry.data.contentObject,
+        }),
+      });
+      return requireApiSuccess<any>(response, "Failed to duplicate the entry");
+    })();
+
+    toast.promise(duplicatePromise, {
+      loading: `Duplicating ${path}`,
+      success: (result: any) => {
+        if (onDuplicate) onDuplicate(path, result.data.path);
+        return result.message;
+      },
+      error: (error: any) => error.message,
+    });
+  };
 
   const handleConfirmDelete = async () => {
     try {
@@ -121,9 +167,14 @@ export function FileOptions({
                 <ArrowUpRight className="size-3 text-muted-foreground ml-auto" />
               </a>
             </DropdownMenuItem>
-            {(showRename || showDelete)
+            {(showRename || showDelete || showDuplicate)
               ? <>
                   <DropdownMenuSeparator />
+                  {showDuplicate &&
+                    <DropdownMenuItem onSelect={handleDuplicate}>
+                      Duplicate
+                    </DropdownMenuItem>
+                  }
                   {showRename &&
                     <DropdownMenuItem onSelect={() => setIsRenameOpen(true)}>
                       Rename
