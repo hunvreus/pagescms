@@ -341,6 +341,25 @@ const normalizeContentEntry = (
     });
   }
 
+  // `view.reorder` names the field that stores the manual position. When it
+  // isn't declared, we add it as a hidden number field so the value is kept
+  // when an entry is saved from the form.
+  const reorderField = item.view?.reorder;
+  if (
+    item.type === "collection" &&
+    typeof reorderField === "string" &&
+    !reorderField.includes(".") &&
+    Array.isArray(item.fields) &&
+    !item.fields.some((field: any) => field.name === reorderField)
+  ) {
+    item.fields.push({
+      name: reorderField,
+      label: "Position",
+      type: "number",
+      hidden: true,
+    });
+  }
+
   return item;
 };
 

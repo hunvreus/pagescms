@@ -625,6 +625,12 @@ const ContentLeafSchema = z
               },
             )
             .optional(),
+          reorder: z
+            .string({
+              message: "'reorder' must be a string (the name of a number field).",
+            })
+            .optional()
+            .nullable(),
           default: z
             .object(
               {
@@ -658,7 +664,7 @@ const ContentLeafSchema = z
         },
         {
           message:
-            "'view' must be an object with 'fields', 'primary', 'sort', 'search' and 'default' attributes.",
+            "'view' must be an object with 'fields', 'primary', 'sort', 'search', 'reorder' and 'default' attributes.",
         },
       )
       .strict()

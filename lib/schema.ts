@@ -349,6 +349,23 @@ function safeAccess(obj: Record<string, any>, path: string) {
   }, obj);
 }
 
+// Set a (possibly nested) property in an object, creating intermediate objects
+function setByPath(target: Record<string, any>, path: string, value: any) {
+  if (!path) return;
+  const segments = path.split(".");
+  let cursor: Record<string, any> = target;
+
+  for (let i = 0; i < segments.length - 1; i++) {
+    const key = segments[i];
+    if (cursor[key] == null || typeof cursor[key] !== "object" || Array.isArray(cursor[key])) {
+      cursor[key] = {};
+    }
+    cursor = cursor[key];
+  }
+
+  cursor[segments[segments.length - 1]] = value;
+}
+
 // Interpolate a string with a data object, with optional prefix fallback (e.g. "fields")
 function interpolate(input: string, data: Record<string, any>, prefixFallback?: string): string {
   return input.replace(/(?<!\\)\{([^}]+)\}/g, (_, token) => {
@@ -465,5 +482,6 @@ export {
   getDateFromFilename,
   generateZodSchema,
   safeAccess,
+  setByPath,
   interpolate
 };

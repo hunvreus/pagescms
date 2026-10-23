@@ -33,7 +33,8 @@ export default function Page({
       <DocumentTitle
         title={formatRepoBranchTitle(schema.label || schema.name, config.owner, config.repo, config.branch)}
       />
-      <Collection name={name} path={path}/>
+      {/* Remount per collection so the table's sorting doesn't leak from one to another */}
+      <Collection key={`${resolvedParams.branch}/${name}`} name={name} path={path}/>
     </>
   );
 }

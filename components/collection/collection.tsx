@@ -28,6 +28,7 @@ import {
   getPrimaryField,
   getFieldByPath,
   safeAccess,
+  setByPath,
 } from "@/lib/schema";
 import { requireApiSuccess } from "@/lib/api-client";
 import { EmptyCreate } from "@/components/empty-create";
@@ -195,6 +196,14 @@ export function Collection({ name, path }: { name: string; path?: string }) {
   const canRename = operations.rename;
   const canDelete = operations.delete;
 
+  // Number field holding the manual position of each entry (list layout only)
+  const reorderField = useMemo(() => {
+    const fieldName = schema.view?.reorder;
+    if (!fieldName || schema.view?.layout === "tree" || !schema.fields) return undefined;
+    return getFieldByPath(schema.fields, fieldName)?.type === "number" ? fieldName : undefined;
+  }, [schema]);
+  const [isReordering, setIsReordering] = useState(false);
+
   const viewFields = useMemo(() => {
     let pathAndFieldArray: any[] = [];
     if (schema.fields) {
@@ -224,6 +233,14 @@ export function Collection({ name, path }: { name: string; path?: string }) {
       });
     }
 
+    // The position field must be a column: the list is sorted on it to reorder
+    if (reorderField && !pathAndFieldArray.find((item: any) => item.path === reorderField)) {
+      pathAndFieldArray.push({
+        path: reorderField,
+        field: getFieldByPath(schema.fields, reorderField),
+      });
+    }
+
     // If the filename starts with {year}-{month}-{day} and date is listed in the
     // view fields and is not an actual field, or if there are no fields, we add a date field
     if (
@@ -243,7 +260,7 @@ export function Collection({ name, path }: { name: string; path?: string }) {
     }
 
     return pathAndFieldArray;
-  }, [schema]);
+  }, [schema, reorderField]);
 
   const primaryField = useMemo(
     () => getPrimaryField(schema) ?? "name",
@@ -438,6 +455,85 @@ export function Collection({ name, path }: { name: string; path?: string }) {
       return sortFiles([...prevData, parent]);
     });
   }, []);
+
+  // Saves a new manual order. `orderedPaths` lists the files of the current
+  // folder in their new order. The list is updated right away and rolled back
+  // if the request fails.
+  const handleReorder = useCallback(
+    async (orderedPaths: string[]) => {
+      if (!reorderField || isReordering) return;
+
+      const previousData = data;
+      const shaByPath = new Map<string, string>(
+        data.filter((item) => item.type === "file").map((item) => [item.path, item.sha]),
+      );
+      const positions = new Map(orderedPaths.map((entryPath, index) => [entryPath, index + 1]));
+
+      const applyPositions = (rows: Record<string, any>[], shas?: Map<string, string>) =>
+        rows.map((item) => {
+          const position = positions.get(item.path);
+          if (position === undefined) return item;
+          const fields = JSON.parse(JSON.stringify(item.fields ?? {}));
+          setByPath(fields, reorderField, position);
+          return { ...item, fields, sha: shas?.get(item.path) ?? item.sha };
+        });
+
+      setData(applyPositions(data));
+      setIsReordering(true);
+
+      const savePromise = (async () => {
+        const response = await fetch(
+          `/api/${config.owner}/${config.repo}/${encodeURIComponent(config.branch)}/collections/${encodeURIComponent(name)}/order`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              path: collectionPath,
+              entries: orderedPaths.map((entryPath) => ({
+                path: entryPath,
+                sha: shaByPath.get(entryPath),
+              })),
+            }),
+          },
+        );
+        const result = await requireApiSuccess<any>(response, "Failed to save the order");
+
+        const newShas = new Map<string, string>(
+          result.data.entries.map((entry: any) => [entry.path, entry.sha]),
+        );
+        const savedData = applyPositions(previousData, newShas);
+        setData(savedData);
+        await mutate(rootCollectionKey, savedData, { revalidate: false });
+        return result;
+      })();
+
+      toast.promise(savePromise, {
+        loading: "Saving the new order…",
+        success: (result: any) => result.message,
+        error: (error: any) => error.message,
+      });
+
+      try {
+        await savePromise;
+      } catch {
+        setData(previousData);
+      } finally {
+        setIsReordering(false);
+      }
+    },
+    [
+      collectionPath,
+      config.branch,
+      config.owner,
+      config.repo,
+      data,
+      isReordering,
+      mutate,
+      name,
+      reorderField,
+      rootCollectionKey,
+    ],
+  );
 
   const handleConfirmRenameNode = useCallback(
     (path: string, newPath: string) => {
@@ -676,6 +772,7 @@ export function Collection({ name, path }: { name: string; path?: string }) {
       viewFields == null
         ? "name"
         : schema.view?.default?.sort ||
+          reorderField ||
           (viewFields.find((item: any) => item.field.name === "date") &&
             "date") ||
           primaryField;
@@ -692,11 +789,17 @@ export function Collection({ name, path }: { name: string; path?: string }) {
                 : false,
         },
       ],
+      // A hidden position field stays out of the list too (it still drives the sort)
+      columnVisibility:
+        reorderField && getFieldByPath(schema.fields, reorderField)?.hidden
+          ? { [reorderField]: false }
+          : {},
       pagination: {
-        pageSize: 25,
+        // Reordering needs the whole list on a single page
+        pageSize: reorderField ? 10000 : 25,
       },
     };
-  }, [schema, primaryField, viewFields]);
+  }, [schema, primaryField, viewFields, reorderField]);
 
   const handleNavigate = useCallback(
     (newPath: string) => {
@@ -1027,6 +1130,11 @@ export function Collection({ name, path }: { name: string; path?: string }) {
       path={path || schema.path}
       isTree={schema.view?.layout === "tree"}
       primaryField={primaryField}
+      reorder={
+        reorderField
+          ? { field: reorderField, saving: isReordering, onReorder: handleReorder }
+          : undefined
+      }
     />
   );
 

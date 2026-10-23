@@ -1,6 +1,10 @@
 "use client"
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, type ReactNode } from "react";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   flexRender,
   getCoreRowModel,
@@ -33,7 +37,7 @@ import {
 } from "@/components/ui/table";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { ArrowUp, ArrowDown, Loader, CircleMinus, CirclePlus, Folder, FolderOpen } from "lucide-react";
+import { ArrowUp, ArrowDown, GripVertical, Loader, CircleMinus, CirclePlus, Folder, FolderOpen } from "lucide-react";
 
 declare module '@tanstack/react-table' {
   interface ColumnMeta<TData extends RowData, TValue> {
@@ -64,6 +68,107 @@ const LShapeIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+export type TableReorder = {
+  // Column (field path) holding the manual position
+  field: string;
+  saving: boolean;
+  // Called with the paths of all the files, in their new order
+  onReorder: (orderedPaths: string[]) => void;
+};
+
+// A file row with a drag handle, used when the collection can be reordered
+const ReorderRow = ({
+  id,
+  enabled,
+  hint,
+  onSortByPosition,
+  children,
+}: {
+  id: string;
+  enabled: boolean;
+  hint: string;
+  // Set when clicking the handle can bring the list back to the position order
+  onSortByPosition?: () => void;
+  children: ReactNode;
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id, disabled: !enabled });
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={cn(isDragging && "relative z-10 bg-muted shadow-sm")}
+    >
+      <TableCell className="p-2 border-b py-0 h-12 w-8">
+        <button
+          type="button"
+          ref={setActivatorNodeRef}
+          disabled={!enabled && !onSortByPosition}
+          onClick={enabled ? undefined : onSortByPosition}
+          title={enabled ? "Drag to reorder" : hint}
+          aria-label={enabled ? "Drag to reorder" : hint}
+          className={cn(
+            "flex items-center text-muted-foreground",
+            enabled
+              ? "cursor-grab hover:text-foreground touch-none"
+              : onSortByPosition
+                ? "cursor-pointer opacity-60 hover:opacity-100"
+                : "cursor-not-allowed opacity-40"
+          )}
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+      </TableCell>
+      {children}
+    </TableRow>
+  );
+};
+
+// Wraps the cells of a body row: adds the drag handle column when the
+// collection can be reordered (an empty cell for folders).
+const RowShell = ({
+  reorder,
+  isFile,
+  id,
+  enabled,
+  hint,
+  onSortByPosition,
+  children,
+}: {
+  reorder: boolean;
+  isFile: boolean;
+  id: string;
+  enabled: boolean;
+  hint: string;
+  onSortByPosition?: () => void;
+  children: ReactNode;
+}) => {
+  if (!reorder) return <TableRow>{children}</TableRow>;
+  if (isFile) {
+    return (
+      <ReorderRow id={id} enabled={enabled} hint={hint} onSortByPosition={onSortByPosition}>
+        {children}
+      </ReorderRow>
+    );
+  }
+  return (
+    <TableRow>
+      <TableCell className="p-2 border-b py-0 h-12 w-8" />
+      {children}
+    </TableRow>
+  );
+};
+
 export function CollectionTable<TData extends TableData>({
   columns,
   data,
@@ -74,7 +179,8 @@ export function CollectionTable<TData extends TableData>({
   pathname,
   path,
   isTree = false,
-  primaryField
+  primaryField,
+  reorder
 }: {
   columns: any[],
   data: Record<string, any>[],
@@ -85,7 +191,8 @@ export function CollectionTable<TData extends TableData>({
   pathname: string,
   path: string,
   isTree?: boolean,
-  primaryField?: string
+  primaryField?: string,
+  reorder?: TableReorder
 }) {
   const [expanded, setExpanded] = useState<ExpandedState>({});
   
@@ -143,6 +250,42 @@ export function CollectionTable<TData extends TableData>({
     onExpandedChange: setExpanded,
   });
 
+  // Reordering is only possible when the list is sorted by position (ascending)
+  // and nothing is filtered out, so what is on screen is the whole order.
+  const sorting = table.getState().sorting;
+  const sortedByPosition =
+    !!reorder &&
+    !search &&
+    sorting.length === 1 &&
+    sorting[0].id === reorder.field &&
+    !sorting[0].desc;
+  const reorderEnabled = sortedByPosition && !reorder?.saving;
+  // Wrong sort (not saving, no search): the handle brings the list back to the position order
+  const canSortByPosition = !!reorder && !reorder.saving && !search && !sortedByPosition;
+  const reorderHint = reorder?.saving
+    ? "Saving the new order…"
+    : search
+      ? "Clear the search to reorder"
+      : "Click to sort by position, then drag to reorder";
+  const fileRowIds = table
+    .getRowModel()
+    .rows.filter((row) => row.original.type === "file")
+    .map((row) => row.original.path);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!reorder || !reorderEnabled || !over || active.id === over.id) return;
+    const oldIndex = fileRowIds.indexOf(String(active.id));
+    const newIndex = fileRowIds.indexOf(String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    reorder.onReorder(arrayMove(fileRowIds, oldIndex, newIndex));
+  };
+
   const currentPage = table.getState().pagination.pageIndex;
   const pageCount = table.getPageCount();
 
@@ -186,10 +329,18 @@ export function CollectionTable<TData extends TableData>({
 
   return (
     <div className="space-y-2">
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        modifiers={[restrictToVerticalAxis]}
+        onDragEnd={handleDragEnd}
+      >
+      <SortableContext items={fileRowIds} strategy={verticalListSortingStrategy}>
       <Table className="border-separate border-spacing-0 text-sm">
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id} className="sticky -top-4 md:-top-6 z-20 bg-background hover:bg-background">
+              {reorder && <TableHead className="p-2 h-10 w-8 border-b"><span className="sr-only">Reorder</span></TableHead>}
               {headerGroup.headers.map((header) => {
                 return (
                   <TableHead
@@ -230,7 +381,19 @@ export function CollectionTable<TData extends TableData>({
         <TableBody>
           {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
+              <RowShell
+                key={row.id}
+                reorder={!!reorder}
+                isFile={row.original.type === "file"}
+                id={row.original.path}
+                enabled={reorderEnabled}
+                hint={reorderHint}
+                onSortByPosition={
+                  canSortByPosition && reorder
+                    ? () => table.setSorting([{ id: reorder.field, desc: false }])
+                    : undefined
+                }
+              >
                 {
                   row.original.type === "dir"
                     ? <>
@@ -311,17 +474,19 @@ export function CollectionTable<TData extends TableData>({
                       </TableCell>
                     ))
                 }
-              </TableRow>
+              </RowShell>
             ))
           ) : (
             <TableRow className="hover:bg-transparent">
-              <TableCell colSpan={columns.length} className="text-center text-muted-foreground text-sm p-6">
+              <TableCell colSpan={columns.length + (reorder ? 1 : 0)} className="text-center text-muted-foreground text-sm p-6">
                 <span>No entries</span>
               </TableCell>
             </TableRow>
           )}
         </TableBody>
       </Table>
+      </SortableContext>
+      </DndContext>
       {pageCount > 1 && (
         <footer className="flex items-center justify-end">
           <Pagination className="mx-0 w-auto justify-end">

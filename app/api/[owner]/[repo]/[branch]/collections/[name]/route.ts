@@ -3,7 +3,7 @@ export const maxDuration = 30;
 import { type NextRequest } from "next/server";
 import { readFns } from "@/fields/registry";
 import { parse } from "@/lib/serialization";
-import { deepMap, getDateFromFilename, getFieldByPath, getSchemaByName, safeAccess } from "@/lib/schema";
+import { deepMap, getDateFromFilename, getFieldByPath, getSchemaByName, safeAccess, setByPath } from "@/lib/schema";
 import { getRepoReadContext } from "@/lib/api-repo-context";
 import { normalizePath } from "@/lib/utils/file";
 import { getCollectionCache } from "@/lib/github-cache-file";
@@ -233,20 +233,4 @@ const pickAndTransformFields = (
   });
 
   return output;
-};
-
-const setByPath = (target: Record<string, any>, path: string, value: any) => {
-  if (!path) return;
-  const segments = path.split(".");
-  let cursor: Record<string, any> = target;
-
-  for (let i = 0; i < segments.length - 1; i++) {
-    const key = segments[i];
-    if (cursor[key] == null || typeof cursor[key] !== "object" || Array.isArray(cursor[key])) {
-      cursor[key] = {};
-    }
-    cursor = cursor[key];
-  }
-
-  cursor[segments[segments.length - 1]] = value;
 };
