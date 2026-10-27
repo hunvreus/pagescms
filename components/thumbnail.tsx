@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getRawUrl } from "@/lib/github-image";
+import { getRawUrl, invalidateRawUrl } from "@/lib/github-image";
 import { useRepo } from "@/contexts/repo-context";
 import { useConfig } from "@/contexts/config-context";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,7 @@ export function Thumbnail({
 }) {
   const [rawUrl, setRawUrl] = useState<string | null>(null);
   const [error, setError] = useState(null);
+  const [retriedPath, setRetriedPath] = useState<string | null>(null);
 
   const { owner, repo, isPrivate } = useRepo();
   
@@ -57,6 +58,14 @@ export function Thumbnail({
               alt={path.split("/").pop() || "thumbnail"}
               loading="lazy"
               className="absolute inset-0 w-full h-full object-cover"
+              onError={() => {
+                // Raw URLs of private repos carry a short-lived token, so a lazy image
+                // requested later can fail. Fetch a fresh URL, but only once per path.
+                if (retriedPath === path) return;
+                setRetriedPath(path);
+                invalidateRawUrl(owner, repo, branch, path);
+                setRawUrl(null);
+              }}
             />
           : error
             ? <div className="flex justify-center items-center absolute inset-0 text-muted-foreground" title={error}>

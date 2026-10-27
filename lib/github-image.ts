@@ -123,6 +123,19 @@ const getRawUrl = async (
   }
 };
 
+// Forget the cached raw URLs of an image's folder. In private repositories these
+// URLs carry a short-lived token, so a lazy image requested later can get a 404.
+const invalidateRawUrl = (
+  owner: string,
+  repo: string,
+  branch: string,
+  path: string
+) => {
+  const normalizedInputPath = normalizeImagePathInput(path);
+  if (!normalizedInputPath) return;
+  delete cache[`${owner}/${repo}/${encodeURIComponent(branch)}/${getParentPath(normalizedInputPath)}`];
+};
+
 const normalizeImagePathInput = (input: string) => {
   if (!input) return null;
   const value = decodePathSafely(input.trim());
@@ -296,4 +309,4 @@ const getImgSrcs = (html: string) => {
   return Array.from(html.matchAll(regex));
 }
 
-export { getRelativeUrl, getRawUrl, relativeToRawUrls, rawToRelativeUrls, swapPrefix, htmlSwapPrefix, encodePath, getImgSrcs };
+export { getRelativeUrl, getRawUrl, invalidateRawUrl, relativeToRawUrls, rawToRelativeUrls, swapPrefix, htmlSwapPrefix, encodePath, getImgSrcs };
