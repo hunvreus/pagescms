@@ -865,6 +865,29 @@ const ObjectField = forwardRef<HTMLDivElement, NestedFieldProps>(
 
 ObjectField.displayName = "ObjectField";
 
+// Live character count for string and text fields that set options.minlength or options.maxlength.
+// Counts the same way the field's validation does (string length), turns red outside the limits and
+// is announced politely to screen readers.
+const hasLengthLimit = (field: Field) =>
+  (field.type === "string" || field.type === "text") &&
+  !field.list &&
+  (typeof field.options?.maxlength === "number" || typeof field.options?.minlength === "number");
+
+const CharacterCount = ({ field, value }: { field: Field; value: unknown }) => {
+  const count = typeof value === "string" ? value.length : 0;
+  const max = typeof field.options?.maxlength === "number" ? field.options.maxlength : undefined;
+  const min = typeof field.options?.minlength === "number" ? field.options.minlength : undefined;
+  const invalid = (max !== undefined && count > max) || (min !== undefined && count > 0 && count < min);
+  return (
+    <p
+      className={cn("shrink-0 text-sm tabular-nums text-muted-foreground", invalid && "text-destructive")}
+      aria-live="polite"
+    >
+      {max !== undefined ? `${count}/${max}` : `${count} (min ${min})`}
+    </p>
+  );
+};
+
 const SingleField = ({
   field,
   fieldName,
@@ -1014,8 +1037,17 @@ const SingleField = ({
                 return <FieldComponent {...sharedProps} />;
               })()}
             </FormControl>
-            {field.description && (
-              <FormDescription>{field.description}</FormDescription>
+            {(field.description || hasLengthLimit(field)) && (
+              <div className="flex items-start justify-between gap-x-4">
+                {field.description ? (
+                  <FormDescription>{field.description}</FormDescription>
+                ) : (
+                  <span />
+                )}
+                {hasLengthLimit(field) && (
+                  <CharacterCount field={field} value={rhfManagedFieldProps.value} />
+                )}
+              </div>
             )}
             <FormMessage />
           </FormItem>
