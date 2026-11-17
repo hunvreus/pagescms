@@ -101,7 +101,7 @@ function MediaUploadRoot({ children, path, onUpload, media, extensions, multiple
           return data.data as FileSaveData;
         })();
 
-        await toast.promise(uploadPromise, {
+        toast.promise(uploadPromise, {
           loading: `Uploading ${file.name}`,
           success: (savedEntry) => {
             onUpload?.(savedEntry);
@@ -109,6 +109,16 @@ function MediaUploadRoot({ children, path, onUpload, media, extensions, multiple
           },
           error: (error: unknown) => error instanceof Error ? error.message : "Upload failed",
         });
+
+        // toast.promise() returns the toast id, not a promise, so awaiting it did not
+        // wait for the upload: every file started at once and the commits raced on
+        // the branch head (#432). Wait for each upload before starting the next one;
+        // a failed file is reported by its toast and does not stop the others.
+        try {
+          await uploadPromise;
+        } catch {
+          // Already reported by the toast above.
+        }
       }
     } catch (error) {
       console.error(error);
