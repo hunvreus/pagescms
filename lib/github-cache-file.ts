@@ -920,6 +920,8 @@ const getCollectionCache = async (
           inArray(cacheFileTable.path, subdirs.map((dir: any) => `${dir.path}/${nodeEntryFilename}`))
         )
       });
+      // Media listings cache files without their content, so fetch those node entries again
+      nodeEntries = nodeEntries.filter((entry: any) => entry.context !== 'media');
       
       // Query the GitHub API for the missing node entries
       const missingSubdirs = subdirs.filter((dir: any) => !nodeEntries.some((entry: any) => entry.path === `${dir.path}/${nodeEntryFilename}`));
