@@ -1,0 +1,110 @@
+import { describe, expect, it, vi } from 'vitest'
+
+import {
+  authBaseUrl,
+  createLoginCodeEmail,
+  createPagesCmsAuth,
+} from '#/server/auth/index'
+import { createDatabase } from '#/server/db/client'
+import { migrate } from 'drizzle-orm/libsql/migrator'
+
+describe('createLoginCodeEmail', () => {
+  it('escapes user-controlled values in the HTML body', () => {
+    const message = createLoginCodeEmail({
+      baseUrl: 'https://app.pagescms.org',
+      email: 'han+test@example.com',
+      otp: '<123456>',
+    })
+
+    expect(message.subject).toContain('<123456>')
+    expect(message.html).not.toContain('<123456>')
+    expect(message.html).toContain('&lt;123456&gt;')
+    expect(message.html).toContain('han+test@example.com')
+    expect(message.html).toContain(
+      'https://app.pagescms.org/images/email-logo.png',
+    )
+  })
+})
+
+describe('authBaseUrl', () => {
+  it('accepts the active localhost port while retaining a fallback', () => {
+    expect(authBaseUrl('http://localhost:3000')).toEqual({
+      allowedHosts: ['localhost:*', '127.0.0.1:*', '[::1]:*'],
+      fallback: 'http://localhost:3000',
+      protocol: 'http',
+    })
+  })
+
+  it('keeps production origins exact', () => {
+    expect(authBaseUrl('https://app.pagescms.org')).toBe(
+      'https://app.pagescms.org',
+    )
+  })
+})
+
+describe('createPagesCmsAuth', () => {
+  it('constructs the request-scoped Better Auth handler without connecting eagerly', async () => {
+    const database = createDatabase({ url: 'file::memory:' })
+    const auth = createPagesCmsAuth({
+      database,
+      configuration: {
+        baseUrl: 'https://app.pagescms.org',
+        secret: 'a-secure-auth-secret-with-32-characters',
+        github: { clientId: 'client-id', clientSecret: 'client-secret' },
+        google: {
+          clientId: 'google-client-id',
+          clientSecret: 'google-client-secret',
+        },
+      },
+      emailProvider: { send: vi.fn(async () => undefined) },
+    })
+
+    expect(auth.handler).toBeTypeOf('function')
+    expect(auth.api.getSession).toBeTypeOf('function')
+    expect(auth.options.advanced.database.validateSchema).toBe(false)
+    expect(auth.options.session.cookieCache).toEqual({
+      enabled: true,
+      maxAge: 60,
+    })
+    expect(auth.options.onAPIError.errorURL).toBe('/auth/error')
+    expect(auth.options.account.accountLinking.trustedProviders).toEqual([])
+    expect(auth.options.socialProviders.github?.requireEmailVerification).toBe(
+      true,
+    )
+    expect(auth.options.socialProviders.google).toMatchObject({
+      clientId: 'google-client-id',
+      clientSecret: 'google-client-secret',
+      disableDefaultScope: true,
+      scope: ['openid', 'email', 'profile'],
+      overrideUserInfoOnSignIn: false,
+    })
+    await migrate(database, { migrationsFolder: './drizzle' })
+    const validate = auth.options.user.validateUserInfo
+    for (const providerId of ['github', 'google']) {
+      for (const action of [
+        'create-user',
+        'link-account',
+        'sign-in',
+      ] as const) {
+        expect(
+          await validate({
+            user: { emailVerified: false },
+            source: { method: 'oauth', action, oauth: { providerId } },
+          }),
+        ).toMatchObject({ error: 'email_not_verified' })
+        expect(
+          await validate({
+            user: { email: 'person@example.test', emailVerified: true },
+            source: { method: 'oauth', action, oauth: { providerId } },
+          }),
+        ).toBeUndefined()
+      }
+    }
+    expect(
+      await validate({
+        user: { emailVerified: false },
+        source: { method: 'email-otp', action: 'create-user' },
+      }),
+    ).toBeUndefined()
+  })
+})

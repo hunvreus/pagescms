@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pages CMS</title>
+    <meta
+      name="description"
+      content="The open-source CMS for GitHub repositories."
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Pages CMS" />
+    <meta property="og:title" content="Pages CMS" />
+    <meta
+      property="og:description"
+      content="The open-source CMS for GitHub repositories."
+    />
+    <meta
+      property="og:image"
+      content="https://app.pagescms.org/images/social-card.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Pages CMS social card" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Pages CMS" />
+    <meta
+      name="twitter:description"
+      content="The open-source CMS for GitHub repositories."
+    />
+    <meta
+      name="twitter:image"
+      content="https://app.pagescms.org/images/social-card.png"
+    />
+    <script>
+      ;(function () {
+        try {
+          var t = localStorage.getItem('theme') || 'system'
+          var d =
+            t === 'dark' ||
+            (t === 'system' &&
+              matchMedia('(prefers-color-scheme: dark)').matches)
+          document.documentElement.classList.toggle('dark', d)
+        } catch (_) {}
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/client.tsx"></script>
+  </body>
+</html>

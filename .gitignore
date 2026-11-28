@@ -1,42 +1,45 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Dependencies
+node_modules/
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-.yarn/install-state.gz
+# Environment and local secrets
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+*.local
 
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-.docs
-.codex
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# env files
-.env*
-!.env.local.example
-
-# vercel
-.vercel
-
-# typescript
+# Build and framework output
+dist/
+dist-ssr/
+.output/
+.tanstack/
+.pagescms/
+.vinxi/
+.nitro/
+.wrangler/
+coverage/
+playwright-report/
+test-results/
+.data/
+.tmp/
 *.tsbuildinfo
-next-env.d.ts
+*.cpuprofile
+__unconfig*
+todos.json
 
-# Database
-local.db
+# Generated code
+src/routeTree.gen.ts
+
+# Editor and OS files
+.DS_Store
+
+# Legacy local dependencies, experiments, generated output, and secrets
+
+# Generated public documentation release artifact
+/public/reference/
+/public/reference.md
+
+# Lingui catalogs are compiled by Vite; keep PO sources only.
+src/locales/**/messages.js

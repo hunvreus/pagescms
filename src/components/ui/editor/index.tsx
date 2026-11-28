@@ -1,0 +1,1303 @@
+import {
+  useLingui as useUiMessages,
+  Trans as UiTrans,
+} from '@lingui/react/macro'
+import type { MessageDescriptor } from '@lingui/core'
+import { msg } from '@lingui/core/macro'
+
+import type { ImageBinder } from './image'
+import { Skeleton } from '#/components/ui/skeleton'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { initializeEditorDocument, serializeEditorHtml } from './document'
+import {
+  createMarkdownHtmlExtensions,
+  createMarkdownParser,
+  selectClickedText,
+  pasteKeptHtml,
+  sanitizeEditorHtml,
+} from './html-policy'
+import type { MarkdownHtmlPolicy } from './html-policy'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { HTMLAttributes } from 'react'
+import type { Editor as TiptapEditor } from '@tiptap/core'
+import { EditorContent, useEditor, useEditorState } from '@tiptap/react'
+import { BubbleMenu } from '@tiptap/react/menus'
+import StarterKit from '@tiptap/starter-kit'
+import Placeholder from '@tiptap/extension-placeholder'
+import Underline from '@tiptap/extension-underline'
+import {
+  ImageLink,
+  LinkedImageParagraph,
+  UploadableImage,
+  imageLinkHref,
+} from './image'
+import { Table } from '@tiptap/extension-table'
+import TableRow from '@tiptap/extension-table-row'
+import TableHeader from '@tiptap/extension-table-header'
+import TableCell from '@tiptap/extension-table-cell'
+import { Markdown } from '@tiptap/markdown'
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
+import { TextSelection } from '@tiptap/pm/state'
+import Bold from '@hugeicons/core-free-icons/BoldIcon'
+import Check from '@hugeicons/core-free-icons/CheckIcon'
+import ChevronDownIcon from '@hugeicons/core-free-icons/ChevronDownIcon'
+import Code from '@hugeicons/core-free-icons/CodeIcon'
+import Minus from '@hugeicons/core-free-icons/MinusIcon'
+import Plus from '@hugeicons/core-free-icons/PlusIcon'
+import RemoveFormatting from '@hugeicons/core-free-icons/RemoveFormattingIcon'
+import TableIcon from '@hugeicons/core-free-icons/TableIcon'
+import Italic from '@hugeicons/core-free-icons/ItalicIcon'
+import LinkIcon from '@hugeicons/core-free-icons/LinkIcon'
+import Strikethrough from '@hugeicons/core-free-icons/StrikethroughIcon'
+import UnderlineIcon from '@hugeicons/core-free-icons/UnderlineIcon'
+import X from '@hugeicons/core-free-icons/XIcon'
+import type { IconSvgElement } from '@hugeicons/react'
+import { cn } from 'cn'
+import './typeset.css'
+import SlashCommands from './slash-command/commands'
+import type {
+  EditorSnippet,
+  ImagePickerContext,
+  ImagePickerFileResult,
+  ImagePickerHandler,
+  ImagePickerResult,
+  ImagePickerUrlResult,
+  SlashImageFallback,
+} from './slash-command/suggestion'
+
+export type { MarkdownHtmlPolicy } from './html-policy'
+
+export type EditorFormat = 'html' | 'markdown'
+export type ImageFallbackMode = 'data-url' | 'prompt-url' | 'none'
+export type ImageUploadContext = {
+  editor: TiptapEditor
+  source: 'paste' | 'drop' | 'slash'
+}
+export type ImageUploadResult = {
+  src: string
+  /** Optional display URL; src remains the stable serialized reference. */
+  previewSrc?: string | null
+  alt?: string
+  title?: string
+}
+export type ImageUploadHandler = (
+  file: File,
+  context: ImageUploadContext,
+) => ImageUploadResult | null | Promise<ImageUploadResult | null>
+
+const DEFAULT_MAX_IMAGE_BYTES = 1_000_000
+const UPLOADED_IMAGE_PRELOAD_TIMEOUT_MS = 8_000
+const MARKDOWN_TABLE_ROW_PATTERN = /^\s*\|.*\|\s*$/
+const MARKDOWN_TABLE_DELIMITER_CELL_PATTERN = /^:?-{3,}:?$/
+const TABLE_CELL_NBSP_PATTERN = /^(?:&nbsp;|\u00A0)+$/i
+
+export type EditorProps = {
+  value?: string
+  onChange?: (value: string) => void
+  disabled?: boolean
+  format?: EditorFormat
+  enableImages?: boolean
+  enableImagePasteDrop?: boolean
+  onUploadImage?: ImageUploadHandler
+  imageFallback?: ImageFallbackMode
+  maxImageBytes?: number
+  onRequestImage?: ImagePickerHandler
+  onPendingUploadsChange?: (count: number) => void
+  bindImage?: ImageBinder
+  snippets?: readonly EditorSnippet[]
+  markdownHtml?: MarkdownHtmlPolicy
+  className?: string
+  editorClassName?: string
+  ariaLabel?: string
+  editorId?: string
+} & Omit<HTMLAttributes<HTMLDivElement>, 'onChange' | 'className'>
+export type {
+  EditorSnippet,
+  ImagePickerContext,
+  ImagePickerFileResult,
+  ImagePickerHandler,
+  ImagePickerResult,
+  ImagePickerUrlResult,
+  SlashImageFallback,
+}
+
+type ToggleAction = {
+  label: string
+  icon: IconSvgElement
+  isActive: () => boolean
+  run: () => void
+  toggle: true
+}
+
+type PlainAction = {
+  label: string
+  icon: IconSvgElement
+  run: () => void
+  toggle?: false
+}
+
+type MenuAction = ToggleAction | PlainAction
+
+type IconButtonOptions = {
+  label: string
+  icon: IconSvgElement
+  onClick: () => void
+  disabled: boolean
+  toggle?: boolean
+  pressed?: boolean
+  className?: string
+}
+
+type BlockType =
+  | 'paragraph'
+  | 'heading1'
+  | 'heading2'
+  | 'heading3'
+  | 'bulletList'
+  | 'orderedList'
+  | 'blockquote'
+  | 'codeBlock'
+
+type ActiveState = {
+  blockType: BlockType
+  bold: boolean
+  italic: boolean
+  underline: boolean
+  strike: boolean
+  code: boolean
+  link: boolean
+}
+
+const defaultActiveState: ActiveState = {
+  blockType: 'paragraph',
+  bold: false,
+  italic: false,
+  underline: false,
+  strike: false,
+  code: false,
+  link: false,
+}
+
+type UploadableImageAttrs = {
+  src?: unknown
+  alt?: unknown
+  title?: unknown
+  uploadId?: unknown
+  uploading?: unknown
+  uploadError?: unknown
+  [key: string]: unknown
+}
+
+const toUploadableAttrs = (attrs: unknown): UploadableImageAttrs => {
+  if (!attrs || typeof attrs !== 'object') return {}
+  return attrs as UploadableImageAttrs
+}
+
+const splitMarkdownTableCells = (line: string): string[] => {
+  const trimmed = line.trim()
+  if (trimmed.length < 2 || !trimmed.startsWith('|') || !trimmed.endsWith('|'))
+    return []
+
+  const row = trimmed.slice(1, -1)
+  const cells: string[] = []
+  let start = 0
+
+  for (let index = 0; index < row.length; index += 1) {
+    if (row[index] !== '|') continue
+
+    let slashCount = 0
+    for (
+      let slashIndex = index - 1;
+      slashIndex >= 0 && row[slashIndex] === '\\';
+      slashIndex -= 1
+    ) {
+      slashCount += 1
+    }
+    if (slashCount % 2 === 1) continue
+
+    cells.push(row.slice(start, index))
+    start = index + 1
+  }
+
+  cells.push(row.slice(start))
+  return cells
+}
+
+const isMarkdownTableDelimiterLine = (line: string): boolean => {
+  if (!MARKDOWN_TABLE_ROW_PATTERN.test(line)) return false
+  const cells = splitMarkdownTableCells(line)
+  if (!cells.length) return false
+  return cells.every((cell) =>
+    MARKDOWN_TABLE_DELIMITER_CELL_PATTERN.test(cell.trim()),
+  )
+}
+
+const normalizeMarkdownTables = (markdown: string): string =>
+  markdown
+    .split('\n')
+    .map((line) => {
+      if (
+        !MARKDOWN_TABLE_ROW_PATTERN.test(line) ||
+        isMarkdownTableDelimiterLine(line)
+      )
+        return line
+
+      const cells = splitMarkdownTableCells(line)
+      if (!cells.length) return line
+
+      const normalizedCells = cells.map((cell) =>
+        TABLE_CELL_NBSP_PATTERN.test(cell.trim()) ? '' : cell.trim(),
+      )
+      return `| ${normalizedCells.join(' | ')} |`
+    })
+    .join('\n')
+
+const normalizeMarkdownBlankLines = (markdown: string): string => {
+  const lines = markdown.split('\n')
+  const normalized: string[] = []
+  let blankCount = 0
+  let inFence = false
+
+  for (const line of lines) {
+    if (/^\s*(```|~~~)/.test(line)) {
+      inFence = !inFence
+      blankCount = 0
+      normalized.push(line)
+      continue
+    }
+
+    const trimmedLine = line.trim()
+    const isBlankLine =
+      trimmedLine === '' || /^(?:&nbsp;|\u00A0)+$/i.test(trimmedLine)
+
+    if (!inFence && isBlankLine) {
+      blankCount += 1
+      if (blankCount > 1) continue
+    } else {
+      blankCount = 0
+    }
+
+    normalized.push(line)
+  }
+
+  return normalized.join('\n').trimEnd()
+}
+
+const normalizeMarkdown = (markdown: string): string =>
+  normalizeMarkdownBlankLines(normalizeMarkdownTables(markdown))
+
+const blockOptions: Array<{ value: BlockType; label: MessageDescriptor }> = [
+  { value: 'paragraph', label: msg({ message: 'Text' }) },
+  { value: 'heading1', label: msg({ message: 'Heading 1' }) },
+  { value: 'heading2', label: msg({ message: 'Heading 2' }) },
+  { value: 'heading3', label: msg({ message: 'Heading 3' }) },
+  { value: 'bulletList', label: msg({ message: 'Bulleted list' }) },
+  { value: 'orderedList', label: msg({ message: 'Numbered list' }) },
+  { value: 'blockquote', label: msg({ message: 'Quote' }) },
+  { value: 'codeBlock', label: msg({ message: 'Code block' }) },
+]
+
+export function Editor({
+  value = '',
+  onChange = () => undefined,
+  disabled = false,
+  format = 'html',
+  enableImages = true,
+  enableImagePasteDrop = false,
+  onUploadImage,
+  imageFallback = 'prompt-url',
+  maxImageBytes = DEFAULT_MAX_IMAGE_BYTES,
+  onRequestImage,
+  onPendingUploadsChange,
+  bindImage,
+  markdownHtml,
+  snippets = [],
+  className,
+  editorClassName,
+  ariaLabel,
+  editorId,
+  ...props
+}: EditorProps) {
+  const { t: remainingT } = useUiMessages()
+
+  const { t: _t, i18n: _i18n } = useUiMessages()
+
+  const [showLinkInput, setShowLinkInput] = useState(false)
+  const [showTableActions, setShowTableActions] = useState(false)
+  const [showAltInput, setShowAltInput] = useState(false)
+  const [isInTable, setIsInTable] = useState(false)
+  const [isOnImage, setIsOnImage] = useState(false)
+  const [linkUrl, setLinkUrl] = useState('')
+  const [imageAltText, setImageAltText] = useState('')
+  const bubbleMenuRef = useRef<HTMLDivElement>(null)
+  const linkInputRef = useRef<HTMLInputElement>(null)
+  const lastEmittedValueRef = useRef<string>(
+    format === 'markdown' ? normalizeMarkdown(value) : value,
+  )
+  const lastObservedFormatRef = useRef<EditorFormat>(format)
+  const lastObservedValueRef = useRef<string>(lastEmittedValueRef.current)
+  const pendingValuesRef = useRef<string[]>([])
+  const snippetOptionsRef = useRef({ snippets, format, markdownHtml })
+  snippetOptionsRef.current = { snippets, format, markdownHtml }
+  const pendingUploadsRef = useRef(0)
+  const objectUrlByUploadIdRef = useRef(new Map<string, string>())
+  const expectedBlobByUploadIdRef = useRef(new Map<string, string>())
+  const tiptapSurfaceClass = cn(
+    'typeset typeset-editor border-input placeholder:text-muted-foreground selection:bg-accent selection:text-foreground dark:bg-input/30 min-h-32 w-full rounded-lg border bg-transparent px-3 py-2 shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] [&_p.is-empty::before]:text-muted-foreground [&_p.is-empty::before]:content-[attr(data-placeholder)] [&_p.is-empty::before]:pointer-events-none [&_p.is-empty::before]:float-left [&_p.is-empty::before]:h-0 [&_td_p.is-empty::before]:content-none [&_th_p.is-empty::before]:content-none [&_img[data-uploading=true]]:opacity-70 [&_img[data-uploading=true]]:animate-pulse [&_img[data-upload-error]]:ring-2 [&_img[data-upload-error]]:ring-destructive [&_img[data-upload-error]]:ring-offset-2 [&_img[data-upload-error]]:ring-offset-background',
+    editorClassName,
+  )
+
+  const bindImageRef = useRef(bindImage)
+  bindImageRef.current = bindImage
+  const htmlExtensions = useMemo(
+    () => createMarkdownHtmlExtensions(markdownHtml, _i18n),
+    [markdownHtml, _i18n],
+  )
+  const markdownParser = useMemo(() => createMarkdownParser(), [])
+  const [initialContent] = useState(() =>
+    format === 'html'
+      ? sanitizeEditorHtml(value || '<p></p>', markdownHtml)
+      : value,
+  )
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        paragraph: false,
+        link: false,
+        underline: false,
+      }),
+      Underline,
+      ImageLink.configure({
+        openOnClick: false,
+        enableClickSelection: true,
+        HTMLAttributes: {
+          rel: null,
+          target: null,
+        },
+      }),
+      UploadableImage.configure({
+        bindImage: (image, source) => bindImageRef.current?.(image, source),
+      }),
+      LinkedImageParagraph,
+      Table,
+      TableRow,
+      TableHeader,
+      TableCell,
+      ...htmlExtensions,
+      Placeholder.configure({
+        placeholder: ({
+          node,
+          editor: currentEditor,
+        }: {
+          node: ProseMirrorNode
+          editor: TiptapEditor
+        }): string =>
+          node.type.name === 'paragraph' &&
+          !currentEditor.isActive('tableCell') &&
+          !currentEditor.isActive('tableHeader')
+            ? remainingT({ message: "Press '/' for commands" })
+            : '',
+        showOnlyCurrent: true,
+      }),
+      Markdown.configure({ marked: markdownParser }),
+      SlashCommands.configure({
+        i18n: _i18n,
+        getSnippets: () => snippetOptionsRef.current.snippets,
+        onInsertSnippet: ({ editor: currentEditor, range }, snippet) => {
+          const options = snippetOptionsRef.current
+          const contentType = snippet.format ?? options.format
+          const content =
+            contentType === 'html'
+              ? sanitizeEditorHtml(snippet.source, options.markdownHtml)
+              : snippet.source
+          currentEditor
+            .chain()
+            .focus()
+            .insertContentAt(range, content, { contentType })
+            .run()
+        },
+        onRequestImage: enableImages ? (onRequestImage ?? null) : null,
+        onInsertLocalImageFile: ({ file, alt, title }) => {
+          void insertLocalImageFile(file, 'slash', {
+            ...(alt ? { alt } : {}),
+            ...(title ? { title } : {}),
+          })
+        },
+        enableImages,
+        imageSlashFallback:
+          imageFallback === 'prompt-url' ? 'prompt-url' : 'none',
+      }),
+    ],
+    content: initialContent,
+    contentType: format,
+    editorProps: {
+      handleClick: (view, _pos, event) => selectClickedText(view, event),
+      transformPastedHTML: (html) => sanitizeEditorHtml(html, markdownHtml),
+      attributes: {
+        'aria-label': ariaLabel ?? remainingT({ message: 'Rich text editor' }),
+        'aria-multiline': 'true',
+        dir: 'auto',
+        class: tiptapSurfaceClass,
+        role: 'textbox',
+        ...(editorId ? { id: editorId } : {}),
+      },
+      handlePaste: (_view, event, slice) => {
+        if (!event.clipboardData?.files.length && pasteKeptHtml(_view, slice))
+          return true
+        if (!enableImages || !enableImagePasteDrop) return false
+        const files = Array.from(event.clipboardData?.files ?? []).filter(
+          (file) => file.type.startsWith('image/'),
+        )
+        if (!files.length) return false
+        void insertImagesFromFiles(files, 'paste')
+        return true
+      },
+      handleDrop: (view, event, _slice, moved) => {
+        if (moved || !enableImages || !enableImagePasteDrop) return false
+        const files = Array.from(event.dataTransfer?.files ?? []).filter(
+          (file) => file.type.startsWith('image/'),
+        )
+        if (!files.length) return false
+
+        const coords = view.posAtCoords({
+          left: event.clientX,
+          top: event.clientY,
+        })
+        if (coords?.pos != null) {
+          view.dispatch(
+            view.state.tr.setSelection(
+              TextSelection.create(view.state.doc, coords.pos),
+            ),
+          )
+        }
+
+        void insertImagesFromFiles(files, 'drop')
+        return true
+      },
+    },
+    editable: !disabled,
+    immediatelyRender: false,
+    onMount: ({ editor: mountedEditor }) =>
+      initializeEditorDocument(mountedEditor),
+    onUpdate: ({ editor: nextEditor }) => {
+      const nextValue =
+        format === 'markdown'
+          ? normalizeMarkdown(nextEditor.getMarkdown())
+          : serializeEditorHtml(nextEditor)
+              .replace(/<img\b[^>]*\bsrc="blob:[^"]*"[^>]*>/g, '')
+              .replace(/\sdata-upload-id="[^"]*"/g, '')
+              .replace(/\sdata-uploading="[^"]*"/g, '')
+              .replace(/\sdata-upload-error="[^"]*"/g, '')
+      if (nextValue === lastEmittedValueRef.current) return
+      // A parent may echo an earlier edit after more typing has already happened.
+      pendingValuesRef.current.push(nextValue)
+      lastEmittedValueRef.current = nextValue
+      onChange(nextValue)
+    },
+  })
+
+  const activeState =
+    useEditorState({
+      editor,
+      selector: ({ editor: currentEditor }) => {
+        if (!currentEditor) {
+          return defaultActiveState
+        }
+
+        const blockType: BlockType = currentEditor.isActive('heading', {
+          level: 1,
+        })
+          ? 'heading1'
+          : currentEditor.isActive('heading', { level: 2 })
+            ? 'heading2'
+            : currentEditor.isActive('heading', { level: 3 })
+              ? 'heading3'
+              : currentEditor.isActive('bulletList')
+                ? 'bulletList'
+                : currentEditor.isActive('orderedList')
+                  ? 'orderedList'
+                  : currentEditor.isActive('blockquote')
+                    ? 'blockquote'
+                    : currentEditor.isActive('codeBlock')
+                      ? 'codeBlock'
+                      : 'paragraph'
+
+        return {
+          blockType,
+          bold: currentEditor.isActive('bold'),
+          italic: currentEditor.isActive('italic'),
+          underline: currentEditor.isActive('underline'),
+          strike: currentEditor.isActive('strike'),
+          code: currentEditor.isActive('code'),
+          link: currentEditor.isActive('link'),
+        }
+      },
+    }) ?? defaultActiveState
+
+  useEffect(() => {
+    if (!editor) return
+    const externalValue =
+      format === 'markdown' ? normalizeMarkdown(value) : value
+    const formatChanged = lastObservedFormatRef.current !== format
+    const valueChanged = lastObservedValueRef.current !== externalValue
+    if (!formatChanged && !valueChanged) return
+
+    lastObservedFormatRef.current = format
+    lastObservedValueRef.current = externalValue
+    const pendingIndex = formatChanged
+      ? -1
+      : pendingValuesRef.current.indexOf(externalValue)
+    if (pendingIndex !== -1) {
+      pendingValuesRef.current.splice(0, pendingIndex + 1)
+      return
+    }
+    if (!formatChanged && externalValue === lastEmittedValueRef.current) return
+    pendingValuesRef.current = []
+
+    const current =
+      format === 'markdown'
+        ? normalizeMarkdown(editor.getMarkdown())
+        : serializeEditorHtml(editor)
+    const hasChanged = externalValue !== current
+
+    if (hasChanged) {
+      editor.commands.setContent(
+        format === 'html'
+          ? sanitizeEditorHtml(value || '<p></p>', markdownHtml)
+          : value,
+        {
+          emitUpdate: false,
+          contentType: format,
+        },
+      )
+      lastEmittedValueRef.current = externalValue
+    }
+  }, [editor, value, format])
+
+  useEffect(() => {
+    if (!editor) return
+    editor.setEditable(!disabled, false)
+  }, [editor, disabled])
+
+  useEffect(() => {
+    if (!editor) return
+    editor.setOptions({
+      editorProps: {
+        ...editor.options.editorProps,
+        attributes: {
+          'aria-label':
+            ariaLabel ?? remainingT({ message: 'Rich text editor' }),
+          'aria-multiline': 'true',
+          dir: 'auto',
+          class: tiptapSurfaceClass,
+          role: 'textbox',
+          ...(editorId ? { id: editorId } : {}),
+        },
+      },
+    })
+  }, [ariaLabel, editor, editorId, tiptapSurfaceClass, _i18n.locale])
+
+  useEffect(() => {
+    if ((!showLinkInput && !showTableActions && !showAltInput) || !editor)
+      return
+
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null
+      if (!target) return
+
+      const insideBubble = bubbleMenuRef.current?.contains(target) ?? false
+      if (!insideBubble) {
+        setShowLinkInput(false)
+        setShowTableActions(false)
+        setShowAltInput(false)
+      }
+    }
+
+    document.addEventListener('pointerdown', onPointerDown, true)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown, true)
+    }
+  }, [showLinkInput, showTableActions, showAltInput, editor])
+
+  useEffect(() => {
+    if (!showLinkInput) return
+    const frameId = requestAnimationFrame(() => {
+      linkInputRef.current?.focus()
+      linkInputRef.current?.select()
+    })
+    return () => cancelAnimationFrame(frameId)
+  }, [showLinkInput])
+
+  useEffect(() => {
+    if (!editor) return
+
+    const updateTableContext = () => {
+      const nextIsInTable =
+        editor.isActive('table') ||
+        editor.isActive('tableRow') ||
+        editor.isActive('tableHeader') ||
+        editor.isActive('tableCell')
+      const nextIsOnImage = enableImages && editor.isActive('image')
+
+      setIsInTable(nextIsInTable)
+      if (!nextIsInTable) setShowTableActions(false)
+      setIsOnImage(nextIsOnImage)
+      if (!nextIsOnImage) setShowAltInput(false)
+    }
+
+    updateTableContext()
+    editor.on('selectionUpdate', updateTableContext)
+    editor.on('transaction', updateTableContext)
+
+    return () => {
+      editor.off('selectionUpdate', updateTableContext)
+      editor.off('transaction', updateTableContext)
+    }
+  }, [editor, enableImages])
+
+  useEffect(() => {
+    onPendingUploadsChange?.(pendingUploadsRef.current)
+
+    return () => {
+      for (const url of objectUrlByUploadIdRef.current.values()) {
+        URL.revokeObjectURL(url)
+      }
+      objectUrlByUploadIdRef.current.clear()
+      expectedBlobByUploadIdRef.current.clear()
+      pendingUploadsRef.current = 0
+      onPendingUploadsChange?.(0)
+    }
+  }, [onPendingUploadsChange])
+
+  if (!editor)
+    return (
+      <Skeleton
+        role="status"
+        className={cn('min-h-32 w-full rounded-lg', editorClassName)}
+        aria-label={_t({ message: 'Loading editor' })}
+        aria-busy="true"
+      />
+    )
+
+  const updatePendingUploads = (delta: number): void => {
+    pendingUploadsRef.current = Math.max(0, pendingUploadsRef.current + delta)
+    onPendingUploadsChange?.(pendingUploadsRef.current)
+  }
+
+  const createUploadId = (): string =>
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `upload-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+
+  const fileToDataUrl = (file: File): Promise<string> =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onerror = () => reject(new Error('Failed to read image file.'))
+      reader.onload = () => resolve(String(reader.result ?? ''))
+      reader.readAsDataURL(file)
+    })
+
+  const preloadImageSource = async (
+    src: string,
+    timeoutMs = UPLOADED_IMAGE_PRELOAD_TIMEOUT_MS,
+  ): Promise<boolean> =>
+    new Promise<boolean>((resolve) => {
+      const image = new window.Image()
+      let settled = false
+      const timeoutId = window.setTimeout(() => {
+        if (settled) return
+        settled = true
+        image.onload = null
+        image.onerror = null
+        resolve(false)
+      }, timeoutMs)
+
+      const finish = (ok: boolean): void => {
+        if (settled) return
+        settled = true
+        window.clearTimeout(timeoutId)
+        image.onload = null
+        image.onerror = null
+        resolve(ok)
+      }
+
+      image.onerror = () => finish(false)
+      image.onload = () => {
+        if (typeof image.decode === 'function') {
+          void image.decode().then(
+            () => finish(true),
+            // decode errors can still have a usable image after load; keep it non-blocking.
+            () => finish(true),
+          )
+          return
+        }
+        finish(true)
+      }
+
+      image.src = src
+      if (image.complete && image.naturalWidth > 0) finish(true)
+    })
+
+  const findImageNodeByUploadId = (
+    uploadId: string,
+  ): { pos: number; attrs: UploadableImageAttrs } | null => {
+    let match: { pos: number; attrs: UploadableImageAttrs } | null = null
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name !== 'image') return true
+      const attrs = toUploadableAttrs(node.attrs)
+      if (attrs.uploadId === uploadId) {
+        match = { pos, attrs }
+        return false
+      }
+      return true
+    })
+    return match
+  }
+
+  const finalizeImageUpload = (
+    uploadId: string,
+    updater: (
+      currentAttrs: UploadableImageAttrs,
+    ) => UploadableImageAttrs | null,
+  ): boolean => {
+    const match = findImageNodeByUploadId(uploadId)
+    if (!match) return false
+
+    const nextAttrs = updater(match.attrs)
+    if (!nextAttrs) return false
+
+    editor.view.dispatch(
+      editor.state.tr.setNodeMarkup(match.pos, undefined, nextAttrs),
+    )
+    return true
+  }
+
+  const cleanupUpload = (
+    uploadId: string,
+    options?: { revokeBlob?: boolean },
+  ): void => {
+    const shouldRevoke = options?.revokeBlob ?? true
+    const objectUrl = objectUrlByUploadIdRef.current.get(uploadId)
+    if (shouldRevoke && objectUrl) URL.revokeObjectURL(objectUrl)
+    if (shouldRevoke) {
+      objectUrlByUploadIdRef.current.delete(uploadId)
+    }
+    expectedBlobByUploadIdRef.current.delete(uploadId)
+    updatePendingUploads(-1)
+  }
+
+  const insertLocalImageFile = async (
+    file: File,
+    source: 'paste' | 'drop' | 'slash',
+    initialAttrs?: { alt?: string; title?: string },
+  ): Promise<void> => {
+    if (!file.type.startsWith('image/')) return
+    const uploadId = createUploadId()
+    const blobUrl = URL.createObjectURL(file)
+    const fallbackAlt = initialAttrs?.alt ?? file.name
+
+    objectUrlByUploadIdRef.current.set(uploadId, blobUrl)
+    expectedBlobByUploadIdRef.current.set(uploadId, blobUrl)
+    updatePendingUploads(1)
+
+    editor
+      .chain()
+      .focus()
+      .insertContent({
+        type: 'image',
+        attrs: {
+          src: blobUrl,
+          alt: fallbackAlt,
+          title: initialAttrs?.title,
+          uploadId,
+          uploading: true,
+          uploadError: null,
+        },
+      })
+      .run()
+
+    try {
+      let resolved: ImageUploadResult | null = null
+      if (onUploadImage) {
+        resolved = await onUploadImage(file, { editor, source })
+      } else if (imageFallback === 'data-url') {
+        if (file.size <= maxImageBytes) {
+          resolved = { src: await fileToDataUrl(file), alt: fallbackAlt }
+        }
+      }
+
+      if (!resolved?.src) {
+        finalizeImageUpload(uploadId, (attrs) => ({
+          ...attrs,
+          uploading: false,
+          uploadError: 'Upload failed',
+        }))
+        cleanupUpload(uploadId, { revokeBlob: false })
+        return
+      }
+
+      const preloaded =
+        resolved.previewSrc === null
+          ? null
+          : await preloadImageSource(resolved.previewSrc ?? resolved.src)
+      finalizeImageUpload(uploadId, (attrs): UploadableImageAttrs | null => {
+        const expectedBlob = expectedBlobByUploadIdRef.current.get(uploadId)
+        const currentSrc = typeof attrs.src === 'string' ? attrs.src : ''
+        if (!expectedBlob || currentSrc !== expectedBlob) return null
+
+        return {
+          ...attrs,
+          src: resolved.src,
+          alt:
+            resolved.alt ??
+            (typeof attrs.alt === 'string' ? attrs.alt : undefined),
+          title:
+            resolved.title ??
+            (typeof attrs.title === 'string' ? attrs.title : undefined),
+          uploading: false,
+          uploadError:
+            preloaded === false
+              ? remainingT({
+                  message: 'Image uploaded, but preview failed to load',
+                })
+              : null,
+          uploadId: null,
+        }
+      })
+
+      cleanupUpload(uploadId, { revokeBlob: true })
+    } catch (error) {
+      finalizeImageUpload(uploadId, (attrs) => ({
+        ...attrs,
+        uploading: false,
+        uploadError: error instanceof Error ? error.message : 'Upload failed',
+      }))
+      cleanupUpload(uploadId, { revokeBlob: false })
+    }
+  }
+
+  const insertImagesFromFiles = async (
+    files: File[],
+    source: 'paste' | 'drop',
+  ): Promise<void> => {
+    for (const file of files) {
+      await insertLocalImageFile(file, source)
+    }
+  }
+
+  const setBlockType = (next: BlockType): void => {
+    const chain = editor.chain().focus()
+
+    switch (next) {
+      case 'paragraph':
+        chain.setParagraph().run()
+        break
+      case 'heading1':
+        chain.setHeading({ level: 1 }).run()
+        break
+      case 'heading2':
+        chain.setHeading({ level: 2 }).run()
+        break
+      case 'heading3':
+        chain.setHeading({ level: 3 }).run()
+        break
+      case 'bulletList':
+        chain.toggleBulletList().run()
+        break
+      case 'orderedList':
+        chain.toggleOrderedList().run()
+        break
+      case 'blockquote':
+        chain.toggleBlockquote().run()
+        break
+      case 'codeBlock':
+        chain.toggleCodeBlock().run()
+        break
+      default:
+        break
+    }
+  }
+
+  const inlineActions: MenuAction[] = [
+    {
+      label: _t({ message: 'Bold' }),
+      icon: Bold,
+      isActive: () => activeState.bold,
+      run: () => editor.chain().focus().toggleBold().run(),
+      toggle: true,
+    },
+    {
+      label: _t({ message: 'Italic' }),
+      icon: Italic,
+      isActive: () => activeState.italic,
+      run: () => editor.chain().focus().toggleItalic().run(),
+      toggle: true,
+    },
+    {
+      label: _t({ message: 'Underline' }),
+      icon: UnderlineIcon,
+      isActive: () => activeState.underline,
+      run: () => editor.chain().focus().toggleUnderline().run(),
+      toggle: true,
+    },
+    {
+      label: _t({ message: 'Strikethrough' }),
+      icon: Strikethrough,
+      isActive: () => activeState.strike,
+      run: () => editor.chain().focus().toggleStrike().run(),
+      toggle: true,
+    },
+    {
+      label: _t({ message: 'Code' }),
+      icon: Code,
+      isActive: () => activeState.code,
+      run: () => editor.chain().focus().toggleCode().run(),
+      toggle: true,
+    },
+    {
+      label: _t({ message: 'Remove formatting' }),
+      icon: RemoveFormatting,
+      run: () => editor.chain().focus().unsetAllMarks().clearNodes().run(),
+    },
+  ]
+
+  const openLinkInput = () => {
+    if (showLinkInput) {
+      setShowLinkInput(false)
+      return
+    }
+    const linkAttrs = editor.getAttributes(isOnImage ? 'image' : 'link')
+    const href = typeof linkAttrs['href'] === 'string' ? linkAttrs['href'] : ''
+    setLinkUrl(isOnImage || editor.isActive('link') ? href : '')
+    setShowLinkInput(true)
+    setShowTableActions(false)
+    setShowAltInput(false)
+  }
+
+  const toggleTableActions = () => {
+    if (!isInTable) return
+    setShowTableActions((current) => !current)
+    setShowLinkInput(false)
+    setShowAltInput(false)
+  }
+
+  const toggleAltInput = () => {
+    if (!enableImages || !isOnImage) return
+    if (showAltInput) {
+      setShowAltInput(false)
+      return
+    }
+    const imageAttrs = editor.getAttributes('image')
+    const alt = imageAttrs['alt']
+    setImageAltText(typeof alt === 'string' ? alt : '')
+    setShowAltInput(true)
+    setShowLinkInput(false)
+    setShowTableActions(false)
+  }
+
+  const applyLink = () => {
+    const trimmed = linkUrl.trim()
+    if (!trimmed) return
+    if (isOnImage) {
+      const href = imageLinkHref(trimmed)
+      if (!href) return
+      editor.chain().focus().updateAttributes('image', { href }).run()
+    } else
+      editor
+        .chain()
+        .focus()
+        .extendMarkRange('link')
+        .setLink({ href: trimmed })
+        .run()
+    setShowLinkInput(false)
+  }
+
+  const removeLink = () => {
+    if (isOnImage)
+      editor
+        .chain()
+        .focus()
+        .updateAttributes('image', { href: null, linkTitle: null })
+        .run()
+    else editor.chain().focus().extendMarkRange('link').unsetLink().run()
+    setShowLinkInput(false)
+    setLinkUrl('')
+  }
+
+  const confirmOrRemoveLink = () => {
+    const trimmed = linkUrl.trim()
+    if (trimmed || editor.isActive('link')) {
+      removeLink()
+      return
+    }
+
+    setShowLinkInput(false)
+  }
+
+  const applyImageAlt = () => {
+    if (!enableImages || !isOnImage) return
+    const trimmed = imageAltText.trim()
+    editor
+      .chain()
+      .focus()
+      .updateAttributes('image', {
+        alt: trimmed || undefined,
+      })
+      .run()
+    setShowAltInput(false)
+  }
+
+  const clearImageAlt = () => {
+    if (!enableImages || !isOnImage) return
+    editor.chain().focus().updateAttributes('image', {}).run()
+    setImageAltText('')
+    setShowAltInput(false)
+  }
+
+  const addRow = () => editor.chain().focus().addRowAfter().run()
+  const removeRow = () => editor.chain().focus().deleteRow().run()
+  const addColumn = () => editor.chain().focus().addColumnAfter().run()
+  const removeColumn = () => editor.chain().focus().deleteColumn().run()
+
+  const toolbarButtonClass =
+    'inline-flex size-7 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50'
+  const toolbarToggleButtonClass = `${toolbarButtonClass} aria-pressed:bg-accent aria-pressed:text-accent-foreground`
+  const toolbarInputClass =
+    'border-input bg-background text-foreground h-7 rounded-md border px-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]'
+
+  const renderIconButton = ({
+    label,
+    icon: Icon,
+    onClick,
+    disabled: isDisabled,
+    toggle = false,
+    pressed = false,
+    className: extraClassName,
+  }: IconButtonOptions) => (
+    <button
+      key={label}
+      type="button"
+      onClick={onClick}
+      disabled={isDisabled}
+      aria-label={label}
+      aria-pressed={toggle ? pressed : undefined}
+      className={`${toggle ? toolbarToggleButtonClass : toolbarButtonClass}${extraClassName ? ` ${extraClassName}` : ''}`}
+      title={label}
+    >
+      <HugeiconsIcon aria-hidden="true" icon={Icon} className="size-4" />
+    </button>
+  )
+  return (
+    <div {...props} className={cn('', className)}>
+      <BubbleMenu
+        pluginKey="editor-bubble"
+        ref={bubbleMenuRef}
+        editor={editor}
+        className="z-50 w-fit max-w-[95vw] text-popover-foreground outline-hidden"
+        options={{
+          placement: 'top',
+          offset: 10,
+          flip: { padding: 8 },
+          shift: { padding: 8 },
+        }}
+        shouldShow={({ editor: bubbleEditor, from, to, view, element }) => {
+          const hasEditorFocus =
+            view.hasFocus() || element.contains(document.activeElement)
+          if (!hasEditorFocus) return false
+          return (
+            showLinkInput ||
+            showTableActions ||
+            showAltInput ||
+            (!bubbleEditor.state.selection.empty && from !== to)
+          )
+        }}
+      >
+        <div className="flex flex-col gap-1">
+          <div className="border-border bg-popover flex flex-nowrap items-center gap-0.5 overflow-x-auto rounded-md border p-1 shadow-sm whitespace-nowrap">
+            {!isInTable ? (
+              <div className="group/native-select relative w-fit">
+                <select
+                  id="block-style"
+                  value={activeState.blockType}
+                  onChange={(event) =>
+                    setBlockType(event.target.value as BlockType)
+                  }
+                  disabled={disabled}
+                  aria-label={_t({ message: 'Block style' })}
+                  className="h-7 w-full appearance-none rounded-md border border-transparent bg-transparent px-2 pr-5.5 text-sm shadow-none outline-none hover:bg-accent focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {blockOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {_i18n._(option.label)}
+                    </option>
+                  ))}
+                </select>
+                <HugeiconsIcon
+                  icon={ChevronDownIcon}
+                  className="text-muted-foreground pointer-events-none absolute top-1/2 right-1.5 size-3.5 -translate-y-1/2"
+                  aria-hidden="true"
+                />
+              </div>
+            ) : null}
+            {inlineActions.map((action) =>
+              renderIconButton({
+                label: action.label,
+                icon: action.icon,
+                onClick: action.run,
+                disabled,
+                toggle: Boolean(action.toggle),
+                pressed: action.toggle ? action.isActive() : false,
+              }),
+            )}
+            {renderIconButton({
+              label: _t({ message: 'Link' }),
+              icon: LinkIcon,
+              onClick: openLinkInput,
+              disabled,
+              toggle: true,
+              pressed:
+                showLinkInput ||
+                activeState.link ||
+                Boolean(isOnImage && editor.getAttributes('image')['href']),
+            })}
+            {isOnImage ? (
+              <button
+                type="button"
+                aria-label={_t({ message: 'Image alt text' })}
+                title={_t({ message: 'Image alt text' })}
+                aria-pressed={showAltInput}
+                onClick={toggleAltInput}
+                disabled={disabled}
+                className={`${toolbarToggleButtonClass} size-7 text-xs`}
+              >
+                <UiTrans>ALT</UiTrans>
+              </button>
+            ) : null}
+            {isInTable
+              ? renderIconButton({
+                  label: _t({ message: 'Table' }),
+                  icon: TableIcon,
+                  onClick: toggleTableActions,
+                  disabled,
+                  toggle: true,
+                  pressed: showTableActions,
+                })
+              : null}
+          </div>
+          {showLinkInput ? (
+            <div
+              data-state="open"
+              className="border-border bg-popover data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-top-1 flex flex-nowrap items-center gap-0.5 overflow-x-auto rounded-md border p-1 shadow-sm duration-200 whitespace-nowrap"
+            >
+              <input
+                id="link-url"
+                ref={linkInputRef}
+                type="url"
+                placeholder="https://example.com"
+                value={linkUrl}
+                onChange={(event) => setLinkUrl(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    applyLink()
+                  }
+                }}
+                disabled={disabled}
+                className={`${toolbarInputClass} min-w-56 flex-1`}
+              />
+              {renderIconButton({
+                label: _t({ message: 'Set link' }),
+                icon: Check,
+                onClick: applyLink,
+                disabled: disabled || !linkUrl.trim(),
+              })}
+              {renderIconButton({
+                label: _t({ message: 'Remove link' }),
+                icon: X,
+                onClick: confirmOrRemoveLink,
+                disabled,
+                className: 'ml-auto',
+              })}
+            </div>
+          ) : null}
+          {showAltInput && isOnImage ? (
+            <div
+              data-state="open"
+              className="border-border bg-popover data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-top-1 flex flex-nowrap items-center gap-0.5 overflow-x-auto rounded-md border p-1 shadow-sm duration-200 whitespace-nowrap"
+            >
+              <input
+                id="image-alt"
+                type="text"
+                placeholder={_t({ message: 'Describe image' })}
+                value={imageAltText}
+                onChange={(event) => setImageAltText(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    applyImageAlt()
+                  }
+                }}
+                disabled={disabled}
+                className={`${toolbarInputClass} min-w-56 flex-1`}
+              />
+              {renderIconButton({
+                label: _t({ message: 'Save alt text' }),
+                icon: Check,
+                onClick: applyImageAlt,
+                disabled,
+              })}
+              {renderIconButton({
+                label: _t({ message: 'Remove alt text' }),
+                icon: X,
+                onClick: clearImageAlt,
+                disabled,
+                className: 'ml-auto',
+              })}
+            </div>
+          ) : null}
+          {showTableActions && isInTable ? (
+            <div
+              data-state="open"
+              className="border-border bg-popover data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-top-1 inline-flex w-fit flex-nowrap items-center gap-1 overflow-x-auto self-end rounded-md border p-1 shadow-sm duration-200 whitespace-nowrap"
+            >
+              <span className="text-sm ml-1 text-muted-foreground">
+                <UiTrans>Rows:</UiTrans>
+              </span>
+              {renderIconButton({
+                label: _t({ message: 'Add row' }),
+                icon: Plus,
+                onClick: addRow,
+                disabled,
+              })}
+              {renderIconButton({
+                label: _t({ message: 'Remove row' }),
+                icon: Minus,
+                onClick: removeRow,
+                disabled,
+              })}
+              <span className="bg-border mx-0.5 h-4 w-px" aria-hidden="true" />
+              <span className="text-sm text-muted-foreground">
+                <UiTrans>Columns:</UiTrans>
+              </span>
+              {renderIconButton({
+                label: _t({ message: 'Add column' }),
+                icon: Plus,
+                onClick: addColumn,
+                disabled,
+              })}
+              {renderIconButton({
+                label: _t({ message: 'Remove column' }),
+                icon: Minus,
+                onClick: removeColumn,
+                disabled,
+              })}
+            </div>
+          ) : null}
+        </div>
+      </BubbleMenu>
+      <EditorContent editor={editor} />
+    </div>
+  )
+}

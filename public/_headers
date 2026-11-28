@@ -1,0 +1,7 @@
+/*
+  Content-Security-Policy: frame-ancestors 'none'
+  X-Frame-Options: DENY
+
+# Vite fingerprints every file in this directory. A content change gets a new URL.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

@@ -1,0 +1,15 @@
+{
+  "name": "pagescms-proof-plugin",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    "types": "./index.d.mts",
+    "import": "./index.mjs"
+  },
+  "peerDependencies": {
+    "pagescms": "3.0.0-beta.0",
+    "react": "^19.2.8",
+    "@lingui/core": "^6.11.0",
+    "@lingui/react": "^6.11.0"
+  }
+}

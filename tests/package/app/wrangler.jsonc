@@ -1,0 +1,20 @@
+{
+  "name": "pagescms-package-proof",
+  "main": "pagescms/server-entry",
+  "compatibility_date": "2026-08-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": { "run_worker_first": ["/mcp"] },
+  "d1_databases": [
+    {
+      "binding": "DATABASE",
+      "database_name": "package-proof",
+      "database_id": "00000000-0000-0000-0000-000000000001",
+    },
+  ],
+  "r2_buckets": [
+    {
+      "binding": "PROOF_BUCKET",
+      "bucket_name": "package-proof",
+    },
+  ],
+}

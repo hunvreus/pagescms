@@ -1,0 +1,4 @@
+{
+  "target": "react",
+  "routeFileIgnorePattern": "\\.test\\."
+}

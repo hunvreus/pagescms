@@ -1,0 +1,212 @@
+import {
+  Trans as UiTrans,
+  useLingui as useUiMessages,
+} from '@lingui/react/macro'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { useEffect, useMemo, useState } from 'react'
+import ArrowUpRight from '@hugeicons/core-free-icons/ArrowUpRight01Icon'
+
+import { Badge } from '#/components/ui/badge'
+import { Button } from '#/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '#/components/ui/dialog'
+import { version } from '../../../package.json'
+
+import type { ReactNode } from 'react'
+
+const UPDATE_DOCS_URL = 'https://pagescms.org/docs'
+
+export function AboutDialog() {
+  const { t: _t } = useUiMessages()
+
+  const [open, setOpen] = useState(false)
+  const [latestVersion, setLatestVersion] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+
+    // Close the inner dialog before the mobile sheet sees the same Escape.
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.isComposing) return
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      setOpen(false)
+    }
+    window.addEventListener('keydown', closeOnEscape, true)
+    const controller = new AbortController()
+    void fetch('/api/app/version', { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) return null
+        return response.json()
+      })
+      .then((data: unknown) => {
+        setLatestVersion(
+          typeof data === 'object' &&
+            data !== null &&
+            'latest' in data &&
+            typeof data.latest === 'string'
+            ? data.latest
+            : null,
+        )
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === 'AbortError') return
+        setLatestVersion(null)
+      })
+
+    return () => {
+      window.removeEventListener('keydown', closeOnEscape, true)
+      controller.abort()
+    }
+  }, [open])
+
+  const updateAvailable = useMemo(
+    () => Boolean(latestVersion && compareSemver(version, latestVersion) < 0),
+    [latestVersion],
+  )
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          aria-label={_t({ message: 'About Pages CMS' })}
+          size="icon-sm"
+          variant="ghost"
+          className="size-6 rounded-md border-0 p-0 hover:bg-transparent aria-expanded:bg-transparent focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar dark:hover:bg-transparent"
+        >
+          <PagesCmsMark />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="w-80 max-w-[calc(100vw-2rem)]">
+        <DialogHeader className="items-center gap-3 text-center">
+          <div className="flex size-15 items-center justify-center rounded-2xl bg-[oklch(0.60_0.13_163)] text-[oklch(0.98_0.02_166)] dark:bg-[oklch(0.70_0.15_162)] dark:text-[oklch(0.26_0.05_173)]">
+            <PagesCmsGlyph className="size-10" />
+          </div>
+          <DialogTitle className="text-base font-medium">Pages CMS</DialogTitle>
+          <DialogDescription>
+            <UiTrans>
+              Open source CMS for static sites. Edit directly on GitHub with a
+              clean interface.
+            </UiTrans>
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="rounded-lg border px-4">
+          <Row label={_t({ message: 'Version' })}>
+            <div className="flex items-center gap-2">
+              <span>{version}</span>
+              {updateAvailable ? (
+                <a
+                  className="inline-flex"
+                  href={UPDATE_DOCS_URL}
+                  rel="noreferrer noopener"
+                  target="_blank"
+                >
+                  <Badge
+                    className="bg-primary/10 font-medium text-primary"
+                    variant="secondary"
+                  >
+                    <UiTrans>Update to {latestVersion}</UiTrans>
+                    <HugeiconsIcon
+                      aria-hidden="true"
+                      icon={ArrowUpRight}
+                      className="ml-1 size-3"
+                      data-icon="inline-end"
+                    />
+                  </Badge>
+                </a>
+              ) : null}
+            </div>
+          </Row>
+          <Row label={_t({ message: 'Website' })}>
+            <ExternalLink href="https://pagescms.org">
+              <UiTrans>pagescms.org</UiTrans>
+            </ExternalLink>
+          </Row>
+          <Row label={_t({ message: 'Docs' })}>
+            <ExternalLink href="https://pagescms.org/docs">
+              <UiTrans>pagescms.org/docs</UiTrans>
+            </ExternalLink>
+          </Row>
+          <Row label="GitHub">
+            <ExternalLink href="https://github.com/pagescms/pagescms">
+              <UiTrans>pagescms/pagescms</UiTrans>
+            </ExternalLink>
+          </Row>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+export function PagesCmsMark() {
+  return (
+    <span className="flex size-6 items-center justify-center rounded-md bg-muted-foreground/35 text-sidebar transition-colors duration-200 motion-reduce:transition-none group-hover/button:bg-[oklch(0.60_0.13_163)] group-hover/button:text-[oklch(0.98_0.02_166)] group-focus-visible/button:bg-[oklch(0.60_0.13_163)] group-focus-visible/button:text-[oklch(0.98_0.02_166)] dark:group-hover/button:bg-[oklch(0.70_0.15_162)] dark:group-hover/button:text-[oklch(0.26_0.05_173)] dark:group-focus-visible/button:bg-[oklch(0.70_0.15_162)] dark:group-focus-visible/button:text-[oklch(0.26_0.05_173)]">
+      <PagesCmsGlyph className="size-4" />
+    </span>
+  )
+}
+
+function PagesCmsGlyph({ className }: { className: string }) {
+  return (
+    <svg aria-hidden="true" className={className} viewBox="0 0 24 24">
+      <path
+        d="M0 4.8A4.8 4.8 0 0 1 4.8 0h7.212a4.8 4.8 0 0 1 3.394 1.406l7.188 7.188A4.8 4.8 0 0 1 24 11.988V19.2a4.8 4.8 0 0 1-4.8 4.8H4.8A4.8 4.8 0 0 1 0 19.2V4.8Z"
+        fill="currentColor"
+      />
+    </svg>
+  )
+}
+
+function Row({ children, label }: { children: ReactNode; label: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b py-2.5 text-sm last:border-b-0">
+      <span className="text-muted-foreground">{label}</span>
+      <div>{children}</div>
+    </div>
+  )
+}
+
+function ExternalLink({
+  children,
+  href,
+}: {
+  children: ReactNode
+  href: string
+}) {
+  return (
+    <a
+      className="text-primary hover:underline"
+      href={href}
+      rel="noreferrer noopener"
+      target="_blank"
+    >
+      {children}
+    </a>
+  )
+}
+
+function compareSemver(a: string, b: string) {
+  const aParts = parseSemver(a)
+  const bParts = parseSemver(b)
+  if (!aParts || !bParts) return 0
+  for (let index = 0; index < 3; index += 1) {
+    if (aParts[index] > bParts[index]) return 1
+    if (aParts[index] < bParts[index]) return -1
+  }
+  return 0
+}
+
+function parseSemver(value: string): [number, number, number] | null {
+  const match = value
+    .trim()
+    .replace(/^v/i, '')
+    .match(/^(\d+)\.(\d+)\.(\d+)/)
+  return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : null
+}

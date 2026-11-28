@@ -1,0 +1,5593 @@
+#
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2026-11-04 19:07+0800\n"
+"Language: zh-CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: @lingui/cli\n"
+
+#: ../features/admin/actions-page.tsx
+msgid " · Latest 100 runs"
+msgstr " · 最近 100 次运行"
+
+#: ../components/content-entry-editor.tsx
+msgid " Unsaved changes and the local draft will also be discarded."
+msgstr " 未保存的更改和本地草稿也将被丢弃。"
+
+#: known-errors.ts
+msgid "''actions'' must be an array of action definitions."
+msgstr "''actions'' 必须是动作定义的数组。"
+
+#: known-errors.ts
+msgid "''blockKey'' attribute is only valid when ''type'' is ''block''."
+msgstr "''blockKey''属性仅在''type''为''block''时有效。"
+
+#: known-errors.ts
+msgid "''blockKey'' cannot be empty."
+msgstr "''blockKey'' 不能为空。"
+
+#: known-errors.ts
+msgid "''blockKey'' must be a string."
+msgstr "''blockKey'' 必须是字符串。"
+
+#: known-errors.ts
+msgid "''blocks'' must be an array of field definitions."
+msgstr "''blocks'' 必须是字段定义的数组。"
+
+#: known-errors.ts
+msgid "''cache'' must be a boolean."
+msgstr "''cache'' 必须是布尔值。"
+
+#: known-errors.ts
+msgid "''cancelable'' must be a boolean."
+msgstr "''cancelable'' 必须是布尔值。"
+
+#: known-errors.ts
+msgid "''categories'' must be an array of strings."
+msgstr "''categories'' 必须是字符串数组。"
+
+#: known-errors.ts
+msgid "''collapsible'' must be either a boolean or an object with ''collapsed'' and ''summary'' properties."
+msgstr "''collapsible'' 必须是布尔值或具有 ''collapsed'' 和 ''summary'' 属性的对象。"
+
+#: known-errors.ts
+msgid "''commit'' must be an object."
+msgstr "''commit'' 必须是一个对象。"
+
+#: known-errors.ts
+msgid "''component'' must be a string."
+msgstr "''component'' 必须是字符串。"
+
+#: known-errors.ts
+msgid "''config'' must be a boolean."
+msgstr "''config'' 必须是布尔值。"
+
+#: known-errors.ts
+msgid "''confirm'' must be a boolean or an object."
+msgstr "''confirm'' 必须是布尔值或对象。"
+
+#: known-errors.ts
+msgid "''content'' must be an array of objects with at least one entry."
+msgstr "''content'' 必须是至少有一个条目的对象数组。"
+
+#: known-errors.ts
+msgid "''content'' must be an object."
+msgstr "''content'' 必须是一个对象。"
+
+#: known-errors.ts
+msgid "''create'' must be a string."
+msgstr "''create'' 必须是字符串。"
+
+#: known-errors.ts
+msgid "''default'' must be an object with ''search'', ''sort'' and ''order'' attributes."
+msgstr "''default'' 必须是具有 ''search''、''sort'' 和 ''order'' 属性的对象。"
+
+#: known-errors.ts
+msgid "''delete'' must be a string."
+msgstr "''delete'' 必须是字符串。"
+
+#: known-errors.ts
+msgid "''delimiters'' must be a string or array of 2 strings."
+msgstr "''delimiters'' 必须是字符串或 2 个字符串的数组。"
+
+#: known-errors.ts
+msgid "''exclude'' must be an array of strings."
+msgstr "''exclude'' 必须是字符串数组。"
+
+#: known-errors.ts
+msgid "''extensions'' must be an array of strings."
+msgstr "''extensions'' 必须是字符串数组。"
+
+#: known-errors.ts
+msgid "''field'' must be a boolean or ''create''."
+msgstr "''field'' 必须是布尔值或 ''create''。"
+
+#: known-errors.ts
+msgid "''fields'' must be an array of action field definitions."
+msgstr "''fields'' 必须是操作字段定义的数组。"
+
+#: known-errors.ts
+msgid "''fields'' must be an array of field definitions."
+msgstr "''fields'' 必须是字段定义的数组。"
+
+#: known-errors.ts
+msgid "''fields'' must be an array of strings."
+msgstr "''fields'' 必须是字符串数组。"
+
+#: known-errors.ts
+msgid "''fields[].name'' must be alphanumeric with dashes and underscores."
+msgstr "''fields[].name'' 必须是带有破折号和下划线的字母数字。"
+
+#: known-errors.ts
+msgid "''fields[].options'' is only allowed for select fields."
+msgstr "''fields[].options'' 仅适用于选择字段。"
+
+#: known-errors.ts
+msgid "''fields[].options'' is required for select fields."
+msgstr "选择字段需要''fields[].options''。"
+
+#: known-errors.ts
+msgid "''fields[].type'' must be ''text'', ''textarea'', ''select'', ''checkbox'', or ''number''."
+msgstr "''fields[].type'' 必须是 ''text''、''textarea''、''select''、''checkbox'' 或 ''number''。"
+
+#: known-errors.ts
+msgid "''filename'' must be a string or an object."
+msgstr "''filename'' 必须是字符串或对象。"
+
+#: known-errors.ts
+msgid "''filename'' object must contain ''template'' and optionally ''field''."
+msgstr "''filename'' 对象必须包含 ''template'' 和可选的 ''field''。"
+
+#: known-errors.ts
+msgid "''foldersFirst'' must be a boolean."
+msgstr "''foldersFirst'' 必须是布尔值。"
+
+#: known-errors.ts
+msgid "''format'' must be ''yaml-frontmatter'', ''json-frontmatter'', ''tom-frontmatter'', ''yaml'', ''json'', ''toml'', ''datagrid'', ''code'' or ''raw''."
+msgstr "''format'' 必须为 ''yaml-frontmatter''、''json-frontmatter''、''tom-frontmatter''、''yaml''、''json''、''toml''、''datagrid''、''code'' 或 ''raw''。"
+
+#: known-errors.ts
+msgid "''hidden'' must be a boolean."
+msgstr "''hidden'' 必须是布尔值。"
+
+#: known-errors.ts
+msgid "''hide'' must be a boolean."
+msgstr "''hide'' 必须是布尔值。"
+
+#: known-errors.ts
+msgid "''hideDirs'' must be one of ''nodes'', ''others'', or ''all''."
+msgstr "''hideDirs'' 必须是 ''nodes''、''others'' 或 ''all'' 之一。"
+
+#: known-errors.ts
+msgid "''icon'' must be a Hugeicons name, with or without the Icon suffix (e.g. News01 or News01Icon)."
+msgstr "''icon'' 必须是 Hugeicons 名称，带或不带 Icon 后缀（例如 News01 或 News01Icon）。"
+
+#: known-errors.ts
+msgid "''identity'' must be either ''app'' or ''user''."
+msgstr "''identity'' 必须是 ''app'' 或 ''user''。"
+
+#: known-errors.ts
+msgid "''input'' cannot escape the repository root."
+msgstr "''input'' 无法转义存储库根目录。"
+
+#: known-errors.ts
+msgid "''input'' is required."
+msgstr "''input'' 为必填项。"
+
+#: known-errors.ts
+msgid "''input'' must be a valid relative path (no leading or trailing slash)."
+msgstr "''input'' 必须是有效的相对路径（无前导或尾随斜杠）。"
+
+#: known-errors.ts
+msgid "''items'' must be an array of content entries."
+msgstr "''items'' 必须是内容条目数组。"
+
+#: known-errors.ts
+msgid "''label'' must be a string or ''false''."
+msgstr "''label'' 必须是字符串或''false''。"
+
+#: known-errors.ts
+msgid "''layout'' must be either ''tree'' or ''list''."
+msgstr "''layout'' 必须是 ''tree'' 或 ''list''。"
+
+#: known-errors.ts
+msgid "''list'' must be either a boolean or an object with ''min'' and ''max'' properties."
+msgstr "''list'' 必须是布尔值或具有 ''min'' 和 ''max'' 属性的对象。"
+
+#: known-errors.ts
+msgid "''media'' cannot escape the repository root."
+msgstr "''media'' 无法转义存储库根目录。"
+
+#: known-errors.ts
+msgid "''media'' must be a string, an object, or an array of named media configurations."
+msgstr "''media'' 必须是字符串、对象或命名媒体配置数组。"
+
+#: known-errors.ts
+msgid "''media'' must be a valid relative path (no leading or trailing slash)."
+msgstr "''media'' 必须是有效的相对路径（无前导或尾随斜杠）。"
+
+#: known-errors.ts
+msgid "''merge'' must be a boolean."
+msgstr "''merge'' 必须是布尔值。"
+
+#: known-errors.ts
+msgid "''message'' must be a string."
+msgstr "''message'' 必须是字符串。"
+
+#: known-errors.ts
+msgid "''name'' must be alphanumeric with dashes and underscores."
+msgstr "''name'' 必须是带有破折号和下划线的字母数字。"
+
+#: known-errors.ts
+msgid "''node'' must be a string or an object with ''filename'' and ''hideDirs''."
+msgstr "''node'' 必须是字符串或具有 ''filename'' 和 ''hideDirs'' 的对象。"
+
+#: known-errors.ts
+msgid "''node'' must be a string or an object with ''filename'' and optionally ''hideDirs'' attributes."
+msgstr "''node'' 必须是字符串或具有 ''filename'' 和可选的 ''hideDirs'' 属性的对象。"
+
+#: known-errors.ts
+msgid "''node'' must contain ''filename'' and optionally ''hideDirs''."
+msgstr "''node'' 必须包含 ''filename'' 和可选的 ''hideDirs''。"
+
+#: known-errors.ts
+msgid "''operations.create'' must be a boolean."
+msgstr "''operations.create'' 必须是布尔值。"
+
+#: known-errors.ts
+msgid "''operations.delete'' must be a boolean."
+msgstr "''operations.delete'' 必须是布尔值。"
+
+#: known-errors.ts
+msgid "''operations.rename'' must be a boolean."
+msgstr "''operations.rename'' 必须是布尔值。"
+
+#: known-errors.ts
+msgid "''order'' must be either ''asc'' or ''desc''."
+msgstr "''order'' 必须是 ''asc'' 或 ''desc''。"
+
+#: known-errors.ts
+msgid "''output'' is required."
+msgstr "''output'' 为必填项。"
+
+#: known-errors.ts
+msgid "''output'' must be a valid path with no trailing slash."
+msgstr "''output'' 必须是不带尾部斜杠的有效路径。"
+
+#: known-errors.ts
+msgid "''path'' cannot escape the repository root."
+msgstr "''path'' 无法转义存储库根目录。"
+
+#: known-errors.ts
+msgid "''path'' must be a valid relative path (no leading or trailing slash)."
+msgstr "''path'' 必须是有效的相对路径（无前导或尾随斜杠）。"
+
+#: known-errors.ts
+msgid "''pattern'' must be a string (regex) or an object with ''regex'' and optionally ''message'' properties."
+msgstr "''pattern'' 必须是字符串（正则表达式）或具有 ''regex'' 和可选的 ''message'' 属性的对象。"
+
+#: known-errors.ts
+msgid "''pattern'' must be a valid regex string."
+msgstr "''pattern'' 必须是有效的正则表达式字符串。"
+
+#: known-errors.ts
+msgid "''primary'' must be a string."
+msgstr "''primary'' 必须是字符串。"
+
+#: known-errors.ts
+msgid "''readonly'' must be a boolean."
+msgstr "''readonly'' 必须是布尔值。"
+
+#: known-errors.ts
+msgid "''ref'' must be a string."
+msgstr "''ref'' 必须是字符串。"
+
+#: known-errors.ts
+msgid "''rename'' must be a boolean, ''safe'', or ''random''."
+msgstr "''rename'' 必须是布尔值、''safe'' 或 ''random''。"
+
+#: known-errors.ts
+msgid "''rename'' must be a string."
+msgstr "''rename'' 必须是字符串。"
+
+#: known-errors.ts
+msgid "''required'' must be a boolean."
+msgstr "''required'' 必须是布尔值。"
+
+#: known-errors.ts
+msgid "''scope'' must be ''collection'', ''entry'', ''sidebar'', or ''overview''."
+msgstr "''scope'' 必须是 ''collection''、''entry''、''sidebar'' 或 ''overview''。"
+
+#: known-errors.ts
+msgid "''search'' must be a string."
+msgstr "''search'' 必须是字符串。"
+
+#: known-errors.ts
+msgid "''search'' must be an array of strings."
+msgstr "''search'' 必须是字符串数组。"
+
+#: known-errors.ts
+msgid "''settings'' must be a boolean or an object."
+msgstr "''settings'' 必须是布尔值或对象。"
+
+#: known-errors.ts
+msgid "''settings'' must be an object."
+msgstr "''settings'' 必须是一个对象。"
+
+#: known-errors.ts
+msgid "''sort'' must be a string."
+msgstr "''sort'' 必须是字符串。"
+
+#: known-errors.ts
+msgid "''sort'' must be an array of strings."
+msgstr "''sort'' 必须是字符串数组。"
+
+#: known-errors.ts
+msgid "''subfolders'' must be a boolean."
+msgstr "''subfolders'' 必须是布尔值。"
+
+#: known-errors.ts
+msgid "''type'' cannot be empty."
+msgstr "''type'' 不能为空。"
+
+#: known-errors.ts
+msgid "''type'' must be ''group''."
+msgstr "''type'' 必须是 ''group''。"
+
+#: known-errors.ts
+msgid "''type'' must be a string."
+msgstr "''type'' 必须是字符串。"
+
+#: known-errors.ts
+msgid "''type'' must be a valid field type."
+msgstr "''type'' 必须是有效的字段类型。"
+
+#: known-errors.ts
+msgid "''update'' must be a string."
+msgstr "''update'' 必须是字符串。"
+
+#: known-errors.ts
+msgid "''view'' must be an object with ''fields'', ''primary'', ''sort'', ''search'' and ''default'' attributes."
+msgstr "''view'' 必须是具有 ''fields''、''primary''、''sort''、''search'' 和 ''default'' 属性的对象。"
+
+#: ../components/structured-content-field.tsx
+msgid "” is not installed."
+msgstr "”未安装。"
+
+#: known-errors.ts
+msgid "“{value0}” became stale"
+msgstr "“{value0}”变得陈旧"
+
+#: known-errors.ts
+msgid "“{value0}” completed"
+msgstr "“{value0}”完成"
+
+#: known-errors.ts
+msgid "“{value0}” failed"
+msgstr "“{value0}”失败"
+
+#: known-errors.ts
+msgid "“{value0}” failed to start"
+msgstr "“{value0}”启动失败"
+
+#: known-errors.ts
+msgid "“{value0}” is queued"
+msgstr "“{value0}”已排队"
+
+#: known-errors.ts
+msgid "“{value0}” is running"
+msgstr "“{value0}”正在运行"
+
+#: known-errors.ts
+msgid "“{value0}” needs attention"
+msgstr "“{value0}”需要注意"
+
+#: known-errors.ts
+msgid "“{value0}” succeeded"
+msgstr "“{value0}”成功"
+
+#: known-errors.ts
+msgid "“{value0}” timed out"
+msgstr "“{value0}”超时"
+
+#: known-errors.ts
+msgid "“{value0}” was cancelled"
+msgstr "“{value0}”被取消"
+
+#: known-errors.ts
+msgid "“{value0}” was skipped"
+msgstr "“{value0}”被跳过"
+
+#: ../features/admin/cache-page.tsx
+msgid "(SHA: "
+msgstr "（SHA： "
+
+#. placeholder {0}: data.metrics.configurations
+#: ../features/admin/admin-page.tsx
+msgid "{0, plural, one {# configuration} other {# configurations}}"
+msgstr "{0, plural, other {# 个配置}}"
+
+#. placeholder {0}: data.directoryCount
+#: ../features/admin/cache-page.tsx
+msgid "{0, plural, one {# directory} other {# directories}}"
+msgstr "{0, plural, other {# 个目录}}"
+
+#. placeholder {0}: data.fileCount
+#: ../features/admin/cache-page.tsx
+msgid "{0, plural, one {# file} other {# files}}"
+msgstr "{0, plural, other {# 个文件}}"
+
+#. placeholder {0}: parseErrorPaths.length
+#: ../features/collections/collection-page.tsx
+msgid "{0, plural, one {We couldn't read # file. Some fields may be missing.} other {We couldn't read # files. Some fields may be missing.}}"
+msgstr "{0, plural, other {无法读取 # 个文件。部分字段可能缺失。}}"
+
+#. placeholder {0}: promoting.path
+#: ../features/collections/collection-page.tsx
+msgid "{0} must become a node entry before it can contain children."
+msgstr "{0} 必须成为节点条目才能包含子节点。"
+
+#. placeholder {0}: draftSelected.length
+#: ../features/media/media-picker-dialog.tsx
+msgid "{0} selected"
+msgstr "{0} 已选择"
+
+#. placeholder {0}: account.login
+#. placeholder {0}: commit.authorName
+#. placeholder {0}: project.owner
+#: ../components/file-editor-history.tsx
+#: ../components/repository-shell.tsx
+#: ../features/dashboard/recent-repository-list.tsx
+#: ../features/dashboard/repository-selector.tsx
+#: ../features/dashboard/repository-templates.tsx
+#: ../features/settings/user-settings.tsx
+msgid "{0}'s avatar"
+msgstr "{0}的头像"
+
+#. placeholder {0}: node.label
+#: ../features/repository/overview-shortcuts.tsx
+msgid "{action} {0}"
+msgstr "{action}{0}"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "{count, plural, one {# field to review. Choose what to keep.} other {# fields to review. Choose what to keep.}}"
+msgstr "{count, plural, other {# 个字段需要检查。请选择要保留的内容。}}"
+
+#: known-errors.ts
+msgid "{count, plural, one {# file uploaded} other {# files uploaded}}"
+msgstr "{count, plural, other {已上传 # 个文件}}"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "{count, plural, one {This entry was saved while you were editing. # field needs your review. Choose what to keep, then save your changes.} other {This entry was saved while you were editing. # fields need your review. Choose what to keep, then save your changes.}}"
+msgstr "{count, plural, other {编辑期间此条目已保存。请检查 # 个字段，选择要保留的内容，然后保存更改。}}"
+
+#: ../components/structured-content-field.tsx
+msgid "{label} mode"
+msgstr "{label}模式"
+
+#: ../components/rich-text-field.tsx
+msgid "{label} source"
+msgstr "{label}来源"
+
+#. placeholder {0}: locales.find((item) => item.code === locale)?.label ?? locale
+#: ../features/editor/field-locale-menu.tsx
+msgid "{label}: {0} language"
+msgstr "{label}: {0} 语言"
+
+#: ../components/repository-shell.tsx
+msgid "{owner}'s avatar"
+msgstr "{owner}的头像"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "{remaining, plural, one {# field left to review} other {# fields left to review}}"
+msgstr "{remaining, plural, other {还有 # 个字段待检查}}"
+
+#: known-errors.ts
+msgid "{total, plural, one {{uploaded} of # file uploaded} other {{uploaded} of # files uploaded}}"
+msgstr "{total, plural, other {已上传 {uploaded} 个文件，共 # 个}}"
+
+#: known-errors.ts
+msgid "{total, plural, one {Uploading file…} other {Uploading {current} of # files…}}"
+msgstr "{total, plural, other {正在上传第 {current} 个文件，共 # 个…}}"
+
+#: known-errors.ts
+msgid "{value0} {value1}"
+msgstr "{value0}{value1}"
+
+#: known-errors.ts
+msgid "{value0} allows at most {value1} items"
+msgstr "{value0} 最多允许 {value1} 项"
+
+#: known-errors.ts
+msgid "{value0} allows at most {value1} selections"
+msgstr "{value0} 最多允许 {value1} 选择"
+
+#: known-errors.ts
+msgid "{value0} collaborators added"
+msgstr "添加{value0}合作者"
+
+#: known-errors.ts
+msgid "{value0} exceeds the 20 MB limit"
+msgstr "{value0} 超过 20 MB 限制"
+
+#: known-errors.ts
+msgid "{value0} failed with status {value1}"
+msgstr "{value0} 失败，状态为 {value1}"
+
+#: known-errors.ts
+msgid "{value0} has an invalid date or date format"
+msgstr "{value0} 的日期或日期格式无效"
+
+#: known-errors.ts
+msgid "{value0} invitations sent"
+msgstr "{value0} 已发送邀请"
+
+#: known-errors.ts
+msgid "{value0} is already a collaborator"
+msgstr "{value0} 已经是合作者"
+
+#: known-errors.ts
+msgid "{value0} is empty; enter a value or remove this item"
+msgstr "{value0}为空；输入一个值或删除此项"
+
+#: known-errors.ts
+msgid "{value0} is required"
+msgstr "{value0} 为必填项"
+
+#: known-errors.ts
+msgid "{value0} must be a list"
+msgstr "{value0} 必须是一个列表"
+
+#: known-errors.ts
+msgid "{value0} must be a list of {value1}"
+msgstr "{value0} 必须是 {value1} 的列表"
+
+#: known-errors.ts
+msgid "{value0} must be a list of file paths"
+msgstr "{value0} 必须是文件路径列表"
+
+#: known-errors.ts
+msgid "{value0} must be a list of valid values"
+msgstr "{value0} 必须是有效值的列表"
+
+#: known-errors.ts
+msgid "{value0} must be a non-empty value"
+msgstr "{value0} 必须是非空值"
+
+#: known-errors.ts
+msgid "{value0} must be a non-negative integer"
+msgstr "{value0} 必须是非负整数"
+
+#: known-errors.ts
+msgid "{value0} must be a non-negative integer or -1"
+msgstr "{value0} 必须是非负整数或-1"
+
+#: known-errors.ts
+msgid "{value0} must be a number"
+msgstr "{value0} 必须是数字"
+
+#: known-errors.ts
+msgid "{value0} must be an object"
+msgstr "{value0} 必须是一个对象"
+
+#: known-errors.ts
+msgid "{value0} must be an object keyed by locale"
+msgstr "{value0} 必须是由区域设置键入的对象"
+
+#: known-errors.ts
+msgid "{value0} must be text"
+msgstr "{value0} 必须是文本"
+
+#: known-errors.ts
+msgid "{value0} must be true or false"
+msgstr "{value0} 必须是 true 或 false"
+
+#: known-errors.ts
+msgid "{value0} must select a block type"
+msgstr "{value0} 必须选择块类型"
+
+#: known-errors.ts
+msgid "{value0} must use a configured option"
+msgstr "{value0} 必须使用配置选项"
+
+#: known-errors.ts
+msgid "{value0} requires a translation"
+msgstr "{value0} 需要翻译"
+
+#: known-errors.ts
+msgid "{value0} requires at least {value1} items"
+msgstr "{value0} 至少需要{value1} 物品"
+
+#: known-errors.ts
+msgid "{value0} requires at least {value1} selections"
+msgstr "{value0} 需要至少 {value1} 选择"
+
+#: known-errors.ts
+msgid "{value0} sign-in is temporarily unavailable. Try again."
+msgstr "{value0} 暂时无法登录。再试一次。"
+
+#: known-errors.ts
+msgid "{value0} uses a disallowed file extension"
+msgstr "{value0} 使用了不允许的文件扩展名"
+
+#: known-errors.ts
+msgid "{value0} uses an unknown block type"
+msgstr "{value0} 使用未知的块类型"
+
+#: known-errors.ts
+msgid "{value0}: {value1}"
+msgstr "{value0}: {value1}"
+
+#: known-errors.ts
+msgid "A database URL or D1 binding is required"
+msgstr "需要数据库 URL 或 D1 绑定"
+
+#: known-errors.ts
+msgid "A destination has a local draft. Keep or discard it before renaming."
+msgstr "目的地有当地吃水。在重命名之前保留或丢弃它。"
+
+#: known-errors.ts
+msgid "A GitHub access token is required"
+msgstr "需要 GitHub 访问令牌"
+
+#: known-errors.ts
+msgid "A localized container already includes its children; remove descendant localized flags"
+msgstr "本地化容器已经包含其子容器；删除后代本地化标志"
+
+#: known-errors.ts
+msgid "Aborted upload path does not match its request"
+msgstr "中止的上传路径与其请求不匹配"
+
+#: ../features/dashboard/about-dialog.tsx
+msgid "About Pages CMS"
+msgstr "关于页面 CMS"
+
+#: ../features/repository/repository-route-state.tsx
+#: known-errors.ts
+msgid "Access denied"
+msgstr "访问被拒绝"
+
+#: ../features/account/account-menu.tsx
+#: ../features/account/account-messages.ts
+#: ../features/dashboard/repository-templates.tsx
+msgid "Account"
+msgstr "账户"
+
+#: known-errors.ts
+msgid "Account access could not be verified. Try again later."
+msgstr "无法验证帐户访问权限。稍后再试。"
+
+#: known-errors.ts
+msgid "Account not found"
+msgstr "未找到帐户"
+
+#: ../components/settings-layout.tsx
+msgid "Account settings"
+msgstr "账户设置"
+
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/actions-skeleton.tsx
+#: known-errors.ts
+msgid "Action"
+msgstr "行动"
+
+#: known-errors.ts
+msgid "Action {value0} was not found"
+msgstr "未找到操作{value0}"
+
+#: known-errors.ts
+msgid "Action context {value0} was not found"
+msgstr "未找到操作上下文{value0}"
+
+#: known-errors.ts
+msgid "Action context name is required"
+msgstr "操作上下文名称是必需的"
+
+#: known-errors.ts
+msgid "Action context path is outside its configured root"
+msgstr "操作上下文路径位于其配置的根之外"
+
+#: known-errors.ts
+msgid "Action context root is invalid"
+msgstr "操作上下文根无效"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Action required"
+msgstr "需要采取行动"
+
+#: known-errors.ts
+msgid "Action run not found"
+msgstr "未找到操作运行"
+
+#: ../features/admin/actions-page.tsx
+msgid "Action runs pagination"
+msgstr "操作运行分页"
+
+#: ../components/repository-shell.tsx
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/actions-skeleton.tsx
+#: ../features/admin/allowlist-table.tsx
+#: ../features/admin/repository-actions-page.tsx
+#: ../routes/github.$owner.$repo.$branch.actions.tsx
+msgid "Actions"
+msgstr "行动"
+
+#. placeholder {0}: entry.name
+#: ../features/collections/collection-table.tsx
+#: ../features/media/media-entry.tsx
+msgid "Actions for {0}"
+msgstr "{0} 的行动"
+
+#. placeholder {0}: run.id
+#: ../features/admin/actions-page.tsx
+msgid "Actions for run {0}"
+msgstr "运行动作{0}"
+
+#: ../features/collaborators/collaborator-status.tsx
+msgid "Active"
+msgstr "活跃"
+
+#: ../features/activity/activity-feed.tsx
+#: ../features/repository/overview-loading.tsx
+msgid "Activity"
+msgstr "活动"
+
+#: ../features/activity/activity-feed.tsx
+msgid "Activity could not be loaded."
+msgstr "无法加载活动。"
+
+#: ../features/repository/overview-shortcuts.tsx
+#: known-errors.ts
+msgid "Add"
+msgstr "添加"
+
+#. placeholder {0}: coordinates.branch
+#: ../features/repository/configuration-required.tsx
+msgid "Add a <0>.pages.yml</0> file on <1>{0}</1> to choose the content and media you want to manage."
+msgstr "在 <1>{0}</1> 上添加 <0>.pages.yml</0> 文件以选择要管理的内容和媒体。"
+
+#: ../components/collaborator-invite-input.tsx
+#~ msgid "Add an email and press Enter, or paste several addresses."
+#~ msgstr "添加电子邮件并按 Enter，或粘贴多个地址。"
+
+#. placeholder {0}: node.label
+#: ../features/repository/overview-shortcuts.tsx
+msgid "Add an entry to {0}"
+msgstr "添加一个条目到{0}"
+
+#: ../features/collections/collection-table.tsx
+msgid "Add child"
+msgstr "添加孩子"
+
+#. placeholder {0}: entry.name
+#: ../features/collections/collection-table.tsx
+msgid "Add child to {0}"
+msgstr "将子项添加到{0}"
+
+#: ../components/ui/editor/index.tsx
+msgid "Add column"
+msgstr "添加栏目"
+
+#: ../components/structured-content-field.tsx
+msgid "Add item"
+msgstr "添加项目"
+
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Add multiple email addresses as sign-in rules. Separate addresses with commas, semicolons, or line breaks. Existing rules are kept."
+msgstr "将多个电子邮件地址添加为登录规则。使用逗号、分号或换行分隔地址。现有规则将保留。"
+
+#: ../components/ui/editor/index.tsx
+msgid "Add row"
+msgstr "添加行"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Add rule"
+msgstr "添加规则"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "added"
+msgstr "添加了"
+
+#: ../components/repository-shell.tsx
+#: ../features/account/account-menu.tsx
+#: ../features/account/account-messages.ts
+#: ../routes/admin.tsx
+msgid "Admin"
+msgstr "管理员"
+
+#: known-errors.ts
+msgid "Admin access required"
+msgstr "需要管理员权限"
+
+#: ../features/admin/admin-page.tsx
+msgid "Admin action failed."
+msgstr "管理员操作失败。"
+
+#: known-errors.ts
+msgid "Admin search is too long"
+msgstr "管理员搜索太长"
+
+#: ../components/settings-layout.tsx
+msgid "Admin settings"
+msgstr "管理设置"
+
+#: known-errors.ts
+msgid "Admin user id is required"
+msgstr "需要管理员用户 ID"
+
+#: known-errors.ts
+msgid "after is only valid for custom folder positioning"
+msgstr "after 仅对自定义文件夹定位有效"
+
+#: known-errors.ts
+msgid "Alias ''*{value0}'' creates a circular reference."
+msgstr "别名 ''*{value0}'' 创建循环引用。"
+
+#: known-errors.ts
+msgid "Alias ''*{value0}'' must reference an earlier anchor."
+msgstr "别名 ''*{value0}'' 必须引用较早的锚点。"
+
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/actions-skeleton.tsx
+msgid "All actions"
+msgstr "所有动作"
+
+#: ../features/dashboard/branch-manager.tsx
+msgid "All branches"
+msgstr "所有分行"
+
+#: ../components/repository-shell.tsx
+msgid "All branches…"
+msgstr "所有分行…"
+
+#: ../components/repository-shell.tsx
+msgid "All projects"
+msgstr "所有项目"
+
+#: known-errors.ts
+msgid "All sessions revoked"
+msgstr "所有会话均已撤销"
+
+#: ../features/admin/sign-in-allowlist.tsx
+#~ msgid "Allow an email, domain, or pattern to sign in."
+#~ msgstr "允许指定邮箱、域名或模式登录。"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/allowlist-table.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+#: ../features/settings/settings-navigation.ts
+#~ msgid "Allowlist"
+#~ msgstr "允许列表"
+
+#: ../components/ui/editor/index.tsx
+msgid "ALT"
+msgstr "丙氨酸转氨酶"
+
+#: known-errors.ts
+msgid "An entry already exists at {value0}"
+msgstr "{value0} 已存在条目"
+
+#: known-errors.ts
+msgid "An unexpected authentication error occurred."
+msgstr "发生意外的身份验证错误。"
+
+#: known-errors.ts
+msgid "Application database is required"
+msgstr "需要应用程序数据库"
+
+#: ../features/dashboard/repository-dashboard.tsx
+msgid "Ask a project owner to invite"
+msgstr "请求项目业主邀请"
+
+#. placeholder {0}: email ?? _t({ message: 'your signed-in email address' })
+#: ../features/dashboard/repository-selector.tsx
+msgid "Ask a project owner to invite {0} to a repository."
+msgstr "要求项目所有者邀请 {0} 加入存储库。"
+
+#: ../features/account/content-editing-preferences.tsx
+msgid "Ask every time"
+msgstr "每次都问"
+
+#: ../features/dashboard/repository-dashboard.tsx
+msgid "Ask your administrator to configure the GitHub App."
+msgstr "请您的管理员配置 GitHub 应用程序。"
+
+#: known-errors.ts
+msgid "Authentication required"
+msgstr "需要身份验证"
+
+#: ../components/settings-back-link.tsx
+msgid "Back"
+msgstr "返回"
+
+#. placeholder {0}: entries.at(-2)?.name ?? collection.label
+#. placeholder {0}: entries.at(-2)?.name ?? label
+#. placeholder {0}: parent.label
+#: ../features/collections/collection-page.tsx
+#: ../features/editor/entry-page-header.tsx
+#: ../features/media/media-breadcrumb.tsx
+#~ msgid "Back to {0}"
+#~ msgstr "返回{0}"
+
+#: ../routes/github.$owner.$repo.$branch.tsx
+msgid "Back to project"
+msgstr "返回项目"
+
+#: ../features/repository/repository-unavailable-error.tsx
+msgid "Back to projects"
+msgstr "返回项目"
+
+#. js-lingui-explicit-id
+#: ../components/root-error.tsx
+msgid "core.fallback.0559813da2"
+msgstr "返回项目"
+
+#: ../routes/auth.error.tsx
+msgid "Back to sign in"
+msgstr "返回登录"
+
+#: known-errors.ts
+msgid "BETTER_AUTH_SECRET must contain at least 32 characters"
+msgstr "BETTER_AUTH_SECRET 必须至少包含 32 个字符"
+
+#: known-errors.ts
+msgid "BETTER_AUTH_URL must be a valid HTTP URL"
+msgstr "BETTER_AUTH_URL 必须是有效的 HTTP URL"
+
+#: ../components/ui/editor/index.tsx
+msgid "Block style"
+msgstr "块式"
+
+#: known-errors.ts
+msgid "Blocks must have a ''fields'' attribute or inherit one from a component."
+msgstr "块必须具有 ''fields'' 属性或从组件继承一个属性。"
+
+#: ../components/ui/editor/index.tsx
+msgid "Bold"
+msgstr "大胆"
+
+#: ../features/media/media-mutations.ts
+msgid "Both files were kept. Copy saved to {destination}."
+msgstr "两个文件均被保留。复制保存到{destination}。"
+
+#: known-errors.ts
+msgid "Branch “{value0}” created"
+msgstr "创建分支“{value0}”"
+
+#: ../features/dashboard/create-branch-dialog.tsx
+msgid "Branch name"
+msgstr "分行名称"
+
+#: ../routes/github.$owner.$repo.$branch.tsx
+msgid "Branch not found"
+msgstr "找不到分支"
+
+#: ../components/repository-shell.tsx
+msgid "Branch: "
+msgstr "分行： "
+
+#: ../features/dashboard/branch-manager.tsx
+msgid "Branches"
+msgstr "分支机构"
+
+#: ../components/ui/breadcrumb.tsx
+msgid "breadcrumb"
+msgstr "面包屑"
+
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Bulk import"
+msgstr "批量导入"
+
+#: ../components/ui/editor/index.tsx
+#: ../components/ui/editor/slash-command/suggestion.tsx
+msgid "Bulleted list"
+msgstr "项目符号列表"
+
+#: ../components/repository-shell.tsx
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/admin-page.tsx
+#: ../features/admin/cache-page.tsx
+#: ../features/admin/cache-skeleton.tsx
+#: ../features/settings/settings-navigation.ts
+#: ../routes/github.$owner.$repo.$branch.cache.tsx
+msgid "Cache"
+msgstr "缓存"
+
+#: known-errors.ts
+msgid "Cache cleared"
+msgstr "缓存已清除"
+
+#: known-errors.ts
+msgid "Cache database is required"
+msgstr "需要缓存数据库"
+
+#: known-errors.ts
+msgid "Cache management is disabled for this repository"
+msgstr "此存储库禁用缓存管理"
+
+#: ../features/admin/admin-page.tsx
+msgid "Cached data will be fetched again when needed. Repository records, collaborators, and source files are not deleted."
+msgstr "需要时会再次获取缓存的数据。存储库记录、协作者和源文件不会被删除。"
+
+#: ../features/admin/cache-files-trigger.tsx
+#: ../features/admin/cache-files.tsx
+msgid "Cached files"
+msgstr "缓存文件"
+
+#: ../features/admin/admin-page.tsx
+msgid "Cached files and directory listings."
+msgstr "缓存的文件和目录列表。"
+
+#: ../features/admin/cache-copy.ts
+msgid "Cached files and listings are fetched again when needed after clearing."
+msgstr "清除缓存后，需要时将重新获取缓存的文件和列表。"
+
+#: ../features/admin/cache-files.tsx
+msgid "Cached files pagination"
+msgstr "缓存文件分页"
+
+#: ../features/admin/admin-page.tsx
+msgid "Cached repository configurations."
+msgstr "缓存存储库配置。"
+
+#: ../components/collection-entry-creator.tsx
+#: ../components/content-entry-editor.tsx
+#: ../components/repository-action-buttons.tsx
+#: ../components/structured-content-field.tsx
+#: ../features/account/delete-account.tsx
+#: ../features/account/profile-picture.tsx
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/admin-page.tsx
+#: ../features/admin/cache-page.tsx
+#: ../features/admin/collaborators-page.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+#: ../features/collections/collection-page.tsx
+#: ../features/content/use-entry-actions.tsx
+#: ../features/dashboard/create-branch-dialog.tsx
+#: ../features/drafts/draft-discard-dialog.tsx
+#: ../features/drafts/draft-merge-dialog.tsx
+#: ../features/editor/commit-message-dialog.tsx
+#: ../features/editor/field-locale-menu.tsx
+#: ../features/editor/file-locale-menu.tsx
+#: ../features/editor/locale-context.tsx
+#: ../features/editor/start-translation-dialog.tsx
+#: ../features/media/media-browser.tsx
+#: ../features/media/media-move-dialog.tsx
+#: known-errors.ts
+msgid "Cancel"
+msgstr "取消"
+
+#: ../features/admin/actions-page.tsx
+msgid "Cancel action run?"
+msgstr "取消行动运行？"
+
+#: ../features/admin/actions-page.tsx
+msgid "Cancel run"
+msgstr "取消运行"
+
+#: ../features/admin/actions-page.tsx
+msgid "Cancellation requested"
+msgstr "已请求取消"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Cancelled"
+msgstr "取消"
+
+#: known-errors.ts
+msgid "Cannot {value0} media property {value1}"
+msgstr "无法 {value0} 媒体属性 {value1}"
+
+#: known-errors.ts
+msgid "Cannot encode an empty route segment"
+msgstr "无法对空路线段进行编码"
+
+#. placeholder {0}: renaming?.name
+#: ../features/collections/collection-page.tsx
+msgid "Change the filename for {0}."
+msgstr "更改 {0} 的文件名。"
+
+#: ../components/content-entry-editor.tsx
+msgid "Change the filename for this entry. Saving creates a commit."
+msgstr "更改此条目的文件名。保存会创建一个提交。"
+
+#: ../features/media/media-browser.tsx
+#~ msgid "Check your connection and try again."
+#~ msgstr "检查您的连接并重试。"
+
+#: ../features/account/profile-setup-heading.tsx
+msgid "Check your name and picture before you continue."
+msgstr "在继续之前检查您的姓名和照片。"
+
+#: ../features/editor/file-locale-menu.tsx
+msgid "Checking translations…"
+msgstr "检查翻译..."
+
+#: ../components/structured-content-field.tsx
+msgid "Choose a content block"
+msgstr "选择内容块"
+
+#: ../features/media/media-move-dialog.tsx
+msgid "Choose a folder for this file."
+msgstr "为此文件选择一个文件夹。"
+
+#: ../features/editor/commit-message-dialog.tsx
+msgid "Choose a message for this content save."
+msgstr "为此内容保存选择一条消息。"
+
+#. placeholder {0}: data.collection.path
+#: ../features/collections/collection-page.tsx
+msgid "Choose a path under {0}."
+msgstr "选择{0}下的路径。"
+
+#: known-errors.ts
+msgid "Choose a picture smaller than 100 KB."
+msgstr "选择小于 100 KB 的图片。"
+
+#: known-errors.ts
+msgid "Choose a picture smaller than 5 MB."
+msgstr "选择小于 5 MB 的图片。"
+
+#: known-errors.ts
+msgid "Choose a PNG, JPEG or WebP picture."
+msgstr "选择 PNG、JPEG 或 WebP 图片。"
+
+#: known-errors.ts
+msgid "Choose a version for every conflicting field."
+msgstr "为每个冲突字段选择一个版本。"
+
+#: ../components/rich-text-field.tsx
+msgid "Choose an image"
+msgstr "选择图像"
+
+#: ../components/structured-content-field.tsx
+msgid "Choose files"
+msgstr "选择文件"
+
+#: ../components/structured-content-field.tsx
+msgid "Choose images"
+msgstr "选择图像"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "Choose one complete list."
+msgstr "选择一个完整的列表。"
+
+#: known-errors.ts
+msgid "Choose one picture at a time."
+msgstr "一次选择一张图片。"
+
+#: ../features/account/language-field.tsx
+msgid "Choose the language used by the app. Content languages stay unchanged."
+msgstr "选择应用程序使用的语言。内容语言保持不变。"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+#~ msgid "Choose which version to keep"
+#~ msgstr "选择要保留的版本"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+#~ msgid "Choose which version to keep, then save."
+#~ msgstr "选择要保留的版本，然后保存。"
+
+#: known-errors.ts
+msgid "Circular component reference: {value0}"
+msgstr "圆形元件参考：{value0}"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/admin-page.tsx
+#: ../features/admin/cache-page.tsx
+#: ../features/admin/cache-skeleton.tsx
+msgid "Clear"
+msgstr "清除"
+
+#. placeholder {0}: row.title.toLowerCase()
+#: ../features/admin/cache-page.tsx
+msgid "Clear {0} cache"
+msgstr "清除{0}缓存"
+
+#. placeholder {0}: row.title.toLowerCase()
+#: ../features/admin/cache-page.tsx
+msgid "Clear {0} cache?"
+msgstr "清除{0}缓存？"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/admin-page.tsx
+#: ../features/admin/cache-page.tsx
+#: ../features/admin/cache-skeleton.tsx
+msgid "Clear all"
+msgstr "全部清除"
+
+#: ../features/admin/admin-page.tsx
+msgid "Clear all cache?"
+msgstr "清除所有缓存？"
+
+#: ../features/admin/cache-page.tsx
+msgid "Clear all cached data?"
+msgstr "清除所有缓存数据？"
+
+#: ../features/admin/admin-page.tsx
+msgid "Clear configuration cache?"
+msgstr "清除配置缓存？"
+
+#: ../features/admin/admin-page.tsx
+msgid "Clear content cache?"
+msgstr "清除内容缓存？"
+
+#: ../features/media/media-browser.tsx
+msgid "Clear search"
+msgstr "清除搜索"
+
+#: ../components/ui/combobox.tsx
+msgid "Clear selection"
+msgstr "清除选择"
+
+#: ../components/repository-action-buttons.tsx
+#: ../components/ui/dialog.tsx
+#: ../components/ui/sheet.tsx
+msgid "Close"
+msgstr "关闭"
+
+#: ../components/ui/editor/index.tsx
+msgid "Code"
+msgstr "代码"
+
+#: ../components/ui/editor/index.tsx
+#: ../components/ui/editor/slash-command/suggestion.tsx
+msgid "Code block"
+msgstr "代码块"
+
+#: ../features/admin/collaborators-page.tsx
+#: ../features/admin/collaborators-skeleton.tsx
+msgid "Collaborator"
+msgstr "合作者"
+
+#: known-errors.ts
+msgid "Collaborator added"
+msgstr "已添加合作者"
+
+#: ../features/activity/activity-feed-item.tsx
+#: known-errors.ts
+msgid "collaborator permissions"
+msgstr "协作者权限"
+
+#: ../features/admin/collaborators-page.tsx
+msgid "Collaborator removed"
+msgstr "合作者已删除"
+
+#: ../components/repository-shell.tsx
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/collaborators-page.tsx
+#: ../features/admin/collaborators-skeleton.tsx
+#: ../routes/github.$owner.$repo.$branch.collaborators.tsx
+msgid "Collaborators"
+msgstr "合作者"
+
+#: known-errors.ts
+msgid "Collaborators cannot change repository configuration"
+msgstr "协作者无法更改存储库配置"
+
+#: ../features/collections/collection-table.tsx
+msgid "Collapse"
+msgstr "崩溃"
+
+#: ../components/structured-content-field.tsx
+msgid "Collapse all"
+msgstr "全部折叠"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "Collection"
+msgstr "收藏"
+
+#: known-errors.ts
+msgid "Collection {value0} was not found"
+msgstr "未找到集合{value0}"
+
+#: known-errors.ts
+msgid "Collection action context is invalid"
+msgstr "集合操作上下文无效"
+
+#: known-errors.ts
+msgid "Collection actions must define a ''scope'' of ''collection'' or ''entry''."
+msgstr "集合操作必须定义 ''collection'' 或 ''entry'' 的 ''scope''。"
+
+#: known-errors.ts
+msgid "Collection filename template is missing"
+msgstr "集合文件名模板丢失"
+
+#: ../features/collections/collection-header.tsx
+msgid "Collection language"
+msgstr "集合语言"
+
+#: known-errors.ts
+msgid "Collection path is outside its configured root"
+msgstr "收集路径位于其配置的根之外"
+
+#: ../features/account/theme-preference.tsx
+msgid "Color mode"
+msgstr "颜色模式"
+
+#: ../components/ui/editor/index.tsx
+msgid "Columns:"
+msgstr "栏目："
+
+#: ../components/ui/command.tsx
+#: known-errors.ts
+msgid "Command Palette"
+msgstr "命令面板"
+
+#: ../features/editor/commit-message-dialog.tsx
+msgid "Commit message (optional)"
+msgstr "提交消息（可选）"
+
+#: known-errors.ts
+msgid "Commit message must be at most 4096 characters"
+msgstr "提交消息不得超过 4096 个字符"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Completed"
+msgstr "已完成"
+
+#: known-errors.ts
+msgid "Completed content operations cannot be replayed."
+msgstr "已完成的内容操作无法重播。"
+
+#: known-errors.ts
+msgid "Completed media operations cannot be replayed."
+msgstr "无法重播已完成的媒体操作。"
+
+#: known-errors.ts
+msgid "Completed operations cannot be replayed."
+msgstr "已完成的操作无法重播。"
+
+#: known-errors.ts
+msgid "Completed upload path does not match its request"
+msgstr "完成的上传路径与请求不符"
+
+#: known-errors.ts
+msgid "Component key must be alphanumeric with dashes and underscores."
+msgstr "组件键必须是带有破折号和下划线的字母数字。"
+
+#: ../components/repository-shell.tsx
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/admin-page.tsx
+#: ../features/admin/cache-page.tsx
+#: ../features/admin/cache-skeleton.tsx
+#: ../features/admin/configuration-page.tsx
+#: ../features/admin/configuration-skeleton.tsx
+#: ../features/repository/overview-file-item.tsx
+#: ../routes/github.$owner.$repo.$branch.configuration.tsx
+#: known-errors.ts
+msgid "Configuration"
+msgstr "配置"
+
+#: known-errors.ts
+msgid "Configuration fields and blocks must be objects"
+msgstr "配置字段和块必须是对象"
+
+#: ../features/repository/configuration-required.tsx
+msgid "Configuration needs fixing"
+msgstr "配置需要修复"
+
+#: known-errors.ts
+msgid "Configuration root must be an object"
+msgstr "配置根必须是一个对象"
+
+#: ../features/admin/configuration-page.tsx
+msgid "Configuration saved"
+msgstr "配置已保存"
+
+#: known-errors.ts
+msgid "Configuration settings are invalid"
+msgstr "配置设置无效"
+
+#: ../features/admin/configuration-setup.tsx
+msgid "Configuration setup"
+msgstr "配置设置"
+
+#: known-errors.ts
+msgid "Configuration source exceeds the 1 MB limit"
+msgstr "配置源超出 1 MB 限制"
+
+#: ../features/repository/configuration-required.tsx
+msgid "Configure"
+msgstr "配置"
+
+#: ../features/admin/actions-page.tsx
+msgid "Configure inputs before running this workflow."
+msgstr "在运行此工作流程之前配置输入。"
+
+#: ../features/admin/configuration-setup.tsx
+msgid "Configure your project"
+msgstr "配置您的项目"
+
+#: ../features/admin/admin-page.tsx
+msgid "Confirm"
+msgstr "确认"
+
+#: ../features/account/profile-setup-heading.tsx
+#: ../features/account/profile-setup.tsx
+#: ../routes/onboarding.tsx
+msgid "Confirm your details"
+msgstr "确认您的详细信息"
+
+#: known-errors.ts
+msgid "Conflicting media property {value0}"
+msgstr "媒体属性冲突 {value0}"
+
+#: known-errors.ts
+msgid "Conflicting standalone page namespace {value0}"
+msgstr "独立页面命名空间冲突 {value0}"
+
+#: ../features/settings/user-settings.tsx
+msgid "Connect"
+msgstr "连接"
+
+#: ../features/settings/user-settings.tsx
+msgid "Connect to access your GitHub repositories."
+msgstr "连接以访问您的 GitHub 存储库。"
+
+#: ../features/settings/user-settings.tsx
+msgid "Connected"
+msgstr "已连接"
+
+#: ../components/collection-entry-creator.tsx
+#: ../components/content-entry-editor.tsx
+#: ../components/repository-shell.tsx
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/admin-page.tsx
+#: ../features/admin/cache-page.tsx
+#: ../features/admin/cache-skeleton.tsx
+#: known-errors.ts
+msgid "Content"
+msgstr "内容"
+
+#: known-errors.ts
+msgid "Content allows at most {value0} items"
+msgstr "内容最多允许 {value0} 项"
+
+#: ../features/admin/cache-page.tsx
+msgid "Content and configuration for this branch will be fetched again when next needed."
+msgstr "下次需要时将再次获取该分支的内容和配置。"
+
+#: ../features/account/content-editing-preferences.tsx
+msgid "Content editing preferences saved"
+msgstr "已保存内容编辑首选项"
+
+#: known-errors.ts
+msgid "Content entries must be objects"
+msgstr "内容条目必须是对象"
+
+#: known-errors.ts
+msgid "Content i18n must specify a scheme"
+msgstr "内容 i18n 必须指定一个方案"
+
+#: known-errors.ts
+msgid "Content requires at least {value0} items"
+msgstr "内容至少需要{value0}个项目"
+
+#: known-errors.ts
+msgid "Content schema {value0} was not found"
+msgstr "未找到内容架构{value0}"
+
+#: known-errors.ts
+msgid "Content validation failed"
+msgstr "内容验证失败"
+
+#: ../features/account/profile-loading.tsx
+#: ../features/account/profile-setup.tsx
+msgid "Continue"
+msgstr "继续"
+
+#: ../components/sign-in-form.tsx
+msgid "Continue with email"
+msgstr "继续使用电子邮件"
+
+#: ../components/structured-content-field.tsx
+msgid "Convert to translations"
+msgstr "转换为翻译"
+
+#: ../features/editor/start-translation-dialog.tsx
+msgid "Copy {source} content"
+msgstr "复制{source}内容"
+
+#: ../features/editor/file-locale-menu.tsx
+#: ../features/editor/locale-context.tsx
+msgid "Copy content"
+msgstr "复制内容"
+
+#: ../features/account/content-editing-preferences.tsx
+msgid "Copy current language"
+msgstr "复制当前语言"
+
+#. placeholder {0}: copy?.label
+#: ../features/editor/file-locale-menu.tsx
+msgid "Copy from {0}?"
+msgstr "从{0}复制？"
+
+#: ../features/editor/field-locale-menu.tsx
+#: ../features/editor/file-locale-menu.tsx
+#: ../features/editor/locale-context.tsx
+msgid "Copy from…"
+msgstr "复制自..."
+
+#. placeholder {0}: locales.find((item) => item.code === source)?.label
+#. placeholder {1}: locales.find((item) => item.code === locale)?.label
+#: ../features/editor/locale-context.tsx
+msgid "Copy localized content from {0} to {1}. Changes stay in your draft until you save. Shared fields stay unchanged."
+msgstr "将本地化内容从 {0} 复制到 {1}。更改会保留在草稿中，直到您保存为止。共享字段保持不变。"
+
+#. placeholder {0}: copy?.label
+#: ../features/editor/file-locale-menu.tsx
+msgid "Copy saved content from {0} to {label}. This replaces the current language’s draft, including unsaved changes. The source language stays unchanged. Save when you are ready."
+msgstr "将保存的内容从{0}复制到{label}。这将替换当前语言的草稿，包括未保存的更改。源语言保持不变。准备好后保存。"
+
+#: ../features/dashboard/repository-templates.tsx
+msgid "Copy template"
+msgstr "复制模板"
+
+#: known-errors.ts
+msgid "Could not cancel “{value0}”"
+msgstr "无法取消“{value0}”"
+
+#: ../features/account/language-preference.tsx
+msgid "Could not change language. Try again."
+msgstr "无法更改语言。再试一次。"
+
+#: ../features/editor/file-locale-menu.tsx
+#~ msgid "Could not check translation availability."
+#~ msgstr "无法检查翻译可用性。"
+
+#: ../features/editor/file-locale-menu.tsx
+#~ msgid "Could not check translations"
+#~ msgstr "无法检查翻译"
+
+#: ../features/editor/file-locale-menu.tsx
+msgid "Could not check translations."
+msgstr "无法检查翻译。"
+
+#: ../features/content/content-mutations.ts
+msgid "Could not complete the file operation. Your local draft is retained."
+msgstr "无法完成文件操作。你的本地草稿已保留。"
+
+#: ../features/media/media-mutations.ts
+msgid "Could not complete the media operation."
+msgstr "无法完成媒体操作。"
+
+#: known-errors.ts
+msgid "Could not complete the operation."
+msgstr "无法完成操作。"
+
+#: ../features/editor/file-locale-menu.tsx
+msgid "Could not copy this language."
+msgstr "无法复制该语言。"
+
+#: ../features/collections/collection-page.tsx
+msgid "Could not create folder."
+msgstr "无法创建文件夹。"
+
+#: known-errors.ts
+msgid "Could not create repository identity"
+msgstr "无法创建存储库标识"
+
+#: ../features/dashboard/create-branch-dialog.tsx
+msgid "Could not create the branch."
+msgstr "无法创建分支。"
+
+#: ../features/dashboard/repository-templates.tsx
+msgid "Could not create the repository."
+msgstr "无法创建存储库。"
+
+#: ../features/account/delete-account.tsx
+msgid "Could not delete your account. Try again."
+msgstr "无法删除您的帐户。再试一次。"
+
+#: ../features/drafts/draft-discard-dialog.tsx
+msgid "Could not discard this draft."
+msgstr "无法丢弃此草稿。"
+
+#: ../features/settings/user-settings.tsx
+msgid "Could not disconnect the GitHub account."
+msgstr "无法断开 GitHub 帐户的连接。"
+
+#: ../features/admin/admin-page.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Could not filter results. Previous results are still shown."
+msgstr "无法过滤结果。仍然显示以前的结果。"
+
+#: ../features/admin/collaborators-page.tsx
+msgid "Could not invite collaborators."
+msgstr "无法邀请合作者。"
+
+#: ../features/settings/account-settings-contribution.tsx
+msgid "Could not load {label}"
+msgstr "无法加载{label}"
+
+#: ../features/settings/user-settings-skeleton.tsx
+#: ../features/settings/user-settings.tsx
+msgid "Could not load account settings"
+msgstr "无法加载帐户设置"
+
+#: ../components/repository-shell.tsx
+#: ../features/dashboard/branch-manager.tsx
+#: ../features/dashboard/create-branch-dialog.tsx
+msgid "Could not load branches."
+msgstr "无法加载分支。"
+
+#: ../features/admin/cache-files.tsx
+msgid "Could not load cached files."
+msgstr "无法加载缓存文件。"
+
+#: ../features/drafts/use-draft-merge.tsx
+msgid "Could not load change review"
+msgstr "无法加载变更审核"
+
+#: ../features/collections/collection-page.tsx
+#~ msgid "Could not load entries"
+#~ msgstr "无法加载条目"
+
+#. placeholder {0}: failedEntry.name
+#: ../features/collections/collection-table.tsx
+msgid "Could not load entries for {0}."
+msgstr "无法加载 {0} 的条目。"
+
+#: ../features/collections/collection-page.tsx
+#~ msgid "Could not load entries."
+#~ msgstr "无法加载条目。"
+
+#: ../components/file-editor-history.tsx
+msgid "Could not load history."
+msgstr "无法加载历史记录。"
+
+#: ../components/media-thumbnail.tsx
+msgid "Could not load image"
+msgstr "无法加载图像"
+
+#: ../features/media/media-browser.tsx
+msgid "Could not load media"
+msgstr "无法加载媒体"
+
+#: ../features/media/media-browser.tsx
+#: ../features/media/media-folder-tree.tsx
+msgid "Could not load media."
+msgstr "无法加载媒体。"
+
+#: ../features/activity/activity-feed.tsx
+msgid "Could not load more activity."
+msgstr "无法加载更多活动。"
+
+#: ../features/dashboard/create-branch-dialog.tsx
+#~ msgid "Could not load or create branches."
+#~ msgstr "无法加载或创建分支。"
+
+#: ../features/account/content-editing-preferences.tsx
+msgid "Could not load preferences"
+msgstr "无法加载首选项"
+
+#: ../features/dashboard/recent-repository-list.tsx
+msgid "Could not load recently visited projects"
+msgstr "无法加载最近访问的项目"
+
+#: ../components/structured-content-field.tsx
+msgid "Could not load references."
+msgstr "无法加载参考文献。"
+
+#: ../features/dashboard/repository-selector.tsx
+msgid "Could not load repositories."
+msgstr "无法加载存储库。"
+
+#: ../features/admin/allowlist-table.tsx
+msgid "Could not load sign-in rules."
+msgstr "无法加载登录规则。"
+
+#: ../features/admin/allowlist-table.tsx
+#~ msgid "Could not load the allowlist."
+#~ msgstr "无法加载允许列表。"
+
+#: ../features/admin/configuration-page.tsx
+msgid "Could not load the latest configuration. Your draft is retained."
+msgstr "无法加载最新配置。您的草稿将被保留。"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "Could not load the latest version. Your draft is retained."
+msgstr "无法加载最新版本。您的草稿将被保留。"
+
+#: ../features/collections/collection-page.tsx
+#~ msgid "Could not load this language"
+#~ msgstr "无法加载该语言"
+
+#: ../features/collections/collection-page.tsx
+#~ msgid "Could not load this language."
+#~ msgstr "无法加载该语言。"
+
+#: ../features/collections/collection-page.tsx
+msgid "Could not load this language. Previous results are still shown."
+msgstr "无法加载此语言。仍显示之前的结果。"
+
+#: ../features/repository/overview-local-files.tsx
+msgid "Could not load your entries."
+msgstr "无法加载您的条目。"
+
+#: ../features/admin/actions-page.tsx
+msgid "Could not manage action run."
+msgstr "无法管理操作运行。"
+
+#. placeholder {0}: parseErrorPaths.length
+#: ../features/collections/collection-page.tsx
+#~ msgid "Could not parse {0} files."
+#~ msgstr "无法解析 {0} 个文件。"
+
+#: ../features/collections/collection-page.tsx
+#~ msgid "Could not parse this file."
+#~ msgstr "无法解析此文件。"
+
+#: ../features/content/use-entry-actions.tsx
+msgid "Could not prepare the rename."
+msgstr "无法准备重命名操作。"
+
+#: known-errors.ts
+msgid "Could not read {value0}"
+msgstr "无法读取{value0}"
+
+#: known-errors.ts
+msgid "Could not record action run"
+msgstr "无法记录跑步动作"
+
+#: known-errors.ts
+msgid "Could not record repository identity"
+msgstr "无法记录存储库身份"
+
+#: ../features/admin/actions-page.tsx
+#~ msgid "Could not refresh actions"
+#~ msgstr "无法刷新操作"
+
+#: ../features/admin/actions-page.tsx
+#~ msgid "Could not refresh actions."
+#~ msgstr "无法刷新操作。"
+
+#: ../features/admin/actions-page.tsx
+msgid "Could not refresh actions. The displayed results may be out of date."
+msgstr "无法刷新操作。显示的结果可能已过时。"
+
+#: ../features/admin/cache-page.tsx
+msgid "Could not refresh cache status."
+msgstr "无法刷新缓存状态。"
+
+#: ../features/admin/cache-files.tsx
+msgid "Could not refresh cached files. The displayed results may be out of date."
+msgstr "无法刷新缓存文件。显示的结果可能已过期。"
+
+#: ../features/admin/collaborators-page.tsx
+msgid "Could not refresh collaborators. The displayed results may be out of date."
+msgstr "无法刷新协作者。显示的结果可能已过时。"
+
+#: ../features/collections/collection-page.tsx
+msgid "Could not refresh files."
+msgstr "无法刷新文件。"
+
+#: ../components/file-editor-history.tsx
+msgid "Could not refresh history. The displayed results may be out of date."
+msgstr "无法刷新历史记录。显示的结果可能已过期。"
+
+#: ../features/media/media-browser.tsx
+msgid "Could not refresh media."
+msgstr "无法刷新媒体。"
+
+#: ../features/media/media-browser.tsx
+msgid "Could not refresh media. The displayed results may be out of date."
+msgstr "无法刷新媒体。显示的结果可能已过时。"
+
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Could not refresh sign-in rules. The displayed results may be out of date."
+msgstr "无法刷新登录规则。显示的结果可能已过期。"
+
+#: ../features/admin/sign-in-allowlist.tsx
+#~ msgid "Could not refresh the allowlist. The displayed results may be out of date."
+#~ msgstr "无法刷新允许列表。显示的结果可能已过期。"
+
+#: ../features/editor/file-locale-menu.tsx
+msgid "Could not refresh translations. The displayed results may be out of date."
+msgstr "无法刷新翻译。显示的结果可能已过时。"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "Could not reload changes"
+msgstr "无法重新加载更改"
+
+#: ../features/admin/collaborators-page.tsx
+msgid "Could not remove collaborator."
+msgstr "无法删除协作者。"
+
+#: ../features/drafts/draft-save-button.tsx
+#~ msgid "Could not restore or save this draft."
+#~ msgstr "无法恢复或保存此草稿。"
+
+#: ../components/content-entry-editor.tsx
+#: ../features/admin/configuration-page.tsx
+#: ../features/drafts/draft-save-button.tsx
+msgid "Could not restore or save this draft. Keep this editor open."
+msgstr "无法恢复或保存此草稿。保持此编辑器打开。"
+
+#: ../components/content-entry-editor.tsx
+#: ../features/admin/configuration-page.tsx
+msgid "Could not review changes"
+msgstr "无法审核更改"
+
+#: ../components/repository-action-buttons.tsx
+#: ../features/admin/actions-page.tsx
+msgid "Could not run action."
+msgstr "无法运行操作。"
+
+#: ../features/drafts/use-content-draft.tsx
+#~ msgid "Could not save"
+#~ msgstr "无法保存"
+
+#: ../features/drafts/use-content-draft.tsx
+msgid "Could not save changes. Check the draft for details."
+msgstr "无法保存更改。请查看草稿了解详情。"
+
+#: ../features/admin/admin-page.tsx
+#~ msgid "Could not save the default language."
+#~ msgstr "无法保存默认语言。"
+
+#: ../features/drafts/use-content-draft.tsx
+#~ msgid "Could not save the local draft."
+#~ msgstr "无法保存本地草稿。"
+
+#: ../features/drafts/use-draft-merge.tsx
+msgid "Could not save your changes. Your draft is retained."
+msgstr "无法保存更改。你的草稿已保留。"
+
+#: ../features/account/profile-fields.tsx
+#: ../features/account/use-profile-editor.ts
+msgid "Could not save your name. Try again."
+msgstr "无法保存您的名字。再试一次。"
+
+#: ../features/account/profile-fields.tsx
+#: ../features/account/use-profile-editor.ts
+msgid "Could not save your picture. Try again."
+msgstr "无法保存您的图片。再试一次。"
+
+#: ../features/account/profile-setup.tsx
+msgid "Could not save your profile. Try again."
+msgstr "无法保存您的个人资料。再试一次。"
+
+#: ../components/sign-in-form.tsx
+msgid "Could not sign in. Try again."
+msgstr "无法登录。请重试。"
+
+#: ../features/repository/repository-unavailable-error.tsx
+msgid "Could not sign out."
+msgstr "无法退出。"
+
+#: ../features/account/account-menu.tsx
+#: ../features/account/delete-account.tsx
+#: known-errors.ts
+msgid "Could not sign out. Try again."
+msgstr "无法退出。再试一次。"
+
+#: ../features/editor/file-locale-menu.tsx
+msgid "Could not start this translation."
+msgstr "无法开始翻译。"
+
+#: known-errors.ts
+msgid "Could not update “{value0}”. Check Actions for its status."
+msgstr "无法更新“{value0}”。检查操作的状态。"
+
+#: known-errors.ts
+msgid "Could not update action runs. Refresh Actions to try again."
+msgstr "无法更新操作运行。刷新操作以重试。"
+
+#: ../features/admin/configuration-page.tsx
+msgid "Could not update configuration. Your local draft is retained."
+msgstr "无法更新配置。您的本地草稿将被保留。"
+
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Could not update sign-in rules."
+msgstr "无法更新登录规则。"
+
+#: ../features/admin/sign-in-allowlist.tsx
+#~ msgid "Could not update the allowlist."
+#~ msgstr "无法更新允许列表。"
+
+#: ../features/admin/cache-page.tsx
+msgid "Could not update the cache."
+msgstr "无法更新缓存。"
+
+#: ../features/repository/overview-media-upload.tsx
+#: known-errors.ts
+msgid "Could not upload media."
+msgstr "无法上传媒体。"
+
+#: known-errors.ts
+msgid "Could not verify the code."
+msgstr "无法验证代码。"
+
+#: ../components/sign-in-form.tsx
+#: known-errors.ts
+msgid "Could not verify the sign-in code. Try again."
+msgstr "无法验证登录代码。再试一次。"
+
+#. placeholder {0}: template.repository
+#: ../features/dashboard/repository-templates.tsx
+msgid "Create {0} under one of your GitHub accounts."
+msgstr "在您的 GitHub 帐户之一下创建 {0}。"
+
+#: ../routes/github.$owner.$repo.index.tsx
+msgid "Create a branch and add a .pages.yml file to configure this repository."
+msgstr "创建一个分支并添加 .pages.yml 文件来配置此存储库。"
+
+#: ../features/dashboard/create-branch-dialog.tsx
+msgid "Create a branch from “"
+msgstr "从“创建一个分支”"
+
+#: ../features/collections/collection-page.tsx
+msgid "Create a folder"
+msgstr "创建文件夹"
+
+#: ../features/media/media-browser.tsx
+msgid "Create a folder under {directoryPath}."
+msgstr "在{directoryPath}下创建一个文件夹。"
+
+#: ../features/dashboard/create-branch-dialog.tsx
+msgid "Create branch"
+msgstr "创建分支"
+
+#: ../components/repository-shell.tsx
+msgid "Create branch…"
+msgstr "创建分支..."
+
+#: ../features/dashboard/repository-templates.tsx
+msgid "Create copy"
+msgstr "创建副本"
+
+#: ../components/collection-entry-creator.tsx
+msgid "Create entry"
+msgstr "创建条目"
+
+#: ../features/collections/collection-page.tsx
+#: ../features/media/media-browser.tsx
+msgid "Create folder"
+msgstr "创建文件夹"
+
+#: ../features/dashboard/repository-template-preview.tsx
+msgid "Create from a template"
+msgstr "从模板创建"
+
+#: known-errors.ts
+msgid "Creating entries is disabled for this collection"
+msgstr "该集合禁止创建条目"
+
+#: known-errors.ts
+msgid "Creating this content is disabled"
+msgstr "创建此内容已被禁用"
+
+#: ../features/collections/collection-table.tsx
+#: ../features/media/media-browser.tsx
+#: known-errors.ts
+msgid "Creating…"
+msgstr "创造……"
+
+#: known-errors.ts
+msgid "CRYPTO_KEY must be a base64-encoded 32-byte key"
+msgstr "CRYPTO_KEY 必须是 base64 编码的 32 字节密钥"
+
+#: known-errors.ts
+msgid "Custom after must be a directory, not the content file"
+msgstr "自定义后必须是目录，而不是内容文件"
+
+#: known-errors.ts
+msgid "Custom after must be an exact ancestor directory of the content path"
+msgstr "自定义后必须是内容路径的精确祖先目录"
+
+#: known-errors.ts
+msgid "Custom filenames are disabled for this collection"
+msgstr "此集合禁用自定义文件名"
+
+#: known-errors.ts
+msgid "D1 bindings require the Cloudflare request bootstrap"
+msgstr "D1 绑定需要 Cloudflare 请求引导"
+
+#: ../features/account/delete-account.tsx
+#: ../features/settings/user-settings-skeleton.tsx
+msgid "Danger zone"
+msgstr "危险区域"
+
+#: ../features/account/theme-preference.tsx
+msgid "Dark"
+msgstr "黑暗"
+
+#: known-errors.ts
+msgid "DATABASE binding is required with CACHE_DATABASE"
+msgstr "CACHE_DATABASE 需要 DATABASE 绑定"
+
+#: known-errors.ts
+msgid "DATABASE D1 binding is required"
+msgstr "需要数据库 D1 绑定"
+
+#: known-errors.ts
+msgid "Database readiness check timed out"
+msgstr "数据库准备情况检查超时"
+
+#: ../features/collections/collection-table-layout.tsx
+msgid "Date"
+msgstr "日期"
+
+#: ../components/content-entry-editor.tsx
+#: ../components/file-editor-menu.tsx
+#: ../features/collections/collection-page.tsx
+#: ../features/collections/collection-table.tsx
+#: ../features/media/media-browser.tsx
+#: ../features/media/media-entry.tsx
+msgid "Delete"
+msgstr "删除"
+
+#. placeholder {0}: deleteEntry?.name
+#: ../features/media/media-browser.tsx
+msgid "Delete {0}?"
+msgstr "删除{0}？"
+
+#: ../features/account/delete-account.tsx
+#: ../features/settings/settings-navigation.ts
+#: ../features/settings/user-settings-skeleton.tsx
+msgid "Delete account"
+msgstr "删除帐户"
+
+#: ../components/content-entry-editor.tsx
+#: ../features/collections/collection-page.tsx
+msgid "Delete entry?"
+msgstr "删除条目？"
+
+#: ../features/account/delete-account.tsx
+msgid "Delete your account?"
+msgstr "删除您的帐户？"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "deleted"
+msgstr "已删除"
+
+#: known-errors.ts
+msgid "Deleting this content is disabled"
+msgstr "删除此内容已被禁用"
+
+#: ../features/media/media-browser.tsx
+msgid "Deleting this file can break links to it in your content."
+msgstr "删除此文件可能会导致内容中指向它的链接失效。"
+
+#: known-errors.ts
+msgid "Delimiters must be strings"
+msgstr "分隔符必须是字符串"
+
+#: ../components/ui/editor/index.tsx
+msgid "Describe image"
+msgstr "描述图像"
+
+#: known-errors.ts
+msgid "Direct upload is unavailable"
+msgstr "无法直接上传"
+
+#: known-errors.ts
+msgid "Directory refresh failed. Retry to update the cache."
+msgstr "目录刷新失败。重试更新缓存。"
+
+#: ../features/drafts/draft-save-button.tsx
+msgid "Discard"
+msgstr "丢弃"
+
+#: ../features/drafts/draft-discard-dialog.tsx
+#: ../features/drafts/draft-save-button.tsx
+msgid "Discard draft"
+msgstr "丢弃草稿"
+
+#: ../features/drafts/draft-discard-dialog.tsx
+msgid "Discard local draft?"
+msgstr "放弃本地草案？"
+
+#: ../features/drafts/draft-discard-dialog.tsx
+msgid "Discard your unsaved changes from this browser. This cannot be undone. Saved content in your project will not change."
+msgstr "放弃此浏览器中未保存的更改。此操作无法撤消。项目中保存的内容不会改变。"
+
+#: ../features/settings/user-settings.tsx
+msgid "Disconnect"
+msgstr "断开连接"
+
+#: ../features/settings/user-settings.tsx
+msgid "Disconnect your GitHub account?"
+msgstr "断开您的 GitHub 帐户？"
+
+#: ../features/account/profile-loading.tsx
+#: ../features/account/profile-setup.tsx
+#: known-errors.ts
+msgid "Display name"
+msgstr "显示名称"
+
+#: ../features/account/account-copy.ts
+msgid "Displayed in your profile and collaborator lists."
+msgstr "显示在您的个人资料和协作者列表中。"
+
+#: ../components/ui/sidebar.tsx
+msgid "Displays the mobile sidebar."
+msgstr "显示移动侧边栏。"
+
+#: ../features/dashboard/about-dialog.tsx
+msgid "Docs"
+msgstr "文档"
+
+#: ../features/admin/allowlist-table.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Domain"
+msgstr "域名"
+
+#: ../components/ui/editor/html-policy.ts
+msgid "Double-click to edit HTML"
+msgstr "双击编辑 HTML"
+
+#: ../components/ui/editor/html-policy.ts
+msgid "Double-click to edit source"
+msgstr "双击编辑源"
+
+#: ../features/drafts/draft-save-button.tsx
+msgid "Download"
+msgstr "下载"
+
+#: ../features/drafts/draft-save-button.tsx
+#~ msgid "Download a copy of your draft."
+#~ msgstr "下载草稿副本。"
+
+#: ../features/drafts/draft-save-button.tsx
+msgid "Download draft"
+msgstr "下载草稿"
+
+#: ../features/drafts/draft-save-button.tsx
+msgid "Draft"
+msgstr "吃水"
+
+#: ../components/content-entry-editor.tsx
+#: ../features/admin/configuration-page.tsx
+msgid "Draft needs attention"
+msgstr "草稿需要注意"
+
+#. placeholder {0}: timestamp.toLocaleString(dateI18n.locale, { timeZone: 'UTC', timeZoneName: 'short' })
+#: ../features/repository/overview-file-item.tsx
+msgid "Draft saved {0}"
+msgstr "草稿已保存{0}"
+
+#: ../features/repository/overview-loading.tsx
+#: ../features/repository/overview-local-files.tsx
+msgid "Drafts"
+msgstr "草稿"
+
+#: ../features/collections/collection-page.tsx
+msgid "drafts or 2026/launches"
+msgstr "草案或 2026 年/发布"
+
+#: ../features/media/media-browser.tsx
+msgid "Drop files to upload"
+msgstr "删除要上传的文件"
+
+#: known-errors.ts
+msgid "Duplicate {value0} name \"{value1}\". Also defined at {value2}."
+msgstr "重复 {value0} 名称“{value1}”。也定义在{value2}。"
+
+#: ../features/collections/collection-table.tsx
+#: ../features/repository/overview-shortcuts.tsx
+#: known-errors.ts
+msgid "Edit"
+msgstr "编辑"
+
+#. placeholder {0}: node.label
+#: ../features/repository/overview-shortcuts.tsx
+msgid "Edit {0}"
+msgstr "编辑{0}"
+
+#. placeholder {0}: params._splat ?? 'entry'
+#. placeholder {1}: loaderData?.label ?? params.name
+#: ../routes/github.$owner.$repo.$branch.collection.$name_.entry.$.tsx
+msgid "Edit {0} | {1}"
+msgstr "编辑{0} | {1}"
+
+#: ../features/repository/configuration-required.tsx
+msgid "Edit configuration"
+msgstr "编辑配置"
+
+#: ../components/ui/editor/html-policy.ts
+msgid "Edit HTML"
+msgstr "编辑 HTML"
+
+#: ../components/ui/editor/html-policy.ts
+msgid "Edit source"
+msgstr "编辑来源"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "edited"
+msgstr "已编辑"
+
+#: ../components/structured-content-field.tsx
+msgid "Editor"
+msgstr "编辑"
+
+#: ../components/sign-in-form.tsx
+#: ../features/account/profile-loading.tsx
+#: ../features/account/profile-setup.tsx
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/allowlist-table.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+#: ../features/settings/user-settings-skeleton.tsx
+#: ../features/settings/user-settings.tsx
+#: known-errors.ts
+msgid "Email"
+msgstr "电子邮件"
+
+#: ../components/collaborator-invite-input.tsx
+msgid "Email addresses"
+msgstr "电子邮件地址"
+
+#: known-errors.ts
+msgid "Email provider is unavailable"
+msgstr "电子邮件提供商不可用"
+
+#: known-errors.ts
+msgid "Email sign-in is temporarily unavailable. Try again."
+msgstr "电子邮件登录暂时不可用。再试一次。"
+
+#: ../features/drafts/draft-field-preview.tsx
+msgid "Empty"
+msgstr "空"
+
+#: ../routes/github.$owner.$repo.index.tsx
+msgid "Empty repository"
+msgstr "空存储库"
+
+#: known-errors.ts
+msgid "Encryption key must contain exactly 32 bytes"
+msgstr "加密密钥必须恰好包含 32 个字节"
+
+#. placeholder {0}: user.email
+#: ../features/account/delete-account.tsx
+msgid "Enter {0} to confirm"
+msgstr "输入{0}确认"
+
+#: ../components/collaborator-invite-input.tsx
+#: known-errors.ts
+msgid "Enter a valid email address for each person"
+msgstr "输入每个人的有效电子邮件地址"
+
+#: known-errors.ts
+msgid "Enter a valid email address."
+msgstr "输入有效的电子邮件地址。"
+
+#: known-errors.ts
+msgid "Enter a valid filename without a folder path"
+msgstr "请输入有效的文件名，不要包含文件夹路径"
+
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Enter a valid rule."
+msgstr "请输入有效规则。"
+
+#: known-errors.ts
+msgid "Enter at least one email address"
+msgstr "输入至少一个电子邮件地址"
+
+#: ../features/admin/sign-in-allowlist.tsx
+#~ msgid "Enter email addresses separated by commas or spaces."
+#~ msgstr "输入邮箱地址，以逗号或空格分隔。"
+
+#: ../features/admin/sign-in-allowlist.tsx
+#~ msgid "Enter or paste email addresses."
+#~ msgstr "输入或粘贴电子邮件地址。"
+
+#: ../components/otp-verification-form.tsx
+msgid "Enter the 6-digit code sent to {email}."
+msgstr "输入发送至{email}的6位数字代码。"
+
+#: known-errors.ts
+msgid "Enter the 6-digit code."
+msgstr "输入 6 位数代码。"
+
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Enter valid email addresses."
+msgstr "请输入有效的邮箱地址。"
+
+#: known-errors.ts
+msgid "Enter your account email to confirm deletion."
+msgstr "输入您的帐户电子邮件以确认删除。"
+
+#: known-errors.ts
+msgid "Enter your email to confirm account deletion."
+msgstr "输入您的电子邮件以确认帐户删除。"
+
+#: known-errors.ts
+msgid "Entries in the ''categories'' array must be ''image'', ''document'', ''video'', ''audio'', ''compressed'', ''code'', ''font'', or ''spreadsheet''."
+msgstr "''categories'' 数组中的条目必须是 ''image''、''document''、''video''、''audio''、''compressed''、''code''、''font'' 或 ''spreadsheet''。"
+
+#: known-errors.ts
+msgid "Entries in the ''exclude'' array must be strings."
+msgstr "''exclude'' 数组中的条目必须是字符串。"
+
+#: known-errors.ts
+msgid "Entries in the ''extensions'' array must be strings."
+msgstr "''extensions'' 数组中的条目必须是字符串。"
+
+#: known-errors.ts
+msgid "Entries in the ''fields'' array must be strings."
+msgstr "''fields'' 数组中的条目必须是字符串。"
+
+#: known-errors.ts
+msgid "Entries in the ''search'' array must be strings."
+msgstr "''search'' 数组中的条目必须是字符串。"
+
+#: known-errors.ts
+msgid "Entries in the ''sort'' array must be strings."
+msgstr "''sort'' 数组中的条目必须是字符串。"
+
+#: ../features/repository/overview-local-files.tsx
+msgid "Entries you visit will appear here."
+msgstr "您访问的条目将显示在此处。"
+
+#: known-errors.ts
+msgid "Entry action context is invalid"
+msgstr "输入操作上下文无效"
+
+#: ../components/content-entry-skeleton.tsx
+#: ../components/file-editor-menu.tsx
+#: ../features/admin/configuration-skeleton.tsx
+msgid "Entry actions"
+msgstr "入场动作"
+
+#: known-errors.ts
+msgid "Entry exceeds the 5 MB limit"
+msgstr "条目超过 5 MB 限制"
+
+#: known-errors.ts
+msgid "Entry extension does not match its content schema"
+msgstr "条目扩展与其内容架构不匹配"
+
+#: ../components/content-entry-skeleton.tsx
+#: ../components/file-editor-history.tsx
+#: ../features/admin/configuration-skeleton.tsx
+msgid "Entry history"
+msgstr "参赛历史"
+
+#: known-errors.ts
+msgid "Entry path does not match its configured locale path"
+msgstr "条目路径与其配置的区域设置路径不匹配"
+
+#: known-errors.ts
+msgid "Entry path is outside its configured content root"
+msgstr "入口路径位于其配置的内容根之外"
+
+#: ../components/content-entry-editor.tsx
+msgid "Entry source"
+msgstr "条目来源"
+
+#: ../features/editor/locale-context.tsx
+msgid "Errors"
+msgstr "错误"
+
+#: ../features/admin/admin-page.tsx
+msgid "Every user, including you, will be signed out. All integration credentials will be revoked."
+msgstr "所有用户（包括你）都将退出登录。所有集成凭据都将被撤销。"
+
+#: ../features/editor/file-locale-menu.tsx
+msgid "Existing translation or local draft resumed. Its content was preserved."
+msgstr "恢复现有翻译或本地草稿。其内容被保留。"
+
+#: ../features/editor/file-locale-menu.tsx
+msgid "Existing translations"
+msgstr "现有翻译"
+
+#: ../features/collections/collection-table.tsx
+msgid "Expand"
+msgstr "展开"
+
+#: ../components/structured-content-field.tsx
+msgid "Expand all"
+msgstr "全部展开"
+
+#: known-errors.ts
+msgid "Expected {value0} to be a directory"
+msgstr "预期 {value0} 是一个目录"
+
+#: known-errors.ts
+msgid "Expected {value0} to be a file"
+msgstr "预期 {value0} 是一个文件"
+
+#: known-errors.ts
+msgid "Expected a JSON object"
+msgstr "需要一个 JSON 对象"
+
+#: known-errors.ts
+msgid "Expected a list at the root of this content file"
+msgstr "需要在此内容文件的根目录中有一个列表"
+
+#: known-errors.ts
+msgid "Failed to read image file."
+msgstr "读取图像文件失败。"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Failure"
+msgstr "失败"
+
+#: ../features/dashboard/create-branch-dialog.tsx
+msgid "feature/new-branch"
+msgstr "功能/新分支"
+
+#: ../components/structured-content-field.tsx
+msgid "Field component “"
+msgstr "字段组件“"
+
+#: known-errors.ts
+msgid "Field must have exactly one of ''type'' or ''component''."
+msgstr "字段必须恰好具有 ''type'' 或 ''component'' 之一。"
+
+#: known-errors.ts
+msgid "Fields with type ''block'' must have a ''blocks'' attribute."
+msgstr "类型为 ''block'' 的字段必须具有 ''blocks'' 属性。"
+
+#: known-errors.ts
+msgid "Fields with type ''object'' must have a ''fields'' attribute."
+msgstr "类型为 ''object'' 的字段必须具有 ''fields'' 属性。"
+
+#: known-errors.ts
+msgid "File {value0} was not found"
+msgstr "未找到文件{value0}"
+
+#: known-errors.ts
+msgid "File action context is invalid"
+msgstr "文件操作上下文无效"
+
+#: ../features/media/media-skeleton.tsx
+msgid "File actions"
+msgstr "文件操作"
+
+#: known-errors.ts
+msgid "File actions cannot define a ''scope''."
+msgstr "文件操作不能定义 ''scope''。"
+
+#: ../features/content/content-mutations.ts
+msgid "File created"
+msgstr "文件已创建"
+
+#: ../features/content/content-mutations.ts
+#: ../features/media/media-mutations.ts
+msgid "File deleted"
+msgstr "文件已删除"
+
+#: ../features/content/use-entry-actions.tsx
+msgid "File deleted. A newer local draft was retained for download."
+msgstr "文件已删除。已保留较新的本地草稿，可供下载。"
+
+#: ../features/media/media-mutations.ts
+msgid "File moved"
+msgstr "文件已移动"
+
+#: ../features/content/content-mutations.ts
+#: ../features/media/media-mutations.ts
+msgid "File renamed"
+msgstr "文件已重命名"
+
+#: ../features/content/use-entry-actions.tsx
+msgid "File renamed. Some local drafts could not be moved and were retained for recovery."
+msgstr "文件已重命名。部分本地草稿无法移动，已保留以供恢复。"
+
+#: ../features/content/content-mutations.ts
+msgid "File saved"
+msgstr "文件已保存"
+
+#: ../features/admin/cache-files.tsx
+msgid "File SHA"
+msgstr "文件 SHA"
+
+#: ../components/collection-entry-creator.tsx
+#: ../components/content-entry-editor.tsx
+#: ../features/collections/collection-page.tsx
+#: ../features/media/media-browser.tsx
+msgid "Filename"
+msgstr "文件名"
+
+#: known-errors.ts
+msgid "Filename position must be prefix or suffix"
+msgstr "文件名位置必须是前缀或后缀"
+
+#: known-errors.ts
+msgid "Filename separator must contain only dots, underscores or hyphens"
+msgstr "文件名分隔符只能包含点、下划线或连字符"
+
+#: known-errors.ts
+msgid "Filename template must produce a relative path with valid, non-empty segments"
+msgstr "文件名模板必须生成由有效且非空的路径段组成的相对路径"
+
+#: ../features/admin/cache-files.tsx
+msgid "Filter cached files"
+msgstr "过滤缓存文件"
+
+#: ../features/admin/cache-files.tsx
+msgid "Filter cached files…"
+msgstr "过滤缓存文件..."
+
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/actions-skeleton.tsx
+msgid "Filter runs by action"
+msgstr "按操作过滤运行"
+
+#: ../features/admin/admin-page.tsx
+#: ../features/dashboard/repository-selector.tsx
+msgid "Filtering repositories"
+msgstr "过滤存储库"
+
+#: ../features/admin/admin-page.tsx
+msgid "Filtering users"
+msgstr "过滤用户"
+
+#: known-errors.ts
+msgid "Fix the configuration errors before saving."
+msgstr "保存前修复配置错误。"
+
+#: ../features/repository/configuration-required.tsx
+msgid "Fix the errors in <0>.pages.yml</0> to manage this branch’s content and media."
+msgstr "修复 <0>.pages.yml</0> 中的错误以管理此分支的内容和媒体。"
+
+#: ../features/collections/collection-page.tsx
+#: ../features/media/media-mutations.ts
+msgid "Folder created"
+msgstr "文件夹已创建"
+
+#: ../features/media/media-browser.tsx
+msgid "Folder name"
+msgstr "文件夹名称"
+
+#: known-errors.ts
+msgid "Folder name is invalid"
+msgstr "文件夹名称无效"
+
+#: ../features/collections/collection-page.tsx
+msgid "Folder path"
+msgstr "文件夹路径"
+
+#: known-errors.ts
+msgid "Folder position collection requires a collection; use parent for a fixed file"
+msgstr "文件夹位置集合需要集合；使用父级作为固定文件"
+
+#: known-errors.ts
+msgid "Folder position must be root, collection, parent or custom"
+msgstr "文件夹位置必须是根、集合、父级或自定义"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "from"
+msgstr "来自"
+
+#: known-errors.ts
+msgid "Frontmatter content must contain an object"
+msgstr "Frontmatter 内容必须包含一个对象"
+
+#: known-errors.ts
+msgid "Frontmatter delimiters must be one string or two strings"
+msgstr "Frontmatter 分隔符必须是一个字符串或两个字符串"
+
+#: known-errors.ts
+msgid "Frontmatter must contain an object"
+msgstr "Frontmatter 必须包含一个对象"
+
+#. placeholder {0}: String(field.name)
+#: ../features/editor/fields/core-field-renderers.tsx
+msgid "Generate {0}"
+msgstr "生成{0}"
+
+#: known-errors.ts
+msgid "Git path \"{value0}\" is outside root \"{value1}\""
+msgstr "Git 路径“{value0}”位于根目录“{value1}”之外"
+
+#: known-errors.ts
+msgid "Git path cannot contain control characters"
+msgstr "Git路径不能包含控制字符"
+
+#: known-errors.ts
+msgid "Git path cannot escape the repository root"
+msgstr "Git 路径无法转义存储库根目录"
+
+#: ../features/admin/admin-loading.tsx
+msgid "GitHub"
+msgstr "GitHub"
+
+#: ../features/settings/user-settings.tsx
+msgid "GitHub account disconnected"
+msgstr "GitHub 帐户已断开连接"
+
+#: known-errors.ts
+msgid "GitHub App credentials are required for collaborator access"
+msgstr "协作者访问需要 GitHub 应用程序凭据"
+
+#: ../features/dashboard/repository-dashboard.tsx
+msgid "GitHub App unavailable"
+msgstr "GitHub 应用程序不可用"
+
+#: known-errors.ts
+msgid "GitHub authentication is required"
+msgstr "需要 GitHub 身份验证"
+
+#: ../features/settings/user-settings.tsx
+msgid "GitHub connection actions"
+msgstr "GitHub 连接操作"
+
+#: ../features/settings/user-settings.tsx
+msgid "GitHub connection is temporarily unavailable."
+msgstr "GitHub 连接暂时不可用。"
+
+#. js-lingui-explicit-id
+#: known-errors.ts
+msgid "core.error.oauth-credential-decrypt"
+msgstr "GitHub 凭据无法解密。重新连接 GitHub。"
+
+#: known-errors.ts
+msgid "GitHub installation was not found"
+msgstr "未找到 GitHub 安装"
+
+#: known-errors.ts
+msgid "GitHub OAuth credentials must be provided together"
+msgstr "GitHub OAuth 凭据必须一起提供"
+
+#: known-errors.ts
+msgid "GitHub profile request failed ({value0})"
+msgstr "GitHub 配置文件请求失败 ({value0})"
+
+#: known-errors.ts
+msgid "GitHub returned an incomplete Git tree; this folder cannot be listed completely"
+msgstr "GitHub 返回了不完整的 Git 树；该文件夹无法完整列出"
+
+#: known-errors.ts
+msgid "GitHub returned an invalid {value0}"
+msgstr "GitHub 返回无效的 {value0}"
+
+#: known-errors.ts
+msgid "GitHub returned an invalid App response"
+msgstr "GitHub 返回了无效的应用程序响应"
+
+#: known-errors.ts
+msgid "GitHub returned an invalid branch response"
+msgstr "GitHub 返回了无效的分支响应"
+
+#: known-errors.ts
+msgid "GitHub returned an invalid installation"
+msgstr "GitHub 返回无效安装"
+
+#: known-errors.ts
+msgid "GitHub returned an invalid installation token"
+msgstr "GitHub 返回了无效的安装令牌"
+
+#: known-errors.ts
+msgid "GitHub returned an invalid profile"
+msgstr "GitHub 返回了无效的配置文件"
+
+#: known-errors.ts
+msgid "GitHub returned an invalid repository"
+msgstr "GitHub 返回了无效的存储库"
+
+#: known-errors.ts
+msgid "GitHub returned an invalid repository installation"
+msgstr "GitHub 返回了无效的存储库安装"
+
+#: known-errors.ts
+msgid "GitHub returned an invalid token expiry"
+msgstr "GitHub 返回无效的令牌过期"
+
+#: known-errors.ts
+msgid "GitHub returned an invalid workflow run"
+msgstr "GitHub 返回无效的工作流程运行"
+
+#: known-errors.ts
+msgid "GitHub returned an unsupported account type"
+msgstr "GitHub 返回了不受支持的帐户类型"
+
+#: known-errors.ts
+msgid "GitHub returned an unsupported blob encoding"
+msgstr "GitHub 返回了不支持的 blob 编码"
+
+#: known-errors.ts
+msgid "GitHub returned an unsupported repository selection"
+msgstr "GitHub 返回了不受支持的存储库选择"
+
+#: known-errors.ts
+msgid "GitHub returned invalid commits"
+msgstr "GitHub 返回无效提交"
+
+#: known-errors.ts
+msgid "GitHub returned invalid directory entries"
+msgstr "GitHub 返回无效的目录条目"
+
+#: ../features/admin/actions-page.tsx
+msgid "GitHub will stop the workflow if it is still running."
+msgstr "如果工作流程仍在运行，GitHub 将停止该工作流程。"
+
+#: known-errors.ts
+msgid "GITHUB_APP_ID must be a positive integer"
+msgstr "GITHUB_APP_ID 必须是正整数"
+
+#: known-errors.ts
+msgid "GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY, and CRYPTO_KEY must be provided together"
+msgstr "GITHUB_APP_ID、GITHUB_APP_PRIVATE_KEY 和 CRYPTO_KEY 必须一起提供"
+
+#: known-errors.ts
+msgid "GITHUB_APP_NAME must be a GitHub App slug"
+msgstr "GITHUB_APP_NAME 必须是 GitHub 应用程序 slug"
+
+#: known-errors.ts
+msgid "GITHUB_APP_PRIVATE_KEY must be a PEM private key"
+msgstr "GITHUB_APP_PRIVATE_KEY 必须是 PEM 私钥"
+
+#: ../components/ui/pagination.tsx
+#: ../features/collections/collection-table.tsx
+msgid "Go to next page"
+msgstr "转到下一页"
+
+#: ../features/repository/repository-route-state.tsx
+msgid "Go to overview"
+msgstr "前往概览"
+
+#: ../components/ui/pagination.tsx
+#: ../features/collections/collection-table.tsx
+msgid "Go to previous page"
+msgstr "转到上一页"
+
+#: known-errors.ts
+msgid "Google OAuth credentials must be provided together"
+msgstr "必须同时提供 Google OAuth 凭据"
+
+#: ../features/media/media-browser.tsx
+msgid "Grid view"
+msgstr "网格视图"
+
+#: ../components/ui/editor/index.tsx
+#: ../components/ui/editor/slash-command/suggestion.tsx
+msgid "Heading 1"
+msgstr "标题 1"
+
+#: ../components/ui/editor/index.tsx
+#: ../components/ui/editor/slash-command/suggestion.tsx
+msgid "Heading 2"
+msgstr "标题 2"
+
+#: ../components/ui/editor/index.tsx
+#: ../components/ui/editor/slash-command/suggestion.tsx
+msgid "Heading 3"
+msgstr "标题 3"
+
+#: ../features/account/account-menu.tsx
+msgid "Help"
+msgstr "帮助"
+
+#: ../features/collections/collection-page.tsx
+#~ msgid "Hide files"
+#~ msgstr "隐藏文件"
+
+#: ../components/content-entry-editor.tsx
+#: ../components/content-entry-skeleton.tsx
+#: ../features/admin/configuration-page.tsx
+#: ../features/admin/configuration-skeleton.tsx
+msgid "History and entry actions"
+msgstr "历史记录和进入操作"
+
+#: ../components/file-editor-history.tsx
+msgid "History entries"
+msgstr "历史条目"
+
+#: known-errors.ts
+msgid "History page must be a positive integer"
+msgstr "历史页数必须是正整数"
+
+#: known-errors.ts
+msgid "i18n.locales must be unique, including letter case"
+msgstr "i18n.locales 必须是唯一的，包括字母大小写"
+
+#: known-errors.ts
+msgid "i18n.locales must contain between 1 and 50 locales"
+msgstr "i18n.locales 必须包含 1 到 50 个区域设置"
+
+#: known-errors.ts
+msgid "i18n.path applies only to the files scheme"
+msgstr "i18n.path 仅适用于文件方案"
+
+#: known-errors.ts
+msgid "i18n.path.default must be omit or explicit"
+msgstr "i18n.path.default 必须省略或显式"
+
+#: known-errors.ts
+msgid "i18n.path.type must be filename or folder"
+msgstr "i18n.path.type 必须是文件名或文件夹"
+
+#: known-errors.ts
+msgid "i18n.scheme must be files or fields"
+msgstr "i18n.scheme 必须是文件或字段"
+
+#~ msgid "If you were invited, sign in with the email address that received the invitation."
+#~ msgstr "如果您受到邀请，请使用收到邀请的电子邮件地址登录。"
+
+#: ../components/ui/editor/slash-command/suggestion.tsx
+msgid "Image"
+msgstr "图片"
+
+#: ../components/ui/editor/index.tsx
+msgid "Image alt text"
+msgstr "图片替代文本"
+
+#: ../components/ui/editor/index.tsx
+#: known-errors.ts
+msgid "Image uploaded, but preview failed to load"
+msgstr "图片已上传，但预览加载失败"
+
+#: ../components/ui/editor/slash-command/suggestion.tsx
+msgid "Image URL"
+msgstr "图片网址"
+
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Import"
+msgstr "导入"
+
+#: ../features/admin/sign-in-allowlist.tsx
+#~ msgid "Import email addresses"
+#~ msgstr "导入电子邮件地址"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+#~ msgid "Import emails"
+#~ msgstr "导入邮箱"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "in"
+msgstr "在"
+
+#: ../features/admin/action-run-status.tsx
+msgid "In progress"
+msgstr "进行中"
+
+#: ../features/dashboard/repository-dashboard.tsx
+msgid "Install GitHub App"
+msgstr "安装 GitHub 应用程序"
+
+#: ../features/settings/user-settings.tsx
+msgid "Install on another account"
+msgstr "安装在另一个帐户上"
+
+#: ../features/dashboard/repository-dashboard.tsx
+msgid "Install the GitHub App"
+msgstr "安装 GitHub 应用程序"
+
+#: ../features/dashboard/repository-dashboard.tsx
+msgid "Install the GitHub App on your personal account or an organization, then choose which repositories it can access."
+msgstr "在您的个人帐户或组织上安装 GitHub 应用程序，然后选择它可以访问的存储库。"
+
+#: ../features/settings/settings-navigation.ts
+#: ../features/settings/user-settings.tsx
+msgid "Installations"
+msgstr "装置"
+
+#: ../features/account/language-field.tsx
+msgid "Interface language"
+msgstr "界面语言"
+
+#: known-errors.ts
+msgid "Invalid account deletion request."
+msgstr "帐户删除请求无效。"
+
+#: known-errors.ts
+msgid "Invalid action context"
+msgstr "无效的操作上下文"
+
+#: known-errors.ts
+msgid "Invalid action dispatch"
+msgstr "无效的动作调度"
+
+#: known-errors.ts
+msgid "Invalid action management request"
+msgstr "无效的操作管理请求"
+
+#: known-errors.ts
+msgid "Invalid action request"
+msgstr "无效的操作请求"
+
+#: known-errors.ts
+msgid "Invalid activity page"
+msgstr "活动页面无效"
+
+#: known-errors.ts
+msgid "Invalid activity request"
+msgstr "活动请求无效"
+
+#: known-errors.ts
+msgid "Invalid admin action"
+msgstr "无效的管理操作"
+
+#: known-errors.ts
+msgid "Invalid admin page"
+msgstr "无效的管理页面"
+
+#: known-errors.ts
+msgid "Invalid atomic rename plan"
+msgstr "原子重命名计划无效"
+
+#: known-errors.ts
+msgid "Invalid base64 content"
+msgstr "无效的 base64 内容"
+
+#: known-errors.ts
+msgid "Invalid branch creation"
+msgstr "无效的分支创建"
+
+#: known-errors.ts
+msgid "Invalid branch name"
+msgstr "分支名称无效"
+
+#: known-errors.ts
+msgid "Invalid cache action"
+msgstr "无效的缓存操作"
+
+#: known-errors.ts
+msgid "Invalid cache filter"
+msgstr "缓存过滤器无效"
+
+#: known-errors.ts
+msgid "Invalid cache page"
+msgstr "无效的缓存页面"
+
+#: known-errors.ts
+msgid "Invalid cache request"
+msgstr "无效的缓存请求"
+
+#: known-errors.ts
+msgid "Invalid cache target"
+msgstr "缓存目标无效"
+
+#: known-errors.ts
+msgid "Invalid collaborator emails"
+msgstr "无效的协作者电子邮件"
+
+#: known-errors.ts
+msgid "Invalid collaborator id"
+msgstr "无效的协作者 ID"
+
+#: known-errors.ts
+msgid "Invalid collaborator request"
+msgstr "协作者请求无效"
+
+#: known-errors.ts
+msgid "Invalid collection request"
+msgstr "无效的收款请求"
+
+#: known-errors.ts
+msgid "Invalid configuration request"
+msgstr "无效的配置请求"
+
+#: known-errors.ts
+msgid "Invalid configuration schema contribution in plugin {value0}"
+msgstr "插件 {value0} 中的配置架构贡献无效"
+
+#: known-errors.ts
+msgid "Invalid configuration update"
+msgstr "配置更新无效"
+
+#: known-errors.ts
+msgid "Invalid editing preferences."
+msgstr "编辑首选项无效。"
+
+#: known-errors.ts
+msgid "Invalid encoded route segment"
+msgstr "无效的编码路线段"
+
+#: known-errors.ts
+msgid "Invalid entry creation"
+msgstr "创建无效条目"
+
+#: known-errors.ts
+msgid "Invalid entry deletion"
+msgstr "无效条目删除"
+
+#: known-errors.ts
+msgid "Invalid entry move"
+msgstr "无效输入移动"
+
+#: known-errors.ts
+msgid "Invalid entry payload"
+msgstr "条目有效负载无效"
+
+#: known-errors.ts
+msgid "Invalid entry rename"
+msgstr "条目重命名无效"
+
+#: known-errors.ts
+msgid "Invalid entry request"
+msgstr "无效的条目请求"
+
+#: known-errors.ts
+msgid "Invalid entry update"
+msgstr "条目更新无效"
+
+#: known-errors.ts
+msgid "Invalid file request"
+msgstr "文件请求无效"
+
+#: known-errors.ts
+msgid "Invalid filename"
+msgstr "文件名无效"
+
+#: known-errors.ts
+msgid "Invalid folder creation"
+msgstr "创建无效的文件夹"
+
+#: known-errors.ts
+msgid "Invalid GitHub installation id"
+msgstr "GitHub 安装 ID 无效"
+
+#: known-errors.ts
+msgid "Invalid GitHub webhook payload"
+msgstr "GitHub Webhook 负载无效"
+
+#: known-errors.ts
+msgid "Invalid immediate tree entry"
+msgstr "无效的直接树条目"
+
+#: known-errors.ts
+msgid "Invalid invitation token"
+msgstr "邀请令牌无效"
+
+#: known-errors.ts
+msgid "Invalid language preference."
+msgstr "语言首选项无效。"
+
+#: known-errors.ts
+msgid "Invalid locale code: {value0}"
+msgstr "无效的区域设置代码：{value0}"
+
+#: known-errors.ts
+msgid "Invalid media deletion"
+msgstr "无效媒体删除"
+
+#: known-errors.ts
+msgid "Invalid media delivery provider"
+msgstr "无效的媒体传送提供商"
+
+#: known-errors.ts
+msgid "Invalid media delivery request"
+msgstr "媒体传送请求无效"
+
+#: known-errors.ts
+msgid "Invalid media folder creation"
+msgstr "创建无效的媒体文件夹"
+
+#: known-errors.ts
+msgid "Invalid media move"
+msgstr "无效的媒体移动"
+
+#: known-errors.ts
+msgid "Invalid media path"
+msgstr "媒体路径无效"
+
+#: known-errors.ts
+msgid "Invalid media property {value0} in plugin {value1}"
+msgstr "插件 {value1} 中的媒体属性 {value0} 无效"
+
+#: known-errors.ts
+msgid "Invalid media rename"
+msgstr "媒体重命名无效"
+
+#: known-errors.ts
+msgid "Invalid media request"
+msgstr "媒体请求无效"
+
+#: known-errors.ts
+msgid "Invalid media storage provider"
+msgstr "媒体存储提供商无效"
+
+#: known-errors.ts
+msgid "Invalid media upload"
+msgstr "媒体上传无效"
+
+#: known-errors.ts
+msgid "Invalid media upload completion"
+msgstr "媒体上传完成无效"
+
+#: known-errors.ts
+msgid "Invalid media upload initiation"
+msgstr "媒体上传启动无效"
+
+#: known-errors.ts
+msgid "Invalid media variant"
+msgstr "无效的媒体变体"
+
+#: known-errors.ts
+msgid "Invalid preferences."
+msgstr "无效的偏好设置。"
+
+#: known-errors.ts
+msgid "Invalid profile update."
+msgstr "个人资料更新无效。"
+
+#: known-errors.ts
+msgid "Invalid project account"
+msgstr "项目账户无效"
+
+#: known-errors.ts
+msgid "Invalid project template"
+msgstr "项目模板无效"
+
+#: known-errors.ts
+msgid "Invalid raw entry creation"
+msgstr "创建无效的原始条目"
+
+#: known-errors.ts
+msgid "Invalid reference continuation"
+msgstr "无效的参考延续"
+
+#: known-errors.ts
+msgid "Invalid reference request"
+msgstr "参考请求无效"
+
+#: known-errors.ts
+msgid "Invalid repository {value0}"
+msgstr "无效的存储库{value0}"
+
+#: known-errors.ts
+msgid "Invalid repository ID"
+msgstr "无效的存储库 ID"
+
+#: known-errors.ts
+msgid "Invalid repository identity"
+msgstr "存储库标识无效"
+
+#: known-errors.ts
+msgid "Invalid repository name"
+msgstr "存储库名称无效"
+
+#: known-errors.ts
+msgid "Invalid repository page"
+msgstr "无效的存储库页面"
+
+#: known-errors.ts
+msgid "Invalid repository request"
+msgstr "无效的存储库请求"
+
+#: known-errors.ts
+msgid "Invalid repository search"
+msgstr "存储库搜索无效"
+
+#: known-errors.ts
+msgid "Invalid schema for media property {value0}"
+msgstr "媒体属性 {value0} 的架构无效"
+
+#: known-errors.ts
+msgid "Invalid structured entry update"
+msgstr "结构化条目更新无效"
+
+#: known-errors.ts
+msgid "Invalid template request"
+msgstr "模板请求无效"
+
+#: known-errors.ts
+msgid "Invalid tracked actions"
+msgstr "跟踪的操作无效"
+
+#: known-errors.ts
+msgid "Invalid translation preference."
+msgstr "翻译首选项无效。"
+
+#: known-errors.ts
+msgid "Invalid translation rename confirmation"
+msgstr "翻译重命名确认无效"
+
+#: known-errors.ts
+msgid "Invalid upload rename policy"
+msgstr "上传重命名政策无效"
+
+#: known-errors.ts
+msgid "Invalid value"
+msgstr "无效值"
+
+#: ../features/collaborators/collaborator-status.tsx
+#: known-errors.ts
+msgid "Invitation expired"
+msgstr "邀请已过期"
+
+#: ../features/collaborators/collaborator-status.tsx
+#: known-errors.ts
+msgid "Invitation pending"
+msgstr "邀请待定"
+
+#: known-errors.ts
+msgid "Invitation sent"
+msgstr "邀请已发送"
+
+#: ../components/collaborator-invite-input.tsx
+msgid "Invitations expire after 24 hours."
+msgstr "邀请将在 24 小时后过期。"
+
+#: ../components/collaborators-loading.tsx
+#: ../features/admin/collaborators-page.tsx
+#: ../features/admin/collaborators-skeleton.tsx
+msgid "Invite collaborator"
+msgstr "邀请合作者"
+
+#: ../features/admin/collaborators-page.tsx
+msgid "Invite collaborators"
+msgstr "邀请合作者"
+
+#: ../features/admin/collaborators-page.tsx
+msgid "Invite one or more people to edit this repository."
+msgstr "邀请一个或多个人编辑此存储库。"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "invited"
+msgstr "邀请"
+
+#: ../components/ui/editor/index.tsx
+msgid "Italic"
+msgstr "斜体"
+
+#: known-errors.ts
+msgid "Item {value0} is empty; enter a value or remove this item"
+msgstr "项目{value0}为空；输入一个值或删除此项"
+
+#: known-errors.ts
+msgid "Item {value0} must be an object"
+msgstr "项目 {value0} 必须是一个对象"
+
+#: ../components/content-entry-editor.tsx
+#: known-errors.ts
+msgid "Items"
+msgstr "项目"
+
+#: ../features/admin/admin-loading.tsx
+msgid "Joined"
+msgstr "已加入"
+
+#: ../features/admin/actions-page.tsx
+msgid "Keep running"
+msgstr "继续奔跑"
+
+#: known-errors.ts
+msgid "Keep the current language suffix or folder when renaming a translation"
+msgstr "重命名翻译时保留当前语言后缀或文件夹"
+
+#: ../features/drafts/draft-save-button.tsx
+#~ msgid "Keep this tab open until the issue is resolved."
+#~ msgstr "请保持此标签页打开，直到问题解决。"
+
+#: ../features/admin/cache-files.tsx
+msgid "Last change commit"
+msgstr "最后一次更改的提交"
+
+#. placeholder {0}: formatDistanceToNow(new Date(data.configuration.lastCheckedAt), { addSuffix: true }, dateI18n.locale)
+#: ../features/admin/cache-page.tsx
+msgid "Last checked {0}"
+msgstr "最后检查{0}"
+
+#: ../features/admin/admin-loading.tsx
+msgid "Last opened"
+msgstr "上次打开"
+
+#: ../features/drafts/draft-save-button.tsx
+msgid "Last saved in this browser"
+msgstr "上次保存在此浏览器中"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "Latest saved version"
+msgstr "最新保存版本"
+
+#: ../components/operation-error.tsx
+#: ../features/media/media-browser.tsx
+#: ../lib/notifications.ts
+msgid "Learn more"
+msgstr "了解更多"
+
+#: ../features/editor/commit-message-dialog.tsx
+msgid "Leave blank to use the configured message"
+msgstr "留空以使用配置的消息"
+
+#: ../features/account/theme-preference.tsx
+msgid "Light"
+msgstr "光"
+
+#: ../features/account/theme-preference.tsx
+msgid "Light, dark, or system. Applies only to this browser."
+msgstr "浅色、深色或跟随系统。仅适用于此浏览器。"
+
+#: ../components/ui/editor/index.tsx
+msgid "Link"
+msgstr "链接"
+
+#: ../features/media/media-browser.tsx
+msgid "List view"
+msgstr "列表视图"
+
+#: ../components/option-combobox.tsx
+msgid "Load more"
+msgstr "加载更多"
+
+#: ../components/ui/spinner.tsx
+msgid "Loading"
+msgstr "加载中"
+
+#: ../features/admin/admin-loading.tsx
+msgid "Loading {id}"
+msgstr "加载中{id}"
+
+#: ../features/account/app-header.tsx
+msgid "Loading account menu"
+msgstr "加载帐户菜单"
+
+#: ../features/admin/actions-skeleton.tsx
+msgid "Loading actions"
+msgstr "加载动作"
+
+#: ../features/activity/activity-feed-skeleton.tsx
+msgid "Loading activity"
+msgstr "装载活动"
+
+#: ../components/repository-shell.tsx
+#: ../features/dashboard/branch-manager.tsx
+msgid "Loading branches"
+msgstr "加载分支"
+
+#: ../components/repository-shell.tsx
+msgid "Loading branches…"
+msgstr "正在加载分支..."
+
+#: ../features/admin/cache-skeleton.tsx
+msgid "Loading cache"
+msgstr "加载缓存"
+
+#: ../features/admin/admin-loading.tsx
+msgid "Loading cache counts"
+msgstr "加载缓存计数"
+
+#: ../features/drafts/use-draft-merge.tsx
+msgid "Loading change review"
+msgstr "加载变更审核"
+
+#: ../features/admin/collaborators-skeleton.tsx
+msgid "Loading collaborators"
+msgstr "正在加载协作者"
+
+#: ../features/collections/collection-header.tsx
+#: ../features/collections/collection-skeleton.tsx
+msgid "Loading collection"
+msgstr "正在加载集合"
+
+#: ../features/admin/configuration-page.tsx
+#: ../features/admin/configuration-skeleton.tsx
+msgid "Loading configuration"
+msgstr "加载配置"
+
+#: ../features/repository/overview-loading.tsx
+msgid "Loading drafts"
+msgstr "加载草稿"
+
+#: ../components/editor-skeleton.tsx
+#: ../components/ui/editor/index.tsx
+#: known-errors.ts
+msgid "Loading editor"
+msgstr "加载编辑器"
+
+#: ../components/content-entry-skeleton.tsx
+msgid "Loading editor fields"
+msgstr "加载编辑器字段"
+
+#: ../components/content-entry-skeleton.tsx
+msgid "Loading entry"
+msgstr "加载条目"
+
+#: ../components/file-editor-history.tsx
+msgid "Loading history"
+msgstr "加载历史记录"
+
+#: ../components/media-thumbnail.tsx
+msgid "Loading image"
+msgstr "加载图片"
+
+#: ../features/media/media-skeleton.tsx
+msgid "Loading media"
+msgstr "加载媒体"
+
+#: ../components/option-combobox.tsx
+msgid "Loading options…"
+msgstr "正在加载选项..."
+
+#: ../features/repository/overview-loading.tsx
+msgid "Loading overview"
+msgstr "加载概览"
+
+#: ../features/repository/repository-shell-loading.tsx
+msgid "Loading page"
+msgstr "加载页面"
+
+#: ../features/account/profile-loading.tsx
+#: ../features/settings/user-settings-skeleton.tsx
+msgid "Loading profile"
+msgstr "加载配置文件"
+
+#: ../features/dashboard/repository-dashboard.tsx
+#: ../features/dashboard/repository-loading.tsx
+msgid "Loading projects"
+msgstr "加载项目"
+
+#: ../features/repository/overview-loading.tsx
+msgid "Loading recently visited entries"
+msgstr "加载最近访问的条目"
+
+#: ../features/dashboard/repository-loading.tsx
+msgid "Loading repositories"
+msgstr "加载存储库"
+
+#: ../features/repository/repository-shell-loading.tsx
+#: ../routes/github.$owner.$repo.index.tsx
+msgid "Loading repository"
+msgstr "正在加载存储库"
+
+#: ../components/settings-loading.tsx
+msgid "Loading settings"
+msgstr "加载设置"
+
+#: ../features/settings/user-settings-skeleton.tsx
+msgid "Loading sign-in methods"
+msgstr "加载登录方法"
+
+#: ../features/account/content-editing-preferences.tsx
+msgid "Loading…"
+msgstr "加载中..."
+
+#: ../features/drafts/draft-save-button.tsx
+msgid "Local draft"
+msgstr "本地草案"
+
+#: ../features/drafts/draft-save-button.tsx
+msgid "Local draft: {age}"
+msgstr "当地草案：{age}"
+
+#: ../features/drafts/draft-save-button.tsx
+msgid "Local draft: needs attention"
+msgstr "地方草案：需要关注"
+
+#: ../features/repository/overview-local-files.tsx
+msgid "Local drafts"
+msgstr "本地汇票"
+
+#: ../features/repository/overview.tsx
+msgid "Local drafts could not be loaded. Keep any open editor tabs until you can save."
+msgstr "无法加载本地草稿。保留所有打开的编辑器选项卡，直到可以保存。"
+
+#: known-errors.ts
+msgid "Locale codes overlap with the filename separator; choose another separator"
+msgstr "区域设置代码与文件名分隔符重叠；选择另一个分隔符"
+
+#: known-errors.ts
+msgid "Locale folder anchor is outside the entry path"
+msgstr "区域设置文件夹锚点位于条目路径之外"
+
+#: known-errors.ts
+msgid "localized is only valid with i18n.scheme: fields"
+msgstr "localized 仅对 i18n.scheme: fields 有效"
+
+#: ../features/settings/user-settings.tsx
+msgid "Manage"
+msgstr "管理"
+
+#: ../features/dashboard/repository-selector.tsx
+msgid "Manage accounts"
+msgstr "管理账户"
+
+#: ../features/dashboard/repository-selector.tsx
+msgid "Manage repository access"
+msgstr "管理存储库访问"
+
+#: ../components/repository-shell.tsx
+#: ../features/activity/activity-feed-item.tsx
+#: ../features/media/media-browser.tsx
+#: ../features/repository/overview-shortcuts.tsx
+#: ../routes/github.$owner.$repo.$branch.media.$name.tsx
+msgid "Media"
+msgstr "媒体"
+
+#: known-errors.ts
+msgid "Media {value0} was not found"
+msgstr "未找到媒体{value0}"
+
+#. placeholder {0}: match.search.path
+#: ../routes/github.$owner.$repo.$branch.media.$name.tsx
+msgid "Media | {0}"
+msgstr "媒体| {0}"
+
+#. placeholder {0}: match.search.path ? ` / ${match.search.path}` : ''
+#: ../routes/github.$owner.$repo.$branch.media.$name.tsx
+msgid "Media | {label}{0}"
+msgstr "媒体| {label}{0}"
+
+#: known-errors.ts
+msgid "Media actions cannot use a ''scope'' of ''sidebar'' or ''overview''."
+msgstr "媒体操作不能使用 ''sidebar'' 或 ''overview'' 的 ''scope''。"
+
+#: known-errors.ts
+msgid "Media asset path must identify a file"
+msgstr "媒体资产路径必须标识一个文件"
+
+#: known-errors.ts
+msgid "Media configuration must be a string, object, or array"
+msgstr "媒体配置必须是字符串、对象或数组"
+
+#: known-errors.ts
+msgid "Media delivery is unavailable"
+msgstr "媒体传送不可用"
+
+#: known-errors.ts
+msgid "Media entries must be objects"
+msgstr "媒体条目必须是对象"
+
+#: known-errors.ts
+msgid "Media file exceeds the 20 MB limit"
+msgstr "媒体文件超过 20 MB 限制"
+
+#: known-errors.ts
+msgid "Media file not found"
+msgstr "找不到媒体文件"
+
+#: known-errors.ts
+msgid "Media filename must be a non-empty file name"
+msgstr "媒体文件名必须是非空文件名"
+
+#: known-errors.ts
+msgid "Media folder name is invalid"
+msgstr "媒体文件夹名称无效"
+
+#: ../components/structured-content-field.tsx
+msgid "Media is not configured for this field. Configure a media library to select or upload files."
+msgstr "没有为此字段配置媒体。配置媒体库以选择或上传文件。"
+
+#: ../components/structured-content-field.tsx
+msgid "Media is not configured."
+msgstr "未配置媒体。"
+
+#: ../features/media/media-browser.tsx
+msgid "Media pagination"
+msgstr "媒体分页"
+
+#: known-errors.ts
+msgid "Media path is outside its configured root"
+msgstr "媒体路径位于其配置的根之外"
+
+#: known-errors.ts
+msgid "Media property {value0} is required by core and cannot be modified"
+msgstr "媒体属性{value0}是核心必需的，无法修改"
+
+#: known-errors.ts
+msgid "Media session changed"
+msgstr "媒体会话已更改"
+
+#: ../features/media/media-browser.tsx
+msgid "Media view"
+msgstr "媒体视图"
+
+#: ../features/admin/configuration-page.tsx
+msgid "media: media\n"
+"content:\n"
+"  - name: posts\n"
+"    type: collection\n"
+"    path: content/posts"
+msgstr "media: media\n"
+"content:\n"
+"  - name: posts\n"
+"    type: collection\n"
+"    path: content/posts"
+
+#: known-errors.ts
+msgid "Missing HTML policy handler"
+msgstr "缺少 HTML 策略处理程序"
+
+#: known-errors.ts
+msgid "Missing media path"
+msgstr "缺少媒体路径"
+
+#: ../features/editor/file-locale-menu.tsx
+msgid "Missing translations"
+msgstr "缺少翻译"
+
+#: ../components/ui/breadcrumb.tsx
+msgid "More"
+msgstr "更多"
+
+#: ../components/ui/pagination.tsx
+msgid "More pages"
+msgstr "更多页面"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "More sign-in access actions"
+msgstr "更多登录访问操作"
+
+#: ../features/media/media-move-dialog.tsx
+msgid "Move"
+msgstr "移动"
+
+#: ../features/media/media-move-dialog.tsx
+msgid "Move {filename}"
+msgstr "移动 {filename}"
+
+#: ../features/collections/collection-page.tsx
+msgid "Move and continue"
+msgstr "移动并继续"
+
+#: ../features/collections/collection-page.tsx
+msgid "Move this entry first?"
+msgstr "首先移动此条目吗？"
+
+#: ../features/media/media-entry.tsx
+msgid "Move to…"
+msgstr "移动到…"
+
+#: ../features/media/media-mutations.ts
+msgid "Moving {filename}…"
+msgstr "正在移动 {filename}…"
+
+#: ../features/media/media-browser.tsx
+#: known-errors.ts
+msgid "Moving…"
+msgstr "搬家…"
+
+#: ../features/account/account-copy.ts
+#: ../features/admin/admin-loading.tsx
+#: ../features/collections/collection-table-layout.tsx
+#: ../features/dashboard/repository-templates.tsx
+#: ../features/media/media-browser.tsx
+msgid "Name"
+msgstr "名称"
+
+#: known-errors.ts
+msgid "Name must contain between 1 and 120 characters."
+msgstr "名称必须包含 1 到 120 个字符。"
+
+#: ../components/collaborator-invite-input.tsx
+msgid "name@example.com"
+msgstr "姓名@example.com"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Neutral"
+msgstr "中性"
+
+#: ../components/collection-entry-creator.tsx
+#: ../features/collections/collection-header.tsx
+#: ../features/collections/collection-skeleton.tsx
+#: known-errors.ts
+msgid "New entry"
+msgstr "新条目"
+
+#. placeholder {0}: loaderData?.label ?? params.name
+#. placeholder {1}: match.loaderDeps.parent ? ` / ${match.loaderDeps.parent}` : ''
+#: ../routes/github.$owner.$repo.$branch.collection.$name_.new.tsx
+msgid "New entry | {0}{1}"
+msgstr "新条目 | {0}{1}"
+
+#: ../features/collections/collection-header.tsx
+#: ../features/media/media-browser.tsx
+msgid "New folder"
+msgstr "新建文件夹"
+
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "New sign-ins must match an allowed email, domain, or pattern. With no rules, anyone can sign in. Existing sessions remain active."
+msgstr "新的登录必须匹配允许的电子邮件地址、域名或模式。没有规则时，任何人都可以登录。现有会话仍然有效。"
+
+#: ../features/account/content-editing-preferences.tsx
+msgid "New translations"
+msgstr "新翻译"
+
+#: ../components/ui/pagination.tsx
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/admin-page.tsx
+#: ../features/admin/cache-files.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+#: ../features/media/media-browser.tsx
+msgid "Next"
+msgstr "下一步"
+
+#: ../features/collections/collection-cell.tsx
+msgid "No"
+msgstr "否"
+
+#: ../features/admin/actions-page.tsx
+msgid "No action runs yet."
+msgstr "尚未运行任何操作。"
+
+#: ../features/admin/actions-page.tsx
+msgid "No actions configured."
+msgstr "未配置任何操作。"
+
+#: ../features/activity/activity-feed.tsx
+msgid "No activity yet. Project changes will appear here."
+msgstr "还没有活动。项目更改将显示在此处。"
+
+#: ../features/admin/allowlist-table.tsx
+#~ msgid "No allowlist entries."
+#~ msgstr "允许列表中没有条目。"
+
+#: ../features/dashboard/branch-manager.tsx
+msgid "No branches found."
+msgstr "没有找到分支。"
+
+#: ../features/admin/cache-files.tsx
+msgid "No cached files."
+msgstr "没有缓存文件。"
+
+#: ../features/admin/collaborators-page.tsx
+msgid "No collaborators yet."
+msgstr "还没有合作者。"
+
+#: ../features/repository/configuration-required.tsx
+msgid "No configuration yet"
+msgstr "还没有配置"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "No conflicts. Save to combine your changes."
+msgstr "没有冲突。保存以合并您的更改。"
+
+#: ../features/repository/overview-local-files.tsx
+msgid "No drafts saved on this device."
+msgstr "此设备上没有保存草稿。"
+
+#: ../components/structured-content-field.tsx
+msgid "No file selected."
+msgstr "未选择文件。"
+
+#: ../features/settings/user-settings.tsx
+msgid "No GitHub App installations found."
+msgstr "未找到 GitHub 应用程序安装。"
+
+#: ../components/file-editor-history.tsx
+msgid "No history found."
+msgstr "没有找到历史记录。"
+
+#: ../components/media-thumbnail.tsx
+msgid "No image"
+msgstr "无图像"
+
+#: known-errors.ts
+msgid "No image types are allowed in this media library."
+msgstr "此媒体库中不允许使用任何图像类型。"
+
+#: ../components/structured-content-field.tsx
+msgid "No items."
+msgstr "没有物品。"
+
+#: ../features/admin/actions-page.tsx
+msgid "No matching action runs."
+msgstr "没有匹配的操作运行。"
+
+#: ../features/admin/allowlist-table.tsx
+#~ msgid "No matching allowlist rules."
+#~ msgstr "没有匹配的允许规则。"
+
+#: ../features/admin/collaborators-page.tsx
+msgid "No matching collaborators."
+msgstr "没有匹配的合作者。"
+
+#: ../features/media/media-browser.tsx
+msgid "No matching media"
+msgstr "没有匹配的媒体"
+
+#: ../features/media/media-browser.tsx
+msgid "No matching media."
+msgstr "没有匹配的媒体。"
+
+#: ../features/dashboard/repository-selector.tsx
+msgid "No matching repositories"
+msgstr "没有匹配的存储库"
+
+#: ../features/admin/allowlist-table.tsx
+msgid "No matching sign-in rules."
+msgstr "没有匹配的登录规则。"
+
+#: ../features/media/media-picker-dialog.tsx
+msgid "No media selected"
+msgstr "未选择媒体"
+
+#: ../features/media/media-browser.tsx
+msgid "No media yet"
+msgstr "还没有媒体"
+
+#: ../features/media/media-browser.tsx
+msgid "No media yet."
+msgstr "还没有媒体。"
+
+#: ../components/option-combobox.tsx
+msgid "No options found."
+msgstr "没有找到选项。"
+
+#: ../features/dashboard/repository-dashboard.tsx
+msgid "No projects yet"
+msgstr "还没有项目"
+
+#: known-errors.ts
+msgid "No renderer is registered for field type \"{value0}\""
+msgstr "没有为字段类型“{value0}”注册渲染器"
+
+#. placeholder {0}: selectedAccount.login
+#: ../features/dashboard/repository-selector.tsx
+msgid "No repositories are accessible in {0}. Choose another account, grant access to an existing repository, or create one from a template."
+msgstr "{0} 中没有可访问的存储库。选择另一个帐户，授予对现有存储库的访问权限，或从模板创建一个帐户。"
+
+#: ../features/dashboard/repository-selector.tsx
+msgid "No repositories available"
+msgstr "没有可用的存储库"
+
+#: ../features/admin/admin-page.tsx
+msgid "No repositories found."
+msgstr "未找到存储库。"
+
+#: ../features/admin/admin-page.tsx
+msgid "No repositories have been opened yet."
+msgstr "尚未打开任何存储库。"
+
+#: ../components/ui/editor/slash-command/commands-list.tsx
+msgid "No results"
+msgstr "没有结果"
+
+#: ../features/collections/collection-table.tsx
+msgid "No results."
+msgstr "没有结果。"
+
+#: ../components/sign-in-form.tsx
+msgid "No sign-in provider is configured. Add GitHub or Google credentials, or an email plugin to this deployment."
+msgstr "未配置登录提供程序。将 GitHub 或 Google 凭据或电子邮件插件添加到此部署中。"
+
+#: ../features/admin/allowlist-table.tsx
+msgid "No sign-in restrictions."
+msgstr "没有登录限制。"
+
+#: ../features/media/media-move-dialog.tsx
+#~ msgid "No subfolders"
+#~ msgstr "没有子文件夹"
+
+#: ../features/admin/admin-page.tsx
+msgid "No users found."
+msgstr "没有找到用户。"
+
+#: ../features/admin/cache-page.tsx
+msgid "Not cached"
+msgstr "未缓存"
+
+#: known-errors.ts
+msgid "Not found"
+msgstr "未找到"
+
+#: ../components/ui/editor/index.tsx
+#: ../components/ui/editor/slash-command/suggestion.tsx
+msgid "Numbered list"
+msgstr "编号列表"
+
+#: known-errors.ts
+msgid "OAuth authorization URL missing"
+msgstr "OAuth 授权 URL 缺失"
+
+#: ../features/media/media-browser.tsx
+msgid "of"
+msgstr "的"
+
+#: known-errors.ts
+msgid "Only GitHub users can manage the cache"
+msgstr "只有 GitHub 用户可以管理缓存"
+
+#: known-errors.ts
+msgid "Only GitHub users can run this action again"
+msgstr "只有 GitHub 用户可以再次运行此操作"
+
+#: ../features/admin/sign-in-allowlist.tsx
+#~ msgid "Only users whose email matches an allowed address, domain, or pattern can sign in. Without any rules, anyone can sign in."
+#~ msgstr "只有电子邮件与允许的地址、域名或模式匹配的用户才能登录。没有规则时，任何人都可以登录。"
+
+#: ../features/admin/admin-page.tsx
+#: ../features/dashboard/recent-repository-list.tsx
+#: ../features/dashboard/repository-selector.tsx
+msgid "Open"
+msgstr "打开"
+
+#. placeholder {0}: item.path
+#: ../components/structured-content-field.tsx
+msgid "Open {0}"
+msgstr "打开{0}"
+
+#: ../features/dashboard/repository-dashboard.tsx
+#: ../features/dashboard/repository-loading.tsx
+msgid "Open a project"
+msgstr "打开一个项目"
+
+#: ../components/settings-layout.tsx
+msgid "Open account navigation"
+msgstr "开户导航"
+
+#: ../components/settings-layout.tsx
+msgid "Open admin navigation"
+msgstr "打开管理导航"
+
+#: ../features/dashboard/about-dialog.tsx
+msgid "Open source CMS for static sites. Edit directly on GitHub with a clean interface."
+msgstr "用于静态站点的开源 CMS。直接在 GitHub 上编辑，界面简洁。"
+
+#: ../features/account/account-copy.ts
+msgid "Optional. Helps others recognize you."
+msgstr "可选。帮助别人认识你。"
+
+#: ../components/sign-in-form.tsx
+msgid "Or"
+msgstr "或者"
+
+#: ../features/settings/user-settings.tsx
+msgid "Organization"
+msgstr "组织机构"
+
+#: ../features/media/media-mutations.ts
+msgid "Original file changed"
+msgstr "原始文件已更改"
+
+#: ../components/repository-shell.tsx
+#: ../features/repository/overview-loading.tsx
+#: ../features/repository/overview.tsx
+#: ../routes/github.$owner.$repo.$branch.index.tsx
+msgid "Overview"
+msgstr "概述"
+
+#. placeholder {0}: pageIndex + 1
+#: ../features/admin/actions-page.tsx
+msgid "Page {0} of {pageCount}"
+msgstr "第 {0} 页（共 {pageCount}）"
+
+#. js-lingui-explicit-id
+#: ../routes/__root.tsx
+msgid "core.fallback.bc3023b360"
+msgstr "找不到页面"
+
+#: ../features/repository/repository-route-state.tsx
+#: ../routes/github.$owner.$repo.$branch.$page.tsx
+#: ../routes/github.$owner.$repo.$branch.actions.tsx
+#: ../routes/github.$owner.$repo.$branch.cache.tsx
+#: ../routes/github.$owner.$repo.$branch.collaborators.tsx
+#: ../routes/github.$owner.$repo.$branch.collection.$name_.entry.$.tsx
+#: ../routes/github.$owner.$repo.$branch.collection.$name_.new.tsx
+#: ../routes/github.$owner.$repo.$branch.collection.$name.tsx
+#: ../routes/github.$owner.$repo.$branch.configuration.tsx
+#: ../routes/github.$owner.$repo.$branch.file.$name.tsx
+#: ../routes/github.$owner.$repo.$branch.index.tsx
+#: ../routes/github.$owner.$repo.$branch.media.$name.tsx
+#: ../routes/github.$owner.$repo.$branch.tsx
+msgid "Page not found"
+msgstr "找不到页面"
+
+#: ../routes/__root.tsx
+msgid "Pages CMS social card"
+msgstr "Pages CMS 社交卡"
+
+#: known-errors.ts
+msgid "PAGESCMS_REQUIRE_ACCESS_POLICY must be true or false"
+msgstr "PAGESCMS_REQUIRE_ACCESS_POLICY 必须为 true 或 false"
+
+#: ../features/dashboard/about-dialog.tsx
+msgid "pagescms.org"
+msgstr "pagescms.org"
+
+#: ../features/dashboard/about-dialog.tsx
+msgid "pagescms.org/docs"
+msgstr "pagescms.org/docs"
+
+#: ../features/dashboard/about-dialog.tsx
+msgid "pagescms/pagescms"
+msgstr "pagescms/pagescms"
+
+#: ../components/ui/pagination.tsx
+msgid "pagination"
+msgstr "分页"
+
+#: ../features/media/media-browser.tsx
+msgid "Parent folder"
+msgstr "父文件夹"
+
+#. placeholder {0}: overviewBreadcrumbLabel(parents)
+#: ../features/repository/overview-file-item.tsx
+msgid "Parent: {0}"
+msgstr "家长：{0}"
+
+#: ../features/admin/cache-files.tsx
+msgid "Path"
+msgstr "路径"
+
+#: ../features/admin/allowlist-table.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Pattern"
+msgstr "模式"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Pending"
+msgstr "待定"
+
+#: ../features/account/account-copy.ts
+msgid "Permanently delete your profile and collaborator access."
+msgstr "永久删除您的个人资料和协作者访问权限。"
+
+#: ../features/settings/user-settings.tsx
+msgid "Personal account"
+msgstr "个人账户"
+
+#: ../features/account/account-copy.ts
+#: ../features/account/profile-loading.tsx
+#: ../features/account/profile-setup.tsx
+#: known-errors.ts
+msgid "Picture"
+msgstr "图片"
+
+#: ../features/media/media-browser.tsx
+msgid "Please try again."
+msgstr "请重试。"
+
+#: ../features/account/content-editing-preferences.tsx
+#: ../features/settings/settings-navigation.ts
+msgid "Preferences"
+msgstr "偏好设置"
+
+#: known-errors.ts
+msgid "Press ''/'' for commands"
+msgstr "按 ''/'' 获取命令"
+
+#: ../components/ui/editor/index.tsx
+msgid "Press '/' for commands"
+msgstr "按“/”执行命令"
+
+#. placeholder {0}: template.name
+#: ../features/dashboard/repository-template-preview.tsx
+msgid "Preview for {0}"
+msgstr "预览{0}"
+
+#: ../components/ui/pagination.tsx
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/admin-page.tsx
+#: ../features/admin/cache-files.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+#: ../features/media/media-browser.tsx
+msgid "Previous"
+msgstr "上一页"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "Previously "
+msgstr "以前 "
+
+#: ../features/account/profile-settings.tsx
+#: ../features/settings/settings-navigation.ts
+#: ../features/settings/user-settings-skeleton.tsx
+msgid "Profile"
+msgstr "公司简介"
+
+#: ../features/account/use-profile-editor.ts
+msgid "Profile updated"
+msgstr "个人资料已更新"
+
+#: ../routes/index.tsx
+msgid "Projects"
+msgstr "项目"
+
+#: known-errors.ts
+msgid "Property ''{value0}'' isn''t valid and will be ignored."
+msgstr "属性 ''{value0}'' 无效，将被忽略。"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Queued"
+msgstr "排队"
+
+#: ../features/repository/overview-loading.tsx
+#: ../features/repository/overview-shortcuts.tsx
+msgid "Quick links"
+msgstr "快速链接"
+
+#: ../components/ui/editor/index.tsx
+#: ../components/ui/editor/slash-command/suggestion.tsx
+msgid "Quote"
+msgstr "报价"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "ran"
+msgstr "跑"
+
+#: known-errors.ts
+msgid "Random upload names require an idempotency key"
+msgstr "随机上传名称需要幂等密钥"
+
+#: ../features/admin/configuration-setup.tsx
+msgid "Read the docs"
+msgstr "阅读文档"
+
+#: ../components/structured-content-field.tsx
+msgid "Readonly"
+msgstr "只读"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "Ready to save"
+msgstr "准备保存"
+
+#: ../features/admin/actions-page.tsx
+msgid "Recent action runs"
+msgstr "最近的行动运行"
+
+#: ../components/repository-shell.tsx
+#: ../features/dashboard/recent-repository-list.tsx
+#: ../features/repository/overview-loading.tsx
+#: ../features/repository/overview-local-files.tsx
+msgid "Recently visited"
+msgstr "最近访问过"
+
+#: ../features/repository/overview.tsx
+msgid "Recently visited and drafts"
+msgstr "最近访问和草稿"
+
+#: known-errors.ts
+msgid "Reference collection {value0} was not found"
+msgstr "未找到参考集{value0}"
+
+#: known-errors.ts
+msgid "Reference collection has too many directories to browse. Narrow its configured path."
+msgstr "参考文献集的目录太多，无法浏览。缩小其配置路径。"
+
+#: ../components/structured-content-field.tsx
+msgid "Reference collection is missing."
+msgstr "参考资料集缺失。"
+
+#: known-errors.ts
+msgid "Reference pagination did not advance"
+msgstr "参考分页未推进"
+
+#: known-errors.ts
+msgid "Reference request is too large"
+msgstr "参考请求太大"
+
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/actions-skeleton.tsx
+#: ../features/collections/collection-page.tsx
+msgid "Refresh"
+msgstr "刷新"
+
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/actions-skeleton.tsx
+msgid "Refresh action runs"
+msgstr "刷新操作运行"
+
+#: ../components/repository-page-header.tsx
+msgid "Refreshing page"
+msgstr "正在刷新页面"
+
+#: ../components/search-input.tsx
+msgid "Refreshing results"
+msgstr "令人耳目一新的结果"
+
+#: ../features/drafts/use-draft-merge.tsx
+#: ../features/settings/account-settings-contribution.tsx
+msgid "Reload page"
+msgstr "重新加载页面"
+
+#: ../features/editor/start-translation-dialog.tsx
+msgid "Remember this choice and skip this prompt"
+msgstr "记住这个选择并跳过这个提示"
+
+#: ../components/structured-content-field.tsx
+#: ../components/ui/combobox.tsx
+#: ../features/admin/allowlist-table.tsx
+#: ../features/admin/collaborators-page.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+#: known-errors.ts
+msgid "Remove"
+msgstr "删除"
+
+#. placeholder {0}: collaborator.email
+#. placeholder {0}: item.path
+#. placeholder {0}: option.label
+#: ../components/option-combobox.tsx
+#: ../components/structured-content-field.tsx
+#: ../features/admin/collaborators-page.tsx
+msgid "Remove {0}"
+msgstr "删除{0}"
+
+#: ../components/structured-content-field.tsx
+msgid "Remove {path}"
+msgstr "删除{path}"
+
+#: ../components/collaborator-invite-input.tsx
+msgid "Remove {recipient}"
+msgstr "删除{recipient}"
+
+#: ../features/admin/sign-in-allowlist.tsx
+#~ msgid "Remove allowlist rule?"
+#~ msgstr "移除允许列表规则？"
+
+#: ../components/ui/editor/index.tsx
+msgid "Remove alt text"
+msgstr "删除替代文本"
+
+#: ../features/admin/collaborators-page.tsx
+msgid "Remove collaborator?"
+msgstr "删除合作者？"
+
+#: ../components/ui/editor/index.tsx
+msgid "Remove column"
+msgstr "删除列"
+
+#: ../features/editor/locale-context.tsx
+msgid "Remove content"
+msgstr "删除内容"
+
+#: ../components/structured-content-field.tsx
+msgid "Remove file"
+msgstr "删除文件"
+
+#: ../components/ui/editor/index.tsx
+msgid "Remove formatting"
+msgstr "删除格式"
+
+#: ../components/structured-content-field.tsx
+msgid "Remove image"
+msgstr "删除图像"
+
+#: ../components/structured-content-field.tsx
+msgid "Remove item"
+msgstr "删除项目"
+
+#. placeholder {0}: index + 1
+#: ../components/structured-content-field.tsx
+msgid "Remove item {0}"
+msgstr "删除项目{0}"
+
+#: ../components/ui/editor/index.tsx
+msgid "Remove link"
+msgstr "删除链接"
+
+#. placeholder {0}: locales.find((item) => item.code === locale)?.label
+#: ../features/editor/locale-context.tsx
+msgid "Remove localized values for {0}. Other languages and shared fields stay unchanged. This changes your draft until you save."
+msgstr "删除 {0} 的本地化值。其他语言和共享字段保持不变。这会更改您的草稿，直到您保存为止。"
+
+#: ../features/account/profile-picture.tsx
+msgid "Remove picture"
+msgstr "删除图片"
+
+#: ../features/account/profile-picture.tsx
+msgid "Remove picture?"
+msgstr "删除图片？"
+
+#: ../components/ui/editor/index.tsx
+msgid "Remove row"
+msgstr "删除行"
+
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Remove sign-in rule?"
+msgstr "移除登录规则？"
+
+#: ../components/structured-content-field.tsx
+msgid "Remove this item?"
+msgstr "删除该项目？"
+
+#: ../features/editor/locale-context.tsx
+msgid "Remove this language…"
+msgstr "删除该语言..."
+
+#: ../features/editor/locale-context.tsx
+msgid "Remove this language's content?"
+msgstr "删除该语言的内容？"
+
+#: ../features/admin/sign-in-allowlist.tsx
+#~ msgid "Remove this rule from the allowlist?"
+#~ msgstr "从允许列表中移除此规则？"
+
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Remove this sign-in rule?"
+msgstr "移除此登录规则？"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "removed"
+msgstr "已删除"
+
+#: ../features/drafts/draft-field-preview.tsx
+msgid "Removed"
+msgstr "已删除"
+
+#: ../components/content-entry-editor.tsx
+#: ../components/file-editor-menu.tsx
+#: ../features/collections/collection-page.tsx
+#: ../features/collections/collection-table.tsx
+#: ../features/media/media-browser.tsx
+#: ../features/media/media-entry.tsx
+msgid "Rename"
+msgstr "重命名"
+
+#: ../components/content-entry-editor.tsx
+#: ../features/collections/collection-page.tsx
+msgid "Rename entry"
+msgstr "重命名条目"
+
+#: ../features/media/media-browser.tsx
+msgid "Rename file"
+msgstr "重命名文件"
+
+#: ../features/content/use-entry-actions.tsx
+msgid "Rename translations"
+msgstr "重命名翻译"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "renamed"
+msgstr "重命名"
+
+#: known-errors.ts
+msgid "Renaming this content is disabled"
+msgstr "已禁用重命名此内容"
+
+#: ../features/collections/collection-table.tsx
+#: ../features/media/media-browser.tsx
+#: known-errors.ts
+msgid "Renaming…"
+msgstr "重命名..."
+
+#: ../components/structured-content-field.tsx
+msgid "Reorder item"
+msgstr "重新订购商品"
+
+#. placeholder {0}: locales.find((item) => item.code === locale)?.label
+#. placeholder {1}: locales.find((item) => item.code === source)?.label
+#: ../features/editor/field-locale-menu.tsx
+msgid "Replace {label} in {0} with its value from {1}. This includes unsaved changes to this field. Changes stay in your draft until you save."
+msgstr "将 {0} 中的 {label} 替换为 {1} 中的值。这包括对此字段的未保存更改。更改会保留在草稿中，直到您保存为止。"
+
+#: ../features/editor/locale-context.tsx
+msgid "Replace existing translations"
+msgstr "替换现有翻译"
+
+#: ../features/editor/field-locale-menu.tsx
+msgid "Replace this field’s translation?"
+msgstr "替换该字段的翻译？"
+
+#: ../features/editor/field-locale-menu.tsx
+msgid "Replace translation"
+msgstr "替换翻译"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/admin-page.tsx
+#: ../features/settings/settings-navigation.ts
+msgid "Repositories"
+msgstr "存储库"
+
+#: ../features/admin/admin-loading.tsx
+#: ../routes/github.$owner.$repo.$branch.tsx
+#: ../routes/github.$owner.$repo.index.tsx
+msgid "Repository"
+msgstr "存储库"
+
+#. placeholder {0}: repository.repo
+#: ../features/dashboard/repository-templates.tsx
+msgid "Repository “{0}” created"
+msgstr "存储库“{0}”已创建"
+
+#~ msgid "Repository access denied"
+#~ msgstr "存储库访问被拒绝"
+
+#: ../features/admin/collaborators-page.tsx
+msgid "Repository collaborators"
+msgstr "存储库协作者"
+
+#: known-errors.ts
+msgid "Repository configuration not found"
+msgstr "未找到存储库配置"
+
+#: known-errors.ts
+msgid "Repository ID is missing"
+msgstr "存储库 ID 丢失"
+
+#: known-errors.ts
+msgid "Repository identity is required for a draft"
+msgstr "草稿需要存储库标识"
+
+#: known-errors.ts
+msgid "Repository mutation is already running"
+msgstr "存储库突变已在运行"
+
+#: ../features/repository/repository-unavailable-error.tsx
+msgid "Repository not found"
+msgstr "未找到存储库"
+
+#: known-errors.ts
+msgid "Repository search is too long"
+msgstr "存储库搜索太长"
+
+#: ../features/repository/configuration-required.tsx
+msgid "Repository setup"
+msgstr "存储库设置"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Requested"
+msgstr "已请求"
+
+#: ../components/structured-content-field.tsx
+msgid "Required"
+msgstr "必填"
+
+#: ../components/otp-verification-form.tsx
+msgid "Resend code"
+msgstr "重新发送代码"
+
+#: ../components/structured-content-field.tsx
+msgid "Reset"
+msgstr "重置"
+
+#: ../components/structured-content-field.tsx
+msgid "Reset block"
+msgstr "重置区块"
+
+#. placeholder {0}: index + 1
+#: ../components/structured-content-field.tsx
+msgid "Reset block in item {0}"
+msgstr "重置项目{0}中的方块"
+
+#: ../features/dashboard/repository-selector.tsx
+msgid "Reset search"
+msgstr "重置搜索"
+
+#: ../components/structured-content-field.tsx
+msgid "Reset this block?"
+msgstr "重置此块？"
+
+#: ../features/account/use-profile-editor.ts
+msgid "Retry"
+msgstr "重试"
+
+#: ../components/media-thumbnail.tsx
+msgid "Retry image"
+msgstr "重试图像"
+
+#: ../features/editor/file-locale-menu.tsx
+#~ msgid "Retry translations"
+#~ msgstr "重试翻译"
+
+#. js-lingui-explicit-id
+#: ../routes/__root.tsx
+msgid "core.fallback.a3d070bc45"
+msgstr "回国"
+
+#: ../features/drafts/use-draft-merge.tsx
+msgid "Review changes"
+msgstr "审查变更"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/admin-page.tsx
+msgid "Revoke all sessions"
+msgstr "撤销所有会话"
+
+#: ../features/admin/admin-page.tsx
+msgid "Revoke all sessions?"
+msgstr "撤销所有会话？"
+
+#: ../features/admin/admin-page.tsx
+msgid "Revoke sessions"
+msgstr "撤销会话"
+
+#. placeholder {0}: user.name
+#: ../features/admin/admin-page.tsx
+msgid "Revoke sessions for {0}?"
+msgstr "撤销{0}的会话？"
+
+#: ../components/ui/editor/index.tsx
+#: known-errors.ts
+msgid "Rich text editor"
+msgstr "富文本编辑器"
+
+#: ../components/ui/editor/index.tsx
+msgid "Rows:"
+msgstr "行："
+
+#: ../features/admin/allowlist-table.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Rule"
+msgstr "规则"
+
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/actions-skeleton.tsx
+msgid "Run"
+msgstr "运行"
+
+#. placeholder {0}: action.label
+#: ../components/repository-action-buttons.tsx
+msgid "Run {0}"
+msgstr "运行{0}"
+
+#. placeholder {0}: pendingAction?.label ?? 'action'
+#. placeholder {0}: selected.label
+#: ../components/repository-action-buttons.tsx
+#: ../features/admin/actions-page.tsx
+msgid "Run {0}?"
+msgstr "运行{0}？"
+
+#: ../components/repository-action-buttons.tsx
+#: ../features/admin/actions-page.tsx
+msgid "Run action"
+msgstr "奔跑动作"
+
+#: ../features/admin/actions-page.tsx
+msgid "Run action again"
+msgstr "再次运行动作"
+
+#: ../features/admin/actions-page.tsx
+msgid "Run again"
+msgstr "再次运行"
+
+#: known-errors.ts
+msgid "Runtime environment is invalid"
+msgstr "运行环境无效"
+
+#: ../components/content-entry-skeleton.tsx
+#: ../features/account/profile-fields.tsx
+#: ../features/admin/configuration-skeleton.tsx
+msgid "Save"
+msgstr "保存"
+
+#: ../features/admin/configuration-setup.tsx
+msgid "Save a configuration file (<0>.pages.yml</0>) to define the content, media, actions and other settings for this project."
+msgstr "保存配置文件 (<0>.pages.yml</0>) 以定义该项目的内容、媒体、操作和其他设置。"
+
+#: ../components/ui/editor/index.tsx
+msgid "Save alt text"
+msgstr "保存替代文本"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+#: ../features/editor/commit-message-dialog.tsx
+msgid "Save changes"
+msgstr "保存更改"
+
+#: ../features/collections/collection-table.tsx
+msgid "Saving…"
+msgstr "正在保存..."
+
+#: known-errors.ts
+msgid "Schema is not a collection"
+msgstr "模式不是一个集合"
+
+#: ../features/collections/collection-table.tsx
+msgid "Search"
+msgstr "搜索"
+
+#: ../features/admin/admin-loading.tsx
+msgid "Search {id}"
+msgstr "搜索{id}"
+
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/actions-skeleton.tsx
+msgid "Search action runs"
+msgstr "搜索操作运行"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+#~ msgid "Search allowlist"
+#~ msgstr "搜索允许列表"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+#~ msgid "Search allowlist…"
+#~ msgstr "搜索允许列表…"
+
+#: ../features/admin/actions-page.tsx
+msgid "Search and filters apply to the latest 100 runs."
+msgstr "搜索和过滤器适用于最新 100 次运行。"
+
+#: ../features/dashboard/branch-manager.tsx
+msgid "Search and switch branches."
+msgstr "搜索和切换分支。"
+
+#: ../features/dashboard/branch-manager.tsx
+msgid "Search branches"
+msgstr "搜寻分行"
+
+#: ../features/dashboard/branch-manager.tsx
+msgid "Search branches…"
+msgstr "搜索分支机构..."
+
+#: ../features/dashboard/repository-loading.tsx
+#: ../features/dashboard/repository-selector.tsx
+msgid "Search by name"
+msgstr "按名称搜索"
+
+#: ../components/collaborators-loading.tsx
+#: ../features/admin/collaborators-page.tsx
+#: ../features/admin/collaborators-skeleton.tsx
+msgid "Search collaborators"
+msgstr "搜索合作者"
+
+#: ../components/collaborators-loading.tsx
+#: ../features/admin/collaborators-page.tsx
+#: ../features/admin/collaborators-skeleton.tsx
+msgid "Search collaborators…"
+msgstr "搜索合作者..."
+
+#: ../features/collections/collection-header.tsx
+#: ../features/collections/collection-skeleton.tsx
+msgid "Search collection"
+msgstr "搜索集合"
+
+#: ../features/collections/collection-header.tsx
+#: ../features/collections/collection-skeleton.tsx
+msgid "Search entries…"
+msgstr "搜索条目..."
+
+#: ../components/ui/command.tsx
+#: known-errors.ts
+msgid "Search for a command to run..."
+msgstr "搜索要运行的命令..."
+
+#: ../features/media/media-browser.tsx
+msgid "Search media…"
+msgstr "搜索媒体..."
+
+#: ../components/structured-content-field.tsx
+msgid "Search references…"
+msgstr "搜索参考文献..."
+
+#: ../features/admin/admin-page.tsx
+msgid "Search repositories"
+msgstr "搜索存储库"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Search rules"
+msgstr "搜索规则"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Search rules…"
+msgstr "搜索规则…"
+
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/actions-skeleton.tsx
+msgid "Search runs…"
+msgstr "搜索运行..."
+
+#: ../features/admin/admin-page.tsx
+msgid "Search users"
+msgstr "搜索用户"
+
+#: ../features/collections/collection-page.tsx
+msgid "See all files"
+msgstr "查看所有文件"
+
+#: ../components/structured-content-field.tsx
+#: ../features/media/media-picker-dialog.tsx
+msgid "Select"
+msgstr "选择"
+
+#: ../features/media/media-picker-dialog.tsx
+#: known-errors.ts
+msgid "Select existing media or upload new files."
+msgstr "选择现有媒体或上传新文件。"
+
+#: ../components/option-combobox.tsx
+#: ../components/repository-action-buttons.tsx
+#: ../features/admin/actions-page.tsx
+#: known-errors.ts
+msgid "Select…"
+msgstr "选择…"
+
+#: ../features/admin/collaborators-page.tsx
+msgid "Send invitations"
+msgstr "发送邀请"
+
+#: ../components/ui/editor/index.tsx
+msgid "Set link"
+msgstr "设置链接"
+
+#: ../features/admin/cache-files-trigger.tsx
+msgid "Show cached files"
+msgstr "显示缓存的文件"
+
+#: ../features/collections/collection-page.tsx
+msgid "Show fewer files"
+msgstr "显示较少文件"
+
+#: ../features/collections/collection-page.tsx
+#~ msgid "Show files"
+#~ msgstr "显示文件"
+
+#: ../features/collections/collection-page.tsx
+#~ msgid "Show hidden folders"
+#~ msgstr "显示隐藏文件夹"
+
+#: ../components/repository-breadcrumb.tsx
+msgid "Show hidden segments"
+msgstr "显示隐藏的路径项"
+
+#: ../features/collections/collection-page.tsx
+#~ msgid "Show less"
+#~ msgstr "收起"
+
+#: ../components/file-editor-history.tsx
+#: ../features/activity/activity-feed.tsx
+#: ../features/repository/overview-local-files.tsx
+msgid "Show more"
+msgstr "显示更多"
+
+#: ../features/repository/overview-local-files.tsx
+msgid "Show more drafts"
+msgstr "显示更多草稿"
+
+#: ../features/repository/overview-local-files.tsx
+msgid "Show more recently visited entries"
+msgstr "显示更多最近访问的条目"
+
+#: ../features/editor/entry-page-header.tsx
+#~ msgid "Show parent folders"
+#~ msgstr "显示父文件夹"
+
+#. placeholder {0}: start + shown - 1
+#: ../features/admin/admin-page.tsx
+msgid "Showing {start} to {0} of {total}"
+msgstr "显示 {total} 的 {start} 至 {0}"
+
+#: ../features/admin/admin-page.tsx
+msgid "Showing 0 of {total}"
+msgstr "显示 0 个，共 {total}"
+
+#: ../components/ui/sidebar.tsx
+msgid "Sidebar"
+msgstr "侧边栏"
+
+#: ../features/account/sign-in-layout.tsx
+#: ../routes/index.tsx
+#: ../routes/sign-in.tsx
+msgid "Sign in"
+msgstr "登录"
+
+#: ../features/account/delete-account.tsx
+msgid "Sign in again"
+msgstr "重新登录"
+
+#: known-errors.ts
+msgid "Sign in again before deleting your account."
+msgstr "删除您的帐户之前请重新登录。"
+
+#: ../components/otp-verification-form.tsx
+msgid "Sign in another way"
+msgstr "以其他方式登录"
+
+#: known-errors.ts
+msgid "Sign in before modifying content."
+msgstr "修改内容之前先登录。"
+
+#: known-errors.ts
+msgid "Sign in before modifying media."
+msgstr "修改媒体之前先登录。"
+
+#: known-errors.ts
+msgid "Sign in before running this operation."
+msgstr "在运行此操作之前登录。"
+
+#: known-errors.ts
+msgid "Sign in before uploading media."
+msgstr "上传媒体之前先登录。"
+
+#: known-errors.ts
+msgid "Sign in to continue."
+msgstr "登录以继续。"
+
+#: ../components/sign-in-form.tsx
+msgid "Sign in to Pages CMS"
+msgstr "登录 Pages CMS"
+
+#: ../components/sign-in-form.tsx
+msgid "Sign in with GitHub"
+msgstr "使用 GitHub 登录"
+
+#: ../components/sign-in-form.tsx
+msgid "Sign in with Google"
+msgstr "使用 Google 登录"
+
+#: ../features/account/account-menu.tsx
+msgid "Sign out"
+msgstr "退出"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/allowlist-table.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+#: ../features/settings/settings-navigation.ts
+msgid "Sign-in access"
+msgstr "登录访问"
+
+#: known-errors.ts
+msgid "Sign-in could not be completed."
+msgstr "无法完成登录。"
+
+#: ../features/account/sign-in-page.tsx
+msgid "Sign-in could not be completed. Try again."
+msgstr "无法完成登录。再试一次。"
+
+#: ../routes/auth.error.tsx
+msgid "Sign-in error"
+msgstr "登录错误"
+
+#: ../features/settings/settings-navigation.ts
+#: ../features/settings/user-settings-skeleton.tsx
+#: ../features/settings/user-settings.tsx
+msgid "Sign-in methods"
+msgstr "登录方式"
+
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Sign-in rule"
+msgstr "登录规则"
+
+#: ../components/otp-verification-form.tsx
+msgid "Six-digit code"
+msgstr "六位数代码"
+
+#: ../features/media/media-browser.tsx
+msgid "Size"
+msgstr "尺寸"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Skipped"
+msgstr "跳过"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "Some changes need your review"
+msgstr "有些更改需要您的审核"
+
+#: ../features/collections/collection-page.tsx
+#~ msgid "Some entries could not be loaded."
+#~ msgstr "无法加载某些条目。"
+
+#: ../features/collections/collection-page.tsx
+#~ msgid "Some fields may not be displayed."
+#~ msgstr "某些字段可能无法显示。"
+
+#: ../features/collections/collection-page.tsx
+#~ msgid "Some files could not be parsed."
+#~ msgstr "部分文件无法解析。"
+
+#: ../features/collections/collection-page.tsx
+msgid "Some files may not load properly"
+msgstr "部分文件可能无法正确加载"
+
+#: ../features/repository/repository-route-state.tsx
+msgid "Something went wrong"
+msgstr "出了点问题"
+
+#. js-lingui-explicit-id
+#: ../components/root-error.tsx
+msgid "core.fallback.8d886c0ba6"
+msgstr "出了点问题"
+
+#: ../components/structured-content-field.tsx
+msgid "Source"
+msgstr "来源"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Stale"
+msgstr "陈旧的"
+
+#: ../features/editor/start-translation-dialog.tsx
+msgid "Start {language} translation"
+msgstr "开始{language}翻译"
+
+#: ../features/editor/start-translation-dialog.tsx
+msgid "Start a blank draft or copy the content you are viewing, including unsaved changes. An existing local draft will be resumed. Nothing is published until you save."
+msgstr "开始空白草稿或复制您正在查看的内容，包括未保存的更改。将恢复现有的本地草案。在您保存之前不会发布任何内容。"
+
+#: ../features/account/content-editing-preferences.tsx
+msgid "Start blank"
+msgstr "开始空白"
+
+#: ../features/account/content-editing-preferences.tsx
+msgid "Start blank or copy the current draft."
+msgstr "开始空白或复制当前草稿。"
+
+#: ../features/editor/start-translation-dialog.tsx
+msgid "Start translation"
+msgstr "开始翻译"
+
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/actions-skeleton.tsx
+#: known-errors.ts
+msgid "Started"
+msgstr "开始"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Startup failure"
+msgstr "启动失败"
+
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/actions-skeleton.tsx
+#: ../features/admin/collaborators-page.tsx
+#: ../features/admin/collaborators-skeleton.tsx
+#: known-errors.ts
+msgid "Status"
+msgstr "状态"
+
+#: known-errors.ts
+msgid "Stopped tracking “{value0}”"
+msgstr "停止追踪“{value0}”"
+
+#: ../components/ui/editor/index.tsx
+msgid "Strikethrough"
+msgstr "删除线"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Success"
+msgstr "成功"
+
+#: ../features/repository/repository-unavailable-error.tsx
+msgid "Switch account"
+msgstr "切换账户"
+
+#: ../features/editor/field-locale-menu.tsx
+msgid "Switch language"
+msgstr "切换语言"
+
+#: ../features/account/theme-preference.tsx
+msgid "System"
+msgstr "系统"
+
+#: ../components/ui/editor/index.tsx
+#: ../components/ui/editor/slash-command/suggestion.tsx
+msgid "Table"
+msgstr "表"
+
+#: ../components/ui/editor/index.tsx
+#: ../components/ui/editor/slash-command/suggestion.tsx
+msgid "Text"
+msgstr "文字"
+
+#: known-errors.ts
+msgid "That code has expired. Request a new one."
+msgstr "该代码已过期。请求一份新的。"
+
+#: known-errors.ts
+msgid "That code is incorrect."
+msgstr "该代码不正确。"
+
+#: known-errors.ts
+msgid "The account is missing."
+msgstr "该帐户丢失了。"
+
+#: known-errors.ts
+msgid "The branch changed. Review and confirm the rename again."
+msgstr "分行变了。再次检查并确认重命名。"
+
+#: ../features/admin/cache-copy.ts
+msgid "The cached configuration is fetched again when needed after clearing."
+msgstr "清除缓存后，需要时将重新获取配置。"
+
+#: ../features/settings/user-settings.tsx
+msgid "The connected GitHub account was not found."
+msgstr "未找到连接的 GitHub 帐户。"
+
+#: known-errors.ts
+msgid "The content configuration changed. Reload before reviewing your draft."
+msgstr "内容配置发生了变化。在审阅草稿之前重新加载。"
+
+#: known-errors.ts
+msgid "The content configuration changed. Your local draft is retained; restore the previous configuration before reopening it."
+msgstr "内容配置发生了变化。您的本地草稿将被保留；重新打开之前恢复之前的配置。"
+
+#: known-errors.ts
+msgid "The default locale must belong to i18n.locales; specify a local default when overriding the list"
+msgstr "默认语言环境必须属于 i18n.locales；覆盖列表时指定本地默认值"
+
+#: ../components/operation-error.tsx
+msgid "The displayed results may be out of date."
+msgstr "显示的结果可能已过时。"
+
+#: known-errors.ts
+msgid "The entry cannot be removed by a merge."
+msgstr "该条目无法通过合并删除。"
+
+#: known-errors.ts
+msgid "The entry changed; refresh before renaming"
+msgstr "条目已更改；重命名前刷新"
+
+#: known-errors.ts
+msgid "The fields scheme requires a structured content format"
+msgstr "字段方案需要结构化内容格式"
+
+#: known-errors.ts
+msgid "The file changed since the supplied revision"
+msgstr "自提供的修订版以来，该文件已更改"
+
+#: known-errors.ts
+msgid "The file is already in this folder"
+msgstr "该文件已在此文件夹中"
+
+#: ../features/content/content-mutations.ts
+msgid "The file operation completed, but local recovery data could not be updated."
+msgstr "文件操作已完成，但无法更新本地恢复数据。"
+
+#: known-errors.ts
+msgid "The file was deleted, but a newer local draft was retained for download."
+msgstr "该文件已被删除，但保留了较新的本地草稿以供下载。"
+
+#: known-errors.ts
+msgid "The file was renamed, but its local draft changed in another tab or the destination has a draft. The draft is retained for download."
+msgstr "文件已重命名，但其本地草稿在另一个选项卡中发生了更改，或者目标有草稿。保留该草稿以供下载。"
+
+#: known-errors.ts
+msgid "The filename has not changed"
+msgstr "文件名没有改变"
+
+#: known-errors.ts
+msgid "The filename or folder conflicts with a reserved locale name"
+msgstr "文件名或文件夹与保留的区域设置名称冲突"
+
+#: known-errors.ts
+msgid "The files scheme requires i18n.path"
+msgstr "文件方案需要 i18n.path"
+
+#. js-lingui-explicit-id
+#: known-errors.ts
+msgid "core.error.invitation-revoked"
+msgstr "邀请已被撤销"
+
+#: ../features/media/media-mutations.ts
+msgid "The media operation completed, but its local view could not be updated."
+msgstr "媒体操作已完成，但无法更新其本地视图。"
+
+#: ../routes/__root.tsx
+msgid "The open-source CMS for GitHub repositories."
+msgstr "GitHub 存储库的开源 CMS。"
+
+#: known-errors.ts
+msgid "The operation could not be completed."
+msgstr "操作无法完成。"
+
+#: known-errors.ts
+msgid "The operation failed"
+msgstr "操作失败"
+
+#: known-errors.ts
+msgid "The operation limit has been reached."
+msgstr "已达到操作限制。"
+
+#. js-lingui-explicit-id
+#: ../routes/__root.tsx
+msgid "core.fallback.78fbb3370a"
+msgstr "您请求的页面不存在或可能已移动。"
+
+#: known-errors.ts
+msgid "The path has not changed"
+msgstr "路径没有改变"
+
+#: known-errors.ts
+msgid "The picture could not be read."
+msgstr "图片无法读取。"
+
+#: known-errors.ts
+msgid "The profile account is missing"
+msgstr "个人资料帐户丢失"
+
+#: known-errors.ts
+msgid "The raw Markdown body cannot be localized within one file; use separate files or a structured rich-text field"
+msgstr "原始 Markdown 正文无法本地化在一个文件内；使用单独的文件或结构化富文本字段"
+
+#: known-errors.ts
+msgid "The repository at this address changed. Reload before continuing."
+msgstr "该地址的存储库已更改。继续之前重新加载。"
+
+#: known-errors.ts
+msgid "The repository at this address changed. Reload before saving."
+msgstr "该地址的存储库已更改。保存前重新加载。"
+
+#: known-errors.ts
+msgid "The repository configuration is invalid"
+msgstr "存储库配置无效"
+
+#: known-errors.ts
+msgid "The repository identity changed. Reload before continuing."
+msgstr "仓库标识已更改。请重新加载页面后再继续。"
+
+#: known-errors.ts
+msgid "The repository provider did not respond"
+msgstr "存储库提供商没有回应"
+
+#: known-errors.ts
+msgid "The repository provider is rate limiting requests"
+msgstr "存储库提供者限制请求速率"
+
+#: known-errors.ts
+msgid "The repository provider is unavailable"
+msgstr "存储库提供程序不可用"
+
+#: known-errors.ts
+msgid "The signed-in account changed. This operation was not sent."
+msgstr "登录的帐户已更改。该操作未发送。"
+
+#: known-errors.ts
+msgid "The source translation no longer exists. Refresh the language list and try again."
+msgstr "源翻译不再存在。刷新语言列表并重试。"
+
+#: ../features/drafts/draft-save-button.tsx
+msgid "These changes haven’t been saved to your project."
+msgstr "这些更改尚未保存到您的项目中。"
+
+#: ../features/content/use-entry-actions.tsx
+msgid "These files will be renamed together in one commit."
+msgstr "这些文件将在一次提交中一起重命名。"
+
+#: known-errors.ts
+msgid "This account was deleted. Its local drafts cannot be saved."
+msgstr "该帐户已被删除。其本地草稿无法保存。"
+
+#: known-errors.ts
+msgid "This action cannot be cancelled"
+msgstr "此操作无法取消"
+
+#: known-errors.ts
+msgid "This action cannot be cancelled yet"
+msgstr "此操作尚无法取消"
+
+#: known-errors.ts
+msgid "This action has finished"
+msgstr "本次行动已结束"
+
+#: known-errors.ts
+msgid "This action is no longer configured for this run"
+msgstr "不再为此运行配置此操作"
+
+#: ../features/repository/configuration-required.tsx
+msgid "This branch has no configuration. Ask a project manager to set it up."
+msgstr "该分支没有配置。请项目经理进行设置。"
+
+#: ../routes/github.$owner.$repo.$branch.tsx
+msgid "This branch may have been removed or renamed."
+msgstr "该分支可能已被删除或重命名。"
+
+#: ../features/repository/configuration-required.tsx
+msgid "This branch’s configuration needs fixing. Ask a project manager to fix it."
+msgstr "该分支的配置需要修复。请项目经理修复它。"
+
+#: known-errors.ts
+msgid "This browser could not prepare your picture."
+msgstr "此浏览器无法准备您的图片。"
+
+#: ../components/structured-content-field.tsx
+msgid "This clears the selected block and its fields so you can choose another block."
+msgstr "这将清除所选块及其字段，以便您可以选择另一个块。"
+
+#: ../components/structured-content-field.tsx
+msgid "This clears the selected block and its fields, keeping the list item so you can choose another block."
+msgstr "这将清除选定的块及其字段，保留列表项，以便您可以选择另一个块。"
+
+#: known-errors.ts
+msgid "This collection does not allow subfolders"
+msgstr "该集合不允许有子文件夹"
+
+#: known-errors.ts
+msgid "This content schema does not use a structured format"
+msgstr "此内容架构不使用结构化格式"
+
+#: ../features/media/media-browser.tsx
+#~ msgid "This creates a commit and cannot be undone here."
+#~ msgstr "这将创建一个提交并且无法在此处撤消。"
+
+#: ../features/media/media-browser.tsx
+#~ msgid "This creates a commit in the repository."
+#~ msgstr "这会在存储库中创建一个提交。"
+
+#: ../components/content-entry-editor.tsx
+msgid "This deletes {currentFilename} and creates a commit. This action cannot be undone here."
+msgstr "这会删除 {currentFilename} 并创建一个提交。此操作无法在此处撤消。"
+
+#: ../components/content-entry-editor.tsx
+msgid "This deletes {currentFilename}, including all languages, and creates a commit. This action cannot be undone here."
+msgstr "这会删除 {currentFilename}，包括所有语言，并创建一个提交。此操作无法在此处撤消。"
+
+#: known-errors.ts
+msgid "This draft changed in another tab. Reload before continuing."
+msgstr "该草稿在另一个选项卡中进行了更改。继续之前重新加载。"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+#~ msgid "This entry has two versions that cannot be combined automatically. Compare them and choose which one to keep."
+#~ msgstr "该条目有两个版本，无法自动组合。比较它们并选择保留哪一个。"
+
+#: ../features/collections/collection-page.tsx
+msgid "This entry must become a node before it can contain children."
+msgstr "该条目必须成为一个节点才能包含子节点。"
+
+#: known-errors.ts
+msgid "This feature is not available for this account."
+msgstr "此功能不适用于该帐户。"
+
+#: known-errors.ts
+msgid "This file already has an operation in progress."
+msgstr "该文件已有一个正在进行的操作。"
+
+#: known-errors.ts
+msgid "This file does not exist and creating it is disabled"
+msgstr "该文件不存在，无法创建"
+
+#: known-errors.ts
+msgid "This file extension is not allowed"
+msgstr "不允许使用此文件扩展名"
+
+#: known-errors.ts
+msgid "This media item already has an operation in progress."
+msgstr "该媒体项目已有一项正在进行的操作。"
+
+#: known-errors.ts
+msgid "This operation is already in progress."
+msgstr "该操作已经在进行中。"
+
+#: ../features/repository/repository-route-state.tsx
+msgid "This page does not exist in this project. It may have been removed or renamed."
+msgstr "该页面在该项目中不存在。它可能已被删除或重命名。"
+
+#: known-errors.ts
+msgid "This picture could not be read."
+msgstr "无法读取此图片。"
+
+#: known-errors.ts
+msgid "This picture could not be read. Try another image."
+msgstr "无法读取此图片。尝试另一个图像。"
+
+#: known-errors.ts
+msgid "This picture is too large. Try another image."
+msgstr "这张图片太大了。尝试另一个图像。"
+
+#: ../components/structured-content-field.tsx
+msgid "This removes the item and all of its nested fields."
+msgstr "这将删除该项目及其所有嵌套字段。"
+
+#: ../components/structured-content-field.tsx
+msgid "This removes the item from the list."
+msgstr "这将从列表中删除该项目。"
+
+#: ../features/repository/repository-unavailable-error.tsx
+msgid "This repository may not exist, or you may not have access to it. If you were invited, sign in with the account that received the invitation."
+msgstr "该存储库可能不存在，或者您可能无权访问它。如果您受到邀请，请使用收到邀请的帐户登录。"
+
+#: ../features/admin/admin-page.tsx
+msgid "This user will be signed out of every session and their integration credentials will be revoked. They can sign in again."
+msgstr "该用户的所有会话都将退出，其集成凭据也将被撤销。该用户可以重新登录。"
+
+#: ../components/structured-content-field.tsx
+msgid "This value must be an object keyed by language. Its existing value has been retained."
+msgstr "该值必须是由语言键入的对象。其现有价值得以保留。"
+
+#. placeholder {0}: deleting?.name
+#: ../features/collections/collection-page.tsx
+msgid "This will delete {0} from the repository. This action cannot be undone here. If this entry has a local draft, it will also be discarded."
+msgstr "这将从存储库中删除{0}。此操作无法在此处撤消。如果该条目有本地草稿，它也会被丢弃。"
+
+#: ../components/repository-action-buttons.tsx
+#: known-errors.ts
+msgid "This will start a GitHub Actions workflow."
+msgstr "这将启动 GitHub Actions 工作流程。"
+
+#: ../features/admin/actions-page.tsx
+msgid "This will trigger the configured GitHub Actions workflow."
+msgstr "这将触发配置的 GitHub Actions 工作流程。"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Timed out"
+msgstr "超时"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "to"
+msgstr "到"
+
+#: ../features/dashboard/repository-dashboard.tsx
+msgid "to a repository. Projects will appear here once you have access."
+msgstr "到存储库。一旦您有权访问，项目就会出现在此处。"
+
+#: ../components/ui/sidebar.tsx
+msgid "Toggle Sidebar"
+msgstr "切换侧边栏"
+
+#: known-errors.ts
+msgid "TOML documents cannot contain a list at the root"
+msgstr "TOML 文档不能在根目录包含列表"
+
+#. js-lingui-explicit-id
+#: known-errors.ts
+msgid "core.error.login-email-limit"
+msgstr "登录电子邮件过多；稍后再试"
+
+#: known-errors.ts
+msgid "Too many tracked actions"
+msgstr "跟踪的操作过多"
+
+#: known-errors.ts
+msgid "Top-level actions may only use a ''scope'' of ''sidebar'' or ''overview''."
+msgstr "顶级操作只能使用 ''sidebar'' 或 ''overview'' 的 ''scope''。"
+
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/actions-skeleton.tsx
+#: known-errors.ts
+msgid "Triggered by"
+msgstr "触发于"
+
+#: ../features/media/media-browser.tsx
+msgid "Try a different search."
+msgstr "尝试不同的搜索。"
+
+#: ../components/file-editor-history.tsx
+#: ../components/operation-error.tsx
+#: ../components/ui/table.tsx
+#: ../features/editor/file-locale-menu.tsx
+#: ../features/media/media-browser.tsx
+#: ../features/repository/repository-route-state.tsx
+#: known-errors.ts
+msgid "Try again"
+msgstr "再试一次"
+
+#. js-lingui-explicit-id
+#: ../components/root-error.tsx
+msgid "core.fallback.042c862e44"
+msgstr "再试一次"
+
+#: ../features/dashboard/repository-selector.tsx
+msgid "Try another repository name or clear your search."
+msgstr "尝试其他存储库名称或清除搜索。"
+
+#: ../features/admin/allowlist-table.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Type"
+msgstr "类型"
+
+#: ../features/account/content-editing-preferences.tsx
+#: ../features/settings/user-settings.tsx
+msgid "Unavailable"
+msgstr "不可用"
+
+#: ../components/ui/editor/index.tsx
+msgid "Underline"
+msgstr "下划线"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Unknown"
+msgstr "未知"
+
+#: known-errors.ts
+msgid "Unknown content locale"
+msgstr "未知内容区域设置"
+
+#: ../components/file-editor-history.tsx
+msgid "Unknown date"
+msgstr "日期未知"
+
+#: ../components/structured-content-field.tsx
+msgid "Unknown field type: {type}"
+msgstr "未知字段类型：{type}"
+
+#: ../features/activity/activity-feed-item.tsx
+#: known-errors.ts
+msgid "Unknown user"
+msgstr "未知用户"
+
+#: ../features/editor/locale-context.tsx
+msgid "Unsaved"
+msgstr "未保存"
+
+#: ../features/repository/overview-file-item.tsx
+msgid "Untitled entry"
+msgstr "无标题条目"
+
+#: ../features/media/media-browser.tsx
+msgid "Update any content that links to the old filename."
+msgstr "请更新内容中指向旧文件名的链接。"
+
+#: ../features/dashboard/about-dialog.tsx
+msgid "Update to {latestVersion}"
+msgstr "更新至{latestVersion}"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "updated"
+msgstr "已更新"
+
+#: ../components/structured-content-field.tsx
+#: ../features/media/media-browser.tsx
+msgid "Upload"
+msgstr "上传"
+
+#: ../features/repository/overview-media-upload.tsx
+msgid "Upload {label}"
+msgstr "上传{label}"
+
+#: ../features/media/media-browser.tsx
+msgid "Upload a file or create a folder to get started."
+msgstr "上传文件或创建文件夹即可开始。"
+
+#: ../features/repository/overview-media-upload.tsx
+msgid "Upload files to "
+msgstr "将文件上传至 "
+
+#: ../features/account/profile-picture.tsx
+msgid "Upload or drop a picture"
+msgstr "上传或删除图片"
+
+#: ../features/account/profile-picture.tsx
+msgid "Upload profile picture"
+msgstr "上传个人资料图片"
+
+#: known-errors.ts
+msgid "Upload response omitted the ETag for {value0}"
+msgstr "上传响应省略了 {value0} 的 ETag"
+
+#: known-errors.ts
+msgid "Upload stopped because the signed-in account changed."
+msgstr "由于登录帐户发生更改，上传已停止。"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "uploaded"
+msgstr "已上传"
+
+#: ../features/media/media-browser.tsx
+#: known-errors.ts
+msgid "Uploading…"
+msgstr "正在上传..."
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "Use all my changes"
+msgstr "使用我所有的更改"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "Use latest saved version"
+msgstr "使用最新保存的版本"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "Use my changes"
+msgstr "使用我的更改"
+
+#: known-errors.ts
+msgid "Use the collection creation flow to create a new translation group"
+msgstr "使用集合创建流程创建新的翻译组"
+
+#: ../features/account/account-menu.tsx
+msgid "User menu"
+msgstr "用户菜单"
+
+#: known-errors.ts
+msgid "User sessions revoked"
+msgstr "用户会话被撤销"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/admin-page.tsx
+#: ../features/settings/settings-navigation.ts
+msgid "Users"
+msgstr "用户"
+
+#: known-errors.ts
+msgid "useSidebar must be used within a SidebarProvider."
+msgstr "useSidebar 必须在 SidebarProvider 内使用。"
+
+#: known-errors.ts
+msgid "Verified repository identity is required for {value0}/{value1}"
+msgstr "{value0}/{value1} 需要经过验证的存储库身份"
+
+#: ../components/otp-verification-form.tsx
+msgid "Verify code"
+msgstr "验证码"
+
+#: ../components/otp-verification-form.tsx
+msgid "Verify your login"
+msgstr "验证您的登录信息"
+
+#: ../features/dashboard/about-dialog.tsx
+msgid "Version"
+msgstr "版本"
+
+#: ../features/collections/collection-table.tsx
+msgid "View"
+msgstr "查看"
+
+#: ../components/structured-content-field.tsx
+msgid "View {path} on GitHub"
+msgstr "在 GitHub 上查看 {path}"
+
+#: ../components/file-editor-menu.tsx
+#: ../components/repository-shell.tsx
+#: ../features/admin/actions-page.tsx
+#: ../features/collections/collection-table.tsx
+#: ../features/media/media-entry.tsx
+msgid "View on GitHub"
+msgstr "在 GitHub 上查看"
+
+#. placeholder {0}: timestamp.toLocaleString(dateI18n.locale, { timeZone: 'UTC', timeZoneName: 'short' })
+#: ../features/repository/overview-file-item.tsx
+msgid "Visited {0}"
+msgstr "已访问{0}"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Waiting"
+msgstr "等待"
+
+#. js-lingui-explicit-id
+#: ../components/root-error.tsx
+msgid "core.fallback.f05238b4c5"
+msgstr "我们无法加载此页面。再试一次或返回您的项目。"
+
+#: ../features/repository/repository-route-state.tsx
+msgid "We couldn’t load this project page. Try again or return to its overview."
+msgstr "我们无法加载该项目页面。再试一次或返回到其概述。"
+
+#. placeholder {0}: parseErrorPaths[0]
+#: ../features/collections/collection-page.tsx
+msgid "We couldn't read {0}. Some fields may be missing."
+msgstr "无法读取 {0}。部分字段可能缺失。"
+
+#: ../routes/auth.error.tsx
+msgid "We couldn’t sign you in"
+msgstr "我们无法让您登录"
+
+#: ../features/dashboard/about-dialog.tsx
+msgid "Website"
+msgstr "网站"
+
+#: ../features/admin/collaborators-page.tsx
+msgid "will lose access to this repository."
+msgstr "将失去对此存储库的访问权限。"
+
+#: ../features/collections/collection-cell.tsx
+msgid "Yes"
+msgstr "是的"
+
+#: ../features/editor/start-translation-dialog.tsx
+msgid "You can change this in Account → Content editing."
+msgstr "您可以在帐户→内容编辑中更改此设置。"
+
+#: known-errors.ts
+msgid "You can only cancel your own action runs"
+msgstr "您只能取消自己的行动运行"
+
+#: ../features/repository/repository-route-state.tsx
+#: known-errors.ts
+msgid "You do not have permission to do this."
+msgstr "您无权执行此操作。"
+
+#: ../features/account/account-deleted-notice.tsx
+msgid "Your account has been deleted."
+msgstr "您的帐户已被删除。"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "Your changes"
+msgstr "你的改变"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "Your changes are ready to combine"
+msgstr "您的更改已准备好合并"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "Your changes can be combined with the latest saved version. Save to keep both sets of changes."
+msgstr "您的更改可以与最新保存的版本相结合。保存以保留两组更改。"
+
+#: known-errors.ts
+msgid "Your draft changed during review. Close this dialog and review again."
+msgstr "您的草稿在审核期间发生了更改。关闭此对话框并再次查看。"
+
+#: known-errors.ts
+msgid "Your draft is not ready. Reload and try again."
+msgstr "您的草稿尚未准备好。重新加载并重试。"
+
+#: ../features/drafts/use-draft-merge.tsx
+msgid "Your draft is retained while the review loads."
+msgstr "加载审阅时您的草稿将被保留。"
+
+#: ../components/content-entry-editor.tsx
+msgid "Your draft is retained. Try saving again to review the latest changes."
+msgstr "您的草稿将被保留。尝试再次保存以查看最新更改。"
+
+#: ../features/drafts/draft-save-button.tsx
+msgid "Your local draft needs attention. Open Draft for details."
+msgstr "您当地的草稿需要注意。打开草稿了解详细信息。"
+
+#: ../features/account/profile-picture.tsx
+msgid "Your picture will be replaced with your default avatar."
+msgstr "您的图片将被替换为您的默认头像。"
+
+#: ../features/account/delete-account.tsx
+msgid "Your profile, sign-in methods and collaborator access will be permanently deleted. GitHub repositories and their content will be kept. This cannot be undone."
+msgstr "您的个人资料、登录方法和协作者访问权限将被永久删除。 GitHub 存储库及其内容将被保留。此操作无法撤消。"
+
+#: known-errors.ts
+msgid "Your sign-in provider did not confirm a verified email address. Verify your email with that provider and try again."
+msgstr "您的登录提供商未确认经过验证的电子邮件地址。与该提供商验证您的电子邮件，然后重试。"
+
+#: known-errors.ts
+msgid "Your signed-in account changed. Reload and try again."
+msgstr "您的登录帐户已更改。重新加载并重试。"
+
+#: ../features/dashboard/repository-selector.tsx
+msgid "your signed-in email address"
+msgstr "您登录的电子邮件地址"

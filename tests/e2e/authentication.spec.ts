@@ -1,0 +1,44 @@
+import { expect, test } from './test'
+
+test.use({ storageState: { cookies: [], origins: [] } })
+
+test('redirects guests to sign in and serves the health contract', async ({
+  page,
+  request,
+}) => {
+  await page.goto('/')
+
+  await expect(
+    page.getByRole('heading', { name: 'Sign in to Pages CMS', exact: true }),
+  ).toBeVisible()
+  await expect(
+    page.getByText('No sign-in provider is configured.'),
+  ).toBeVisible()
+
+  const health = await request.get('/api/health', {
+    headers: { 'x-request-id': 'playwright-authentication' },
+  })
+
+  expect(health.ok()).toBe(true)
+  expect(health.headers()['x-request-id']).toBe('playwright-authentication')
+  expect(health.headers()['cache-control']).toBe('no-store')
+  await expect(health.json()).resolves.toEqual({
+    service: 'pagescms',
+    status: 'ok',
+    checks: { database: 'ok', cacheDatabase: 'ok' },
+  })
+})
+
+test('redirects a guest opening a repository route instead of rendering an error', async ({
+  page,
+}) => {
+  await page.goto('/github/pagescms/fixture/main/collection/posts')
+
+  await expect(page).toHaveURL(
+    /\/sign-in\?redirect=%2Fgithub%2Fpagescms%2Ffixture%2Fmain%2Fcollection%2Fposts$/,
+  )
+  await expect(
+    page.getByRole('heading', { name: 'Sign in to Pages CMS', exact: true }),
+  ).toBeVisible()
+  await expect(page.getByText('Something went wrong')).not.toBeVisible()
+})

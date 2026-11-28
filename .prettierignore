@@ -1,0 +1,16 @@
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+AGENTS.md
+PLAN.md
+drizzle/
+.output/
+.wrangler/
+coverage/
+playwright-report/
+test-results/
+.tmp/
+src/routeTree.gen.ts
+worker-configuration.d.ts
+.dev.vars.example
+.env.example

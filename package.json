@@ -1,108 +1,391 @@
 {
   "name": "pagescms",
-  "description": "A user-friendly CMS for Next.js, Astro, Hugo, Nuxt, Jekyll or any other static site generator.",
+  "version": "3.0.0-beta.0",
+  "description": "An open-source Git-based CMS for GitHub repositories.",
   "license": "MIT",
-  "author": {
-    "name": "Ronan Berder"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hunvreus/pagescms.git"
   },
-  "version": "2.1.8",
-  "private": true,
+  "homepage": "https://pagescms.org",
+  "bugs": "https://github.com/hunvreus/pagescms/issues",
+  "publishConfig": {
+    "tag": "beta"
+  },
+  "packageManager": "pnpm@10.17.1",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "type": "module",
+  "exports": {
+    "./deployment/contracts/client": {
+      "types": "./dist/types/deployment/contracts/client.d.ts",
+      "import": "./src/deployment/contracts/client.ts"
+    },
+    "./deployment/contracts/server.server": {
+      "types": "./dist/types/deployment/contracts/server.server.d.ts",
+      "import": "./src/deployment/contracts/server.server.ts"
+    },
+    "./deployment/contracts/version": {
+      "types": "./dist/types/deployment/contracts/version.d.ts",
+      "import": "./src/deployment/contracts/version.ts"
+    },
+    "./deployment/builtins/resend-email.server": {
+      "types": "./dist/types/deployment/builtins/resend-email.server.d.ts",
+      "import": "./src/deployment/builtins/resend-email.server.ts"
+    },
+    "./deployment/conformance/media-storage": {
+      "types": "./dist/types/deployment/conformance/media-storage.d.ts",
+      "import": "./src/deployment/conformance/media-storage.ts"
+    },
+    "./shared/application-operations": {
+      "types": "./dist/types/shared/application-operations.d.ts",
+      "import": "./src/shared/application-operations.ts"
+    },
+    "./server/access/policy": {
+      "types": "./dist/types/server/access/policy.d.ts",
+      "import": "./src/server/access/policy.ts"
+    },
+    "./server/services": {
+      "types": "./dist/types/server/services/index.d.ts",
+      "import": "./src/server/services/index.ts"
+    },
+    "./shared/media-error": {
+      "types": "./dist/types/shared/media-error.d.ts",
+      "import": "./src/shared/media-error.ts"
+    },
+    "./server/media/provider": {
+      "types": "./dist/types/server/media/provider.d.ts",
+      "import": "./src/server/media/provider.ts"
+    },
+    "./components/ui/*": {
+      "types": "./dist/types/components/ui/*.d.ts",
+      "import": "./src/components/ui/*.tsx"
+    },
+    "./components/operation-error": {
+      "types": "./dist/types/components/operation-error.d.ts",
+      "import": "./src/components/operation-error.tsx"
+    },
+    "./lib/collaborator-key": {
+      "types": "./dist/types/lib/collaborator-key.d.ts",
+      "import": "./src/lib/collaborator-key.ts"
+    },
+    "./components/option-combobox": {
+      "types": "./dist/types/components/option-combobox.d.ts",
+      "import": "./src/components/option-combobox.tsx"
+    },
+    "./components/search-input": {
+      "types": "./dist/types/components/search-input.d.ts",
+      "import": "./src/components/search-input.tsx"
+    },
+    "./features/collaborators/collaborator-status": {
+      "types": "./dist/types/features/collaborators/collaborator-status.d.ts",
+      "import": "./src/features/collaborators/collaborator-status.tsx"
+    },
+    "./lib/notifications": {
+      "types": "./dist/types/lib/notifications.d.ts",
+      "import": "./src/lib/notifications.ts"
+    },
+    "./components/collaborator-invite-input": {
+      "types": "./dist/types/components/collaborator-invite-input.d.ts",
+      "import": "./src/components/collaborator-invite-input.tsx"
+    },
+    "./components/collaborator-identity": {
+      "types": "./dist/types/components/collaborator-identity.d.ts",
+      "import": "./src/components/collaborator-identity.tsx"
+    },
+    "./lib/collaborator-invites": {
+      "types": "./dist/types/lib/collaborator-invites.d.ts",
+      "import": "./src/lib/collaborator-invites.ts"
+    },
+    "./plugins/server": {
+      "types": "./dist/types/plugins/server.d.ts",
+      "import": "./src/plugins/server.ts"
+    },
+    "./plugins/client": {
+      "types": "./dist/types/plugins/client.d.ts",
+      "import": "./src/plugins/client.ts"
+    },
+    "./plugins/email/smtp.server": {
+      "types": "./dist/types/plugins/email/smtp.server.d.ts",
+      "import": "./src/plugins/email/smtp.server.ts"
+    },
+    "./plugins/email/cloudflare.server": {
+      "types": "./dist/types/plugins/email/cloudflare.server.d.ts",
+      "import": "./src/plugins/email/cloudflare.server.ts"
+    },
+    "./plugins/email/resend.server": {
+      "types": "./dist/types/plugins/email/resend.server.d.ts",
+      "import": "./src/plugins/email/resend.server.ts"
+    },
+    "./server/collaborators/collaborators": {
+      "types": "./dist/types/server/collaborators/collaborators.d.ts",
+      "import": "./src/server/collaborators/collaborators.ts"
+    },
+    "./server/access/repository-identity": {
+      "types": "./dist/types/server/access/repository-identity.d.ts",
+      "import": "./src/server/access/repository-identity.ts"
+    },
+    "./lib/repository": {
+      "types": "./dist/types/lib/repository.d.ts",
+      "import": "./src/lib/repository.ts"
+    },
+    "./shared/configuration-navigation": {
+      "types": "./dist/types/shared/configuration-navigation.d.ts",
+      "import": "./src/shared/configuration-navigation.ts"
+    },
+    "./shared/configuration-source": {
+      "types": "./dist/types/shared/configuration-source.d.ts",
+      "import": "./src/shared/configuration-source.ts"
+    },
+    "./shared/configuration-discovery": {
+      "types": "./dist/types/shared/configuration-discovery.d.ts",
+      "import": "./src/shared/configuration-discovery.ts"
+    },
+    "./server/http": {
+      "types": "./dist/types/server/http.d.ts",
+      "import": "./src/server/http.ts"
+    },
+    "./server/cache/configuration": {
+      "types": "./dist/types/server/cache/configuration.d.ts",
+      "import": "./src/server/cache/configuration.ts"
+    },
+    "./vite": {
+      "types": "./dist/types/package/vite.d.ts",
+      "import": "./dist/package/vite.mjs"
+    },
+    "./server-entry": {
+      "types": "./dist/types/package/server-entry.d.ts",
+      "import": "./src/package/server-entry.ts"
+    },
+    "./libsql": "./src/package/libsql.mjs",
+    "./libsql-web": "./src/package/libsql-web.mjs",
+    ".": {
+      "types": "./dist/types/package/config.d.ts",
+      "import": "./dist/package/config.mjs"
+    },
+    "./migrate": {
+      "types": "./dist/types/package/migrate.d.ts",
+      "import": "./dist/package/migrate.mjs"
+    },
+    "./plugins/smtp": {
+      "types": "./dist/types/package/smtp.d.ts",
+      "import": "./dist/package/smtp.mjs"
+    },
+    "./components/collaborators-loading": {
+      "types": "./dist/types/components/collaborators-loading.d.ts",
+      "import": "./src/components/collaborators-loading.tsx"
+    },
+    "./components/settings-loading": {
+      "types": "./dist/types/components/settings-loading.d.ts",
+      "import": "./src/components/settings-loading.tsx"
+    },
+    "./components/settings-row": {
+      "types": "./dist/types/components/settings-row.d.ts",
+      "import": "./src/components/settings-row.ts"
+    },
+    "./server/email/templates": {
+      "types": "./dist/types/server/email/templates.d.ts",
+      "import": "./src/server/email/templates.ts"
+    },
+    "./lib/configuration-reference": {
+      "types": "./src/lib/configuration-reference.d.mts",
+      "import": "./src/lib/configuration-reference.mjs"
+    },
+    "./components/code-editor": {
+      "types": "./dist/types/components/code-editor.d.ts",
+      "import": "./src/components/code-editor.tsx"
+    },
+    "./components/gradient-avatar-fallback": {
+      "types": "./dist/types/components/gradient-avatar-fallback.d.ts",
+      "import": "./src/components/gradient-avatar-fallback.tsx"
+    }
+  },
+  "imports": {
+    "#/*": "./src/*"
+  },
   "scripts": {
     "setup:github-app": "node scripts/setup-github-app.mjs",
-    "dev": "next dev",
-    "build": "next build",
-    "postbuild": "npm run db:migrate",
-    "start": "next start",
+    "dev": "pnpm reference:build && node --env-file-if-exists=.env.local ./node_modules/vite/bin/vite.js dev --port 3000",
+    "cf:dev": "pnpm reference:build && PAGESCMS_CLOUDFLARE=true vite dev --port 3000",
+    "cf:build": "pnpm reference:build && CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false PAGESCMS_CLOUDFLARE=true vite build && pnpm performance:check",
+    "cf:preview": "PAGESCMS_CLOUDFLARE=true vite preview",
+    "generate-routes": "tsr generate",
+    "build": "pnpm reference:build && vite build --outDir dist/client && vite build --ssr src/server/index.ts --outDir dist/server && pnpm performance:check",
+    "performance:check": "node scripts/check-performance-budget.mjs",
+    "preview": "vite preview --outDir dist/client",
+    "typecheck": "pnpm generate-routes && tsc --noEmit",
     "lint": "eslint .",
-    "db:generate": "npx drizzle-kit generate",
-    "db:migrate": "npx drizzle-kit migrate",
-    "auth:generate": "npx @better-auth/cli generate --config ./lib/auth.ts --output ./auth-schema.ts --yes",
-    "db:clear-cache": "npx tsx db/scripts/clear-cache.ts",
-    "db:collaborators:export": "npx tsx db/scripts/collaborators/export.ts",
-    "db:collaborators:import": "npx tsx db/scripts/collaborators/import.ts"
+    "format": "prettier --write . && eslint --fix",
+    "format:check": "prettier --check .",
+    "test": "pnpm reference:build && node --test packages/create-pagescms/create.check.mjs && vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "sh scripts/test-e2e.sh",
+    "test:e2e:media-performance": "PAGESCMS_E2E_PRODUCTION=true sh scripts/test-e2e.sh tests/e2e/media-performance.spec.ts",
+    "test:integration": "sh scripts/test-integration.sh",
+    "db:check": "drizzle-kit check",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate-sqlite.mjs",
+    "db:migrate:2x": "node --env-file-if-exists=.env.local scripts/collaborators.mjs migrate-2x",
+    "db:collaborators:export": "node --env-file-if-exists=.env.local scripts/collaborators.mjs export",
+    "db:collaborators:import": "node --env-file-if-exists=.env.local scripts/collaborators.mjs import",
+    "db:collaborators:sql": "node --env-file-if-exists=.env.local scripts/collaborators.mjs sql",
+    "cf:typegen": "CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false wrangler types --config wrangler.jsonc --include-runtime false",
+    "cf:typecheck": "CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false wrangler types --config wrangler.jsonc --include-runtime false --check",
+    "cf:dry-run": "pnpm cf:build && node scripts/clean-wrangler-dry-run.mjs && wrangler deploy --dry-run --outdir .wrangler/dry-run --metafile && node scripts/assert-public-artifact.mjs .wrangler/dry-run",
+    "validate": "pnpm i18n:check && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm cf:typecheck && pnpm cf:dry-run",
+    "deploy": "pnpm cf:build && wrangler deploy",
+    "prepack": "pnpm generate-routes && node scripts/build-package.mjs",
+    "test:package": "node scripts/test-package.mjs",
+    "reference:build": "node scripts/build-reference.mjs",
+    "reference:check": "node scripts/build-reference.mjs --check && pnpm reference:test",
+    "reference:test": "node --test scripts/reference-check.mjs",
+    "i18n:extract": "lingui extract --overwrite --config src/i18n/lingui.config.mjs",
+    "i18n:check": "lingui check sync --overwrite --config src/i18n/lingui.config.mjs && lingui compile --strict --config src/i18n/lingui.config.mjs"
   },
   "dependencies": {
-    "@base-ui/react": "^1.3.0",
-    "@codemirror/lang-html": "^6.4.9",
-    "@codemirror/lang-javascript": "^6.2.2",
-    "@codemirror/lang-json": "^6.0.1",
-    "@codemirror/lang-markdown": "^6.2.5",
-    "@codemirror/language-data": "^6.5.1",
-    "@codemirror/legacy-modes": "^6.4.0",
-    "@codemirror/lint": "^6.8.0",
-    "@dnd-kit/core": "^6.3.1",
-    "@dnd-kit/modifiers": "^7.0.0",
-    "@dnd-kit/sortable": "^8.0.0",
-    "@hookform/resolvers": "^3.10.0",
-    "@ltd/j-toml": "^1.38.0",
-    "@next/env": "^16.1.6",
-    "@octokit/app": "^16.1.2",
-    "@octokit/rest": "^22.0.1",
-    "@react-email/components": "^1.0.7",
-    "@tanstack/react-table": "^8.17.3",
-    "@tiptap/core": "^3.20.0",
-    "@tiptap/extension-image": "^3.20.0",
-    "@tiptap/extension-link": "^3.20.0",
-    "@tiptap/extension-placeholder": "^3.20.0",
-    "@tiptap/extension-table": "^3.20.0",
-    "@tiptap/extension-table-cell": "^3.20.0",
-    "@tiptap/extension-table-header": "^3.20.0",
-    "@tiptap/extension-table-row": "^3.20.0",
-    "@tiptap/extension-underline": "^3.20.0",
-    "@tiptap/markdown": "^3.20.0",
-    "@tiptap/pm": "^3.20.0",
-    "@tiptap/react": "^3.20.0",
-    "@tiptap/starter-kit": "^3.20.0",
-    "@tiptap/suggestion": "^3.20.0",
-    "@uiw/codemirror-theme-github": "^4.22.1",
-    "@uiw/codemirror-theme-vscode": "^4.25.9",
-    "@uiw/codemirror-theme-xcode": "^4.25.9",
-    "@uiw/react-codemirror": "^4.22.1",
-    "better-auth": "^1.4.18",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "date-fns": "^3.6.0",
-    "drizzle-orm": "^0.45.1",
-    "input-otp": "^1.4.2",
-    "joplin-turndown-plugin-gfm": "^1.0.12",
-    "lodash.merge": "^4.6.2",
-    "lodash.mergewith": "^4.6.2",
-    "lucide-react": "^0.563.0",
-    "marked": "^17.0.1",
-    "next": "^16.2.0",
-    "next-themes": "^0.4.6",
-    "nodemailer": "^8.0.2",
-    "postgres": "^3.4.7",
-    "radix-ui": "^1.4.3",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "react-hook-form": "^7.71.1",
-    "resend": "^6.9.1",
-    "slugify": "^1.6.6",
-    "sonner": "^2.0.7",
-    "swr": "^2.4.1",
-    "tailwind-merge": "^3.4.0",
-    "tippy.js": "^6.3.7",
-    "turndown": "^7.2.0",
-    "use-debounce": "^10.0.0",
-    "yaml": "^2.4.2",
-    "zod": "^3.25.76"
+    "@base-ui/react": "1.9.0",
+    "@clack/prompts": "1.9.0",
+    "@cloudflare/vite-plugin": "1.69.1",
+    "@codemirror/autocomplete": "6.20.4",
+    "@codemirror/lang-html": "6.4.12",
+    "@codemirror/lang-javascript": "6.2.5",
+    "@codemirror/lang-json": "6.0.2",
+    "@codemirror/lang-markdown": "6.5.2",
+    "@codemirror/lang-yaml": "6.1.3",
+    "@codemirror/language": "6.13.1",
+    "@codemirror/language-data": "6.5.2",
+    "@codemirror/lint": "6.9.8",
+    "@codemirror/state": "6.7.6",
+    "@codemirror/view": "6.43.15",
+    "@dnd-kit/core": "6.3.1",
+    "@dnd-kit/sortable": "10.0.0",
+    "@dnd-kit/utilities": "3.2.2",
+    "@fontsource-variable/inter": "5.3.0",
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "@hono/node-server": "2.1.8",
+    "@hugeicons/core-free-icons": "4.4.0",
+    "@hugeicons/react": "1.1.10",
+    "@libsql/client": "0.18.0",
+    "@lingui/core": "6.12.0",
+    "@lingui/format-po": "6.12.0",
+    "@lingui/react": "6.12.0",
+    "@lingui/vite-plugin": "6.12.0",
+    "@tailwindcss/vite": "4.3.5",
+    "@tanstack/react-devtools": "0.10.14",
+    "@tanstack/react-query": "5.107.1",
+    "@tanstack/react-query-devtools": "5.107.1",
+    "@tanstack/react-router": "1.170.46",
+    "@tanstack/react-router-devtools": "1.167.3",
+    "@tanstack/react-table": "9.3.1",
+    "@tanstack/router-plugin": "1.169.0",
+    "@tiptap/core": "3.31.3",
+    "@tiptap/extension-bubble-menu": "3.31.3",
+    "@tiptap/extension-floating-menu": "3.31.3",
+    "@tiptap/extension-image": "3.31.3",
+    "@tiptap/extension-link": "3.31.3",
+    "@tiptap/extension-paragraph": "3.31.3",
+    "@tiptap/extension-placeholder": "3.31.3",
+    "@tiptap/extension-table": "3.31.3",
+    "@tiptap/extension-table-cell": "3.31.3",
+    "@tiptap/extension-table-header": "3.31.3",
+    "@tiptap/extension-table-row": "3.31.3",
+    "@tiptap/extension-underline": "3.31.3",
+    "@tiptap/extensions": "3.31.3",
+    "@tiptap/markdown": "3.31.3",
+    "@tiptap/pm": "3.31.3",
+    "@tiptap/react": "3.31.3",
+    "@tiptap/starter-kit": "3.31.3",
+    "@tiptap/suggestion": "3.31.3",
+    "@uiw/codemirror-theme-github": "4.25.12",
+    "@uiw/react-codemirror": "4.25.12",
+    "@vitejs/plugin-react": "6.3.0",
+    "better-auth": "1.7.25",
+    "class-variance-authority": "0.7.1",
+    "cmdk": "1.1.1",
+    "cn": "0.5.2",
+    "date-fns": "4.4.0",
+    "dompurify": "3.4.18",
+    "drizzle-orm": "0.45.4",
+    "hono": "4.13.18",
+    "input-otp": "1.5.0",
+    "js-yaml": "5.5.0",
+    "marked": "17.0.6",
+    "nodemailer": "10.5.0",
+    "radix-ui": "1.8.1",
+    "safe-regex2": "^5.1.2",
+    "smol-toml": "1.9.1",
+    "sonner": "2.0.8",
+    "tailwindcss": "4.3.5",
+    "tippy.js": "6.3.7",
+    "tw-animate-css": "1.4.0",
+    "vite": "8.3.8",
+    "wrangler": "4.162.0",
+    "zod": "4.6.7"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.18",
-    "@types/lodash.merge": "^4.6.9",
-    "@types/lodash.mergewith": "^4.6.9",
-    "@types/node": "^25.2.2",
-    "@types/react": "^19.2.13",
-    "@types/react-dom": "^19.2.3",
-    "@types/turndown": "^5.0.4",
-    "drizzle-kit": "^0.31.9",
-    "eslint": "^9.39.2",
-    "eslint-config-next": "^16.1.6",
-    "postcss": "^8.5.6",
-    "shadcn": "^3.8.4",
-    "tailwindcss": "^4.1.18",
-    "tw-animate-css": "^1.4.0",
-    "typescript": "^5.4.5"
+    "@cloudflare/workers-types": "5.20261114.1",
+    "@lingui/cli": "6.12.0",
+    "@playwright/test": "^1.65.1",
+    "@tanstack/devtools-vite": "0.8.6",
+    "@tanstack/eslint-config": "0.5.0",
+    "@tanstack/router-cli": "^1.168.0",
+    "@types/node": "^22.20.5",
+    "@types/nodemailer": "^8.0.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "drizzle-kit": "^0.31.11",
+    "eslint": "^10.15.0",
+    "jsdom": "^30.1.3",
+    "miniflare": "4.20260730.0",
+    "prettier": "^3.10.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "shadcn": "4.23.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.12"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "lightningcss",
+      "sharp",
+      "workerd"
+    ],
+    "overrides": {
+      "prosemirror-model": "1.25.12",
+      "@lezer/common": "1.5.5",
+      "@lezer/lr": "1.4.12",
+      "esbuild@<=0.24.2": ">=0.25.0",
+      "miniflare@4.20260730.0>undici": "7.30.2",
+      "miniflare@4.20260730.0>sharp": "0.35.5",
+      "@tiptap/extensions": "3.31.3",
+      "@tiptap/extension-bubble-menu": "3.31.3",
+      "@tiptap/extension-floating-menu": "3.31.3",
+      "vite>yaml": "-"
+    }
+  },
+  "files": [
+    "src",
+    "public",
+    "drizzle",
+    "!src/**/*.test.ts",
+    "!src/**/*.test.tsx",
+    "!src/**/__tests__/**",
+    "dist/package",
+    "dist/types",
+    "scripts/setup-github-app.mjs",
+    "scripts/collaborators.mjs",
+    "docs/public",
+    "index.html"
+  ],
+  "bin": {
+    "pagescms": "./dist/package/cli.mjs",
+    "pagescms-setup-github-app": "./scripts/setup-github-app.mjs",
+    "pagescms-collaborators": "./scripts/collaborators.mjs"
+  },
+  "peerDependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   }
 }

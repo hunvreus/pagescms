@@ -1,140 +1,58 @@
 # Pages CMS
 
-[Pages CMS](https://pagescms.org) is an open source CMS for GitHub repositories. It is especially well suited for static sites and content-driven apps built with tools like Jekyll, Hugo, Next.js, Astro, VuePress, and similar stacks.
+Pages CMS lets editors manage a GitHub repository through a web interface. Content stays in Markdown, YAML, JSON and other project files. A `.pages.yml` file describes the collections, editable fields, media libraries and translations. Saving an edit creates a Git commit. Start with the [quick start](docs/public/quick-start.md) or the [configuration reference](docs/public/reference.md).
 
-You can use the hosted version directly at [app.pagescms.org](https://app.pagescms.org), or run your own local development copy from this repository.
+Version 3 is in beta. The React app and Hono API run on Node.js and Cloudflare Workers. Vercel and Netlify adapters are experimental.
 
-[![Screenshot of the Pages CMS editor](https://pagescms.org/media/screenshot.png)](https://demo.pagescms.org)
+## Install
 
-*[Watch the demo ▶](https://demo.pagescms.org)*
-
-## Documentation
-
-Full documentation lives at [pagescms.org/docs](https://pagescms.org/docs).
-
-Useful starting points:
-
-- [Install locally](https://pagescms.org/docs/guides/installing/)
-- [Create the GitHub App](https://pagescms.org/docs/guides/installing/github-app/)
-- [Environment variables](https://pagescms.org/docs/development/environment-variables/)
-- [Upgrading to 2.x](https://pagescms.org/docs/guides/upgrading-to-2/)
-
-## Use online
-
-The easiest way to get started is the hosted version at [app.pagescms.org](https://app.pagescms.org).
-
-Use that if you want to:
-
-- try Pages CMS immediately,
-- edit content without running anything locally,
-- stay on the latest hosted version.
-
-## Local development
-
-### What you need
-
-- PostgreSQL
-- a GitHub App
-- a local `.env.local`
-- the Pages CMS repo checked out locally
-
-### Quick start
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/pagescms/pagescms.git
-cd pagescms
+```sh
+npm create pagescms@beta -- my-cms
+cd my-cms
 ```
 
-2. Start PostgreSQL locally:
+Choose a deployment target and follow the prompts to install dependencies, register your GitHub App and initialize the database. See the [self-hosting guide](docs/public/self-hosting/index.md).
 
-```bash
-docker run --name pagescms-db -e POSTGRES_USER=pagescms -e POSTGRES_PASSWORD=pagescms -e POSTGRES_DB=pagescms -p 5432:5432 -d postgres:16
+## Develop from source
+
+Use Node.js 22.19 or newer and pnpm 10. From a version 3 checkout:
+
+```sh
+pnpm install
+cp .env.example .env.local
+pnpm setup:github-app
 ```
 
-3. Install dependencies:
+Choose **Local development** and supply a public webhook URL that forwards to `http://localhost:3000/api/webhook/github`. Set `BETTER_AUTH_SECRET` in `.env.local` and turn off user access token expiration in your GitHub App settings. To use the instance-wide Admin page, set `ADMIN_EMAILS` to your verified sign-in email. See [authentication and GitHub App setup](docs/development/authentication.md).
 
-```bash
-npm install
+```sh
+pnpm db:migrate
+pnpm dev
 ```
 
-4. Create `.env.local` with at least:
+Open [localhost:3000](http://localhost:3000). The default SQLite database is `.data/pagescms.db`. The readiness endpoint at `/api/health` checks the application and cache databases. See [database setup](docs/development/database.md) for separate cache storage or remote libSQL.
 
-```bash
-DATABASE_URL=postgresql://pagescms:pagescms@localhost:5432/pagescms
-BETTER_AUTH_SECRET=your-random-secret
-CRYPTO_KEY=your-random-secret
-```
+## Self-hosting and upgrades
 
-Optional but useful:
+For a source checkout, `pnpm build` and `pnpm preview` build and serve the Node app. See the [Workers guide](docs/development/cloudflare.md) for the Cloudflare build and deployment commands.
 
-```bash
-BASE_URL=https://cms.example.com
-ADMIN_EMAILS=admin@example.com
-```
+Upgrading from 2.x keeps repository content and configuration in GitHub. Use a freshly migrated SQLite/D1 database and the [collaborator migration guide](docs/development/postgresql-migration.md) to transfer retained assignments from PostgreSQL. Port third-party custom fields using the [field migration guide](src/fields/custom/README.md#porting-a-version-2-field).
 
-Notes:
+## Development checks
 
-- In production, `BASE_URL` should be the single canonical URL for the app.
-- Do not mix a custom domain and a `*.netlify.app` URL for the same install.
-- `ADMIN_EMAILS` is a comma-separated allowlist for access to the admin panel.
+| Command                                           | What it checks                                                                                                                       |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `pnpm validate`                                   | Translations, formatting, lint, types, unit tests and Workers dry run                                                                |
+| `pnpm test:integration`                           | Persistence against isolated SQLite and local D1                                                                                     |
+| `pnpm test:e2e`                                   | Browser workflows with an isolated database and GitHub fixture. Install Chromium first with `pnpm exec playwright install chromium`. |
+| `pnpm test:package`                               | A packed core and sample plugin installed in a separate application, including Node and local Workers builds                         |
+| `pnpm reference:build` and `pnpm reference:check` | Generate and verify the public docs artifact and portable configuration reference                                                    |
 
-Generate secrets with:
+## Documentation and contributing
 
-```bash
-openssl rand -base64 32
-```
+- [Documentation index](docs/index.md) and [architecture](ARCHITECTURE.md)
+- [Plugin development](docs/development/plugins.md), [webhooks and caching](docs/development/webhooks-and-cache.md) and [testing](docs/development/testing.md)
+- [Compatibility](docs/development/parity.md), [changelog](CHANGELOG.md) and [open work](TODO.md)
+- [Contribution and public documentation guidelines](AGENTS.md#public-documentation-authoring)
 
-5. Create your GitHub App with the helper:
-
-```bash
-npm run setup:github-app -- --base-url http://localhost:3000
-```
-
-Useful options:
-
-- `--owner-type personal|org`
-- `--org <slug>`
-- `--app-name "Pages CMS (local)"`
-- `--env .env.local`
-- `--no-open`
-
-6. Run database migrations:
-
-```bash
-npm run db:migrate
-```
-
-If cache state is known stale or corrupted, clear it with:
-
-```bash
-npm run db:clear-cache
-```
-
-7. Start the app:
-
-```bash
-npm run dev
-```
-
-If you need GitHub webhooks to reach your local app, use a public tunnel URL as the helper `--base-url`.
-
-For more detail, see:
-
-- [Install locally](https://pagescms.org/docs/guides/installing/)
-- [Create the GitHub App](https://pagescms.org/docs/guides/installing/github-app/)
-- [Environment variables](https://pagescms.org/docs/development/environment-variables/)
-- [Caching](https://pagescms.org/docs/development/caching/)
-
-## Support the project
-
-- [Contribute code](https://github.com/pagescms/pagescms/pulls)
-- [Report issues](https://github.com/pagescms/pagescms/issues)
-- [Sponsor me](https://github.com/sponsors/hunvreus)
-- [Star the project on GitHub](https://github.com/pagescms/pagescms)
-- [Join the Discord chat](https://pagescms.org/chat)
-
-## License
-
-Everything in this repo is released under the [MIT License](LICENSE).
+Edit public guides and navigation in `docs/public/`. The website combines the generated core and hosted documentation artifacts.

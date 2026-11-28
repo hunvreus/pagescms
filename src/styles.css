@@ -1,0 +1,453 @@
+@import 'tailwindcss' source(none);
+@source './';
+@import 'tw-animate-css';
+@import './shadcn-tailwind.css';
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/jetbrains-mono';
+
+@custom-variant dark (&:is(.dark *));
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: 'Inter Variable', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  color-scheme: light;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.6 0.13 163);
+  --chart-1: oklch(0.85 0.13 165);
+  --chart-2: oklch(0.77 0.15 163);
+  --chart-3: oklch(0.7 0.15 162);
+  --chart-4: oklch(0.6 0.13 163);
+  --chart-5: oklch(0.51 0.1 166);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.965 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: oklch(0.922 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: var(--ring);
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: var(--border);
+  --scrollbar-width: 0.625rem;
+  --scrollbar-sm-width: 0.375rem;
+  --scrollbar-radius: 9999px;
+}
+
+.dark {
+  color-scheme: dark;
+  --background: oklch(0.209 0 0);
+  --foreground: oklch(0.95 0 0);
+  --card: oklch(0.255 0 0);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.285 0 0);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.309 0 0);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.285 0 0);
+  --muted-foreground: oklch(0.68 0 0);
+  --accent: oklch(0.321 0 0);
+  --accent-foreground: var(--foreground);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.7 0.15 162);
+  --chart-1: oklch(0.85 0.13 165);
+  --chart-2: oklch(0.77 0.15 163);
+  --chart-3: oklch(0.7 0.15 162);
+  --chart-4: oklch(0.6 0.13 163);
+  --chart-5: oklch(0.51 0.1 166);
+  --sidebar: oklch(0.243 0 0);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: oklch(0.321 0 0);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: var(--ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+@layer utilities {
+  .scrollbar {
+    scrollbar-width: auto;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
+
+  .scrollbar::-webkit-scrollbar {
+    width: var(--scrollbar-width);
+    height: var(--scrollbar-width);
+  }
+
+  .scrollbar-sm {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
+
+  .scrollbar-sm::-webkit-scrollbar {
+    width: var(--scrollbar-sm-width);
+    height: var(--scrollbar-sm-width);
+  }
+
+  .scrollbar::-webkit-scrollbar-track,
+  .scrollbar-sm::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
+
+  .scrollbar::-webkit-scrollbar-thumb,
+  .scrollbar-sm::-webkit-scrollbar-thumb {
+    border: 1px solid transparent;
+    border-radius: var(--scrollbar-radius);
+    background: var(--scrollbar-thumb);
+    background-clip: padding-box;
+  }
+
+  .scrollbar::-webkit-scrollbar-corner,
+  .scrollbar-sm::-webkit-scrollbar-corner {
+    background: var(--scrollbar-track);
+  }
+}
+
+.toaster[data-sonner-toaster] {
+  width: min(
+    var(--width),
+    calc(100vw - var(--offset-left) - var(--offset-right))
+  );
+}
+
+.toaster[data-sonner-toaster][data-x-position='center'] {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+}
+
+.toaster[data-sonner-toaster] [data-sonner-toast][data-styled='true'] {
+  width: max-content;
+  max-width: 100%;
+  padding: 0.625rem 0.75rem;
+}
+
+.toaster[data-sonner-toaster]
+  [data-sonner-toast][data-type='error']
+  :is([data-icon], [data-title], [data-description]) {
+  color: var(--destructive);
+}
+
+.toaster[data-sonner-toaster] [data-sonner-toast][data-x-position='right'] {
+  left: auto;
+}
+
+.toaster[data-sonner-toaster] [data-sonner-toast][data-x-position='center'] {
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+}
+
+@media (max-width: 600px) {
+  .toaster[data-sonner-toaster] {
+    width: min(
+      var(--width),
+      calc(100vw - var(--mobile-offset-left) - var(--mobile-offset-right))
+    );
+  }
+
+  .toaster[data-sonner-toaster][data-x-position='right'] {
+    left: auto;
+    right: var(--mobile-offset-right);
+  }
+}
+
+.pagescms-code-editor .cm-editor {
+  background: transparent !important;
+  @apply pr-[10px] pl-[6px] py-1 text-sm;
+}
+
+.pagescms-code-editor .cm-content {
+  @apply min-h-[8rem] font-mono;
+}
+
+.pagescms-code-editor .cm-tooltip {
+  @apply border-border bg-popover! text-popover-foreground rounded-md border! px-3 py-2 text-xs shadow-md;
+}
+
+.pagescms-code-editor .cm-diagnostic {
+  @apply mb-2 flex! gap-x-2! border-0! p-0! last:mb-0;
+}
+
+.pagescms-code-editor .cm-diagnostic::before {
+  content: '●';
+}
+
+.pagescms-code-editor .cm-diagnostic-error::before {
+  @apply text-destructive;
+}
+
+.pagescms-code-editor .cm-diagnostic-warning::before {
+  @apply text-amber-500;
+}
+
+.pagescms-code-editor .cm-lintRange-error,
+.pagescms-code-editor .cm-lintRange-warning {
+  background-image: none !important;
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+  text-underline-offset: 3px;
+}
+
+.pagescms-code-editor .cm-lintRange-error {
+  text-decoration-color: var(--destructive);
+}
+
+.pagescms-code-editor .cm-lintRange-warning {
+  text-decoration-color: var(--color-amber-500);
+}
+
+.pagescms-code-editor .cm-scroller,
+.pagescms-code-editor .cm-gutters {
+  background: transparent;
+}
+
+@layer components {
+  [data-slot='dialog-close'][data-variant='ghost'] {
+    color: var(--muted-foreground);
+  }
+
+  [data-slot='dialog-close'][data-variant='ghost']:is(:hover, :focus-visible) {
+    color: var(--foreground);
+  }
+  /* Popup containers also have tabindex; only interactive controls get this edge. */
+  :is(
+      button,
+      a[href],
+      input,
+      textarea,
+      select,
+      [role='button'],
+      [role='checkbox'],
+      [role='radio'],
+      [role='switch'],
+      [role='slider']
+    ):focus-visible:not(
+      .cm-content,
+      [role='menuitem'],
+      [role='menuitemcheckbox'],
+      [role='menuitemradio'],
+      [role='option'],
+      [data-slot='input-group-control'],
+      [data-slot='combobox-chip-input']
+    ),
+  [data-slot='input-otp-slot'][data-active='true'],
+  .tiptap[contenteditable='true']:focus {
+    box-shadow: none !important;
+    border-color: var(--ring) !important;
+    outline: 1px solid var(--ring) !important;
+    outline-offset: -1px !important;
+  }
+
+  [data-slot='input-group']:has(
+    [data-slot='input-group-control']:focus-visible
+  ),
+  [data-slot='combobox-chips']:has(
+    [data-slot='combobox-chip-input']:focus-visible
+  ) {
+    box-shadow: none !important;
+    border-color: var(--ring) !important;
+    outline: 1px solid var(--ring) !important;
+    outline-offset: -1px !important;
+  }
+
+  [data-slot='combobox-chips']:has(
+    [data-slot='combobox-chip-input'][aria-invalid='true']:focus-visible
+  ) {
+    border-color: var(--destructive) !important;
+    outline-color: var(--destructive) !important;
+  }
+
+  :is(
+      button,
+      a[href],
+      input,
+      textarea,
+      select,
+      [role='button'],
+      [role='checkbox'],
+      [role='radio'],
+      [role='switch'],
+      [role='slider']
+    )[aria-invalid='true']:focus-visible {
+    border-color: var(--destructive) !important;
+    outline-color: var(--destructive) !important;
+  }
+
+  /* Invalid controls use the same single edge as focused controls. */
+  [aria-invalid='true']:not([data-slot='field']),
+  [data-slot='input-group']:has([aria-invalid='true']),
+  [data-slot='combobox-chips']:has([aria-invalid='true']),
+  [data-slot='input-otp-group']:has([aria-invalid='true']) {
+    box-shadow: none !important;
+  }
+
+  [data-slot='input-otp-slot'][aria-invalid='true'][data-active='true'] {
+    border-color: var(--destructive) !important;
+    outline-color: var(--destructive) !important;
+  }
+
+  /* Radix moves focus here during opening/loading and pointer navigation.
+     Focus is indicated by the items, not an outline around the entire popup. */
+  :is([role='menu'], [role='listbox']) {
+    outline: none;
+  }
+
+  [data-slot='field-label']:has(:focus-visible),
+  .cn-editor .tiptap:focus {
+    box-shadow: none !important;
+  }
+
+  .cn-editor .tiptap {
+    @apply border-input placeholder:text-muted-foreground selection:bg-accent selection:text-foreground dark:bg-input/30 min-h-16 w-full rounded-lg border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] md:text-sm;
+  }
+  .cn-editor .tiptap > :first-child {
+    @apply mt-0;
+  }
+  .cn-editor .tiptap > :last-child {
+    @apply mb-0;
+  }
+  .cn-editor .tiptap h1 {
+    @apply mt-8 mb-3 scroll-m-20 text-4xl font-bold tracking-tight text-balance;
+  }
+  .cn-editor .tiptap h2 {
+    @apply mt-8 mb-3 scroll-m-20 text-3xl font-medium tracking-tight first:mt-0;
+  }
+  .cn-editor .tiptap h3 {
+    @apply mt-6 mb-2 scroll-m-20 text-2xl font-medium tracking-tight;
+  }
+  .cn-editor .tiptap p {
+    @apply leading-7 [&:not(:first-child)]:mt-4;
+  }
+  .cn-editor .tiptap ul {
+    @apply my-4 ml-6 list-disc;
+  }
+  .cn-editor .tiptap ol {
+    @apply my-4 ml-6 list-decimal;
+  }
+  .cn-editor .tiptap blockquote {
+    @apply my-6 border-l-2 pl-6 italic;
+  }
+  .cn-editor .tiptap img {
+    @apply my-4 transition-shadow;
+  }
+  .cn-editor .tiptap a {
+    @apply text-primary font-medium underline decoration-dotted underline-offset-4;
+  }
+  .cn-editor .tiptap code {
+    @apply bg-muted relative rounded px-[0.3rem] py-[0.2rem] font-mono text-sm;
+  }
+  .cn-editor .tiptap pre {
+    @apply bg-background my-4 overflow-x-auto rounded-xl p-4;
+  }
+  .cn-editor .tiptap pre code {
+    @apply bg-transparent p-0;
+  }
+  .cn-editor .tiptap table {
+    @apply my-4 w-full border-collapse;
+  }
+  .cn-editor .tiptap th,
+  .cn-editor .tiptap td {
+    @apply border px-3 py-2 text-left;
+  }
+  .cn-editor .tiptap th {
+    @apply bg-muted font-medium;
+  }
+  .cn-editor .tiptap .selectedCell {
+    @apply text-foreground;
+    outline: 1px solid var(--ring);
+  }
+  .cn-editor .tiptap .selectedCell::after {
+    content: none;
+  }
+}

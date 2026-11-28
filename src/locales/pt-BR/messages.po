@@ -1,0 +1,5593 @@
+#
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2026-11-04 19:07+0800\n"
+"Language: pt-BR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: @lingui/cli\n"
+
+#: ../features/admin/actions-page.tsx
+msgid " · Latest 100 runs"
+msgstr " · Últimas 100 execuções"
+
+#: ../components/content-entry-editor.tsx
+msgid " Unsaved changes and the local draft will also be discarded."
+msgstr " As alterações não salvas e o rascunho local também serão descartados."
+
+#: known-errors.ts
+msgid "''actions'' must be an array of action definitions."
+msgstr "''actions'' deve ser uma série de definições de ação."
+
+#: known-errors.ts
+msgid "''blockKey'' attribute is only valid when ''type'' is ''block''."
+msgstr "O atributo ''blockKey'' só é válido quando ''type'' é ''block''."
+
+#: known-errors.ts
+msgid "''blockKey'' cannot be empty."
+msgstr "''blockKey'' não pode estar vazio."
+
+#: known-errors.ts
+msgid "''blockKey'' must be a string."
+msgstr "''blockKey'' deve ser uma string."
+
+#: known-errors.ts
+msgid "''blocks'' must be an array of field definitions."
+msgstr "''blocks'' deve ser uma matriz de definições de campo."
+
+#: known-errors.ts
+msgid "''cache'' must be a boolean."
+msgstr "''cache'' deve ser um booleano."
+
+#: known-errors.ts
+msgid "''cancelable'' must be a boolean."
+msgstr "''cancelable'' deve ser um booleano."
+
+#: known-errors.ts
+msgid "''categories'' must be an array of strings."
+msgstr "''categories'' deve ser um array de strings."
+
+#: known-errors.ts
+msgid "''collapsible'' must be either a boolean or an object with ''collapsed'' and ''summary'' properties."
+msgstr "''collapsible'' deve ser um booleano ou um objeto com propriedades ''collapsed'' e ''summary''."
+
+#: known-errors.ts
+msgid "''commit'' must be an object."
+msgstr "''commit'' deve ser um objeto."
+
+#: known-errors.ts
+msgid "''component'' must be a string."
+msgstr "''component'' deve ser uma string."
+
+#: known-errors.ts
+msgid "''config'' must be a boolean."
+msgstr "''config'' deve ser um booleano."
+
+#: known-errors.ts
+msgid "''confirm'' must be a boolean or an object."
+msgstr "''confirm'' deve ser um booleano ou um objeto."
+
+#: known-errors.ts
+msgid "''content'' must be an array of objects with at least one entry."
+msgstr "''content'' deve ser um array de objetos com pelo menos uma entrada."
+
+#: known-errors.ts
+msgid "''content'' must be an object."
+msgstr "''content'' deve ser um objeto."
+
+#: known-errors.ts
+msgid "''create'' must be a string."
+msgstr "''create'' deve ser uma string."
+
+#: known-errors.ts
+msgid "''default'' must be an object with ''search'', ''sort'' and ''order'' attributes."
+msgstr "''default'' deve ser um objeto com atributos ''search'', ''sort'' e ''order''."
+
+#: known-errors.ts
+msgid "''delete'' must be a string."
+msgstr "''delete'' deve ser uma string."
+
+#: known-errors.ts
+msgid "''delimiters'' must be a string or array of 2 strings."
+msgstr "''delimiters'' deve ser uma string ou array de 2 strings."
+
+#: known-errors.ts
+msgid "''exclude'' must be an array of strings."
+msgstr "''exclude'' deve ser um array de strings."
+
+#: known-errors.ts
+msgid "''extensions'' must be an array of strings."
+msgstr "''extensions'' deve ser um array de strings."
+
+#: known-errors.ts
+msgid "''field'' must be a boolean or ''create''."
+msgstr "''field'' deve ser booleano ou ''create''."
+
+#: known-errors.ts
+msgid "''fields'' must be an array of action field definitions."
+msgstr "''fields'' deve ser uma matriz de definições de campos de ação."
+
+#: known-errors.ts
+msgid "''fields'' must be an array of field definitions."
+msgstr "''fields'' deve ser uma matriz de definições de campo."
+
+#: known-errors.ts
+msgid "''fields'' must be an array of strings."
+msgstr "''fields'' deve ser um array de strings."
+
+#: known-errors.ts
+msgid "''fields[].name'' must be alphanumeric with dashes and underscores."
+msgstr "''fields[].name'' deve ser alfanumérico com travessões e sublinhados."
+
+#: known-errors.ts
+msgid "''fields[].options'' is only allowed for select fields."
+msgstr "''fields[].options'' é permitido apenas para campos selecionados."
+
+#: known-errors.ts
+msgid "''fields[].options'' is required for select fields."
+msgstr "''fields[].options'' é obrigatório para campos selecionados."
+
+#: known-errors.ts
+msgid "''fields[].type'' must be ''text'', ''textarea'', ''select'', ''checkbox'', or ''number''."
+msgstr "''fields[].type'' deve ser ''text'', ''textarea'', ''select'', ''checkbox'' ou ''number''."
+
+#: known-errors.ts
+msgid "''filename'' must be a string or an object."
+msgstr "''filename'' deve ser uma string ou um objeto."
+
+#: known-errors.ts
+msgid "''filename'' object must contain ''template'' and optionally ''field''."
+msgstr "O objeto ''filename'' deve conter ''template'' e opcionalmente ''field''."
+
+#: known-errors.ts
+msgid "''foldersFirst'' must be a boolean."
+msgstr "''foldersFirst'' deve ser um booleano."
+
+#: known-errors.ts
+msgid "''format'' must be ''yaml-frontmatter'', ''json-frontmatter'', ''tom-frontmatter'', ''yaml'', ''json'', ''toml'', ''datagrid'', ''code'' or ''raw''."
+msgstr "''format'' deve ser ''yaml-frontmatter'', ''json-frontmatter'', ''tom-frontmatter'', ''yaml'', ''json'', ''toml'', ''datagrid'', ''code'' ou ''raw''."
+
+#: known-errors.ts
+msgid "''hidden'' must be a boolean."
+msgstr "''hidden'' deve ser um booleano."
+
+#: known-errors.ts
+msgid "''hide'' must be a boolean."
+msgstr "''hide'' deve ser um booleano."
+
+#: known-errors.ts
+msgid "''hideDirs'' must be one of ''nodes'', ''others'', or ''all''."
+msgstr "''hideDirs'' deve ser um de ''nodes'', ''others'' ou ''all''."
+
+#: known-errors.ts
+msgid "''icon'' must be a Hugeicons name, with or without the Icon suffix (e.g. News01 or News01Icon)."
+msgstr "''icon'' deve ser um nome Hugeicons, com ou sem o sufixo Icon (por exemplo, News01 ou News01Icon)."
+
+#: known-errors.ts
+msgid "''identity'' must be either ''app'' or ''user''."
+msgstr "''identity'' deve ser ''app'' ou ''user''."
+
+#: known-errors.ts
+msgid "''input'' cannot escape the repository root."
+msgstr "''input'' não pode escapar da raiz do repositório."
+
+#: known-errors.ts
+msgid "''input'' is required."
+msgstr "''input'' é obrigatório."
+
+#: known-errors.ts
+msgid "''input'' must be a valid relative path (no leading or trailing slash)."
+msgstr "''input'' deve ser um caminho relativo válido (sem barra inicial ou final)."
+
+#: known-errors.ts
+msgid "''items'' must be an array of content entries."
+msgstr "''items'' deve ser uma matriz de entradas de conteúdo."
+
+#: known-errors.ts
+msgid "''label'' must be a string or ''false''."
+msgstr "''label'' deve ser uma string ou ''false''."
+
+#: known-errors.ts
+msgid "''layout'' must be either ''tree'' or ''list''."
+msgstr "''layout'' deve ser ''tree'' ou ''list''."
+
+#: known-errors.ts
+msgid "''list'' must be either a boolean or an object with ''min'' and ''max'' properties."
+msgstr "''list'' deve ser um booleano ou um objeto com propriedades ''min'' e ''max''."
+
+#: known-errors.ts
+msgid "''media'' cannot escape the repository root."
+msgstr "''media'' não pode escapar da raiz do repositório."
+
+#: known-errors.ts
+msgid "''media'' must be a string, an object, or an array of named media configurations."
+msgstr "''media'' deve ser uma string, um objeto ou uma matriz de configurações de mídia nomeadas."
+
+#: known-errors.ts
+msgid "''media'' must be a valid relative path (no leading or trailing slash)."
+msgstr "''media'' deve ser um caminho relativo válido (sem barra inicial ou final)."
+
+#: known-errors.ts
+msgid "''merge'' must be a boolean."
+msgstr "''merge'' deve ser um booleano."
+
+#: known-errors.ts
+msgid "''message'' must be a string."
+msgstr "''message'' deve ser uma string."
+
+#: known-errors.ts
+msgid "''name'' must be alphanumeric with dashes and underscores."
+msgstr "''name'' deve ser alfanumérico com travessões e sublinhados."
+
+#: known-errors.ts
+msgid "''node'' must be a string or an object with ''filename'' and ''hideDirs''."
+msgstr "''node'' deve ser uma string ou um objeto com ''filename'' e ''hideDirs''."
+
+#: known-errors.ts
+msgid "''node'' must be a string or an object with ''filename'' and optionally ''hideDirs'' attributes."
+msgstr "''node'' deve ser uma string ou um objeto com atributos ''filename'' e opcionalmente ''hideDirs''."
+
+#: known-errors.ts
+msgid "''node'' must contain ''filename'' and optionally ''hideDirs''."
+msgstr "''node'' deve conter ''filename'' e opcionalmente ''hideDirs''."
+
+#: known-errors.ts
+msgid "''operations.create'' must be a boolean."
+msgstr "''operations.create'' deve ser um booleano."
+
+#: known-errors.ts
+msgid "''operations.delete'' must be a boolean."
+msgstr "''operations.delete'' deve ser um booleano."
+
+#: known-errors.ts
+msgid "''operations.rename'' must be a boolean."
+msgstr "''operations.rename'' deve ser um booleano."
+
+#: known-errors.ts
+msgid "''order'' must be either ''asc'' or ''desc''."
+msgstr "''order'' deve ser ''asc'' ou ''desc''."
+
+#: known-errors.ts
+msgid "''output'' is required."
+msgstr "''output'' é obrigatório."
+
+#: known-errors.ts
+msgid "''output'' must be a valid path with no trailing slash."
+msgstr "''output'' deve ser um caminho válido sem barra final."
+
+#: known-errors.ts
+msgid "''path'' cannot escape the repository root."
+msgstr "''path'' não pode escapar da raiz do repositório."
+
+#: known-errors.ts
+msgid "''path'' must be a valid relative path (no leading or trailing slash)."
+msgstr "''path'' deve ser um caminho relativo válido (sem barra inicial ou final)."
+
+#: known-errors.ts
+msgid "''pattern'' must be a string (regex) or an object with ''regex'' and optionally ''message'' properties."
+msgstr "''pattern'' deve ser uma string (regex) ou um objeto com propriedades ''regex'' e opcionalmente ''message''."
+
+#: known-errors.ts
+msgid "''pattern'' must be a valid regex string."
+msgstr "''pattern'' deve ser uma string regex válida."
+
+#: known-errors.ts
+msgid "''primary'' must be a string."
+msgstr "''primary'' deve ser uma string."
+
+#: known-errors.ts
+msgid "''readonly'' must be a boolean."
+msgstr "''readonly'' deve ser um booleano."
+
+#: known-errors.ts
+msgid "''ref'' must be a string."
+msgstr "''ref'' deve ser uma string."
+
+#: known-errors.ts
+msgid "''rename'' must be a boolean, ''safe'', or ''random''."
+msgstr "''rename'' deve ser booleano, ''safe'' ou ''random''."
+
+#: known-errors.ts
+msgid "''rename'' must be a string."
+msgstr "''rename'' deve ser uma string."
+
+#: known-errors.ts
+msgid "''required'' must be a boolean."
+msgstr "''required'' deve ser um booleano."
+
+#: known-errors.ts
+msgid "''scope'' must be ''collection'', ''entry'', ''sidebar'', or ''overview''."
+msgstr "''scope'' deve ser ''collection'', ''entry'', ''sidebar'' ou ''overview''."
+
+#: known-errors.ts
+msgid "''search'' must be a string."
+msgstr "''search'' deve ser uma string."
+
+#: known-errors.ts
+msgid "''search'' must be an array of strings."
+msgstr "''search'' deve ser um array de strings."
+
+#: known-errors.ts
+msgid "''settings'' must be a boolean or an object."
+msgstr "''settings'' deve ser um booleano ou um objeto."
+
+#: known-errors.ts
+msgid "''settings'' must be an object."
+msgstr "''settings'' deve ser um objeto."
+
+#: known-errors.ts
+msgid "''sort'' must be a string."
+msgstr "''sort'' deve ser uma string."
+
+#: known-errors.ts
+msgid "''sort'' must be an array of strings."
+msgstr "''sort'' deve ser um array de strings."
+
+#: known-errors.ts
+msgid "''subfolders'' must be a boolean."
+msgstr "''subfolders'' deve ser um booleano."
+
+#: known-errors.ts
+msgid "''type'' cannot be empty."
+msgstr "''type'' não pode estar vazio."
+
+#: known-errors.ts
+msgid "''type'' must be ''group''."
+msgstr "''type'' deve ser ''group''."
+
+#: known-errors.ts
+msgid "''type'' must be a string."
+msgstr "''type'' deve ser uma string."
+
+#: known-errors.ts
+msgid "''type'' must be a valid field type."
+msgstr "''type'' deve ser um tipo de campo válido."
+
+#: known-errors.ts
+msgid "''update'' must be a string."
+msgstr "''update'' deve ser uma string."
+
+#: known-errors.ts
+msgid "''view'' must be an object with ''fields'', ''primary'', ''sort'', ''search'' and ''default'' attributes."
+msgstr "''view'' deve ser um objeto com atributos ''fields'', ''primary'', ''sort'', ''search'' e ''default''."
+
+#: ../components/structured-content-field.tsx
+msgid "” is not installed."
+msgstr "”não está instalado."
+
+#: known-errors.ts
+msgid "“{value0}” became stale"
+msgstr "“{value0}” ficou obsoleto"
+
+#: known-errors.ts
+msgid "“{value0}” completed"
+msgstr "“{value0}” concluído"
+
+#: known-errors.ts
+msgid "“{value0}” failed"
+msgstr "“{value0}” falhou"
+
+#: known-errors.ts
+msgid "“{value0}” failed to start"
+msgstr "“{value0}” falhou ao iniciar"
+
+#: known-errors.ts
+msgid "“{value0}” is queued"
+msgstr "“{value0}” está na fila"
+
+#: known-errors.ts
+msgid "“{value0}” is running"
+msgstr "“{value0}” está em execução"
+
+#: known-errors.ts
+msgid "“{value0}” needs attention"
+msgstr "“{value0}” precisa de atenção"
+
+#: known-errors.ts
+msgid "“{value0}” succeeded"
+msgstr "“{value0}” bem sucedido"
+
+#: known-errors.ts
+msgid "“{value0}” timed out"
+msgstr "“{value0}” expirou"
+
+#: known-errors.ts
+msgid "“{value0}” was cancelled"
+msgstr "“{value0}” foi cancelado"
+
+#: known-errors.ts
+msgid "“{value0}” was skipped"
+msgstr "“{value0}” foi ignorado"
+
+#: ../features/admin/cache-page.tsx
+msgid "(SHA: "
+msgstr "(SHA: "
+
+#. placeholder {0}: data.metrics.configurations
+#: ../features/admin/admin-page.tsx
+msgid "{0, plural, one {# configuration} other {# configurations}}"
+msgstr "{0, plural, one {# configuração} other {# configurações}}"
+
+#. placeholder {0}: data.directoryCount
+#: ../features/admin/cache-page.tsx
+msgid "{0, plural, one {# directory} other {# directories}}"
+msgstr "{0, plural, one {# pasta} other {# pastas}}"
+
+#. placeholder {0}: data.fileCount
+#: ../features/admin/cache-page.tsx
+msgid "{0, plural, one {# file} other {# files}}"
+msgstr "{0, plural, one {# arquivo} other {# arquivos}}"
+
+#. placeholder {0}: parseErrorPaths.length
+#: ../features/collections/collection-page.tsx
+msgid "{0, plural, one {We couldn't read # file. Some fields may be missing.} other {We couldn't read # files. Some fields may be missing.}}"
+msgstr "{0, plural, one {Não foi possível ler # arquivo. Alguns campos podem estar ausentes.} other {Não foi possível ler # arquivos. Alguns campos podem estar ausentes.}}"
+
+#. placeholder {0}: promoting.path
+#: ../features/collections/collection-page.tsx
+msgid "{0} must become a node entry before it can contain children."
+msgstr "{0} deve se tornar uma entrada de nó antes de poder conter filhos."
+
+#. placeholder {0}: draftSelected.length
+#: ../features/media/media-picker-dialog.tsx
+msgid "{0} selected"
+msgstr "{0} selecionado"
+
+#. placeholder {0}: account.login
+#. placeholder {0}: commit.authorName
+#. placeholder {0}: project.owner
+#: ../components/file-editor-history.tsx
+#: ../components/repository-shell.tsx
+#: ../features/dashboard/recent-repository-list.tsx
+#: ../features/dashboard/repository-selector.tsx
+#: ../features/dashboard/repository-templates.tsx
+#: ../features/settings/user-settings.tsx
+msgid "{0}'s avatar"
+msgstr "Avatar de {0}"
+
+#. placeholder {0}: node.label
+#: ../features/repository/overview-shortcuts.tsx
+msgid "{action} {0}"
+msgstr "{action} {0}"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "{count, plural, one {# field to review. Choose what to keep.} other {# fields to review. Choose what to keep.}}"
+msgstr "{count, plural, one {# campo para revisar. Escolha o que manter.} other {# campos para revisar. Escolha o que manter.}}"
+
+#: known-errors.ts
+msgid "{count, plural, one {# file uploaded} other {# files uploaded}}"
+msgstr "{count, plural, one {# arquivo enviado} other {# arquivos enviados}}"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "{count, plural, one {This entry was saved while you were editing. # field needs your review. Choose what to keep, then save your changes.} other {This entry was saved while you were editing. # fields need your review. Choose what to keep, then save your changes.}}"
+msgstr "{count, plural, one {Esta entrada foi salva durante sua edição. Revise # campo. Escolha o que manter e salve as alterações.} other {Esta entrada foi salva durante sua edição. Revise # campos. Escolha o que manter e salve as alterações.}}"
+
+#: ../components/structured-content-field.tsx
+msgid "{label} mode"
+msgstr "Modo {label}"
+
+#: ../components/rich-text-field.tsx
+msgid "{label} source"
+msgstr "{label} fonte"
+
+#. placeholder {0}: locales.find((item) => item.code === locale)?.label ?? locale
+#: ../features/editor/field-locale-menu.tsx
+msgid "{label}: {0} language"
+msgstr "{label}: {0} idioma"
+
+#: ../components/repository-shell.tsx
+msgid "{owner}'s avatar"
+msgstr "Avatar de {owner}"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "{remaining, plural, one {# field left to review} other {# fields left to review}}"
+msgstr "{remaining, plural, one {Falta revisar # campo} other {Faltam revisar # campos}}"
+
+#: known-errors.ts
+msgid "{total, plural, one {{uploaded} of # file uploaded} other {{uploaded} of # files uploaded}}"
+msgstr "{total, plural, one {{uploaded} de # arquivo enviado} other {{uploaded} de # arquivos enviados}}"
+
+#: known-errors.ts
+msgid "{total, plural, one {Uploading file…} other {Uploading {current} of # files…}}"
+msgstr "{total, plural, one {Enviando arquivo…} other {Enviando arquivo {current} de #…}}"
+
+#: known-errors.ts
+msgid "{value0} {value1}"
+msgstr "{value0} {value1}"
+
+#: known-errors.ts
+msgid "{value0} allows at most {value1} items"
+msgstr "{value0} permite no máximo {value1} itens"
+
+#: known-errors.ts
+msgid "{value0} allows at most {value1} selections"
+msgstr "{value0} permite no máximo {value1} seleções"
+
+#: known-errors.ts
+msgid "{value0} collaborators added"
+msgstr "{value0} colaboradores adicionados"
+
+#: known-errors.ts
+msgid "{value0} exceeds the 20 MB limit"
+msgstr "{value0} excede o limite de 20 MB"
+
+#: known-errors.ts
+msgid "{value0} failed with status {value1}"
+msgstr "{value0} falhou com status {value1}"
+
+#: known-errors.ts
+msgid "{value0} has an invalid date or date format"
+msgstr "{value0} tem uma data ou formato de data inválido"
+
+#: known-errors.ts
+msgid "{value0} invitations sent"
+msgstr "{value0} convites enviados"
+
+#: known-errors.ts
+msgid "{value0} is already a collaborator"
+msgstr "{value0} já é colaborador"
+
+#: known-errors.ts
+msgid "{value0} is empty; enter a value or remove this item"
+msgstr "{value0} está vazio; insira um valor ou remova este item"
+
+#: known-errors.ts
+msgid "{value0} is required"
+msgstr "{value0} é obrigatório"
+
+#: known-errors.ts
+msgid "{value0} must be a list"
+msgstr "{value0} deve ser uma lista"
+
+#: known-errors.ts
+msgid "{value0} must be a list of {value1}"
+msgstr "{value0} deve ser uma lista de {value1}"
+
+#: known-errors.ts
+msgid "{value0} must be a list of file paths"
+msgstr "{value0} deve ser uma lista de caminhos de arquivo"
+
+#: known-errors.ts
+msgid "{value0} must be a list of valid values"
+msgstr "{value0} deve ser uma lista de valores válidos"
+
+#: known-errors.ts
+msgid "{value0} must be a non-empty value"
+msgstr "{value0} deve ser um valor não vazio"
+
+#: known-errors.ts
+msgid "{value0} must be a non-negative integer"
+msgstr "{value0} deve ser um número inteiro não negativo"
+
+#: known-errors.ts
+msgid "{value0} must be a non-negative integer or -1"
+msgstr "{value0} deve ser um número inteiro não negativo ou -1"
+
+#: known-errors.ts
+msgid "{value0} must be a number"
+msgstr "{value0} deve ser um número"
+
+#: known-errors.ts
+msgid "{value0} must be an object"
+msgstr "{value0} deve ser um objeto"
+
+#: known-errors.ts
+msgid "{value0} must be an object keyed by locale"
+msgstr "{value0} deve ser um objeto codificado por localidade"
+
+#: known-errors.ts
+msgid "{value0} must be text"
+msgstr "{value0} deve ser texto"
+
+#: known-errors.ts
+msgid "{value0} must be true or false"
+msgstr "{value0} deve ser verdadeiro ou falso"
+
+#: known-errors.ts
+msgid "{value0} must select a block type"
+msgstr "{value0} deve selecionar um tipo de bloco"
+
+#: known-errors.ts
+msgid "{value0} must use a configured option"
+msgstr "{value0} deve usar uma opção configurada"
+
+#: known-errors.ts
+msgid "{value0} requires a translation"
+msgstr "{value0} requer uma tradução"
+
+#: known-errors.ts
+msgid "{value0} requires at least {value1} items"
+msgstr "{value0} requer pelo menos {value1} itens"
+
+#: known-errors.ts
+msgid "{value0} requires at least {value1} selections"
+msgstr "{value0} requer pelo menos {value1} seleções"
+
+#: known-errors.ts
+msgid "{value0} sign-in is temporarily unavailable. Try again."
+msgstr "{value0} o login está temporariamente indisponível. Tente novamente."
+
+#: known-errors.ts
+msgid "{value0} uses a disallowed file extension"
+msgstr "{value0} usa uma extensão de arquivo não permitida"
+
+#: known-errors.ts
+msgid "{value0} uses an unknown block type"
+msgstr "{value0} usa um tipo de bloco desconhecido"
+
+#: known-errors.ts
+msgid "{value0}: {value1}"
+msgstr "{value0}: {value1}"
+
+#: known-errors.ts
+msgid "A database URL or D1 binding is required"
+msgstr "É necessária uma URL de banco de dados ou ligação D1"
+
+#: known-errors.ts
+msgid "A destination has a local draft. Keep or discard it before renaming."
+msgstr "Um destino tem um calado local. Guarde-o ou descarte-o antes de renomeá-lo."
+
+#: known-errors.ts
+msgid "A GitHub access token is required"
+msgstr "É necessário um token de acesso do GitHub"
+
+#: known-errors.ts
+msgid "A localized container already includes its children; remove descendant localized flags"
+msgstr "Um contêiner localizado já inclui seus filhos; remover sinalizadores localizados descendentes"
+
+#: known-errors.ts
+msgid "Aborted upload path does not match its request"
+msgstr "O caminho de upload abortado não corresponde à solicitação"
+
+#: ../features/dashboard/about-dialog.tsx
+msgid "About Pages CMS"
+msgstr "Sobre páginas CMS"
+
+#: ../features/repository/repository-route-state.tsx
+#: known-errors.ts
+msgid "Access denied"
+msgstr "Acesso negado"
+
+#: ../features/account/account-menu.tsx
+#: ../features/account/account-messages.ts
+#: ../features/dashboard/repository-templates.tsx
+msgid "Account"
+msgstr "Conta"
+
+#: known-errors.ts
+msgid "Account access could not be verified. Try again later."
+msgstr "Não foi possível verificar o acesso à conta. Tente novamente mais tarde."
+
+#: known-errors.ts
+msgid "Account not found"
+msgstr "Conta não encontrada"
+
+#: ../components/settings-layout.tsx
+msgid "Account settings"
+msgstr "Configurações da conta"
+
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/actions-skeleton.tsx
+#: known-errors.ts
+msgid "Action"
+msgstr "Ação"
+
+#: known-errors.ts
+msgid "Action {value0} was not found"
+msgstr "A ação {value0} não foi encontrada"
+
+#: known-errors.ts
+msgid "Action context {value0} was not found"
+msgstr "O contexto da ação {value0} não foi encontrado"
+
+#: known-errors.ts
+msgid "Action context name is required"
+msgstr "O nome do contexto da ação é obrigatório"
+
+#: known-errors.ts
+msgid "Action context path is outside its configured root"
+msgstr "O caminho do contexto da ação está fora da raiz configurada"
+
+#: known-errors.ts
+msgid "Action context root is invalid"
+msgstr "A raiz do contexto da ação é inválida"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Action required"
+msgstr "Ação necessária"
+
+#: known-errors.ts
+msgid "Action run not found"
+msgstr "Ação executada não encontrada"
+
+#: ../features/admin/actions-page.tsx
+msgid "Action runs pagination"
+msgstr "Ação executa paginação"
+
+#: ../components/repository-shell.tsx
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/actions-skeleton.tsx
+#: ../features/admin/allowlist-table.tsx
+#: ../features/admin/repository-actions-page.tsx
+#: ../routes/github.$owner.$repo.$branch.actions.tsx
+msgid "Actions"
+msgstr "Ações"
+
+#. placeholder {0}: entry.name
+#: ../features/collections/collection-table.tsx
+#: ../features/media/media-entry.tsx
+msgid "Actions for {0}"
+msgstr "Ações para {0}"
+
+#. placeholder {0}: run.id
+#: ../features/admin/actions-page.tsx
+msgid "Actions for run {0}"
+msgstr "Ações para execução {0}"
+
+#: ../features/collaborators/collaborator-status.tsx
+msgid "Active"
+msgstr "Ativo"
+
+#: ../features/activity/activity-feed.tsx
+#: ../features/repository/overview-loading.tsx
+msgid "Activity"
+msgstr "Atividade"
+
+#: ../features/activity/activity-feed.tsx
+msgid "Activity could not be loaded."
+msgstr "A atividade não pôde ser carregada."
+
+#: ../features/repository/overview-shortcuts.tsx
+#: known-errors.ts
+msgid "Add"
+msgstr "Adicionar"
+
+#. placeholder {0}: coordinates.branch
+#: ../features/repository/configuration-required.tsx
+msgid "Add a <0>.pages.yml</0> file on <1>{0}</1> to choose the content and media you want to manage."
+msgstr "Adicione um arquivo <0>.pages.yml</0> em <1>{0}</1> para escolher o conteúdo e a mídia que deseja gerenciar."
+
+#: ../components/collaborator-invite-input.tsx
+#~ msgid "Add an email and press Enter, or paste several addresses."
+#~ msgstr "Adicione um e-mail e pressione Enter ou cole vários endereços."
+
+#. placeholder {0}: node.label
+#: ../features/repository/overview-shortcuts.tsx
+msgid "Add an entry to {0}"
+msgstr "Adicione uma entrada a {0}"
+
+#: ../features/collections/collection-table.tsx
+msgid "Add child"
+msgstr "Adicionar filho"
+
+#. placeholder {0}: entry.name
+#: ../features/collections/collection-table.tsx
+msgid "Add child to {0}"
+msgstr "Adicionar filho a {0}"
+
+#: ../components/ui/editor/index.tsx
+msgid "Add column"
+msgstr "Adicionar coluna"
+
+#: ../components/structured-content-field.tsx
+msgid "Add item"
+msgstr "Adicionar item"
+
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Add multiple email addresses as sign-in rules. Separate addresses with commas, semicolons, or line breaks. Existing rules are kept."
+msgstr "Adicione vários endereços de e-mail como regras de acesso. Separe os endereços por vírgulas, pontos e vírgulas ou quebras de linha. As regras existentes são mantidas."
+
+#: ../components/ui/editor/index.tsx
+msgid "Add row"
+msgstr "Adicionar linha"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Add rule"
+msgstr "Adicionar regra"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "added"
+msgstr "adicionado"
+
+#: ../components/repository-shell.tsx
+#: ../features/account/account-menu.tsx
+#: ../features/account/account-messages.ts
+#: ../routes/admin.tsx
+msgid "Admin"
+msgstr "Administrador"
+
+#: known-errors.ts
+msgid "Admin access required"
+msgstr "Acesso de administrador necessário"
+
+#: ../features/admin/admin-page.tsx
+msgid "Admin action failed."
+msgstr "Falha na ação do administrador."
+
+#: known-errors.ts
+msgid "Admin search is too long"
+msgstr "A pesquisa do administrador é muito longa"
+
+#: ../components/settings-layout.tsx
+msgid "Admin settings"
+msgstr "Configurações de administrador"
+
+#: known-errors.ts
+msgid "Admin user id is required"
+msgstr "O ID do usuário administrador é obrigatório"
+
+#: known-errors.ts
+msgid "after is only valid for custom folder positioning"
+msgstr "after é válido apenas para posicionamento de pasta personalizado"
+
+#: known-errors.ts
+msgid "Alias ''*{value0}'' creates a circular reference."
+msgstr "Alias ''*{value0}'' cria uma referência circular."
+
+#: known-errors.ts
+msgid "Alias ''*{value0}'' must reference an earlier anchor."
+msgstr "Alias ''*{value0}'' deve fazer referência a uma âncora anterior."
+
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/actions-skeleton.tsx
+msgid "All actions"
+msgstr "Todas as ações"
+
+#: ../features/dashboard/branch-manager.tsx
+msgid "All branches"
+msgstr "Todas as filiais"
+
+#: ../components/repository-shell.tsx
+msgid "All branches…"
+msgstr "Todas as filiais…"
+
+#: ../components/repository-shell.tsx
+msgid "All projects"
+msgstr "Todos os projetos"
+
+#: known-errors.ts
+msgid "All sessions revoked"
+msgstr "Todas as sessões revogadas"
+
+#: ../features/admin/sign-in-allowlist.tsx
+#~ msgid "Allow an email, domain, or pattern to sign in."
+#~ msgstr "Permita que um e-mail, domínio ou padrão faça login."
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/allowlist-table.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+#: ../features/settings/settings-navigation.ts
+#~ msgid "Allowlist"
+#~ msgstr "Lista de permissão"
+
+#: ../components/ui/editor/index.tsx
+msgid "ALT"
+msgstr "Alt."
+
+#: known-errors.ts
+msgid "An entry already exists at {value0}"
+msgstr "Já existe uma entrada em {value0}"
+
+#: known-errors.ts
+msgid "An unexpected authentication error occurred."
+msgstr "Ocorreu um erro de autenticação inesperado."
+
+#: known-errors.ts
+msgid "Application database is required"
+msgstr "O banco de dados do aplicativo é obrigatório"
+
+#: ../features/dashboard/repository-dashboard.tsx
+msgid "Ask a project owner to invite"
+msgstr "Peça ao proprietário do projeto para convidar"
+
+#. placeholder {0}: email ?? _t({ message: 'your signed-in email address' })
+#: ../features/dashboard/repository-selector.tsx
+msgid "Ask a project owner to invite {0} to a repository."
+msgstr "Peça ao proprietário do projeto para convidar {0} para um repositório."
+
+#: ../features/account/content-editing-preferences.tsx
+msgid "Ask every time"
+msgstr "Pergunte sempre"
+
+#: ../features/dashboard/repository-dashboard.tsx
+msgid "Ask your administrator to configure the GitHub App."
+msgstr "Peça ao seu administrador para configurar o aplicativo GitHub."
+
+#: known-errors.ts
+msgid "Authentication required"
+msgstr "Autenticação necessária"
+
+#: ../components/settings-back-link.tsx
+msgid "Back"
+msgstr "Voltar"
+
+#. placeholder {0}: entries.at(-2)?.name ?? collection.label
+#. placeholder {0}: entries.at(-2)?.name ?? label
+#. placeholder {0}: parent.label
+#: ../features/collections/collection-page.tsx
+#: ../features/editor/entry-page-header.tsx
+#: ../features/media/media-breadcrumb.tsx
+#~ msgid "Back to {0}"
+#~ msgstr "Voltar para {0}"
+
+#: ../routes/github.$owner.$repo.$branch.tsx
+msgid "Back to project"
+msgstr "Voltar ao projeto"
+
+#: ../features/repository/repository-unavailable-error.tsx
+msgid "Back to projects"
+msgstr "Voltar aos projetos"
+
+#. js-lingui-explicit-id
+#: ../components/root-error.tsx
+msgid "core.fallback.0559813da2"
+msgstr "Voltar aos projetos"
+
+#: ../routes/auth.error.tsx
+msgid "Back to sign in"
+msgstr "Voltar para fazer login"
+
+#: known-errors.ts
+msgid "BETTER_AUTH_SECRET must contain at least 32 characters"
+msgstr "BETTER_AUTH_SECRET deve conter pelo menos 32 caracteres"
+
+#: known-errors.ts
+msgid "BETTER_AUTH_URL must be a valid HTTP URL"
+msgstr "BETTER_AUTH_URL deve ser um URL HTTP válido"
+
+#: ../components/ui/editor/index.tsx
+msgid "Block style"
+msgstr "Estilo de bloco"
+
+#: known-errors.ts
+msgid "Blocks must have a ''fields'' attribute or inherit one from a component."
+msgstr "Os blocos devem ter um atributo ''fields'' ou herdar um de um componente."
+
+#: ../components/ui/editor/index.tsx
+msgid "Bold"
+msgstr "Ousado"
+
+#: ../features/media/media-mutations.ts
+msgid "Both files were kept. Copy saved to {destination}."
+msgstr "Ambos os arquivos foram mantidos. Cópia salva em {destination}."
+
+#: known-errors.ts
+msgid "Branch “{value0}” created"
+msgstr "Filial “{value0}” criada"
+
+#: ../features/dashboard/create-branch-dialog.tsx
+msgid "Branch name"
+msgstr "Nome da filial"
+
+#: ../routes/github.$owner.$repo.$branch.tsx
+msgid "Branch not found"
+msgstr "Filial não encontrada"
+
+#: ../components/repository-shell.tsx
+msgid "Branch: "
+msgstr "Filial: "
+
+#: ../features/dashboard/branch-manager.tsx
+msgid "Branches"
+msgstr "Filiais"
+
+#: ../components/ui/breadcrumb.tsx
+msgid "breadcrumb"
+msgstr "pão ralado"
+
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Bulk import"
+msgstr "Importação em lote"
+
+#: ../components/ui/editor/index.tsx
+#: ../components/ui/editor/slash-command/suggestion.tsx
+msgid "Bulleted list"
+msgstr "Lista com marcadores"
+
+#: ../components/repository-shell.tsx
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/admin-page.tsx
+#: ../features/admin/cache-page.tsx
+#: ../features/admin/cache-skeleton.tsx
+#: ../features/settings/settings-navigation.ts
+#: ../routes/github.$owner.$repo.$branch.cache.tsx
+msgid "Cache"
+msgstr "Cache"
+
+#: known-errors.ts
+msgid "Cache cleared"
+msgstr "Cache limpo"
+
+#: known-errors.ts
+msgid "Cache database is required"
+msgstr "O banco de dados de cache é obrigatório"
+
+#: known-errors.ts
+msgid "Cache management is disabled for this repository"
+msgstr "O gerenciamento de cache está desabilitado para este repositório"
+
+#: ../features/admin/admin-page.tsx
+msgid "Cached data will be fetched again when needed. Repository records, collaborators, and source files are not deleted."
+msgstr "Os dados armazenados em cache serão buscados novamente quando necessário. Registros de repositório, colaboradores e arquivos de origem não são excluídos."
+
+#: ../features/admin/cache-files-trigger.tsx
+#: ../features/admin/cache-files.tsx
+msgid "Cached files"
+msgstr "Arquivos em cache"
+
+#: ../features/admin/admin-page.tsx
+msgid "Cached files and directory listings."
+msgstr "Arquivos em cache e listagens de diretórios."
+
+#: ../features/admin/cache-copy.ts
+msgid "Cached files and listings are fetched again when needed after clearing."
+msgstr "Os arquivos e listagens em cache serão obtidos novamente quando necessário após a limpeza."
+
+#: ../features/admin/cache-files.tsx
+msgid "Cached files pagination"
+msgstr "Paginação de arquivos em cache"
+
+#: ../features/admin/admin-page.tsx
+msgid "Cached repository configurations."
+msgstr "Configurações de repositório em cache."
+
+#: ../components/collection-entry-creator.tsx
+#: ../components/content-entry-editor.tsx
+#: ../components/repository-action-buttons.tsx
+#: ../components/structured-content-field.tsx
+#: ../features/account/delete-account.tsx
+#: ../features/account/profile-picture.tsx
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/admin-page.tsx
+#: ../features/admin/cache-page.tsx
+#: ../features/admin/collaborators-page.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+#: ../features/collections/collection-page.tsx
+#: ../features/content/use-entry-actions.tsx
+#: ../features/dashboard/create-branch-dialog.tsx
+#: ../features/drafts/draft-discard-dialog.tsx
+#: ../features/drafts/draft-merge-dialog.tsx
+#: ../features/editor/commit-message-dialog.tsx
+#: ../features/editor/field-locale-menu.tsx
+#: ../features/editor/file-locale-menu.tsx
+#: ../features/editor/locale-context.tsx
+#: ../features/editor/start-translation-dialog.tsx
+#: ../features/media/media-browser.tsx
+#: ../features/media/media-move-dialog.tsx
+#: known-errors.ts
+msgid "Cancel"
+msgstr "Cancelar"
+
+#: ../features/admin/actions-page.tsx
+msgid "Cancel action run?"
+msgstr "Cancelar execução da ação?"
+
+#: ../features/admin/actions-page.tsx
+msgid "Cancel run"
+msgstr "Cancelar execução"
+
+#: ../features/admin/actions-page.tsx
+msgid "Cancellation requested"
+msgstr "Cancelamento solicitado"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Cancelled"
+msgstr "Cancelado"
+
+#: known-errors.ts
+msgid "Cannot {value0} media property {value1}"
+msgstr "Não é possível {value0} propriedade de mídia {value1}"
+
+#: known-errors.ts
+msgid "Cannot encode an empty route segment"
+msgstr "Não é possível codificar um segmento de rota vazio"
+
+#. placeholder {0}: renaming?.name
+#: ../features/collections/collection-page.tsx
+msgid "Change the filename for {0}."
+msgstr "Altere o nome do arquivo para {0}."
+
+#: ../components/content-entry-editor.tsx
+msgid "Change the filename for this entry. Saving creates a commit."
+msgstr "Altere o nome do arquivo para esta entrada. Salvar cria um commit."
+
+#: ../features/media/media-browser.tsx
+#~ msgid "Check your connection and try again."
+#~ msgstr "Verifique sua conexão e tente novamente."
+
+#: ../features/account/profile-setup-heading.tsx
+msgid "Check your name and picture before you continue."
+msgstr "Verifique seu nome e foto antes de continuar."
+
+#: ../features/editor/file-locale-menu.tsx
+msgid "Checking translations…"
+msgstr "Verificando traduções…"
+
+#: ../components/structured-content-field.tsx
+msgid "Choose a content block"
+msgstr "Escolha um bloco de conteúdo"
+
+#: ../features/media/media-move-dialog.tsx
+msgid "Choose a folder for this file."
+msgstr "Escolha uma pasta para este arquivo."
+
+#: ../features/editor/commit-message-dialog.tsx
+msgid "Choose a message for this content save."
+msgstr "Escolha uma mensagem para salvar este conteúdo."
+
+#. placeholder {0}: data.collection.path
+#: ../features/collections/collection-page.tsx
+msgid "Choose a path under {0}."
+msgstr "Escolha um caminho em {0}."
+
+#: known-errors.ts
+msgid "Choose a picture smaller than 100 KB."
+msgstr "Escolha uma imagem menor que 100 KB."
+
+#: known-errors.ts
+msgid "Choose a picture smaller than 5 MB."
+msgstr "Escolha uma imagem menor que 5 MB."
+
+#: known-errors.ts
+msgid "Choose a PNG, JPEG or WebP picture."
+msgstr "Escolha uma imagem PNG, JPEG ou WebP."
+
+#: known-errors.ts
+msgid "Choose a version for every conflicting field."
+msgstr "Escolha uma versão para cada campo conflitante."
+
+#: ../components/rich-text-field.tsx
+msgid "Choose an image"
+msgstr "Escolha uma imagem"
+
+#: ../components/structured-content-field.tsx
+msgid "Choose files"
+msgstr "Escolha os arquivos"
+
+#: ../components/structured-content-field.tsx
+msgid "Choose images"
+msgstr "Escolha imagens"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "Choose one complete list."
+msgstr "Escolha uma lista completa."
+
+#: known-errors.ts
+msgid "Choose one picture at a time."
+msgstr "Escolha uma foto de cada vez."
+
+#: ../features/account/language-field.tsx
+msgid "Choose the language used by the app. Content languages stay unchanged."
+msgstr "Escolha o idioma usado pelo aplicativo. Os idiomas do conteúdo permanecem inalterados."
+
+#: ../features/drafts/draft-merge-dialog.tsx
+#~ msgid "Choose which version to keep"
+#~ msgstr "Escolha qual versão manter"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+#~ msgid "Choose which version to keep, then save."
+#~ msgstr "Escolha qual versão manter e salve."
+
+#: known-errors.ts
+msgid "Circular component reference: {value0}"
+msgstr "Referência de componente circular: {value0}"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/admin-page.tsx
+#: ../features/admin/cache-page.tsx
+#: ../features/admin/cache-skeleton.tsx
+msgid "Clear"
+msgstr "Limpar"
+
+#. placeholder {0}: row.title.toLowerCase()
+#: ../features/admin/cache-page.tsx
+msgid "Clear {0} cache"
+msgstr "Limpar cache {0}"
+
+#. placeholder {0}: row.title.toLowerCase()
+#: ../features/admin/cache-page.tsx
+msgid "Clear {0} cache?"
+msgstr "Limpar cache {0}?"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/admin-page.tsx
+#: ../features/admin/cache-page.tsx
+#: ../features/admin/cache-skeleton.tsx
+msgid "Clear all"
+msgstr "Limpar tudo"
+
+#: ../features/admin/admin-page.tsx
+msgid "Clear all cache?"
+msgstr "Limpar todo o cache?"
+
+#: ../features/admin/cache-page.tsx
+msgid "Clear all cached data?"
+msgstr "Limpar todos os dados em cache?"
+
+#: ../features/admin/admin-page.tsx
+msgid "Clear configuration cache?"
+msgstr "Limpar cache de configuração?"
+
+#: ../features/admin/admin-page.tsx
+msgid "Clear content cache?"
+msgstr "Limpar cache de conteúdo?"
+
+#: ../features/media/media-browser.tsx
+msgid "Clear search"
+msgstr "Limpar pesquisa"
+
+#: ../components/ui/combobox.tsx
+msgid "Clear selection"
+msgstr "Limpar seleção"
+
+#: ../components/repository-action-buttons.tsx
+#: ../components/ui/dialog.tsx
+#: ../components/ui/sheet.tsx
+msgid "Close"
+msgstr "Fechar"
+
+#: ../components/ui/editor/index.tsx
+msgid "Code"
+msgstr "Código"
+
+#: ../components/ui/editor/index.tsx
+#: ../components/ui/editor/slash-command/suggestion.tsx
+msgid "Code block"
+msgstr "Bloco de código"
+
+#: ../features/admin/collaborators-page.tsx
+#: ../features/admin/collaborators-skeleton.tsx
+msgid "Collaborator"
+msgstr "Colaborador"
+
+#: known-errors.ts
+msgid "Collaborator added"
+msgstr "Colaborador adicionado"
+
+#: ../features/activity/activity-feed-item.tsx
+#: known-errors.ts
+msgid "collaborator permissions"
+msgstr "permissões de colaborador"
+
+#: ../features/admin/collaborators-page.tsx
+msgid "Collaborator removed"
+msgstr "Colaborador removido"
+
+#: ../components/repository-shell.tsx
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/collaborators-page.tsx
+#: ../features/admin/collaborators-skeleton.tsx
+#: ../routes/github.$owner.$repo.$branch.collaborators.tsx
+msgid "Collaborators"
+msgstr "Colaboradores"
+
+#: known-errors.ts
+msgid "Collaborators cannot change repository configuration"
+msgstr "Os colaboradores não podem alterar a configuração do repositório"
+
+#: ../features/collections/collection-table.tsx
+msgid "Collapse"
+msgstr "Recolher"
+
+#: ../components/structured-content-field.tsx
+msgid "Collapse all"
+msgstr "Recolher tudo"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "Collection"
+msgstr "Coleção"
+
+#: known-errors.ts
+msgid "Collection {value0} was not found"
+msgstr "Coleção {value0} não encontrada"
+
+#: known-errors.ts
+msgid "Collection action context is invalid"
+msgstr "O contexto da ação de coleta é inválido"
+
+#: known-errors.ts
+msgid "Collection actions must define a ''scope'' of ''collection'' or ''entry''."
+msgstr "As ações de coleta devem definir um ''scope'' de ''collection'' ou ''entry''."
+
+#: known-errors.ts
+msgid "Collection filename template is missing"
+msgstr "O modelo de nome de arquivo da coleção está ausente"
+
+#: ../features/collections/collection-header.tsx
+msgid "Collection language"
+msgstr "Idioma da coleção"
+
+#: known-errors.ts
+msgid "Collection path is outside its configured root"
+msgstr "O caminho da coleção está fora da raiz configurada"
+
+#: ../features/account/theme-preference.tsx
+msgid "Color mode"
+msgstr "Modo de cores"
+
+#: ../components/ui/editor/index.tsx
+msgid "Columns:"
+msgstr "Colunas:"
+
+#: ../components/ui/command.tsx
+#: known-errors.ts
+msgid "Command Palette"
+msgstr "Paleta de Comandos"
+
+#: ../features/editor/commit-message-dialog.tsx
+msgid "Commit message (optional)"
+msgstr "Mensagem de confirmação (opcional)"
+
+#: known-errors.ts
+msgid "Commit message must be at most 4096 characters"
+msgstr "A mensagem de commit deve ter no máximo 4.096 caracteres"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Completed"
+msgstr "Concluído"
+
+#: known-errors.ts
+msgid "Completed content operations cannot be replayed."
+msgstr "As operações de conteúdo concluídas não podem ser reproduzidas."
+
+#: known-errors.ts
+msgid "Completed media operations cannot be replayed."
+msgstr "As operações de mídia concluídas não podem ser reproduzidas."
+
+#: known-errors.ts
+msgid "Completed operations cannot be replayed."
+msgstr "As operações concluídas não podem ser reproduzidas."
+
+#: known-errors.ts
+msgid "Completed upload path does not match its request"
+msgstr "O caminho de upload concluído não corresponde à solicitação"
+
+#: known-errors.ts
+msgid "Component key must be alphanumeric with dashes and underscores."
+msgstr "A chave do componente deve ser alfanumérica com traços e sublinhados."
+
+#: ../components/repository-shell.tsx
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/admin-page.tsx
+#: ../features/admin/cache-page.tsx
+#: ../features/admin/cache-skeleton.tsx
+#: ../features/admin/configuration-page.tsx
+#: ../features/admin/configuration-skeleton.tsx
+#: ../features/repository/overview-file-item.tsx
+#: ../routes/github.$owner.$repo.$branch.configuration.tsx
+#: known-errors.ts
+msgid "Configuration"
+msgstr "Configuração"
+
+#: known-errors.ts
+msgid "Configuration fields and blocks must be objects"
+msgstr "Campos e blocos de configuração devem ser objetos"
+
+#: ../features/repository/configuration-required.tsx
+msgid "Configuration needs fixing"
+msgstr "A configuração precisa ser corrigida"
+
+#: known-errors.ts
+msgid "Configuration root must be an object"
+msgstr "A raiz da configuração deve ser um objeto"
+
+#: ../features/admin/configuration-page.tsx
+msgid "Configuration saved"
+msgstr "Configuração salva"
+
+#: known-errors.ts
+msgid "Configuration settings are invalid"
+msgstr "As definições de configuração são inválidas"
+
+#: ../features/admin/configuration-setup.tsx
+msgid "Configuration setup"
+msgstr "Configuração"
+
+#: known-errors.ts
+msgid "Configuration source exceeds the 1 MB limit"
+msgstr "A origem da configuração excede o limite de 1 MB"
+
+#: ../features/repository/configuration-required.tsx
+msgid "Configure"
+msgstr "Configurar"
+
+#: ../features/admin/actions-page.tsx
+msgid "Configure inputs before running this workflow."
+msgstr "Configure as entradas antes de executar este fluxo de trabalho."
+
+#: ../features/admin/configuration-setup.tsx
+msgid "Configure your project"
+msgstr "Configure seu projeto"
+
+#: ../features/admin/admin-page.tsx
+msgid "Confirm"
+msgstr "Confirmar"
+
+#: ../features/account/profile-setup-heading.tsx
+#: ../features/account/profile-setup.tsx
+#: ../routes/onboarding.tsx
+msgid "Confirm your details"
+msgstr "Confirme seus dados"
+
+#: known-errors.ts
+msgid "Conflicting media property {value0}"
+msgstr "Propriedade de mídia conflitante {value0}"
+
+#: known-errors.ts
+msgid "Conflicting standalone page namespace {value0}"
+msgstr "Namespace de página autônoma conflitante {value0}"
+
+#: ../features/settings/user-settings.tsx
+msgid "Connect"
+msgstr "Conectar"
+
+#: ../features/settings/user-settings.tsx
+msgid "Connect to access your GitHub repositories."
+msgstr "Conecte-se para acessar seus repositórios GitHub."
+
+#: ../features/settings/user-settings.tsx
+msgid "Connected"
+msgstr "Conectado"
+
+#: ../components/collection-entry-creator.tsx
+#: ../components/content-entry-editor.tsx
+#: ../components/repository-shell.tsx
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/admin-page.tsx
+#: ../features/admin/cache-page.tsx
+#: ../features/admin/cache-skeleton.tsx
+#: known-errors.ts
+msgid "Content"
+msgstr "Conteúdo"
+
+#: known-errors.ts
+msgid "Content allows at most {value0} items"
+msgstr "O conteúdo permite no máximo {value0} itens"
+
+#: ../features/admin/cache-page.tsx
+msgid "Content and configuration for this branch will be fetched again when next needed."
+msgstr "O conteúdo e a configuração deste branch serão buscados novamente na próxima vez que for necessário."
+
+#: ../features/account/content-editing-preferences.tsx
+msgid "Content editing preferences saved"
+msgstr "Preferências de edição de conteúdo salvas"
+
+#: known-errors.ts
+msgid "Content entries must be objects"
+msgstr "As entradas de conteúdo devem ser objetos"
+
+#: known-errors.ts
+msgid "Content i18n must specify a scheme"
+msgstr "O conteúdo i18n deve especificar um esquema"
+
+#: known-errors.ts
+msgid "Content requires at least {value0} items"
+msgstr "O conteúdo requer pelo menos {value0} itens"
+
+#: known-errors.ts
+msgid "Content schema {value0} was not found"
+msgstr "O esquema de conteúdo {value0} não foi encontrado"
+
+#: known-errors.ts
+msgid "Content validation failed"
+msgstr "Falha na validação de conteúdo"
+
+#: ../features/account/profile-loading.tsx
+#: ../features/account/profile-setup.tsx
+msgid "Continue"
+msgstr "Continuar"
+
+#: ../components/sign-in-form.tsx
+msgid "Continue with email"
+msgstr "Continuar com e-mail"
+
+#: ../components/structured-content-field.tsx
+msgid "Convert to translations"
+msgstr "Converter em traduções"
+
+#: ../features/editor/start-translation-dialog.tsx
+msgid "Copy {source} content"
+msgstr "Copiar conteúdo {source}"
+
+#: ../features/editor/file-locale-menu.tsx
+#: ../features/editor/locale-context.tsx
+msgid "Copy content"
+msgstr "Copiar conteúdo"
+
+#: ../features/account/content-editing-preferences.tsx
+msgid "Copy current language"
+msgstr "Copiar idioma atual"
+
+#. placeholder {0}: copy?.label
+#: ../features/editor/file-locale-menu.tsx
+msgid "Copy from {0}?"
+msgstr "Copiar de {0}?"
+
+#: ../features/editor/field-locale-menu.tsx
+#: ../features/editor/file-locale-menu.tsx
+#: ../features/editor/locale-context.tsx
+msgid "Copy from…"
+msgstr "Copiar de…"
+
+#. placeholder {0}: locales.find((item) => item.code === source)?.label
+#. placeholder {1}: locales.find((item) => item.code === locale)?.label
+#: ../features/editor/locale-context.tsx
+msgid "Copy localized content from {0} to {1}. Changes stay in your draft until you save. Shared fields stay unchanged."
+msgstr "Copie o conteúdo localizado de {0} para {1}. As alterações permanecem no seu rascunho até você salvá-las. Os campos compartilhados permanecem inalterados."
+
+#. placeholder {0}: copy?.label
+#: ../features/editor/file-locale-menu.tsx
+msgid "Copy saved content from {0} to {label}. This replaces the current language’s draft, including unsaved changes. The source language stays unchanged. Save when you are ready."
+msgstr "Copie o conteúdo salvo de {0} para {label}. Isso substitui o rascunho do idioma atual, incluindo alterações não salvas. O idioma de origem permanece inalterado. Salve quando estiver pronto."
+
+#: ../features/dashboard/repository-templates.tsx
+msgid "Copy template"
+msgstr "Copiar modelo"
+
+#: known-errors.ts
+msgid "Could not cancel “{value0}”"
+msgstr "Não foi possível cancelar “{value0}”"
+
+#: ../features/account/language-preference.tsx
+msgid "Could not change language. Try again."
+msgstr "Não foi possível alterar o idioma. Tente novamente."
+
+#: ../features/editor/file-locale-menu.tsx
+#~ msgid "Could not check translation availability."
+#~ msgstr "Não foi possível verificar a disponibilidade da tradução."
+
+#: ../features/editor/file-locale-menu.tsx
+#~ msgid "Could not check translations"
+#~ msgstr "Não foi possível verificar as traduções"
+
+#: ../features/editor/file-locale-menu.tsx
+msgid "Could not check translations."
+msgstr "Não foi possível verificar as traduções."
+
+#: ../features/content/content-mutations.ts
+msgid "Could not complete the file operation. Your local draft is retained."
+msgstr "Não foi possível concluir a operação no arquivo. Seu rascunho local foi mantido."
+
+#: ../features/media/media-mutations.ts
+msgid "Could not complete the media operation."
+msgstr "Não foi possível concluir a operação de mídia."
+
+#: known-errors.ts
+msgid "Could not complete the operation."
+msgstr "Não foi possível concluir a operação."
+
+#: ../features/editor/file-locale-menu.tsx
+msgid "Could not copy this language."
+msgstr "Não foi possível copiar este idioma."
+
+#: ../features/collections/collection-page.tsx
+msgid "Could not create folder."
+msgstr "Não foi possível criar a pasta."
+
+#: known-errors.ts
+msgid "Could not create repository identity"
+msgstr "Não foi possível criar a identidade do repositório"
+
+#: ../features/dashboard/create-branch-dialog.tsx
+msgid "Could not create the branch."
+msgstr "Não foi possível criar a ramificação."
+
+#: ../features/dashboard/repository-templates.tsx
+msgid "Could not create the repository."
+msgstr "Não foi possível criar o repositório."
+
+#: ../features/account/delete-account.tsx
+msgid "Could not delete your account. Try again."
+msgstr "Não foi possível excluir sua conta. Tente novamente."
+
+#: ../features/drafts/draft-discard-dialog.tsx
+msgid "Could not discard this draft."
+msgstr "Não foi possível descartar este rascunho."
+
+#: ../features/settings/user-settings.tsx
+msgid "Could not disconnect the GitHub account."
+msgstr "Não foi possível desconectar a conta GitHub."
+
+#: ../features/admin/admin-page.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Could not filter results. Previous results are still shown."
+msgstr "Não foi possível filtrar os resultados. Os resultados anteriores ainda são mostrados."
+
+#: ../features/admin/collaborators-page.tsx
+msgid "Could not invite collaborators."
+msgstr "Não foi possível convidar colaboradores."
+
+#: ../features/settings/account-settings-contribution.tsx
+msgid "Could not load {label}"
+msgstr "Não foi possível carregar {label}"
+
+#: ../features/settings/user-settings-skeleton.tsx
+#: ../features/settings/user-settings.tsx
+msgid "Could not load account settings"
+msgstr "Não foi possível carregar as configurações da conta"
+
+#: ../components/repository-shell.tsx
+#: ../features/dashboard/branch-manager.tsx
+#: ../features/dashboard/create-branch-dialog.tsx
+msgid "Could not load branches."
+msgstr "Não foi possível carregar ramificações."
+
+#: ../features/admin/cache-files.tsx
+msgid "Could not load cached files."
+msgstr "Não foi possível carregar os arquivos em cache."
+
+#: ../features/drafts/use-draft-merge.tsx
+msgid "Could not load change review"
+msgstr "Não foi possível carregar a revisão das alterações"
+
+#: ../features/collections/collection-page.tsx
+#~ msgid "Could not load entries"
+#~ msgstr "Não foi possível carregar as entradas"
+
+#. placeholder {0}: failedEntry.name
+#: ../features/collections/collection-table.tsx
+msgid "Could not load entries for {0}."
+msgstr "Não foi possível carregar as entradas de {0}."
+
+#: ../features/collections/collection-page.tsx
+#~ msgid "Could not load entries."
+#~ msgstr "Não foi possível carregar as entradas."
+
+#: ../components/file-editor-history.tsx
+msgid "Could not load history."
+msgstr "Não foi possível carregar o histórico."
+
+#: ../components/media-thumbnail.tsx
+msgid "Could not load image"
+msgstr "Não foi possível carregar a imagem"
+
+#: ../features/media/media-browser.tsx
+msgid "Could not load media"
+msgstr "Não foi possível carregar a mídia"
+
+#: ../features/media/media-browser.tsx
+#: ../features/media/media-folder-tree.tsx
+msgid "Could not load media."
+msgstr "Não foi possível carregar a mídia."
+
+#: ../features/activity/activity-feed.tsx
+msgid "Could not load more activity."
+msgstr "Não foi possível carregar mais atividades."
+
+#: ../features/dashboard/create-branch-dialog.tsx
+#~ msgid "Could not load or create branches."
+#~ msgstr "Não foi possível carregar ou criar ramificações."
+
+#: ../features/account/content-editing-preferences.tsx
+msgid "Could not load preferences"
+msgstr "Não foi possível carregar as preferências"
+
+#: ../features/dashboard/recent-repository-list.tsx
+msgid "Could not load recently visited projects"
+msgstr "Não foi possível carregar os projetos visitados recentemente"
+
+#: ../components/structured-content-field.tsx
+msgid "Could not load references."
+msgstr "Não foi possível carregar as referências."
+
+#: ../features/dashboard/repository-selector.tsx
+msgid "Could not load repositories."
+msgstr "Não foi possível carregar repositórios."
+
+#: ../features/admin/allowlist-table.tsx
+msgid "Could not load sign-in rules."
+msgstr "Não foi possível carregar as regras de login."
+
+#: ../features/admin/allowlist-table.tsx
+#~ msgid "Could not load the allowlist."
+#~ msgstr "Não foi possível carregar a lista de permissão."
+
+#: ../features/admin/configuration-page.tsx
+msgid "Could not load the latest configuration. Your draft is retained."
+msgstr "Não foi possível carregar a configuração mais recente. Seu rascunho foi mantido."
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "Could not load the latest version. Your draft is retained."
+msgstr "Não foi possível carregar a versão mais recente. Seu rascunho foi mantido."
+
+#: ../features/collections/collection-page.tsx
+#~ msgid "Could not load this language"
+#~ msgstr "Não foi possível carregar este idioma"
+
+#: ../features/collections/collection-page.tsx
+#~ msgid "Could not load this language."
+#~ msgstr "Não foi possível carregar este idioma."
+
+#: ../features/collections/collection-page.tsx
+msgid "Could not load this language. Previous results are still shown."
+msgstr "Não foi possível carregar este idioma. Os resultados anteriores continuam sendo exibidos."
+
+#: ../features/repository/overview-local-files.tsx
+msgid "Could not load your entries."
+msgstr "Não foi possível carregar suas entradas."
+
+#: ../features/admin/actions-page.tsx
+msgid "Could not manage action run."
+msgstr "Não foi possível gerenciar a execução da ação."
+
+#. placeholder {0}: parseErrorPaths.length
+#: ../features/collections/collection-page.tsx
+#~ msgid "Could not parse {0} files."
+#~ msgstr "Não foi possível analisar {0} arquivos."
+
+#: ../features/collections/collection-page.tsx
+#~ msgid "Could not parse this file."
+#~ msgstr "Não foi possível analisar este arquivo."
+
+#: ../features/content/use-entry-actions.tsx
+msgid "Could not prepare the rename."
+msgstr "Não foi possível preparar a alteração do nome."
+
+#: known-errors.ts
+msgid "Could not read {value0}"
+msgstr "Não foi possível ler {value0}"
+
+#: known-errors.ts
+msgid "Could not record action run"
+msgstr "Não foi possível registrar a execução da ação"
+
+#: known-errors.ts
+msgid "Could not record repository identity"
+msgstr "Não foi possível registrar a identidade do repositório"
+
+#: ../features/admin/actions-page.tsx
+#~ msgid "Could not refresh actions"
+#~ msgstr "Não foi possível atualizar as ações"
+
+#: ../features/admin/actions-page.tsx
+#~ msgid "Could not refresh actions."
+#~ msgstr "Não foi possível atualizar as ações."
+
+#: ../features/admin/actions-page.tsx
+msgid "Could not refresh actions. The displayed results may be out of date."
+msgstr "Não foi possível atualizar as ações. Os resultados exibidos podem estar desatualizados."
+
+#: ../features/admin/cache-page.tsx
+msgid "Could not refresh cache status."
+msgstr "Não foi possível atualizar o status do cache."
+
+#: ../features/admin/cache-files.tsx
+msgid "Could not refresh cached files. The displayed results may be out of date."
+msgstr "Não foi possível atualizar os arquivos em cache. Os resultados exibidos podem estar desatualizados."
+
+#: ../features/admin/collaborators-page.tsx
+msgid "Could not refresh collaborators. The displayed results may be out of date."
+msgstr "Não foi possível atualizar os colaboradores. Os resultados exibidos podem estar desatualizados."
+
+#: ../features/collections/collection-page.tsx
+msgid "Could not refresh files."
+msgstr "Não foi possível atualizar os arquivos."
+
+#: ../components/file-editor-history.tsx
+msgid "Could not refresh history. The displayed results may be out of date."
+msgstr "Não foi possível atualizar o histórico. Os resultados exibidos podem estar desatualizados."
+
+#: ../features/media/media-browser.tsx
+msgid "Could not refresh media."
+msgstr "Não foi possível atualizar a mídia."
+
+#: ../features/media/media-browser.tsx
+msgid "Could not refresh media. The displayed results may be out of date."
+msgstr "Não foi possível atualizar a mídia. Os resultados exibidos podem estar desatualizados."
+
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Could not refresh sign-in rules. The displayed results may be out of date."
+msgstr "Não foi possível atualizar as regras de login. Os resultados exibidos podem estar desatualizados."
+
+#: ../features/admin/sign-in-allowlist.tsx
+#~ msgid "Could not refresh the allowlist. The displayed results may be out of date."
+#~ msgstr "Não foi possível atualizar a lista de acesso. Os resultados exibidos podem estar desatualizados."
+
+#: ../features/editor/file-locale-menu.tsx
+msgid "Could not refresh translations. The displayed results may be out of date."
+msgstr "Não foi possível atualizar as traduções. Os resultados exibidos podem estar desatualizados."
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "Could not reload changes"
+msgstr "Não foi possível recarregar as alterações"
+
+#: ../features/admin/collaborators-page.tsx
+msgid "Could not remove collaborator."
+msgstr "Não foi possível remover o colaborador."
+
+#: ../features/drafts/draft-save-button.tsx
+#~ msgid "Could not restore or save this draft."
+#~ msgstr "Não foi possível restaurar ou salvar este rascunho."
+
+#: ../components/content-entry-editor.tsx
+#: ../features/admin/configuration-page.tsx
+#: ../features/drafts/draft-save-button.tsx
+msgid "Could not restore or save this draft. Keep this editor open."
+msgstr "Não foi possível restaurar ou salvar este rascunho. Mantenha este editor aberto."
+
+#: ../components/content-entry-editor.tsx
+#: ../features/admin/configuration-page.tsx
+msgid "Could not review changes"
+msgstr "Não foi possível revisar as alterações"
+
+#: ../components/repository-action-buttons.tsx
+#: ../features/admin/actions-page.tsx
+msgid "Could not run action."
+msgstr "Não foi possível executar a ação."
+
+#: ../features/drafts/use-content-draft.tsx
+#~ msgid "Could not save"
+#~ msgstr "Não foi possível salvar"
+
+#: ../features/drafts/use-content-draft.tsx
+msgid "Could not save changes. Check the draft for details."
+msgstr "Não foi possível salvar as alterações. Consulte o rascunho para mais detalhes."
+
+#: ../features/admin/admin-page.tsx
+#~ msgid "Could not save the default language."
+#~ msgstr "Não foi possível salvar o idioma padrão."
+
+#: ../features/drafts/use-content-draft.tsx
+#~ msgid "Could not save the local draft."
+#~ msgstr "Não foi possível salvar o rascunho local."
+
+#: ../features/drafts/use-draft-merge.tsx
+msgid "Could not save your changes. Your draft is retained."
+msgstr "Não foi possível salvar suas alterações. Seu rascunho foi mantido."
+
+#: ../features/account/profile-fields.tsx
+#: ../features/account/use-profile-editor.ts
+msgid "Could not save your name. Try again."
+msgstr "Não foi possível salvar seu nome. Tente novamente."
+
+#: ../features/account/profile-fields.tsx
+#: ../features/account/use-profile-editor.ts
+msgid "Could not save your picture. Try again."
+msgstr "Não foi possível salvar sua foto. Tente novamente."
+
+#: ../features/account/profile-setup.tsx
+msgid "Could not save your profile. Try again."
+msgstr "Não foi possível salvar seu perfil. Tente novamente."
+
+#: ../components/sign-in-form.tsx
+msgid "Could not sign in. Try again."
+msgstr "Não foi possível fazer login. Tente novamente."
+
+#: ../features/repository/repository-unavailable-error.tsx
+msgid "Could not sign out."
+msgstr "Não foi possível sair."
+
+#: ../features/account/account-menu.tsx
+#: ../features/account/delete-account.tsx
+#: known-errors.ts
+msgid "Could not sign out. Try again."
+msgstr "Não foi possível sair. Tente novamente."
+
+#: ../features/editor/file-locale-menu.tsx
+msgid "Could not start this translation."
+msgstr "Não foi possível iniciar esta tradução."
+
+#: known-errors.ts
+msgid "Could not update “{value0}”. Check Actions for its status."
+msgstr "Não foi possível atualizar “{value0}”. Verifique Ações para seu status."
+
+#: known-errors.ts
+msgid "Could not update action runs. Refresh Actions to try again."
+msgstr "Não foi possível atualizar as execuções de ação. Atualize as ações para tentar novamente."
+
+#: ../features/admin/configuration-page.tsx
+msgid "Could not update configuration. Your local draft is retained."
+msgstr "Não foi possível atualizar a configuração. Seu rascunho local será mantido."
+
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Could not update sign-in rules."
+msgstr "Não foi possível atualizar as regras de login."
+
+#: ../features/admin/sign-in-allowlist.tsx
+#~ msgid "Could not update the allowlist."
+#~ msgstr "Não foi possível atualizar a lista de permissão."
+
+#: ../features/admin/cache-page.tsx
+msgid "Could not update the cache."
+msgstr "Não foi possível atualizar o cache."
+
+#: ../features/repository/overview-media-upload.tsx
+#: known-errors.ts
+msgid "Could not upload media."
+msgstr "Não foi possível fazer upload da mídia."
+
+#: known-errors.ts
+msgid "Could not verify the code."
+msgstr "Não foi possível verificar o código."
+
+#: ../components/sign-in-form.tsx
+#: known-errors.ts
+msgid "Could not verify the sign-in code. Try again."
+msgstr "Não foi possível verificar o código de login. Tente novamente."
+
+#. placeholder {0}: template.repository
+#: ../features/dashboard/repository-templates.tsx
+msgid "Create {0} under one of your GitHub accounts."
+msgstr "Crie {0} em uma de suas contas GitHub."
+
+#: ../routes/github.$owner.$repo.index.tsx
+msgid "Create a branch and add a .pages.yml file to configure this repository."
+msgstr "Crie uma ramificação e adicione um arquivo .pages.yml para configurar este repositório."
+
+#: ../features/dashboard/create-branch-dialog.tsx
+msgid "Create a branch from “"
+msgstr "Crie uma ramificação de “"
+
+#: ../features/collections/collection-page.tsx
+msgid "Create a folder"
+msgstr "Crie uma pasta"
+
+#: ../features/media/media-browser.tsx
+msgid "Create a folder under {directoryPath}."
+msgstr "Crie uma pasta em {directoryPath}."
+
+#: ../features/dashboard/create-branch-dialog.tsx
+msgid "Create branch"
+msgstr "Criar filial"
+
+#: ../components/repository-shell.tsx
+msgid "Create branch…"
+msgstr "Criar filial…"
+
+#: ../features/dashboard/repository-templates.tsx
+msgid "Create copy"
+msgstr "Criar cópia"
+
+#: ../components/collection-entry-creator.tsx
+msgid "Create entry"
+msgstr "Criar entrada"
+
+#: ../features/collections/collection-page.tsx
+#: ../features/media/media-browser.tsx
+msgid "Create folder"
+msgstr "Criar pasta"
+
+#: ../features/dashboard/repository-template-preview.tsx
+msgid "Create from a template"
+msgstr "Criar a partir de um modelo"
+
+#: known-errors.ts
+msgid "Creating entries is disabled for this collection"
+msgstr "A criação de entradas está desativada para esta coleção"
+
+#: known-errors.ts
+msgid "Creating this content is disabled"
+msgstr "A criação deste conteúdo está desativada"
+
+#: ../features/collections/collection-table.tsx
+#: ../features/media/media-browser.tsx
+#: known-errors.ts
+msgid "Creating…"
+msgstr "Criando…"
+
+#: known-errors.ts
+msgid "CRYPTO_KEY must be a base64-encoded 32-byte key"
+msgstr "CRYPTO_KEY deve ser uma chave de 32 bytes codificada em base64"
+
+#: known-errors.ts
+msgid "Custom after must be a directory, not the content file"
+msgstr "Custom after deve ser um diretório, não o arquivo de conteúdo"
+
+#: known-errors.ts
+msgid "Custom after must be an exact ancestor directory of the content path"
+msgstr "Custom after deve ser um diretório ancestral exato do caminho do conteúdo"
+
+#: known-errors.ts
+msgid "Custom filenames are disabled for this collection"
+msgstr "Os nomes de arquivos personalizados estão desabilitados para esta coleção"
+
+#: known-errors.ts
+msgid "D1 bindings require the Cloudflare request bootstrap"
+msgstr "As vinculações D1 exigem o bootstrap de solicitação da Cloudflare"
+
+#: ../features/account/delete-account.tsx
+#: ../features/settings/user-settings-skeleton.tsx
+msgid "Danger zone"
+msgstr "Zona de perigo"
+
+#: ../features/account/theme-preference.tsx
+msgid "Dark"
+msgstr "Escuro"
+
+#: known-errors.ts
+msgid "DATABASE binding is required with CACHE_DATABASE"
+msgstr "A ligação DATABASE é necessária com CACHE_DATABASE"
+
+#: known-errors.ts
+msgid "DATABASE D1 binding is required"
+msgstr "A ligação DATABASE D1 é necessária"
+
+#: known-errors.ts
+msgid "Database readiness check timed out"
+msgstr "A verificação de prontidão do banco de dados expirou"
+
+#: ../features/collections/collection-table-layout.tsx
+msgid "Date"
+msgstr "Data"
+
+#: ../components/content-entry-editor.tsx
+#: ../components/file-editor-menu.tsx
+#: ../features/collections/collection-page.tsx
+#: ../features/collections/collection-table.tsx
+#: ../features/media/media-browser.tsx
+#: ../features/media/media-entry.tsx
+msgid "Delete"
+msgstr "Excluir"
+
+#. placeholder {0}: deleteEntry?.name
+#: ../features/media/media-browser.tsx
+msgid "Delete {0}?"
+msgstr "Excluir {0}?"
+
+#: ../features/account/delete-account.tsx
+#: ../features/settings/settings-navigation.ts
+#: ../features/settings/user-settings-skeleton.tsx
+msgid "Delete account"
+msgstr "Excluir conta"
+
+#: ../components/content-entry-editor.tsx
+#: ../features/collections/collection-page.tsx
+msgid "Delete entry?"
+msgstr "Excluir entrada?"
+
+#: ../features/account/delete-account.tsx
+msgid "Delete your account?"
+msgstr "Excluir sua conta?"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "deleted"
+msgstr "excluído"
+
+#: known-errors.ts
+msgid "Deleting this content is disabled"
+msgstr "A exclusão deste conteúdo está desativada"
+
+#: ../features/media/media-browser.tsx
+msgid "Deleting this file can break links to it in your content."
+msgstr "Excluir este arquivo pode quebrar os links para ele no seu conteúdo."
+
+#: known-errors.ts
+msgid "Delimiters must be strings"
+msgstr "Os delimitadores devem ser strings"
+
+#: ../components/ui/editor/index.tsx
+msgid "Describe image"
+msgstr "Descrever imagem"
+
+#: known-errors.ts
+msgid "Direct upload is unavailable"
+msgstr "O upload direto não está disponível"
+
+#: known-errors.ts
+msgid "Directory refresh failed. Retry to update the cache."
+msgstr "Falha na atualização do diretório. Tente atualizar o cache novamente."
+
+#: ../features/drafts/draft-save-button.tsx
+msgid "Discard"
+msgstr "Descartar"
+
+#: ../features/drafts/draft-discard-dialog.tsx
+#: ../features/drafts/draft-save-button.tsx
+msgid "Discard draft"
+msgstr "Descartar rascunho"
+
+#: ../features/drafts/draft-discard-dialog.tsx
+msgid "Discard local draft?"
+msgstr "Descartar o rascunho local?"
+
+#: ../features/drafts/draft-discard-dialog.tsx
+msgid "Discard your unsaved changes from this browser. This cannot be undone. Saved content in your project will not change."
+msgstr "Descarte as alterações não salvas deste navegador. Isto não pode ser desfeito. O conteúdo salvo em seu projeto não será alterado."
+
+#: ../features/settings/user-settings.tsx
+msgid "Disconnect"
+msgstr "Desconectar"
+
+#: ../features/settings/user-settings.tsx
+msgid "Disconnect your GitHub account?"
+msgstr "Desconectar sua conta GitHub?"
+
+#: ../features/account/profile-loading.tsx
+#: ../features/account/profile-setup.tsx
+#: known-errors.ts
+msgid "Display name"
+msgstr "Nome de exibição"
+
+#: ../features/account/account-copy.ts
+msgid "Displayed in your profile and collaborator lists."
+msgstr "Exibido em seu perfil e listas de colaboradores."
+
+#: ../components/ui/sidebar.tsx
+msgid "Displays the mobile sidebar."
+msgstr "Exibe a barra lateral móvel."
+
+#: ../features/dashboard/about-dialog.tsx
+msgid "Docs"
+msgstr "Documentos"
+
+#: ../features/admin/allowlist-table.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Domain"
+msgstr "Domínio"
+
+#: ../components/ui/editor/html-policy.ts
+msgid "Double-click to edit HTML"
+msgstr "Clique duas vezes para editar HTML"
+
+#: ../components/ui/editor/html-policy.ts
+msgid "Double-click to edit source"
+msgstr "Clique duas vezes para editar a fonte"
+
+#: ../features/drafts/draft-save-button.tsx
+msgid "Download"
+msgstr "Baixar"
+
+#: ../features/drafts/draft-save-button.tsx
+#~ msgid "Download a copy of your draft."
+#~ msgstr "Baixe uma cópia do seu rascunho."
+
+#: ../features/drafts/draft-save-button.tsx
+msgid "Download draft"
+msgstr "Baixar rascunho"
+
+#: ../features/drafts/draft-save-button.tsx
+msgid "Draft"
+msgstr "Rascunho"
+
+#: ../components/content-entry-editor.tsx
+#: ../features/admin/configuration-page.tsx
+msgid "Draft needs attention"
+msgstr "Rascunho precisa de atenção"
+
+#. placeholder {0}: timestamp.toLocaleString(dateI18n.locale, { timeZone: 'UTC', timeZoneName: 'short' })
+#: ../features/repository/overview-file-item.tsx
+msgid "Draft saved {0}"
+msgstr "Rascunho salvo {0}"
+
+#: ../features/repository/overview-loading.tsx
+#: ../features/repository/overview-local-files.tsx
+msgid "Drafts"
+msgstr "Rascunhos"
+
+#: ../features/collections/collection-page.tsx
+msgid "drafts or 2026/launches"
+msgstr "rascunhos ou 2026/lançamentos"
+
+#: ../features/media/media-browser.tsx
+msgid "Drop files to upload"
+msgstr "Solte arquivos para fazer upload"
+
+#: known-errors.ts
+msgid "Duplicate {value0} name \"{value1}\". Also defined at {value2}."
+msgstr "Nome {value0} duplicado \"{value1}\". Também definido em {value2}."
+
+#: ../features/collections/collection-table.tsx
+#: ../features/repository/overview-shortcuts.tsx
+#: known-errors.ts
+msgid "Edit"
+msgstr "Editar"
+
+#. placeholder {0}: node.label
+#: ../features/repository/overview-shortcuts.tsx
+msgid "Edit {0}"
+msgstr "Editar {0}"
+
+#. placeholder {0}: params._splat ?? 'entry'
+#. placeholder {1}: loaderData?.label ?? params.name
+#: ../routes/github.$owner.$repo.$branch.collection.$name_.entry.$.tsx
+msgid "Edit {0} | {1}"
+msgstr "Editar {0} | {1}"
+
+#: ../features/repository/configuration-required.tsx
+msgid "Edit configuration"
+msgstr "Editar configuração"
+
+#: ../components/ui/editor/html-policy.ts
+msgid "Edit HTML"
+msgstr "Editar HTML"
+
+#: ../components/ui/editor/html-policy.ts
+msgid "Edit source"
+msgstr "Editar fonte"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "edited"
+msgstr "editado"
+
+#: ../components/structured-content-field.tsx
+msgid "Editor"
+msgstr "Editor"
+
+#: ../components/sign-in-form.tsx
+#: ../features/account/profile-loading.tsx
+#: ../features/account/profile-setup.tsx
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/allowlist-table.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+#: ../features/settings/user-settings-skeleton.tsx
+#: ../features/settings/user-settings.tsx
+#: known-errors.ts
+msgid "Email"
+msgstr "E-mail"
+
+#: ../components/collaborator-invite-input.tsx
+msgid "Email addresses"
+msgstr "Endereços de e-mail"
+
+#: known-errors.ts
+msgid "Email provider is unavailable"
+msgstr "O provedor de e-mail não está disponível"
+
+#: known-errors.ts
+msgid "Email sign-in is temporarily unavailable. Try again."
+msgstr "O login por e-mail está temporariamente indisponível. Tente novamente."
+
+#: ../features/drafts/draft-field-preview.tsx
+msgid "Empty"
+msgstr "Vazio"
+
+#: ../routes/github.$owner.$repo.index.tsx
+msgid "Empty repository"
+msgstr "Repositório vazio"
+
+#: known-errors.ts
+msgid "Encryption key must contain exactly 32 bytes"
+msgstr "A chave de criptografia deve conter exatamente 32 bytes"
+
+#. placeholder {0}: user.email
+#: ../features/account/delete-account.tsx
+msgid "Enter {0} to confirm"
+msgstr "Digite {0} para confirmar"
+
+#: ../components/collaborator-invite-input.tsx
+#: known-errors.ts
+msgid "Enter a valid email address for each person"
+msgstr "Insira um endereço de e-mail válido para cada pessoa"
+
+#: known-errors.ts
+msgid "Enter a valid email address."
+msgstr "Insira um endereço de e-mail válido."
+
+#: known-errors.ts
+msgid "Enter a valid filename without a folder path"
+msgstr "Digite um nome de arquivo válido sem o caminho da pasta"
+
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Enter a valid rule."
+msgstr "Insira uma regra válida."
+
+#: known-errors.ts
+msgid "Enter at least one email address"
+msgstr "Insira pelo menos um endereço de e-mail"
+
+#: ../features/admin/sign-in-allowlist.tsx
+#~ msgid "Enter email addresses separated by commas or spaces."
+#~ msgstr "Insira endereços de e-mail separados por vírgulas ou espaços."
+
+#: ../features/admin/sign-in-allowlist.tsx
+#~ msgid "Enter or paste email addresses."
+#~ msgstr "Digite ou cole endereços de e-mail."
+
+#: ../components/otp-verification-form.tsx
+msgid "Enter the 6-digit code sent to {email}."
+msgstr "Digite o código de 6 dígitos enviado para {email}."
+
+#: known-errors.ts
+msgid "Enter the 6-digit code."
+msgstr "Digite o código de 6 dígitos."
+
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Enter valid email addresses."
+msgstr "Insira endereços de e-mail válidos."
+
+#: known-errors.ts
+msgid "Enter your account email to confirm deletion."
+msgstr "Digite o e-mail da sua conta para confirmar a exclusão."
+
+#: known-errors.ts
+msgid "Enter your email to confirm account deletion."
+msgstr "Digite seu e-mail para confirmar a exclusão da conta."
+
+#: known-errors.ts
+msgid "Entries in the ''categories'' array must be ''image'', ''document'', ''video'', ''audio'', ''compressed'', ''code'', ''font'', or ''spreadsheet''."
+msgstr "As entradas na matriz ''categories'' devem ser ''image'', ''document'', ''video'', ''audio'', ''compressed'', ''code'', ''font'' ou ''spreadsheet''."
+
+#: known-errors.ts
+msgid "Entries in the ''exclude'' array must be strings."
+msgstr "As entradas na matriz ''exclude'' devem ser strings."
+
+#: known-errors.ts
+msgid "Entries in the ''extensions'' array must be strings."
+msgstr "As entradas na matriz ''extensions'' devem ser strings."
+
+#: known-errors.ts
+msgid "Entries in the ''fields'' array must be strings."
+msgstr "As entradas na matriz ''fields'' devem ser strings."
+
+#: known-errors.ts
+msgid "Entries in the ''search'' array must be strings."
+msgstr "As entradas na matriz ''search'' devem ser strings."
+
+#: known-errors.ts
+msgid "Entries in the ''sort'' array must be strings."
+msgstr "As entradas na matriz ''sort'' devem ser strings."
+
+#: ../features/repository/overview-local-files.tsx
+msgid "Entries you visit will appear here."
+msgstr "As entradas que você visitar aparecerão aqui."
+
+#: known-errors.ts
+msgid "Entry action context is invalid"
+msgstr "O contexto da ação de entrada é inválido"
+
+#: ../components/content-entry-skeleton.tsx
+#: ../components/file-editor-menu.tsx
+#: ../features/admin/configuration-skeleton.tsx
+msgid "Entry actions"
+msgstr "Ações de entrada"
+
+#: known-errors.ts
+msgid "Entry exceeds the 5 MB limit"
+msgstr "A entrada excede o limite de 5 MB"
+
+#: known-errors.ts
+msgid "Entry extension does not match its content schema"
+msgstr "A extensão de entrada não corresponde ao esquema de conteúdo"
+
+#: ../components/content-entry-skeleton.tsx
+#: ../components/file-editor-history.tsx
+#: ../features/admin/configuration-skeleton.tsx
+msgid "Entry history"
+msgstr "Histórico de entrada"
+
+#: known-errors.ts
+msgid "Entry path does not match its configured locale path"
+msgstr "O caminho de entrada não corresponde ao caminho de localidade configurado"
+
+#: known-errors.ts
+msgid "Entry path is outside its configured content root"
+msgstr "O caminho de entrada está fora da raiz de conteúdo configurada"
+
+#: ../components/content-entry-editor.tsx
+msgid "Entry source"
+msgstr "Fonte de entrada"
+
+#: ../features/editor/locale-context.tsx
+msgid "Errors"
+msgstr "Erros"
+
+#: ../features/admin/admin-page.tsx
+msgid "Every user, including you, will be signed out. All integration credentials will be revoked."
+msgstr "Todas as sessões, inclusive a sua, serão encerradas. Todas as credenciais de integração serão revogadas."
+
+#: ../features/editor/file-locale-menu.tsx
+msgid "Existing translation or local draft resumed. Its content was preserved."
+msgstr "A tradução existente ou o rascunho local foram retomados. Seu conteúdo foi preservado."
+
+#: ../features/editor/file-locale-menu.tsx
+msgid "Existing translations"
+msgstr "Traduções existentes"
+
+#: ../features/collections/collection-table.tsx
+msgid "Expand"
+msgstr "Expandir"
+
+#: ../components/structured-content-field.tsx
+msgid "Expand all"
+msgstr "Expandir tudo"
+
+#: known-errors.ts
+msgid "Expected {value0} to be a directory"
+msgstr "Espera-se que {value0} seja um diretório"
+
+#: known-errors.ts
+msgid "Expected {value0} to be a file"
+msgstr "Espera-se que {value0} seja um arquivo"
+
+#: known-errors.ts
+msgid "Expected a JSON object"
+msgstr "Esperava um objeto JSON"
+
+#: known-errors.ts
+msgid "Expected a list at the root of this content file"
+msgstr "Esperava uma lista na raiz deste arquivo de conteúdo"
+
+#: known-errors.ts
+msgid "Failed to read image file."
+msgstr "Falha ao ler o arquivo de imagem."
+
+#: ../features/admin/action-run-status.tsx
+msgid "Failure"
+msgstr "Falha"
+
+#: ../features/dashboard/create-branch-dialog.tsx
+msgid "feature/new-branch"
+msgstr "recurso/nova ramificação"
+
+#: ../components/structured-content-field.tsx
+msgid "Field component “"
+msgstr "Componente de campo “"
+
+#: known-errors.ts
+msgid "Field must have exactly one of ''type'' or ''component''."
+msgstr "O campo deve ter exatamente um entre ''type'' ou ''component''."
+
+#: known-errors.ts
+msgid "Fields with type ''block'' must have a ''blocks'' attribute."
+msgstr "Campos com tipo ''block'' devem ter um atributo ''blocks''."
+
+#: known-errors.ts
+msgid "Fields with type ''object'' must have a ''fields'' attribute."
+msgstr "Campos com tipo ''object'' devem ter um atributo ''fields''."
+
+#: known-errors.ts
+msgid "File {value0} was not found"
+msgstr "Arquivo {value0} não foi encontrado"
+
+#: known-errors.ts
+msgid "File action context is invalid"
+msgstr "O contexto da ação do arquivo é inválido"
+
+#: ../features/media/media-skeleton.tsx
+msgid "File actions"
+msgstr "Ações de arquivo"
+
+#: known-errors.ts
+msgid "File actions cannot define a ''scope''."
+msgstr "As ações do arquivo não podem definir um ''scope''."
+
+#: ../features/content/content-mutations.ts
+msgid "File created"
+msgstr "Arquivo criado"
+
+#: ../features/content/content-mutations.ts
+#: ../features/media/media-mutations.ts
+msgid "File deleted"
+msgstr "Arquivo excluído"
+
+#: ../features/content/use-entry-actions.tsx
+msgid "File deleted. A newer local draft was retained for download."
+msgstr "Arquivo excluído. Um rascunho local mais recente foi mantido para download."
+
+#: ../features/media/media-mutations.ts
+msgid "File moved"
+msgstr "Arquivo movido"
+
+#: ../features/content/content-mutations.ts
+#: ../features/media/media-mutations.ts
+msgid "File renamed"
+msgstr "Arquivo renomeado"
+
+#: ../features/content/use-entry-actions.tsx
+msgid "File renamed. Some local drafts could not be moved and were retained for recovery."
+msgstr "Arquivo renomeado. Alguns rascunhos locais não puderam ser movidos e foram mantidos para recuperação."
+
+#: ../features/content/content-mutations.ts
+msgid "File saved"
+msgstr "Arquivo salvo"
+
+#: ../features/admin/cache-files.tsx
+msgid "File SHA"
+msgstr "SHA do arquivo"
+
+#: ../components/collection-entry-creator.tsx
+#: ../components/content-entry-editor.tsx
+#: ../features/collections/collection-page.tsx
+#: ../features/media/media-browser.tsx
+msgid "Filename"
+msgstr "Nome do arquivo"
+
+#: known-errors.ts
+msgid "Filename position must be prefix or suffix"
+msgstr "A posição do nome do arquivo deve ser prefixo ou sufixo"
+
+#: known-errors.ts
+msgid "Filename separator must contain only dots, underscores or hyphens"
+msgstr "O separador de nome de arquivo deve conter apenas pontos, sublinhados ou hifens"
+
+#: known-errors.ts
+msgid "Filename template must produce a relative path with valid, non-empty segments"
+msgstr "O modelo de nome de arquivo deve gerar um caminho relativo com segmentos válidos e não vazios"
+
+#: ../features/admin/cache-files.tsx
+msgid "Filter cached files"
+msgstr "Filtrar arquivos em cache"
+
+#: ../features/admin/cache-files.tsx
+msgid "Filter cached files…"
+msgstr "Filtrar arquivos em cache…"
+
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/actions-skeleton.tsx
+msgid "Filter runs by action"
+msgstr "Filtrar execuções por ação"
+
+#: ../features/admin/admin-page.tsx
+#: ../features/dashboard/repository-selector.tsx
+msgid "Filtering repositories"
+msgstr "Filtrando repositórios"
+
+#: ../features/admin/admin-page.tsx
+msgid "Filtering users"
+msgstr "Filtrando usuários"
+
+#: known-errors.ts
+msgid "Fix the configuration errors before saving."
+msgstr "Corrija os erros de configuração antes de salvar."
+
+#: ../features/repository/configuration-required.tsx
+msgid "Fix the errors in <0>.pages.yml</0> to manage this branch’s content and media."
+msgstr "Corrija os erros em <0>.pages.yml</0> para gerenciar o conteúdo e a mídia deste branch."
+
+#: ../features/collections/collection-page.tsx
+#: ../features/media/media-mutations.ts
+msgid "Folder created"
+msgstr "Pasta criada"
+
+#: ../features/media/media-browser.tsx
+msgid "Folder name"
+msgstr "Nome da pasta"
+
+#: known-errors.ts
+msgid "Folder name is invalid"
+msgstr "O nome da pasta é inválido"
+
+#: ../features/collections/collection-page.tsx
+msgid "Folder path"
+msgstr "Caminho da pasta"
+
+#: known-errors.ts
+msgid "Folder position collection requires a collection; use parent for a fixed file"
+msgstr "A coleta de posições de pasta requer uma coleção; use pai para um arquivo fixo"
+
+#: known-errors.ts
+msgid "Folder position must be root, collection, parent or custom"
+msgstr "A posição da pasta deve ser raiz, coleção, pai ou personalizada"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "from"
+msgstr "de"
+
+#: known-errors.ts
+msgid "Frontmatter content must contain an object"
+msgstr "O conteúdo do Frontmatter deve conter um objeto"
+
+#: known-errors.ts
+msgid "Frontmatter delimiters must be one string or two strings"
+msgstr "Os delimitadores do Frontmatter devem ser uma ou duas strings"
+
+#: known-errors.ts
+msgid "Frontmatter must contain an object"
+msgstr "Frontmatter deve conter um objeto"
+
+#. placeholder {0}: String(field.name)
+#: ../features/editor/fields/core-field-renderers.tsx
+msgid "Generate {0}"
+msgstr "Gerar {0}"
+
+#: known-errors.ts
+msgid "Git path \"{value0}\" is outside root \"{value1}\""
+msgstr "O caminho Git \"{value0}\" está fora da raiz \"{value1}\""
+
+#: known-errors.ts
+msgid "Git path cannot contain control characters"
+msgstr "O caminho do Git não pode conter caracteres de controle"
+
+#: known-errors.ts
+msgid "Git path cannot escape the repository root"
+msgstr "O caminho do Git não pode escapar da raiz do repositório"
+
+#: ../features/admin/admin-loading.tsx
+msgid "GitHub"
+msgstr "GitHub"
+
+#: ../features/settings/user-settings.tsx
+msgid "GitHub account disconnected"
+msgstr "Conta GitHub desconectada"
+
+#: known-errors.ts
+msgid "GitHub App credentials are required for collaborator access"
+msgstr "As credenciais do aplicativo GitHub são necessárias para acesso de colaborador"
+
+#: ../features/dashboard/repository-dashboard.tsx
+msgid "GitHub App unavailable"
+msgstr "Aplicativo GitHub indisponível"
+
+#: known-errors.ts
+msgid "GitHub authentication is required"
+msgstr "A autenticação do GitHub é necessária"
+
+#: ../features/settings/user-settings.tsx
+msgid "GitHub connection actions"
+msgstr "Ações de conexão do GitHub"
+
+#: ../features/settings/user-settings.tsx
+msgid "GitHub connection is temporarily unavailable."
+msgstr "A conexão GitHub está temporariamente indisponível."
+
+#. js-lingui-explicit-id
+#: known-errors.ts
+msgid "core.error.oauth-credential-decrypt"
+msgstr "As credenciais do GitHub não puderam ser descriptografadas. Reconecte o GitHub."
+
+#: known-errors.ts
+msgid "GitHub installation was not found"
+msgstr "A instalação do GitHub não foi encontrada"
+
+#: known-errors.ts
+msgid "GitHub OAuth credentials must be provided together"
+msgstr "As credenciais do GitHub OAuth devem ser fornecidas juntas"
+
+#: known-errors.ts
+msgid "GitHub profile request failed ({value0})"
+msgstr "Falha na solicitação de perfil do GitHub ({value0})"
+
+#: known-errors.ts
+msgid "GitHub returned an incomplete Git tree; this folder cannot be listed completely"
+msgstr "O GitHub retornou uma árvore Git incompleta; esta pasta não pode ser listada completamente"
+
+#: known-errors.ts
+msgid "GitHub returned an invalid {value0}"
+msgstr "GitHub retornou um {value0} inválido"
+
+#: known-errors.ts
+msgid "GitHub returned an invalid App response"
+msgstr "GitHub retornou uma resposta de aplicativo inválida"
+
+#: known-errors.ts
+msgid "GitHub returned an invalid branch response"
+msgstr "GitHub retornou uma resposta de branch inválida"
+
+#: known-errors.ts
+msgid "GitHub returned an invalid installation"
+msgstr "GitHub retornou uma instalação inválida"
+
+#: known-errors.ts
+msgid "GitHub returned an invalid installation token"
+msgstr "GitHub retornou um token de instalação inválido"
+
+#: known-errors.ts
+msgid "GitHub returned an invalid profile"
+msgstr "GitHub retornou um perfil inválido"
+
+#: known-errors.ts
+msgid "GitHub returned an invalid repository"
+msgstr "GitHub retornou um repositório inválido"
+
+#: known-errors.ts
+msgid "GitHub returned an invalid repository installation"
+msgstr "GitHub retornou uma instalação de repositório inválida"
+
+#: known-errors.ts
+msgid "GitHub returned an invalid token expiry"
+msgstr "GitHub retornou uma expiração de token inválida"
+
+#: known-errors.ts
+msgid "GitHub returned an invalid workflow run"
+msgstr "GitHub retornou uma execução de fluxo de trabalho inválida"
+
+#: known-errors.ts
+msgid "GitHub returned an unsupported account type"
+msgstr "GitHub retornou um tipo de conta não compatível"
+
+#: known-errors.ts
+msgid "GitHub returned an unsupported blob encoding"
+msgstr "GitHub retornou uma codificação de blob não suportada"
+
+#: known-errors.ts
+msgid "GitHub returned an unsupported repository selection"
+msgstr "GitHub retornou uma seleção de repositório não compatível"
+
+#: known-errors.ts
+msgid "GitHub returned invalid commits"
+msgstr "GitHub retornou commits inválidos"
+
+#: known-errors.ts
+msgid "GitHub returned invalid directory entries"
+msgstr "GitHub retornou entradas de diretório inválidas"
+
+#: ../features/admin/actions-page.tsx
+msgid "GitHub will stop the workflow if it is still running."
+msgstr "O GitHub interromperá o fluxo de trabalho se ainda estiver em execução."
+
+#: known-errors.ts
+msgid "GITHUB_APP_ID must be a positive integer"
+msgstr "GITHUB_APP_ID deve ser um número inteiro positivo"
+
+#: known-errors.ts
+msgid "GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY, and CRYPTO_KEY must be provided together"
+msgstr "GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY e CRYPTO_KEY devem ser fornecidos juntos"
+
+#: known-errors.ts
+msgid "GITHUB_APP_NAME must be a GitHub App slug"
+msgstr "GITHUB_APP_NAME deve ser um slug do aplicativo GitHub"
+
+#: known-errors.ts
+msgid "GITHUB_APP_PRIVATE_KEY must be a PEM private key"
+msgstr "GITHUB_APP_PRIVATE_KEY deve ser uma chave privada PEM"
+
+#: ../components/ui/pagination.tsx
+#: ../features/collections/collection-table.tsx
+msgid "Go to next page"
+msgstr "Ir para a próxima página"
+
+#: ../features/repository/repository-route-state.tsx
+msgid "Go to overview"
+msgstr "Ir para a visão geral"
+
+#: ../components/ui/pagination.tsx
+#: ../features/collections/collection-table.tsx
+msgid "Go to previous page"
+msgstr "Ir para a página anterior"
+
+#: known-errors.ts
+msgid "Google OAuth credentials must be provided together"
+msgstr "As credenciais do Google OAuth devem ser fornecidas juntas"
+
+#: ../features/media/media-browser.tsx
+msgid "Grid view"
+msgstr "Visualização em grade"
+
+#: ../components/ui/editor/index.tsx
+#: ../components/ui/editor/slash-command/suggestion.tsx
+msgid "Heading 1"
+msgstr "Título 1"
+
+#: ../components/ui/editor/index.tsx
+#: ../components/ui/editor/slash-command/suggestion.tsx
+msgid "Heading 2"
+msgstr "Título 2"
+
+#: ../components/ui/editor/index.tsx
+#: ../components/ui/editor/slash-command/suggestion.tsx
+msgid "Heading 3"
+msgstr "Título 3"
+
+#: ../features/account/account-menu.tsx
+msgid "Help"
+msgstr "Ajuda"
+
+#: ../features/collections/collection-page.tsx
+#~ msgid "Hide files"
+#~ msgstr "Ocultar arquivos"
+
+#: ../components/content-entry-editor.tsx
+#: ../components/content-entry-skeleton.tsx
+#: ../features/admin/configuration-page.tsx
+#: ../features/admin/configuration-skeleton.tsx
+msgid "History and entry actions"
+msgstr "Histórico e ações de entrada"
+
+#: ../components/file-editor-history.tsx
+msgid "History entries"
+msgstr "Entradas do histórico"
+
+#: known-errors.ts
+msgid "History page must be a positive integer"
+msgstr "A página do histórico precisa ser um número inteiro positivo"
+
+#: known-errors.ts
+msgid "i18n.locales must be unique, including letter case"
+msgstr "i18n.locales deve ser exclusivo, incluindo letras maiúsculas"
+
+#: known-errors.ts
+msgid "i18n.locales must contain between 1 and 50 locales"
+msgstr "i18n.locales deve conter entre 1 e 50 localidades"
+
+#: known-errors.ts
+msgid "i18n.path applies only to the files scheme"
+msgstr "i18n.path se aplica apenas ao esquema de arquivos"
+
+#: known-errors.ts
+msgid "i18n.path.default must be omit or explicit"
+msgstr "i18n.path.default deve ser omitido ou explícito"
+
+#: known-errors.ts
+msgid "i18n.path.type must be filename or folder"
+msgstr "i18n.path.type deve ser o nome do arquivo ou pasta"
+
+#: known-errors.ts
+msgid "i18n.scheme must be files or fields"
+msgstr "i18n.scheme deve ser arquivos ou campos"
+
+#~ msgid "If you were invited, sign in with the email address that received the invitation."
+#~ msgstr "Se você foi convidado, faça login com o endereço de e-mail que recebeu o convite."
+
+#: ../components/ui/editor/slash-command/suggestion.tsx
+msgid "Image"
+msgstr "Imagem"
+
+#: ../components/ui/editor/index.tsx
+msgid "Image alt text"
+msgstr "Texto alternativo da imagem"
+
+#: ../components/ui/editor/index.tsx
+#: known-errors.ts
+msgid "Image uploaded, but preview failed to load"
+msgstr "A imagem foi enviada, mas a visualização não foi carregada"
+
+#: ../components/ui/editor/slash-command/suggestion.tsx
+msgid "Image URL"
+msgstr "URL da imagem"
+
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Import"
+msgstr "Importar"
+
+#: ../features/admin/sign-in-allowlist.tsx
+#~ msgid "Import email addresses"
+#~ msgstr "Importar endereços de e-mail"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+#~ msgid "Import emails"
+#~ msgstr "Importar e-mails"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "in"
+msgstr "em"
+
+#: ../features/admin/action-run-status.tsx
+msgid "In progress"
+msgstr "Em andamento"
+
+#: ../features/dashboard/repository-dashboard.tsx
+msgid "Install GitHub App"
+msgstr "Instale o aplicativo GitHub"
+
+#: ../features/settings/user-settings.tsx
+msgid "Install on another account"
+msgstr "Instalar em outra conta"
+
+#: ../features/dashboard/repository-dashboard.tsx
+msgid "Install the GitHub App"
+msgstr "Instale o aplicativo GitHub"
+
+#: ../features/dashboard/repository-dashboard.tsx
+msgid "Install the GitHub App on your personal account or an organization, then choose which repositories it can access."
+msgstr "Instale o aplicativo GitHub em sua conta pessoal ou em uma organização e escolha quais repositórios ele pode acessar."
+
+#: ../features/settings/settings-navigation.ts
+#: ../features/settings/user-settings.tsx
+msgid "Installations"
+msgstr "Instalações"
+
+#: ../features/account/language-field.tsx
+msgid "Interface language"
+msgstr "Idioma da interface"
+
+#: known-errors.ts
+msgid "Invalid account deletion request."
+msgstr "Solicitação de exclusão de conta inválida."
+
+#: known-errors.ts
+msgid "Invalid action context"
+msgstr "Contexto de ação inválido"
+
+#: known-errors.ts
+msgid "Invalid action dispatch"
+msgstr "Envio de ação inválido"
+
+#: known-errors.ts
+msgid "Invalid action management request"
+msgstr "Solicitação de gerenciamento de ação inválida"
+
+#: known-errors.ts
+msgid "Invalid action request"
+msgstr "Solicitação de ação inválida"
+
+#: known-errors.ts
+msgid "Invalid activity page"
+msgstr "Página de atividade inválida"
+
+#: known-errors.ts
+msgid "Invalid activity request"
+msgstr "Solicitação de atividade inválida"
+
+#: known-errors.ts
+msgid "Invalid admin action"
+msgstr "Ação administrativa inválida"
+
+#: known-errors.ts
+msgid "Invalid admin page"
+msgstr "Página de administração inválida"
+
+#: known-errors.ts
+msgid "Invalid atomic rename plan"
+msgstr "Plano de renomeação atômica inválido"
+
+#: known-errors.ts
+msgid "Invalid base64 content"
+msgstr "Conteúdo base64 inválido"
+
+#: known-errors.ts
+msgid "Invalid branch creation"
+msgstr "Criação de branch inválida"
+
+#: known-errors.ts
+msgid "Invalid branch name"
+msgstr "Nome de filial inválido"
+
+#: known-errors.ts
+msgid "Invalid cache action"
+msgstr "Ação de cache inválida"
+
+#: known-errors.ts
+msgid "Invalid cache filter"
+msgstr "Filtro de cache inválido"
+
+#: known-errors.ts
+msgid "Invalid cache page"
+msgstr "Página de cache inválida"
+
+#: known-errors.ts
+msgid "Invalid cache request"
+msgstr "Solicitação de cache inválida"
+
+#: known-errors.ts
+msgid "Invalid cache target"
+msgstr "Destino de cache inválido"
+
+#: known-errors.ts
+msgid "Invalid collaborator emails"
+msgstr "E-mails de colaboradores inválidos"
+
+#: known-errors.ts
+msgid "Invalid collaborator id"
+msgstr "ID de colaborador inválido"
+
+#: known-errors.ts
+msgid "Invalid collaborator request"
+msgstr "Solicitação de colaborador inválida"
+
+#: known-errors.ts
+msgid "Invalid collection request"
+msgstr "Solicitação de coleta inválida"
+
+#: known-errors.ts
+msgid "Invalid configuration request"
+msgstr "Solicitação de configuração inválida"
+
+#: known-errors.ts
+msgid "Invalid configuration schema contribution in plugin {value0}"
+msgstr "Contribuição de esquema de configuração inválida no plugin {value0}"
+
+#: known-errors.ts
+msgid "Invalid configuration update"
+msgstr "Atualização de configuração inválida"
+
+#: known-errors.ts
+msgid "Invalid editing preferences."
+msgstr "Preferências de edição inválidas."
+
+#: known-errors.ts
+msgid "Invalid encoded route segment"
+msgstr "Segmento de rota codificado inválido"
+
+#: known-errors.ts
+msgid "Invalid entry creation"
+msgstr "Criação de entrada inválida"
+
+#: known-errors.ts
+msgid "Invalid entry deletion"
+msgstr "Exclusão de entrada inválida"
+
+#: known-errors.ts
+msgid "Invalid entry move"
+msgstr "Movimento de entrada inválido"
+
+#: known-errors.ts
+msgid "Invalid entry payload"
+msgstr "Carga útil de entrada inválida"
+
+#: known-errors.ts
+msgid "Invalid entry rename"
+msgstr "Renomeação de entrada inválida"
+
+#: known-errors.ts
+msgid "Invalid entry request"
+msgstr "Solicitação de entrada inválida"
+
+#: known-errors.ts
+msgid "Invalid entry update"
+msgstr "Atualização de entrada inválida"
+
+#: known-errors.ts
+msgid "Invalid file request"
+msgstr "Solicitação de arquivo inválida"
+
+#: known-errors.ts
+msgid "Invalid filename"
+msgstr "Nome de arquivo inválido"
+
+#: known-errors.ts
+msgid "Invalid folder creation"
+msgstr "Criação de pasta inválida"
+
+#: known-errors.ts
+msgid "Invalid GitHub installation id"
+msgstr "ID de instalação do GitHub inválido"
+
+#: known-errors.ts
+msgid "Invalid GitHub webhook payload"
+msgstr "Carga útil do webhook do GitHub inválida"
+
+#: known-errors.ts
+msgid "Invalid immediate tree entry"
+msgstr "Entrada de árvore imediata inválida"
+
+#: known-errors.ts
+msgid "Invalid invitation token"
+msgstr "Token de convite inválido"
+
+#: known-errors.ts
+msgid "Invalid language preference."
+msgstr "Preferência de idioma inválida."
+
+#: known-errors.ts
+msgid "Invalid locale code: {value0}"
+msgstr "Código de localidade inválido: {value0}"
+
+#: known-errors.ts
+msgid "Invalid media deletion"
+msgstr "Exclusão de mídia inválida"
+
+#: known-errors.ts
+msgid "Invalid media delivery provider"
+msgstr "Provedor de entrega de mídia inválido"
+
+#: known-errors.ts
+msgid "Invalid media delivery request"
+msgstr "Solicitação de entrega de mídia inválida"
+
+#: known-errors.ts
+msgid "Invalid media folder creation"
+msgstr "Criação de pasta de mídia inválida"
+
+#: known-errors.ts
+msgid "Invalid media move"
+msgstr "Movimentação de mídia inválida"
+
+#: known-errors.ts
+msgid "Invalid media path"
+msgstr "Caminho de mídia inválido"
+
+#: known-errors.ts
+msgid "Invalid media property {value0} in plugin {value1}"
+msgstr "Propriedade de mídia inválida {value0} no plugin {value1}"
+
+#: known-errors.ts
+msgid "Invalid media rename"
+msgstr "Renomeação de mídia inválida"
+
+#: known-errors.ts
+msgid "Invalid media request"
+msgstr "Solicitação de mídia inválida"
+
+#: known-errors.ts
+msgid "Invalid media storage provider"
+msgstr "Provedor de armazenamento de mídia inválido"
+
+#: known-errors.ts
+msgid "Invalid media upload"
+msgstr "Upload de mídia inválido"
+
+#: known-errors.ts
+msgid "Invalid media upload completion"
+msgstr "Conclusão de upload de mídia inválida"
+
+#: known-errors.ts
+msgid "Invalid media upload initiation"
+msgstr "Início de upload de mídia inválido"
+
+#: known-errors.ts
+msgid "Invalid media variant"
+msgstr "Variante de mídia inválida"
+
+#: known-errors.ts
+msgid "Invalid preferences."
+msgstr "Preferências inválidas."
+
+#: known-errors.ts
+msgid "Invalid profile update."
+msgstr "Atualização de perfil inválida."
+
+#: known-errors.ts
+msgid "Invalid project account"
+msgstr "Conta de projeto inválida"
+
+#: known-errors.ts
+msgid "Invalid project template"
+msgstr "Modelo de projeto inválido"
+
+#: known-errors.ts
+msgid "Invalid raw entry creation"
+msgstr "Criação de entrada bruta inválida"
+
+#: known-errors.ts
+msgid "Invalid reference continuation"
+msgstr "Continuação de referência inválida"
+
+#: known-errors.ts
+msgid "Invalid reference request"
+msgstr "Solicitação de referência inválida"
+
+#: known-errors.ts
+msgid "Invalid repository {value0}"
+msgstr "Repositório inválido {value0}"
+
+#: known-errors.ts
+msgid "Invalid repository ID"
+msgstr "ID de repositório inválido"
+
+#: known-errors.ts
+msgid "Invalid repository identity"
+msgstr "Identidade de repositório inválida"
+
+#: known-errors.ts
+msgid "Invalid repository name"
+msgstr "Nome de repositório inválido"
+
+#: known-errors.ts
+msgid "Invalid repository page"
+msgstr "Página de repositório inválida"
+
+#: known-errors.ts
+msgid "Invalid repository request"
+msgstr "Solicitação de repositório inválida"
+
+#: known-errors.ts
+msgid "Invalid repository search"
+msgstr "Pesquisa de repositório inválida"
+
+#: known-errors.ts
+msgid "Invalid schema for media property {value0}"
+msgstr "Esquema inválido para propriedade de mídia {value0}"
+
+#: known-errors.ts
+msgid "Invalid structured entry update"
+msgstr "Atualização de entrada estruturada inválida"
+
+#: known-errors.ts
+msgid "Invalid template request"
+msgstr "Solicitação de modelo inválida"
+
+#: known-errors.ts
+msgid "Invalid tracked actions"
+msgstr "Ações rastreadas inválidas"
+
+#: known-errors.ts
+msgid "Invalid translation preference."
+msgstr "Preferência de tradução inválida."
+
+#: known-errors.ts
+msgid "Invalid translation rename confirmation"
+msgstr "Confirmação de renomeação de tradução inválida"
+
+#: known-errors.ts
+msgid "Invalid upload rename policy"
+msgstr "Política de renomeação de upload inválida"
+
+#: known-errors.ts
+msgid "Invalid value"
+msgstr "Valor inválido"
+
+#: ../features/collaborators/collaborator-status.tsx
+#: known-errors.ts
+msgid "Invitation expired"
+msgstr "O convite expirou"
+
+#: ../features/collaborators/collaborator-status.tsx
+#: known-errors.ts
+msgid "Invitation pending"
+msgstr "Convite pendente"
+
+#: known-errors.ts
+msgid "Invitation sent"
+msgstr "Convite enviado"
+
+#: ../components/collaborator-invite-input.tsx
+msgid "Invitations expire after 24 hours."
+msgstr "Os convites expiram após 24 horas."
+
+#: ../components/collaborators-loading.tsx
+#: ../features/admin/collaborators-page.tsx
+#: ../features/admin/collaborators-skeleton.tsx
+msgid "Invite collaborator"
+msgstr "Convidar colaborador"
+
+#: ../features/admin/collaborators-page.tsx
+msgid "Invite collaborators"
+msgstr "Convide colaboradores"
+
+#: ../features/admin/collaborators-page.tsx
+msgid "Invite one or more people to edit this repository."
+msgstr "Convide uma ou mais pessoas para editar este repositório."
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "invited"
+msgstr "convidado"
+
+#: ../components/ui/editor/index.tsx
+msgid "Italic"
+msgstr "Itálico"
+
+#: known-errors.ts
+msgid "Item {value0} is empty; enter a value or remove this item"
+msgstr "O item {value0} está vazio; insira um valor ou remova este item"
+
+#: known-errors.ts
+msgid "Item {value0} must be an object"
+msgstr "O item {value0} deve ser um objeto"
+
+#: ../components/content-entry-editor.tsx
+#: known-errors.ts
+msgid "Items"
+msgstr "Itens"
+
+#: ../features/admin/admin-loading.tsx
+msgid "Joined"
+msgstr "Ingressou"
+
+#: ../features/admin/actions-page.tsx
+msgid "Keep running"
+msgstr "Continue correndo"
+
+#: known-errors.ts
+msgid "Keep the current language suffix or folder when renaming a translation"
+msgstr "Manter o sufixo ou pasta do idioma atual ao renomear uma tradução"
+
+#: ../features/drafts/draft-save-button.tsx
+#~ msgid "Keep this tab open until the issue is resolved."
+#~ msgstr "Mantenha esta aba aberta até que o problema seja resolvido."
+
+#: ../features/admin/cache-files.tsx
+msgid "Last change commit"
+msgstr "Último commit"
+
+#. placeholder {0}: formatDistanceToNow(new Date(data.configuration.lastCheckedAt), { addSuffix: true }, dateI18n.locale)
+#: ../features/admin/cache-page.tsx
+msgid "Last checked {0}"
+msgstr "Última verificação {0}"
+
+#: ../features/admin/admin-loading.tsx
+msgid "Last opened"
+msgstr "Aberto pela última vez"
+
+#: ../features/drafts/draft-save-button.tsx
+msgid "Last saved in this browser"
+msgstr "Salvo pela última vez neste navegador"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "Latest saved version"
+msgstr "Última versão salva"
+
+#: ../components/operation-error.tsx
+#: ../features/media/media-browser.tsx
+#: ../lib/notifications.ts
+msgid "Learn more"
+msgstr "Saiba mais"
+
+#: ../features/editor/commit-message-dialog.tsx
+msgid "Leave blank to use the configured message"
+msgstr "Deixe em branco para usar a mensagem configurada"
+
+#: ../features/account/theme-preference.tsx
+msgid "Light"
+msgstr "Luz"
+
+#: ../features/account/theme-preference.tsx
+msgid "Light, dark, or system. Applies only to this browser."
+msgstr "Claro, escuro ou sistema. Aplica-se apenas a este navegador."
+
+#: ../components/ui/editor/index.tsx
+msgid "Link"
+msgstr "Ligação"
+
+#: ../features/media/media-browser.tsx
+msgid "List view"
+msgstr "Visualização de lista"
+
+#: ../components/option-combobox.tsx
+msgid "Load more"
+msgstr "Carregar mais"
+
+#: ../components/ui/spinner.tsx
+msgid "Loading"
+msgstr "Carregando"
+
+#: ../features/admin/admin-loading.tsx
+msgid "Loading {id}"
+msgstr "Carregando {id}"
+
+#: ../features/account/app-header.tsx
+msgid "Loading account menu"
+msgstr "Carregando menu da conta"
+
+#: ../features/admin/actions-skeleton.tsx
+msgid "Loading actions"
+msgstr "Carregando ações"
+
+#: ../features/activity/activity-feed-skeleton.tsx
+msgid "Loading activity"
+msgstr "Carregando atividade"
+
+#: ../components/repository-shell.tsx
+#: ../features/dashboard/branch-manager.tsx
+msgid "Loading branches"
+msgstr "Carregando filiais"
+
+#: ../components/repository-shell.tsx
+msgid "Loading branches…"
+msgstr "Carregando filiais…"
+
+#: ../features/admin/cache-skeleton.tsx
+msgid "Loading cache"
+msgstr "Carregando cache"
+
+#: ../features/admin/admin-loading.tsx
+msgid "Loading cache counts"
+msgstr "Carregando contagens de cache"
+
+#: ../features/drafts/use-draft-merge.tsx
+msgid "Loading change review"
+msgstr "Carregando revisão de alterações"
+
+#: ../features/admin/collaborators-skeleton.tsx
+msgid "Loading collaborators"
+msgstr "Carregando colaboradores"
+
+#: ../features/collections/collection-header.tsx
+#: ../features/collections/collection-skeleton.tsx
+msgid "Loading collection"
+msgstr "Carregando coleção"
+
+#: ../features/admin/configuration-page.tsx
+#: ../features/admin/configuration-skeleton.tsx
+msgid "Loading configuration"
+msgstr "Carregando configuração"
+
+#: ../features/repository/overview-loading.tsx
+msgid "Loading drafts"
+msgstr "Carregando rascunhos"
+
+#: ../components/editor-skeleton.tsx
+#: ../components/ui/editor/index.tsx
+#: known-errors.ts
+msgid "Loading editor"
+msgstr "Carregando editor"
+
+#: ../components/content-entry-skeleton.tsx
+msgid "Loading editor fields"
+msgstr "Carregando campos do editor"
+
+#: ../components/content-entry-skeleton.tsx
+msgid "Loading entry"
+msgstr "Carregando entrada"
+
+#: ../components/file-editor-history.tsx
+msgid "Loading history"
+msgstr "Carregando histórico"
+
+#: ../components/media-thumbnail.tsx
+msgid "Loading image"
+msgstr "Carregando imagem"
+
+#: ../features/media/media-skeleton.tsx
+msgid "Loading media"
+msgstr "Carregando mídia"
+
+#: ../components/option-combobox.tsx
+msgid "Loading options…"
+msgstr "Carregando opções…"
+
+#: ../features/repository/overview-loading.tsx
+msgid "Loading overview"
+msgstr "Visão geral do carregamento"
+
+#: ../features/repository/repository-shell-loading.tsx
+msgid "Loading page"
+msgstr "Carregando página"
+
+#: ../features/account/profile-loading.tsx
+#: ../features/settings/user-settings-skeleton.tsx
+msgid "Loading profile"
+msgstr "Carregando perfil"
+
+#: ../features/dashboard/repository-dashboard.tsx
+#: ../features/dashboard/repository-loading.tsx
+msgid "Loading projects"
+msgstr "Carregando projetos"
+
+#: ../features/repository/overview-loading.tsx
+msgid "Loading recently visited entries"
+msgstr "Carregando entradas visitadas recentemente"
+
+#: ../features/dashboard/repository-loading.tsx
+msgid "Loading repositories"
+msgstr "Carregando repositórios"
+
+#: ../features/repository/repository-shell-loading.tsx
+#: ../routes/github.$owner.$repo.index.tsx
+msgid "Loading repository"
+msgstr "Carregando repositório"
+
+#: ../components/settings-loading.tsx
+msgid "Loading settings"
+msgstr "Carregando configurações"
+
+#: ../features/settings/user-settings-skeleton.tsx
+msgid "Loading sign-in methods"
+msgstr "Carregando métodos de login"
+
+#: ../features/account/content-editing-preferences.tsx
+msgid "Loading…"
+msgstr "Carregando…"
+
+#: ../features/drafts/draft-save-button.tsx
+msgid "Local draft"
+msgstr "Rascunho local"
+
+#: ../features/drafts/draft-save-button.tsx
+msgid "Local draft: {age}"
+msgstr "Rascunho local: {age}"
+
+#: ../features/drafts/draft-save-button.tsx
+msgid "Local draft: needs attention"
+msgstr "Rascunho local: precisa de atenção"
+
+#: ../features/repository/overview-local-files.tsx
+msgid "Local drafts"
+msgstr "Rascunhos locais"
+
+#: ../features/repository/overview.tsx
+msgid "Local drafts could not be loaded. Keep any open editor tabs until you can save."
+msgstr "Não foi possível carregar os rascunhos locais. Mantenha todas as guias abertas do editor até poder salvar."
+
+#: known-errors.ts
+msgid "Locale codes overlap with the filename separator; choose another separator"
+msgstr "Os códigos de localidade se sobrepõem ao separador de nome de arquivo; escolha outro separador"
+
+#: known-errors.ts
+msgid "Locale folder anchor is outside the entry path"
+msgstr "A âncora da pasta local está fora do caminho de entrada"
+
+#: known-errors.ts
+msgid "localized is only valid with i18n.scheme: fields"
+msgstr "localizado só é válido com i18n.scheme: campos"
+
+#: ../features/settings/user-settings.tsx
+msgid "Manage"
+msgstr "Gerenciar"
+
+#: ../features/dashboard/repository-selector.tsx
+msgid "Manage accounts"
+msgstr "Gerenciar contas"
+
+#: ../features/dashboard/repository-selector.tsx
+msgid "Manage repository access"
+msgstr "Gerenciar o acesso ao repositório"
+
+#: ../components/repository-shell.tsx
+#: ../features/activity/activity-feed-item.tsx
+#: ../features/media/media-browser.tsx
+#: ../features/repository/overview-shortcuts.tsx
+#: ../routes/github.$owner.$repo.$branch.media.$name.tsx
+msgid "Media"
+msgstr "Mídia"
+
+#: known-errors.ts
+msgid "Media {value0} was not found"
+msgstr "A mídia {value0} não foi encontrada"
+
+#. placeholder {0}: match.search.path
+#: ../routes/github.$owner.$repo.$branch.media.$name.tsx
+msgid "Media | {0}"
+msgstr "Mídia | {0}"
+
+#. placeholder {0}: match.search.path ? ` / ${match.search.path}` : ''
+#: ../routes/github.$owner.$repo.$branch.media.$name.tsx
+msgid "Media | {label}{0}"
+msgstr "Mídia | {label}{0}"
+
+#: known-errors.ts
+msgid "Media actions cannot use a ''scope'' of ''sidebar'' or ''overview''."
+msgstr "As ações de mídia não podem usar ''scope'' de ''sidebar'' ou ''overview''."
+
+#: known-errors.ts
+msgid "Media asset path must identify a file"
+msgstr "O caminho do recurso de mídia precisa identificar um arquivo"
+
+#: known-errors.ts
+msgid "Media configuration must be a string, object, or array"
+msgstr "A configuração de mídia deve ser uma string, um objeto ou uma matriz"
+
+#: known-errors.ts
+msgid "Media delivery is unavailable"
+msgstr "A entrega de mídia não está disponível"
+
+#: known-errors.ts
+msgid "Media entries must be objects"
+msgstr "As entradas de mídia devem ser objetos"
+
+#: known-errors.ts
+msgid "Media file exceeds the 20 MB limit"
+msgstr "O arquivo de mídia excede o limite de 20 MB"
+
+#: known-errors.ts
+msgid "Media file not found"
+msgstr "Arquivo de mídia não encontrado"
+
+#: known-errors.ts
+msgid "Media filename must be a non-empty file name"
+msgstr "O nome do arquivo de mídia deve ser um nome de arquivo não vazio"
+
+#: known-errors.ts
+msgid "Media folder name is invalid"
+msgstr "O nome da pasta de mídia é inválido"
+
+#: ../components/structured-content-field.tsx
+msgid "Media is not configured for this field. Configure a media library to select or upload files."
+msgstr "A mídia não está configurada para este campo. Configure uma biblioteca de mídia para selecionar ou fazer upload de arquivos."
+
+#: ../components/structured-content-field.tsx
+msgid "Media is not configured."
+msgstr "A mídia não está configurada."
+
+#: ../features/media/media-browser.tsx
+msgid "Media pagination"
+msgstr "Paginação de mídia"
+
+#: known-errors.ts
+msgid "Media path is outside its configured root"
+msgstr "O caminho da mídia está fora da raiz configurada"
+
+#: known-errors.ts
+msgid "Media property {value0} is required by core and cannot be modified"
+msgstr "A propriedade de mídia {value0} é exigida pelo núcleo e não pode ser modificada"
+
+#: known-errors.ts
+msgid "Media session changed"
+msgstr "Sessão de mídia alterada"
+
+#: ../features/media/media-browser.tsx
+msgid "Media view"
+msgstr "Visualização de mídia"
+
+#: ../features/admin/configuration-page.tsx
+msgid "media: media\n"
+"content:\n"
+"  - name: posts\n"
+"    type: collection\n"
+"    path: content/posts"
+msgstr "media: media\n"
+"content:\n"
+"  - name: posts\n"
+"    type: collection\n"
+"    path: content/posts"
+
+#: known-errors.ts
+msgid "Missing HTML policy handler"
+msgstr "Manipulador de política HTML ausente"
+
+#: known-errors.ts
+msgid "Missing media path"
+msgstr "Caminho de mídia ausente"
+
+#: ../features/editor/file-locale-menu.tsx
+msgid "Missing translations"
+msgstr "Traduções ausentes"
+
+#: ../components/ui/breadcrumb.tsx
+msgid "More"
+msgstr "Mais"
+
+#: ../components/ui/pagination.tsx
+msgid "More pages"
+msgstr "Mais páginas"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "More sign-in access actions"
+msgstr "Mais ações de acesso de login"
+
+#: ../features/media/media-move-dialog.tsx
+msgid "Move"
+msgstr "Mover"
+
+#: ../features/media/media-move-dialog.tsx
+msgid "Move {filename}"
+msgstr "Mover {filename}"
+
+#: ../features/collections/collection-page.tsx
+msgid "Move and continue"
+msgstr "Mova-se e continue"
+
+#: ../features/collections/collection-page.tsx
+msgid "Move this entry first?"
+msgstr "Mover esta entrada primeiro?"
+
+#: ../features/media/media-entry.tsx
+msgid "Move to…"
+msgstr "Mover para…"
+
+#: ../features/media/media-mutations.ts
+msgid "Moving {filename}…"
+msgstr "Movendo {filename}…"
+
+#: ../features/media/media-browser.tsx
+#: known-errors.ts
+msgid "Moving…"
+msgstr "Movendo…"
+
+#: ../features/account/account-copy.ts
+#: ../features/admin/admin-loading.tsx
+#: ../features/collections/collection-table-layout.tsx
+#: ../features/dashboard/repository-templates.tsx
+#: ../features/media/media-browser.tsx
+msgid "Name"
+msgstr "Nome"
+
+#: known-errors.ts
+msgid "Name must contain between 1 and 120 characters."
+msgstr "O nome deve conter entre 1 e 120 caracteres."
+
+#: ../components/collaborator-invite-input.tsx
+msgid "name@example.com"
+msgstr "nome@exemplo.com"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Neutral"
+msgstr "Neutro"
+
+#: ../components/collection-entry-creator.tsx
+#: ../features/collections/collection-header.tsx
+#: ../features/collections/collection-skeleton.tsx
+#: known-errors.ts
+msgid "New entry"
+msgstr "Nova entrada"
+
+#. placeholder {0}: loaderData?.label ?? params.name
+#. placeholder {1}: match.loaderDeps.parent ? ` / ${match.loaderDeps.parent}` : ''
+#: ../routes/github.$owner.$repo.$branch.collection.$name_.new.tsx
+msgid "New entry | {0}{1}"
+msgstr "Nova entrada | {0}{1}"
+
+#: ../features/collections/collection-header.tsx
+#: ../features/media/media-browser.tsx
+msgid "New folder"
+msgstr "Nova pasta"
+
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "New sign-ins must match an allowed email, domain, or pattern. With no rules, anyone can sign in. Existing sessions remain active."
+msgstr "Novos acessos devem corresponder a um e-mail, domínio ou padrão permitido. Sem regras, qualquer pessoa pode entrar. As sessões existentes permanecem ativas."
+
+#: ../features/account/content-editing-preferences.tsx
+msgid "New translations"
+msgstr "Novas traduções"
+
+#: ../components/ui/pagination.tsx
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/admin-page.tsx
+#: ../features/admin/cache-files.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+#: ../features/media/media-browser.tsx
+msgid "Next"
+msgstr "Próximo"
+
+#: ../features/collections/collection-cell.tsx
+msgid "No"
+msgstr "Não"
+
+#: ../features/admin/actions-page.tsx
+msgid "No action runs yet."
+msgstr "Nenhuma ação é executada ainda."
+
+#: ../features/admin/actions-page.tsx
+msgid "No actions configured."
+msgstr "Nenhuma ação configurada."
+
+#: ../features/activity/activity-feed.tsx
+msgid "No activity yet. Project changes will appear here."
+msgstr "Nenhuma atividade ainda. As alterações do projeto aparecerão aqui."
+
+#: ../features/admin/allowlist-table.tsx
+#~ msgid "No allowlist entries."
+#~ msgstr "Nenhuma entrada na lista de permissão."
+
+#: ../features/dashboard/branch-manager.tsx
+msgid "No branches found."
+msgstr "Nenhuma filial encontrada."
+
+#: ../features/admin/cache-files.tsx
+msgid "No cached files."
+msgstr "Nenhum arquivo em cache."
+
+#: ../features/admin/collaborators-page.tsx
+msgid "No collaborators yet."
+msgstr "Ainda não há colaboradores."
+
+#: ../features/repository/configuration-required.tsx
+msgid "No configuration yet"
+msgstr "Nenhuma configuração ainda"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "No conflicts. Save to combine your changes."
+msgstr "Sem conflitos. Salve para combinar suas alterações."
+
+#: ../features/repository/overview-local-files.tsx
+msgid "No drafts saved on this device."
+msgstr "Nenhum rascunho salvo neste dispositivo."
+
+#: ../components/structured-content-field.tsx
+msgid "No file selected."
+msgstr "Nenhum arquivo selecionado."
+
+#: ../features/settings/user-settings.tsx
+msgid "No GitHub App installations found."
+msgstr "Nenhuma instalação do aplicativo GitHub encontrada."
+
+#: ../components/file-editor-history.tsx
+msgid "No history found."
+msgstr "Nenhum histórico encontrado."
+
+#: ../components/media-thumbnail.tsx
+msgid "No image"
+msgstr "Nenhuma imagem"
+
+#: known-errors.ts
+msgid "No image types are allowed in this media library."
+msgstr "Nenhum tipo de imagem é permitido nesta biblioteca de mídia."
+
+#: ../components/structured-content-field.tsx
+msgid "No items."
+msgstr "Nenhum item."
+
+#: ../features/admin/actions-page.tsx
+msgid "No matching action runs."
+msgstr "Nenhuma ação correspondente é executada."
+
+#: ../features/admin/allowlist-table.tsx
+#~ msgid "No matching allowlist rules."
+#~ msgstr "Nenhuma regra correspondente."
+
+#: ../features/admin/collaborators-page.tsx
+msgid "No matching collaborators."
+msgstr "Nenhum colaborador correspondente."
+
+#: ../features/media/media-browser.tsx
+msgid "No matching media"
+msgstr "Nenhuma mídia correspondente"
+
+#: ../features/media/media-browser.tsx
+msgid "No matching media."
+msgstr "Nenhuma mídia correspondente."
+
+#: ../features/dashboard/repository-selector.tsx
+msgid "No matching repositories"
+msgstr "Nenhum repositório correspondente"
+
+#: ../features/admin/allowlist-table.tsx
+msgid "No matching sign-in rules."
+msgstr "Nenhuma regra de login encontrada."
+
+#: ../features/media/media-picker-dialog.tsx
+msgid "No media selected"
+msgstr "Nenhuma mídia selecionada"
+
+#: ../features/media/media-browser.tsx
+msgid "No media yet"
+msgstr "Nenhuma mídia ainda"
+
+#: ../features/media/media-browser.tsx
+msgid "No media yet."
+msgstr "Nenhuma mídia ainda."
+
+#: ../components/option-combobox.tsx
+msgid "No options found."
+msgstr "Nenhuma opção encontrada."
+
+#: ../features/dashboard/repository-dashboard.tsx
+msgid "No projects yet"
+msgstr "Ainda não há projetos"
+
+#: known-errors.ts
+msgid "No renderer is registered for field type \"{value0}\""
+msgstr "Nenhum renderizador está registrado para o tipo de campo \"{value0}\""
+
+#. placeholder {0}: selectedAccount.login
+#: ../features/dashboard/repository-selector.tsx
+msgid "No repositories are accessible in {0}. Choose another account, grant access to an existing repository, or create one from a template."
+msgstr "Nenhum repositório está acessível em {0}. Escolha outra conta, conceda acesso a um repositório existente ou crie um a partir de um modelo."
+
+#: ../features/dashboard/repository-selector.tsx
+msgid "No repositories available"
+msgstr "Nenhum repositório disponível"
+
+#: ../features/admin/admin-page.tsx
+msgid "No repositories found."
+msgstr "Nenhum repositório encontrado."
+
+#: ../features/admin/admin-page.tsx
+msgid "No repositories have been opened yet."
+msgstr "Nenhum repositório foi aberto ainda."
+
+#: ../components/ui/editor/slash-command/commands-list.tsx
+msgid "No results"
+msgstr "Nenhum resultado"
+
+#: ../features/collections/collection-table.tsx
+msgid "No results."
+msgstr "Sem resultados."
+
+#: ../components/sign-in-form.tsx
+msgid "No sign-in provider is configured. Add GitHub or Google credentials, or an email plugin to this deployment."
+msgstr "Nenhum provedor de login está configurado. Adicione credenciais do GitHub ou do Google ou um plug-in de e-mail a esta implantação."
+
+#: ../features/admin/allowlist-table.tsx
+msgid "No sign-in restrictions."
+msgstr "Sem restrições de login."
+
+#: ../features/media/media-move-dialog.tsx
+#~ msgid "No subfolders"
+#~ msgstr "Nenhuma subpasta"
+
+#: ../features/admin/admin-page.tsx
+msgid "No users found."
+msgstr "Nenhum usuário encontrado."
+
+#: ../features/admin/cache-page.tsx
+msgid "Not cached"
+msgstr "Não armazenado em cache"
+
+#: known-errors.ts
+msgid "Not found"
+msgstr "Não encontrado"
+
+#: ../components/ui/editor/index.tsx
+#: ../components/ui/editor/slash-command/suggestion.tsx
+msgid "Numbered list"
+msgstr "Lista numerada"
+
+#: known-errors.ts
+msgid "OAuth authorization URL missing"
+msgstr "URL de autorização OAuth ausente"
+
+#: ../features/media/media-browser.tsx
+msgid "of"
+msgstr "de"
+
+#: known-errors.ts
+msgid "Only GitHub users can manage the cache"
+msgstr "Somente usuários do GitHub podem gerenciar o cache"
+
+#: known-errors.ts
+msgid "Only GitHub users can run this action again"
+msgstr "Somente usuários do GitHub podem executar esta ação novamente"
+
+#: ../features/admin/sign-in-allowlist.tsx
+#~ msgid "Only users whose email matches an allowed address, domain, or pattern can sign in. Without any rules, anyone can sign in."
+#~ msgstr "Somente usuários cujo e-mail corresponda a um endereço, domínio ou padrão permitido podem entrar. Sem regras, qualquer pessoa pode entrar."
+
+#: ../features/admin/admin-page.tsx
+#: ../features/dashboard/recent-repository-list.tsx
+#: ../features/dashboard/repository-selector.tsx
+msgid "Open"
+msgstr "Abrir"
+
+#. placeholder {0}: item.path
+#: ../components/structured-content-field.tsx
+msgid "Open {0}"
+msgstr "Abrir {0}"
+
+#: ../features/dashboard/repository-dashboard.tsx
+#: ../features/dashboard/repository-loading.tsx
+msgid "Open a project"
+msgstr "Abra um projeto"
+
+#: ../components/settings-layout.tsx
+msgid "Open account navigation"
+msgstr "Navegação de conta aberta"
+
+#: ../components/settings-layout.tsx
+msgid "Open admin navigation"
+msgstr "Abra a navegação do administrador"
+
+#: ../features/dashboard/about-dialog.tsx
+msgid "Open source CMS for static sites. Edit directly on GitHub with a clean interface."
+msgstr "CMS de código aberto para sites estáticos. Edite diretamente no GitHub com uma interface limpa."
+
+#: ../features/account/account-copy.ts
+msgid "Optional. Helps others recognize you."
+msgstr "Opcional. Ajuda os outros a reconhecê-lo."
+
+#: ../components/sign-in-form.tsx
+msgid "Or"
+msgstr "Ou"
+
+#: ../features/settings/user-settings.tsx
+msgid "Organization"
+msgstr "Organização"
+
+#: ../features/media/media-mutations.ts
+msgid "Original file changed"
+msgstr "Arquivo original alterado"
+
+#: ../components/repository-shell.tsx
+#: ../features/repository/overview-loading.tsx
+#: ../features/repository/overview.tsx
+#: ../routes/github.$owner.$repo.$branch.index.tsx
+msgid "Overview"
+msgstr "Visão geral"
+
+#. placeholder {0}: pageIndex + 1
+#: ../features/admin/actions-page.tsx
+msgid "Page {0} of {pageCount}"
+msgstr "Página {0} de {pageCount}"
+
+#. js-lingui-explicit-id
+#: ../routes/__root.tsx
+msgid "core.fallback.bc3023b360"
+msgstr "Página não encontrada"
+
+#: ../features/repository/repository-route-state.tsx
+#: ../routes/github.$owner.$repo.$branch.$page.tsx
+#: ../routes/github.$owner.$repo.$branch.actions.tsx
+#: ../routes/github.$owner.$repo.$branch.cache.tsx
+#: ../routes/github.$owner.$repo.$branch.collaborators.tsx
+#: ../routes/github.$owner.$repo.$branch.collection.$name_.entry.$.tsx
+#: ../routes/github.$owner.$repo.$branch.collection.$name_.new.tsx
+#: ../routes/github.$owner.$repo.$branch.collection.$name.tsx
+#: ../routes/github.$owner.$repo.$branch.configuration.tsx
+#: ../routes/github.$owner.$repo.$branch.file.$name.tsx
+#: ../routes/github.$owner.$repo.$branch.index.tsx
+#: ../routes/github.$owner.$repo.$branch.media.$name.tsx
+#: ../routes/github.$owner.$repo.$branch.tsx
+msgid "Page not found"
+msgstr "Página não encontrada"
+
+#: ../routes/__root.tsx
+msgid "Pages CMS social card"
+msgstr "Cartão social CMS de páginas"
+
+#: known-errors.ts
+msgid "PAGESCMS_REQUIRE_ACCESS_POLICY must be true or false"
+msgstr "PAGESCMS_REQUIRE_ACCESS_POLICY deve ser verdadeiro ou falso"
+
+#: ../features/dashboard/about-dialog.tsx
+msgid "pagescms.org"
+msgstr "pagescms.org"
+
+#: ../features/dashboard/about-dialog.tsx
+msgid "pagescms.org/docs"
+msgstr "pagescms.org/docs"
+
+#: ../features/dashboard/about-dialog.tsx
+msgid "pagescms/pagescms"
+msgstr "pagescms/pagescms"
+
+#: ../components/ui/pagination.tsx
+msgid "pagination"
+msgstr "paginação"
+
+#: ../features/media/media-browser.tsx
+msgid "Parent folder"
+msgstr "Pasta pai"
+
+#. placeholder {0}: overviewBreadcrumbLabel(parents)
+#: ../features/repository/overview-file-item.tsx
+msgid "Parent: {0}"
+msgstr "Pai: {0}"
+
+#: ../features/admin/cache-files.tsx
+msgid "Path"
+msgstr "Caminho"
+
+#: ../features/admin/allowlist-table.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Pattern"
+msgstr "Padrão"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Pending"
+msgstr "Pendente"
+
+#: ../features/account/account-copy.ts
+msgid "Permanently delete your profile and collaborator access."
+msgstr "Exclua permanentemente seu perfil e acesso de colaborador."
+
+#: ../features/settings/user-settings.tsx
+msgid "Personal account"
+msgstr "Conta pessoal"
+
+#: ../features/account/account-copy.ts
+#: ../features/account/profile-loading.tsx
+#: ../features/account/profile-setup.tsx
+#: known-errors.ts
+msgid "Picture"
+msgstr "Foto"
+
+#: ../features/media/media-browser.tsx
+msgid "Please try again."
+msgstr "Tente novamente."
+
+#: ../features/account/content-editing-preferences.tsx
+#: ../features/settings/settings-navigation.ts
+msgid "Preferences"
+msgstr "Preferências"
+
+#: known-errors.ts
+msgid "Press ''/'' for commands"
+msgstr "Pressione ''/'' para comandos"
+
+#: ../components/ui/editor/index.tsx
+msgid "Press '/' for commands"
+msgstr "Pressione '/' para comandos"
+
+#. placeholder {0}: template.name
+#: ../features/dashboard/repository-template-preview.tsx
+msgid "Preview for {0}"
+msgstr "Antevisão para {0}"
+
+#: ../components/ui/pagination.tsx
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/admin-page.tsx
+#: ../features/admin/cache-files.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+#: ../features/media/media-browser.tsx
+msgid "Previous"
+msgstr "Anterior"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "Previously "
+msgstr "Anteriormente "
+
+#: ../features/account/profile-settings.tsx
+#: ../features/settings/settings-navigation.ts
+#: ../features/settings/user-settings-skeleton.tsx
+msgid "Profile"
+msgstr "Perfil"
+
+#: ../features/account/use-profile-editor.ts
+msgid "Profile updated"
+msgstr "Perfil atualizado"
+
+#: ../routes/index.tsx
+msgid "Projects"
+msgstr "Projetos"
+
+#: known-errors.ts
+msgid "Property ''{value0}'' isn''t valid and will be ignored."
+msgstr "A propriedade ''{value0}'' não é válida e será ignorada."
+
+#: ../features/admin/action-run-status.tsx
+msgid "Queued"
+msgstr "Na fila"
+
+#: ../features/repository/overview-loading.tsx
+#: ../features/repository/overview-shortcuts.tsx
+msgid "Quick links"
+msgstr "Links rápidos"
+
+#: ../components/ui/editor/index.tsx
+#: ../components/ui/editor/slash-command/suggestion.tsx
+msgid "Quote"
+msgstr "Citação"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "ran"
+msgstr "correu"
+
+#: known-errors.ts
+msgid "Random upload names require an idempotency key"
+msgstr "Nomes de upload aleatório requerem uma chave de idempotência"
+
+#: ../features/admin/configuration-setup.tsx
+msgid "Read the docs"
+msgstr "Leia os documentos"
+
+#: ../components/structured-content-field.tsx
+msgid "Readonly"
+msgstr "Somente leitura"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "Ready to save"
+msgstr "Pronto para salvar"
+
+#: ../features/admin/actions-page.tsx
+msgid "Recent action runs"
+msgstr "Ações recentes"
+
+#: ../components/repository-shell.tsx
+#: ../features/dashboard/recent-repository-list.tsx
+#: ../features/repository/overview-loading.tsx
+#: ../features/repository/overview-local-files.tsx
+msgid "Recently visited"
+msgstr "Visitado recentemente"
+
+#: ../features/repository/overview.tsx
+msgid "Recently visited and drafts"
+msgstr "Visitados recentemente e rascunhos"
+
+#: known-errors.ts
+msgid "Reference collection {value0} was not found"
+msgstr "Coleção de referência {value0} não encontrada"
+
+#: known-errors.ts
+msgid "Reference collection has too many directories to browse. Narrow its configured path."
+msgstr "A coleção de referência tem muitos diretórios para navegar. Limite seu caminho configurado."
+
+#: ../components/structured-content-field.tsx
+msgid "Reference collection is missing."
+msgstr "A coleção de referência está faltando."
+
+#: known-errors.ts
+msgid "Reference pagination did not advance"
+msgstr "A paginação de referência não avançou"
+
+#: known-errors.ts
+msgid "Reference request is too large"
+msgstr "A solicitação de referência é muito grande"
+
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/actions-skeleton.tsx
+#: ../features/collections/collection-page.tsx
+msgid "Refresh"
+msgstr "Atualizar"
+
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/actions-skeleton.tsx
+msgid "Refresh action runs"
+msgstr "A ação de atualização é executada"
+
+#: ../components/repository-page-header.tsx
+msgid "Refreshing page"
+msgstr "Atualizando página"
+
+#: ../components/search-input.tsx
+msgid "Refreshing results"
+msgstr "Resultados refrescantes"
+
+#: ../features/drafts/use-draft-merge.tsx
+#: ../features/settings/account-settings-contribution.tsx
+msgid "Reload page"
+msgstr "Recarregar página"
+
+#: ../features/editor/start-translation-dialog.tsx
+msgid "Remember this choice and skip this prompt"
+msgstr "Lembre-se desta escolha e pule esta solicitação"
+
+#: ../components/structured-content-field.tsx
+#: ../components/ui/combobox.tsx
+#: ../features/admin/allowlist-table.tsx
+#: ../features/admin/collaborators-page.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+#: known-errors.ts
+msgid "Remove"
+msgstr "Remover"
+
+#. placeholder {0}: collaborator.email
+#. placeholder {0}: item.path
+#. placeholder {0}: option.label
+#: ../components/option-combobox.tsx
+#: ../components/structured-content-field.tsx
+#: ../features/admin/collaborators-page.tsx
+msgid "Remove {0}"
+msgstr "Remover {0}"
+
+#: ../components/structured-content-field.tsx
+msgid "Remove {path}"
+msgstr "Remover {path}"
+
+#: ../components/collaborator-invite-input.tsx
+msgid "Remove {recipient}"
+msgstr "Remover {recipient}"
+
+#: ../features/admin/sign-in-allowlist.tsx
+#~ msgid "Remove allowlist rule?"
+#~ msgstr "Remover regra da lista de permissão?"
+
+#: ../components/ui/editor/index.tsx
+msgid "Remove alt text"
+msgstr "Remover texto alternativo"
+
+#: ../features/admin/collaborators-page.tsx
+msgid "Remove collaborator?"
+msgstr "Remover colaborador?"
+
+#: ../components/ui/editor/index.tsx
+msgid "Remove column"
+msgstr "Remover coluna"
+
+#: ../features/editor/locale-context.tsx
+msgid "Remove content"
+msgstr "Remover conteúdo"
+
+#: ../components/structured-content-field.tsx
+msgid "Remove file"
+msgstr "Remover arquivo"
+
+#: ../components/ui/editor/index.tsx
+msgid "Remove formatting"
+msgstr "Remover formatação"
+
+#: ../components/structured-content-field.tsx
+msgid "Remove image"
+msgstr "Remover imagem"
+
+#: ../components/structured-content-field.tsx
+msgid "Remove item"
+msgstr "Remover item"
+
+#. placeholder {0}: index + 1
+#: ../components/structured-content-field.tsx
+msgid "Remove item {0}"
+msgstr "Remover item {0}"
+
+#: ../components/ui/editor/index.tsx
+msgid "Remove link"
+msgstr "Remover link"
+
+#. placeholder {0}: locales.find((item) => item.code === locale)?.label
+#: ../features/editor/locale-context.tsx
+msgid "Remove localized values for {0}. Other languages and shared fields stay unchanged. This changes your draft until you save."
+msgstr "Remova os valores localizados para {0}. Outros idiomas e campos compartilhados permanecem inalterados. Isso altera seu rascunho até você salvá-lo."
+
+#: ../features/account/profile-picture.tsx
+msgid "Remove picture"
+msgstr "Remover imagem"
+
+#: ../features/account/profile-picture.tsx
+msgid "Remove picture?"
+msgstr "Remover imagem?"
+
+#: ../components/ui/editor/index.tsx
+msgid "Remove row"
+msgstr "Remover linha"
+
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Remove sign-in rule?"
+msgstr "Remover regra de login?"
+
+#: ../components/structured-content-field.tsx
+msgid "Remove this item?"
+msgstr "Remover este item?"
+
+#: ../features/editor/locale-context.tsx
+msgid "Remove this language…"
+msgstr "Remover este idioma…"
+
+#: ../features/editor/locale-context.tsx
+msgid "Remove this language's content?"
+msgstr "Remover o conteúdo deste idioma?"
+
+#: ../features/admin/sign-in-allowlist.tsx
+#~ msgid "Remove this rule from the allowlist?"
+#~ msgstr "Remover esta regra da lista de permissão?"
+
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Remove this sign-in rule?"
+msgstr "Remover esta regra de login?"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "removed"
+msgstr "removido"
+
+#: ../features/drafts/draft-field-preview.tsx
+msgid "Removed"
+msgstr "Removido"
+
+#: ../components/content-entry-editor.tsx
+#: ../components/file-editor-menu.tsx
+#: ../features/collections/collection-page.tsx
+#: ../features/collections/collection-table.tsx
+#: ../features/media/media-browser.tsx
+#: ../features/media/media-entry.tsx
+msgid "Rename"
+msgstr "Renomear"
+
+#: ../components/content-entry-editor.tsx
+#: ../features/collections/collection-page.tsx
+msgid "Rename entry"
+msgstr "Renomear entrada"
+
+#: ../features/media/media-browser.tsx
+msgid "Rename file"
+msgstr "Renomear arquivo"
+
+#: ../features/content/use-entry-actions.tsx
+msgid "Rename translations"
+msgstr "Renomear traduções"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "renamed"
+msgstr "renomeado"
+
+#: known-errors.ts
+msgid "Renaming this content is disabled"
+msgstr "A renomeação deste conteúdo está desativada"
+
+#: ../features/collections/collection-table.tsx
+#: ../features/media/media-browser.tsx
+#: known-errors.ts
+msgid "Renaming…"
+msgstr "Renomeando…"
+
+#: ../components/structured-content-field.tsx
+msgid "Reorder item"
+msgstr "Reordenar item"
+
+#. placeholder {0}: locales.find((item) => item.code === locale)?.label
+#. placeholder {1}: locales.find((item) => item.code === source)?.label
+#: ../features/editor/field-locale-menu.tsx
+msgid "Replace {label} in {0} with its value from {1}. This includes unsaved changes to this field. Changes stay in your draft until you save."
+msgstr "Substitua {label} em {0} pelo valor de {1}. Isso inclui alterações não salvas neste campo. As alterações permanecem no seu rascunho até você salvá-las."
+
+#: ../features/editor/locale-context.tsx
+msgid "Replace existing translations"
+msgstr "Substitua as traduções existentes"
+
+#: ../features/editor/field-locale-menu.tsx
+msgid "Replace this field’s translation?"
+msgstr "Substituir a tradução deste campo?"
+
+#: ../features/editor/field-locale-menu.tsx
+msgid "Replace translation"
+msgstr "Substituir tradução"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/admin-page.tsx
+#: ../features/settings/settings-navigation.ts
+msgid "Repositories"
+msgstr "Repositórios"
+
+#: ../features/admin/admin-loading.tsx
+#: ../routes/github.$owner.$repo.$branch.tsx
+#: ../routes/github.$owner.$repo.index.tsx
+msgid "Repository"
+msgstr "Repositório"
+
+#. placeholder {0}: repository.repo
+#: ../features/dashboard/repository-templates.tsx
+msgid "Repository “{0}” created"
+msgstr "Repositório “{0}” criado"
+
+#~ msgid "Repository access denied"
+#~ msgstr "Acesso ao repositório negado"
+
+#: ../features/admin/collaborators-page.tsx
+msgid "Repository collaborators"
+msgstr "Colaboradores do repositório"
+
+#: known-errors.ts
+msgid "Repository configuration not found"
+msgstr "Configuração do repositório não encontrada"
+
+#: known-errors.ts
+msgid "Repository ID is missing"
+msgstr "O ID do repositório está faltando"
+
+#: known-errors.ts
+msgid "Repository identity is required for a draft"
+msgstr "A identidade do repositório é necessária para um rascunho"
+
+#: known-errors.ts
+msgid "Repository mutation is already running"
+msgstr "A mutação do repositório já está em execução"
+
+#: ../features/repository/repository-unavailable-error.tsx
+msgid "Repository not found"
+msgstr "Repositório não encontrado"
+
+#: known-errors.ts
+msgid "Repository search is too long"
+msgstr "A pesquisa no repositório é muito longa"
+
+#: ../features/repository/configuration-required.tsx
+msgid "Repository setup"
+msgstr "Configuração do repositório"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Requested"
+msgstr "Solicitado"
+
+#: ../components/structured-content-field.tsx
+msgid "Required"
+msgstr "Obrigatório"
+
+#: ../components/otp-verification-form.tsx
+msgid "Resend code"
+msgstr "Reenviar código"
+
+#: ../components/structured-content-field.tsx
+msgid "Reset"
+msgstr "Redefinir"
+
+#: ../components/structured-content-field.tsx
+msgid "Reset block"
+msgstr "Redefinir bloco"
+
+#. placeholder {0}: index + 1
+#: ../components/structured-content-field.tsx
+msgid "Reset block in item {0}"
+msgstr "Redefinir bloco no item {0}"
+
+#: ../features/dashboard/repository-selector.tsx
+msgid "Reset search"
+msgstr "Redefinir pesquisa"
+
+#: ../components/structured-content-field.tsx
+msgid "Reset this block?"
+msgstr "Redefinir este bloco?"
+
+#: ../features/account/use-profile-editor.ts
+msgid "Retry"
+msgstr "Tentar novamente"
+
+#: ../components/media-thumbnail.tsx
+msgid "Retry image"
+msgstr "Tentar novamente a imagem"
+
+#: ../features/editor/file-locale-menu.tsx
+#~ msgid "Retry translations"
+#~ msgstr "Tentar novamente traduções"
+
+#. js-lingui-explicit-id
+#: ../routes/__root.tsx
+msgid "core.fallback.a3d070bc45"
+msgstr "Voltar para casa"
+
+#: ../features/drafts/use-draft-merge.tsx
+msgid "Review changes"
+msgstr "Revise as alterações"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/admin-page.tsx
+msgid "Revoke all sessions"
+msgstr "Revogar todas as sessões"
+
+#: ../features/admin/admin-page.tsx
+msgid "Revoke all sessions?"
+msgstr "Revogar todas as sessões?"
+
+#: ../features/admin/admin-page.tsx
+msgid "Revoke sessions"
+msgstr "Revogar sessões"
+
+#. placeholder {0}: user.name
+#: ../features/admin/admin-page.tsx
+msgid "Revoke sessions for {0}?"
+msgstr "Revogar sessões para {0}?"
+
+#: ../components/ui/editor/index.tsx
+#: known-errors.ts
+msgid "Rich text editor"
+msgstr "Editor de texto rico"
+
+#: ../components/ui/editor/index.tsx
+msgid "Rows:"
+msgstr "Linhas:"
+
+#: ../features/admin/allowlist-table.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Rule"
+msgstr "Regra"
+
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/actions-skeleton.tsx
+msgid "Run"
+msgstr "Corre"
+
+#. placeholder {0}: action.label
+#: ../components/repository-action-buttons.tsx
+msgid "Run {0}"
+msgstr "Corre {0}"
+
+#. placeholder {0}: pendingAction?.label ?? 'action'
+#. placeholder {0}: selected.label
+#: ../components/repository-action-buttons.tsx
+#: ../features/admin/actions-page.tsx
+msgid "Run {0}?"
+msgstr "Executar {0}?"
+
+#: ../components/repository-action-buttons.tsx
+#: ../features/admin/actions-page.tsx
+msgid "Run action"
+msgstr "Executar ação"
+
+#: ../features/admin/actions-page.tsx
+msgid "Run action again"
+msgstr "Execute a ação novamente"
+
+#: ../features/admin/actions-page.tsx
+msgid "Run again"
+msgstr "Corra novamente"
+
+#: known-errors.ts
+msgid "Runtime environment is invalid"
+msgstr "O ambiente de execução é inválido"
+
+#: ../components/content-entry-skeleton.tsx
+#: ../features/account/profile-fields.tsx
+#: ../features/admin/configuration-skeleton.tsx
+msgid "Save"
+msgstr "Salvar"
+
+#: ../features/admin/configuration-setup.tsx
+msgid "Save a configuration file (<0>.pages.yml</0>) to define the content, media, actions and other settings for this project."
+msgstr "Salve um arquivo de configuração (<0>.pages.yml</0>) para definir o conteúdo, mídia, ações e outras configurações para este projeto."
+
+#: ../components/ui/editor/index.tsx
+msgid "Save alt text"
+msgstr "Salvar texto alternativo"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+#: ../features/editor/commit-message-dialog.tsx
+msgid "Save changes"
+msgstr "Salvar alterações"
+
+#: ../features/collections/collection-table.tsx
+msgid "Saving…"
+msgstr "Salvando…"
+
+#: known-errors.ts
+msgid "Schema is not a collection"
+msgstr "Esquema não é uma coleção"
+
+#: ../features/collections/collection-table.tsx
+msgid "Search"
+msgstr "Pesquisar"
+
+#: ../features/admin/admin-loading.tsx
+msgid "Search {id}"
+msgstr "Pesquisar {id}"
+
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/actions-skeleton.tsx
+msgid "Search action runs"
+msgstr "A ação de pesquisa é executada"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+#~ msgid "Search allowlist"
+#~ msgstr "Pesquisar lista de permissão"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+#~ msgid "Search allowlist…"
+#~ msgstr "Pesquisar lista de permissão…"
+
+#: ../features/admin/actions-page.tsx
+msgid "Search and filters apply to the latest 100 runs."
+msgstr "A pesquisa e os filtros se aplicam às últimas 100 execuções."
+
+#: ../features/dashboard/branch-manager.tsx
+msgid "Search and switch branches."
+msgstr "Pesquise e troque de ramificação."
+
+#: ../features/dashboard/branch-manager.tsx
+msgid "Search branches"
+msgstr "Pesquisar filiais"
+
+#: ../features/dashboard/branch-manager.tsx
+msgid "Search branches…"
+msgstr "Pesquisar filiais…"
+
+#: ../features/dashboard/repository-loading.tsx
+#: ../features/dashboard/repository-selector.tsx
+msgid "Search by name"
+msgstr "Pesquisar por nome"
+
+#: ../components/collaborators-loading.tsx
+#: ../features/admin/collaborators-page.tsx
+#: ../features/admin/collaborators-skeleton.tsx
+msgid "Search collaborators"
+msgstr "Pesquisar colaboradores"
+
+#: ../components/collaborators-loading.tsx
+#: ../features/admin/collaborators-page.tsx
+#: ../features/admin/collaborators-skeleton.tsx
+msgid "Search collaborators…"
+msgstr "Pesquisar colaboradores…"
+
+#: ../features/collections/collection-header.tsx
+#: ../features/collections/collection-skeleton.tsx
+msgid "Search collection"
+msgstr "Coleção de pesquisa"
+
+#: ../features/collections/collection-header.tsx
+#: ../features/collections/collection-skeleton.tsx
+msgid "Search entries…"
+msgstr "Entradas de pesquisa…"
+
+#: ../components/ui/command.tsx
+#: known-errors.ts
+msgid "Search for a command to run..."
+msgstr "Procure um comando para executar..."
+
+#: ../features/media/media-browser.tsx
+msgid "Search media…"
+msgstr "Pesquisar mídia…"
+
+#: ../components/structured-content-field.tsx
+msgid "Search references…"
+msgstr "Referências de pesquisa…"
+
+#: ../features/admin/admin-page.tsx
+msgid "Search repositories"
+msgstr "Pesquisar repositórios"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Search rules"
+msgstr "Pesquisar regras"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Search rules…"
+msgstr "Pesquisar regras…"
+
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/actions-skeleton.tsx
+msgid "Search runs…"
+msgstr "A pesquisa é executada…"
+
+#: ../features/admin/admin-page.tsx
+msgid "Search users"
+msgstr "Pesquisar usuários"
+
+#: ../features/collections/collection-page.tsx
+msgid "See all files"
+msgstr "Ver todos os arquivos"
+
+#: ../components/structured-content-field.tsx
+#: ../features/media/media-picker-dialog.tsx
+msgid "Select"
+msgstr "Selecione"
+
+#: ../features/media/media-picker-dialog.tsx
+#: known-errors.ts
+msgid "Select existing media or upload new files."
+msgstr "Selecione a mídia existente ou carregue novos arquivos."
+
+#: ../components/option-combobox.tsx
+#: ../components/repository-action-buttons.tsx
+#: ../features/admin/actions-page.tsx
+#: known-errors.ts
+msgid "Select…"
+msgstr "Selecione…"
+
+#: ../features/admin/collaborators-page.tsx
+msgid "Send invitations"
+msgstr "Enviar convites"
+
+#: ../components/ui/editor/index.tsx
+msgid "Set link"
+msgstr "Definir link"
+
+#: ../features/admin/cache-files-trigger.tsx
+msgid "Show cached files"
+msgstr "Mostrar arquivos em cache"
+
+#: ../features/collections/collection-page.tsx
+msgid "Show fewer files"
+msgstr "Mostrar menos arquivos"
+
+#: ../features/collections/collection-page.tsx
+#~ msgid "Show files"
+#~ msgstr "Mostrar arquivos"
+
+#: ../features/collections/collection-page.tsx
+#~ msgid "Show hidden folders"
+#~ msgstr "Mostrar pastas ocultas"
+
+#: ../components/repository-breadcrumb.tsx
+msgid "Show hidden segments"
+msgstr "Mostrar segmentos ocultos"
+
+#: ../features/collections/collection-page.tsx
+#~ msgid "Show less"
+#~ msgstr "Mostrar menos"
+
+#: ../components/file-editor-history.tsx
+#: ../features/activity/activity-feed.tsx
+#: ../features/repository/overview-local-files.tsx
+msgid "Show more"
+msgstr "Mostrar mais"
+
+#: ../features/repository/overview-local-files.tsx
+msgid "Show more drafts"
+msgstr "Mostrar mais rascunhos"
+
+#: ../features/repository/overview-local-files.tsx
+msgid "Show more recently visited entries"
+msgstr "Mostrar entradas visitadas mais recentemente"
+
+#: ../features/editor/entry-page-header.tsx
+#~ msgid "Show parent folders"
+#~ msgstr "Mostrar pastas principais"
+
+#. placeholder {0}: start + shown - 1
+#: ../features/admin/admin-page.tsx
+msgid "Showing {start} to {0} of {total}"
+msgstr "Mostrando {start} a {0} de {total}"
+
+#: ../features/admin/admin-page.tsx
+msgid "Showing 0 of {total}"
+msgstr "Exibindo 0 de {total}"
+
+#: ../components/ui/sidebar.tsx
+msgid "Sidebar"
+msgstr "Barra lateral"
+
+#: ../features/account/sign-in-layout.tsx
+#: ../routes/index.tsx
+#: ../routes/sign-in.tsx
+msgid "Sign in"
+msgstr "Faça login"
+
+#: ../features/account/delete-account.tsx
+msgid "Sign in again"
+msgstr "Faça login novamente"
+
+#: known-errors.ts
+msgid "Sign in again before deleting your account."
+msgstr "Faça login novamente antes de excluir sua conta."
+
+#: ../components/otp-verification-form.tsx
+msgid "Sign in another way"
+msgstr "Assinar de outra forma"
+
+#: known-errors.ts
+msgid "Sign in before modifying content."
+msgstr "Faça login antes de modificar o conteúdo."
+
+#: known-errors.ts
+msgid "Sign in before modifying media."
+msgstr "Faça login antes de modificar a mídia."
+
+#: known-errors.ts
+msgid "Sign in before running this operation."
+msgstr "Faça login antes de executar esta operação."
+
+#: known-errors.ts
+msgid "Sign in before uploading media."
+msgstr "Faça login antes de enviar mídia."
+
+#: known-errors.ts
+msgid "Sign in to continue."
+msgstr "Faça login para continuar."
+
+#: ../components/sign-in-form.tsx
+msgid "Sign in to Pages CMS"
+msgstr "Faça login no Pages CMS"
+
+#: ../components/sign-in-form.tsx
+msgid "Sign in with GitHub"
+msgstr "Faça login com GitHub"
+
+#: ../components/sign-in-form.tsx
+msgid "Sign in with Google"
+msgstr "Faça login com o Google"
+
+#: ../features/account/account-menu.tsx
+msgid "Sign out"
+msgstr "Sair"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/allowlist-table.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+#: ../features/settings/settings-navigation.ts
+msgid "Sign-in access"
+msgstr "Acesso de login"
+
+#: known-errors.ts
+msgid "Sign-in could not be completed."
+msgstr "Não foi possível concluir o login."
+
+#: ../features/account/sign-in-page.tsx
+msgid "Sign-in could not be completed. Try again."
+msgstr "Não foi possível concluir o login. Tente novamente."
+
+#: ../routes/auth.error.tsx
+msgid "Sign-in error"
+msgstr "Erro de login"
+
+#: ../features/settings/settings-navigation.ts
+#: ../features/settings/user-settings-skeleton.tsx
+#: ../features/settings/user-settings.tsx
+msgid "Sign-in methods"
+msgstr "Métodos de login"
+
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Sign-in rule"
+msgstr "Regra de login"
+
+#: ../components/otp-verification-form.tsx
+msgid "Six-digit code"
+msgstr "Código de seis dígitos"
+
+#: ../features/media/media-browser.tsx
+msgid "Size"
+msgstr "Tamanho"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Skipped"
+msgstr "Ignorado"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "Some changes need your review"
+msgstr "Algumas mudanças precisam de sua revisão"
+
+#: ../features/collections/collection-page.tsx
+#~ msgid "Some entries could not be loaded."
+#~ msgstr "Algumas entradas não puderam ser carregadas."
+
+#: ../features/collections/collection-page.tsx
+#~ msgid "Some fields may not be displayed."
+#~ msgstr "Alguns campos podem não ser exibidos."
+
+#: ../features/collections/collection-page.tsx
+#~ msgid "Some files could not be parsed."
+#~ msgstr "Não foi possível analisar alguns arquivos."
+
+#: ../features/collections/collection-page.tsx
+msgid "Some files may not load properly"
+msgstr "Alguns arquivos podem não carregar corretamente"
+
+#: ../features/repository/repository-route-state.tsx
+msgid "Something went wrong"
+msgstr "Algo deu errado"
+
+#. js-lingui-explicit-id
+#: ../components/root-error.tsx
+msgid "core.fallback.8d886c0ba6"
+msgstr "Algo deu errado"
+
+#: ../components/structured-content-field.tsx
+msgid "Source"
+msgstr "Fonte"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Stale"
+msgstr "Obsoleto"
+
+#: ../features/editor/start-translation-dialog.tsx
+msgid "Start {language} translation"
+msgstr "Iniciar tradução {language}"
+
+#: ../features/editor/start-translation-dialog.tsx
+msgid "Start a blank draft or copy the content you are viewing, including unsaved changes. An existing local draft will be resumed. Nothing is published until you save."
+msgstr "Comece um rascunho em branco ou copie o conteúdo que você está visualizando, incluindo alterações não salvas. Um projeto local existente será retomado. Nada é publicado até que você salve."
+
+#: ../features/account/content-editing-preferences.tsx
+msgid "Start blank"
+msgstr "Comece em branco"
+
+#: ../features/account/content-editing-preferences.tsx
+msgid "Start blank or copy the current draft."
+msgstr "Comece em branco ou copie o rascunho atual."
+
+#: ../features/editor/start-translation-dialog.tsx
+msgid "Start translation"
+msgstr "Iniciar tradução"
+
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/actions-skeleton.tsx
+#: known-errors.ts
+msgid "Started"
+msgstr "Iniciado"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Startup failure"
+msgstr "Falha na inicialização"
+
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/actions-skeleton.tsx
+#: ../features/admin/collaborators-page.tsx
+#: ../features/admin/collaborators-skeleton.tsx
+#: known-errors.ts
+msgid "Status"
+msgstr "Estado"
+
+#: known-errors.ts
+msgid "Stopped tracking “{value0}”"
+msgstr "Parou de rastrear “{value0}”"
+
+#: ../components/ui/editor/index.tsx
+msgid "Strikethrough"
+msgstr "Tachado"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Success"
+msgstr "Sucesso"
+
+#: ../features/repository/repository-unavailable-error.tsx
+msgid "Switch account"
+msgstr "Trocar de conta"
+
+#: ../features/editor/field-locale-menu.tsx
+msgid "Switch language"
+msgstr "Mudar idioma"
+
+#: ../features/account/theme-preference.tsx
+msgid "System"
+msgstr "Sistema"
+
+#: ../components/ui/editor/index.tsx
+#: ../components/ui/editor/slash-command/suggestion.tsx
+msgid "Table"
+msgstr "Mesa"
+
+#: ../components/ui/editor/index.tsx
+#: ../components/ui/editor/slash-command/suggestion.tsx
+msgid "Text"
+msgstr "Texto"
+
+#: known-errors.ts
+msgid "That code has expired. Request a new one."
+msgstr "Esse código expirou. Solicite um novo."
+
+#: known-errors.ts
+msgid "That code is incorrect."
+msgstr "Esse código está incorreto."
+
+#: known-errors.ts
+msgid "The account is missing."
+msgstr "A conta está faltando."
+
+#: known-errors.ts
+msgid "The branch changed. Review and confirm the rename again."
+msgstr "A filial mudou. Revise e confirme a renomeação novamente."
+
+#: ../features/admin/cache-copy.ts
+msgid "The cached configuration is fetched again when needed after clearing."
+msgstr "A configuração em cache será obtida novamente quando necessário após a limpeza."
+
+#: ../features/settings/user-settings.tsx
+msgid "The connected GitHub account was not found."
+msgstr "A conta GitHub conectada não foi encontrada."
+
+#: known-errors.ts
+msgid "The content configuration changed. Reload before reviewing your draft."
+msgstr "A configuração do conteúdo foi alterada. Atualize antes de revisar seu rascunho."
+
+#: known-errors.ts
+msgid "The content configuration changed. Your local draft is retained; restore the previous configuration before reopening it."
+msgstr "A configuração do conteúdo foi alterada. Seu rascunho local será mantido; restaure a configuração anterior antes de reabri-la."
+
+#: known-errors.ts
+msgid "The default locale must belong to i18n.locales; specify a local default when overriding the list"
+msgstr "A localidade padrão deve pertencer a i18n.locales; especifique um padrão local ao substituir a lista"
+
+#: ../components/operation-error.tsx
+msgid "The displayed results may be out of date."
+msgstr "Os resultados exibidos podem estar desatualizados."
+
+#: known-errors.ts
+msgid "The entry cannot be removed by a merge."
+msgstr "A entrada não pode ser removida por uma mesclagem."
+
+#: known-errors.ts
+msgid "The entry changed; refresh before renaming"
+msgstr "A entrada mudou; atualize antes de renomear"
+
+#: known-errors.ts
+msgid "The fields scheme requires a structured content format"
+msgstr "O esquema de campos requer um formato de conteúdo estruturado"
+
+#: known-errors.ts
+msgid "The file changed since the supplied revision"
+msgstr "O arquivo foi alterado desde a revisão fornecida"
+
+#: known-errors.ts
+msgid "The file is already in this folder"
+msgstr "O arquivo já está nesta pasta"
+
+#: ../features/content/content-mutations.ts
+msgid "The file operation completed, but local recovery data could not be updated."
+msgstr "A operação do arquivo foi concluída, mas não foi possível atualizar os dados de recuperação local."
+
+#: known-errors.ts
+msgid "The file was deleted, but a newer local draft was retained for download."
+msgstr "O arquivo foi excluído, mas um rascunho local mais recente foi retido para download."
+
+#: known-errors.ts
+msgid "The file was renamed, but its local draft changed in another tab or the destination has a draft. The draft is retained for download."
+msgstr "O arquivo foi renomeado, mas seu rascunho local foi alterado em outra guia ou o destino possui um rascunho. O rascunho é retido para download."
+
+#: known-errors.ts
+msgid "The filename has not changed"
+msgstr "O nome do arquivo não mudou"
+
+#: known-errors.ts
+msgid "The filename or folder conflicts with a reserved locale name"
+msgstr "O nome do arquivo ou pasta está em conflito com um nome de localidade reservado"
+
+#: known-errors.ts
+msgid "The files scheme requires i18n.path"
+msgstr "O esquema de arquivos requer i18n.path"
+
+#. js-lingui-explicit-id
+#: known-errors.ts
+msgid "core.error.invitation-revoked"
+msgstr "O convite foi revogado"
+
+#: ../features/media/media-mutations.ts
+msgid "The media operation completed, but its local view could not be updated."
+msgstr "A operação de mídia foi concluída, mas não foi possível atualizar sua visualização local."
+
+#: ../routes/__root.tsx
+msgid "The open-source CMS for GitHub repositories."
+msgstr "O CMS de código aberto para repositórios GitHub."
+
+#: known-errors.ts
+msgid "The operation could not be completed."
+msgstr "A operação não pôde ser concluída."
+
+#: known-errors.ts
+msgid "The operation failed"
+msgstr "A operação falhou"
+
+#: known-errors.ts
+msgid "The operation limit has been reached."
+msgstr "O limite de operação foi atingido."
+
+#. js-lingui-explicit-id
+#: ../routes/__root.tsx
+msgid "core.fallback.78fbb3370a"
+msgstr "A página que você solicitou não existe ou pode ter sido movida."
+
+#: known-errors.ts
+msgid "The path has not changed"
+msgstr "O caminho não mudou"
+
+#: known-errors.ts
+msgid "The picture could not be read."
+msgstr "A imagem não pôde ser lida."
+
+#: known-errors.ts
+msgid "The profile account is missing"
+msgstr "A conta do perfil está faltando"
+
+#: known-errors.ts
+msgid "The raw Markdown body cannot be localized within one file; use separate files or a structured rich-text field"
+msgstr "O corpo bruto do Markdown não pode ser localizado em um arquivo; use arquivos separados ou um campo de rich text estruturado"
+
+#: known-errors.ts
+msgid "The repository at this address changed. Reload before continuing."
+msgstr "O repositório neste endereço mudou. Recarregue antes de continuar."
+
+#: known-errors.ts
+msgid "The repository at this address changed. Reload before saving."
+msgstr "O repositório neste endereço mudou. Recarregue antes de salvar."
+
+#: known-errors.ts
+msgid "The repository configuration is invalid"
+msgstr "A configuração do repositório é inválida"
+
+#: known-errors.ts
+msgid "The repository identity changed. Reload before continuing."
+msgstr "A identidade do repositório mudou. Recarregue a página antes de continuar."
+
+#: known-errors.ts
+msgid "The repository provider did not respond"
+msgstr "O provedor do repositório não respondeu"
+
+#: known-errors.ts
+msgid "The repository provider is rate limiting requests"
+msgstr "O provedor do repositório limita a taxa de solicitações"
+
+#: known-errors.ts
+msgid "The repository provider is unavailable"
+msgstr "O provedor do repositório não está disponível"
+
+#: known-errors.ts
+msgid "The signed-in account changed. This operation was not sent."
+msgstr "A conta conectada foi alterada. Esta operação não foi enviada."
+
+#: known-errors.ts
+msgid "The source translation no longer exists. Refresh the language list and try again."
+msgstr "A tradução original não existe mais. Atualize a lista de idiomas e tente novamente."
+
+#: ../features/drafts/draft-save-button.tsx
+msgid "These changes haven’t been saved to your project."
+msgstr "Essas alterações não foram salvas em seu projeto."
+
+#: ../features/content/use-entry-actions.tsx
+msgid "These files will be renamed together in one commit."
+msgstr "Esses arquivos serão renomeados juntos em um commit."
+
+#: known-errors.ts
+msgid "This account was deleted. Its local drafts cannot be saved."
+msgstr "Esta conta foi excluída. Seus rascunhos locais não podem ser salvos."
+
+#: known-errors.ts
+msgid "This action cannot be cancelled"
+msgstr "Esta ação não pode ser cancelada"
+
+#: known-errors.ts
+msgid "This action cannot be cancelled yet"
+msgstr "Esta ação ainda não pode ser cancelada"
+
+#: known-errors.ts
+msgid "This action has finished"
+msgstr "Esta ação terminou"
+
+#: known-errors.ts
+msgid "This action is no longer configured for this run"
+msgstr "Esta ação não está mais configurada para esta execução"
+
+#: ../features/repository/configuration-required.tsx
+msgid "This branch has no configuration. Ask a project manager to set it up."
+msgstr "Este branch não possui configuração. Peça a um gerente de projeto para configurá-lo."
+
+#: ../routes/github.$owner.$repo.$branch.tsx
+msgid "This branch may have been removed or renamed."
+msgstr "Este branch pode ter sido removido ou renomeado."
+
+#: ../features/repository/configuration-required.tsx
+msgid "This branch’s configuration needs fixing. Ask a project manager to fix it."
+msgstr "A configuração desta filial precisa de correção. Peça a um gerente de projeto para consertar."
+
+#: known-errors.ts
+msgid "This browser could not prepare your picture."
+msgstr "Este navegador não conseguiu preparar sua imagem."
+
+#: ../components/structured-content-field.tsx
+msgid "This clears the selected block and its fields so you can choose another block."
+msgstr "Isso limpa o bloco selecionado e seus campos para que você possa escolher outro bloco."
+
+#: ../components/structured-content-field.tsx
+msgid "This clears the selected block and its fields, keeping the list item so you can choose another block."
+msgstr "Isso limpa o bloco selecionado e seus campos, mantendo o item da lista para que você possa escolher outro bloco."
+
+#: known-errors.ts
+msgid "This collection does not allow subfolders"
+msgstr "Esta coleção não permite subpastas"
+
+#: known-errors.ts
+msgid "This content schema does not use a structured format"
+msgstr "Este esquema de conteúdo não usa um formato estruturado"
+
+#: ../features/media/media-browser.tsx
+#~ msgid "This creates a commit and cannot be undone here."
+#~ msgstr "Isso cria um commit e não pode ser desfeito aqui."
+
+#: ../features/media/media-browser.tsx
+#~ msgid "This creates a commit in the repository."
+#~ msgstr "Isso cria um commit no repositório."
+
+#: ../components/content-entry-editor.tsx
+msgid "This deletes {currentFilename} and creates a commit. This action cannot be undone here."
+msgstr "Isso exclui {currentFilename} e cria um commit. Esta ação não pode ser desfeita aqui."
+
+#: ../components/content-entry-editor.tsx
+msgid "This deletes {currentFilename}, including all languages, and creates a commit. This action cannot be undone here."
+msgstr "Isso exclui {currentFilename}, incluindo todos os idiomas, e cria um commit. Esta ação não pode ser desfeita aqui."
+
+#: known-errors.ts
+msgid "This draft changed in another tab. Reload before continuing."
+msgstr "Este rascunho foi alterado em outra aba. Recarregue antes de continuar."
+
+#: ../features/drafts/draft-merge-dialog.tsx
+#~ msgid "This entry has two versions that cannot be combined automatically. Compare them and choose which one to keep."
+#~ msgstr "Esta entrada possui duas versões que não podem ser combinadas automaticamente. Compare-os e escolha qual manter."
+
+#: ../features/collections/collection-page.tsx
+msgid "This entry must become a node before it can contain children."
+msgstr "Esta entrada deve se tornar um nó antes de poder conter filhos."
+
+#: known-errors.ts
+msgid "This feature is not available for this account."
+msgstr "Este recurso não está disponível para esta conta."
+
+#: known-errors.ts
+msgid "This file already has an operation in progress."
+msgstr "Este arquivo já possui uma operação em andamento."
+
+#: known-errors.ts
+msgid "This file does not exist and creating it is disabled"
+msgstr "Este arquivo não existe e sua criação está desabilitada"
+
+#: known-errors.ts
+msgid "This file extension is not allowed"
+msgstr "Esta extensão de arquivo não é permitida"
+
+#: known-errors.ts
+msgid "This media item already has an operation in progress."
+msgstr "Este item de mídia já possui uma operação em andamento."
+
+#: known-errors.ts
+msgid "This operation is already in progress."
+msgstr "Esta operação já está em andamento."
+
+#: ../features/repository/repository-route-state.tsx
+msgid "This page does not exist in this project. It may have been removed or renamed."
+msgstr "Esta página não existe neste projeto. Ele pode ter sido removido ou renomeado."
+
+#: known-errors.ts
+msgid "This picture could not be read."
+msgstr "Esta imagem não pôde ser lida."
+
+#: known-errors.ts
+msgid "This picture could not be read. Try another image."
+msgstr "Esta imagem não pôde ser lida. Experimente outra imagem."
+
+#: known-errors.ts
+msgid "This picture is too large. Try another image."
+msgstr "Esta imagem é muito grande. Experimente outra imagem."
+
+#: ../components/structured-content-field.tsx
+msgid "This removes the item and all of its nested fields."
+msgstr "Isso remove o item e todos os seus campos aninhados."
+
+#: ../components/structured-content-field.tsx
+msgid "This removes the item from the list."
+msgstr "Isso remove o item da lista."
+
+#: ../features/repository/repository-unavailable-error.tsx
+msgid "This repository may not exist, or you may not have access to it. If you were invited, sign in with the account that received the invitation."
+msgstr "Este repositório pode não existir ou você pode não ter acesso a ele. Se você foi convidado, faça login com a conta que recebeu o convite."
+
+#: ../features/admin/admin-page.tsx
+msgid "This user will be signed out of every session and their integration credentials will be revoked. They can sign in again."
+msgstr "Todas as sessões deste usuário serão encerradas e suas credenciais de integração serão revogadas. Ele poderá entrar novamente."
+
+#: ../components/structured-content-field.tsx
+msgid "This value must be an object keyed by language. Its existing value has been retained."
+msgstr "Este valor deve ser um objeto codificado por idioma. Seu valor existente foi mantido."
+
+#. placeholder {0}: deleting?.name
+#: ../features/collections/collection-page.tsx
+msgid "This will delete {0} from the repository. This action cannot be undone here. If this entry has a local draft, it will also be discarded."
+msgstr "Isso excluirá {0} do repositório. Esta ação não pode ser desfeita aqui. Se esta entrada tiver rascunho local, ela também será descartada."
+
+#: ../components/repository-action-buttons.tsx
+#: known-errors.ts
+msgid "This will start a GitHub Actions workflow."
+msgstr "Isso iniciará um fluxo de trabalho do GitHub Actions."
+
+#: ../features/admin/actions-page.tsx
+msgid "This will trigger the configured GitHub Actions workflow."
+msgstr "Isso acionará o fluxo de trabalho configurado do GitHub Actions."
+
+#: ../features/admin/action-run-status.tsx
+msgid "Timed out"
+msgstr "Tempo limite esgotado"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "to"
+msgstr "para"
+
+#: ../features/dashboard/repository-dashboard.tsx
+msgid "to a repository. Projects will appear here once you have access."
+msgstr "para um repositório. Os projetos aparecerão aqui assim que você tiver acesso."
+
+#: ../components/ui/sidebar.tsx
+msgid "Toggle Sidebar"
+msgstr "Alternar barra lateral"
+
+#: known-errors.ts
+msgid "TOML documents cannot contain a list at the root"
+msgstr "Documentos TOML não podem conter uma lista na raiz"
+
+#. js-lingui-explicit-id
+#: known-errors.ts
+msgid "core.error.login-email-limit"
+msgstr "Muitos e-mails de login; tente novamente mais tarde"
+
+#: known-errors.ts
+msgid "Too many tracked actions"
+msgstr "Muitas ações rastreadas"
+
+#: known-errors.ts
+msgid "Top-level actions may only use a ''scope'' of ''sidebar'' or ''overview''."
+msgstr "As ações de nível superior só podem usar ''scope'' de ''sidebar'' ou ''overview''."
+
+#: ../features/admin/actions-page.tsx
+#: ../features/admin/actions-skeleton.tsx
+#: known-errors.ts
+msgid "Triggered by"
+msgstr "Acionado por"
+
+#: ../features/media/media-browser.tsx
+msgid "Try a different search."
+msgstr "Tente uma pesquisa diferente."
+
+#: ../components/file-editor-history.tsx
+#: ../components/operation-error.tsx
+#: ../components/ui/table.tsx
+#: ../features/editor/file-locale-menu.tsx
+#: ../features/media/media-browser.tsx
+#: ../features/repository/repository-route-state.tsx
+#: known-errors.ts
+msgid "Try again"
+msgstr "Tente novamente"
+
+#. js-lingui-explicit-id
+#: ../components/root-error.tsx
+msgid "core.fallback.042c862e44"
+msgstr "Tente novamente"
+
+#: ../features/dashboard/repository-selector.tsx
+msgid "Try another repository name or clear your search."
+msgstr "Tente outro nome de repositório ou limpe sua pesquisa."
+
+#: ../features/admin/allowlist-table.tsx
+#: ../features/admin/sign-in-allowlist.tsx
+msgid "Type"
+msgstr "Tipo"
+
+#: ../features/account/content-editing-preferences.tsx
+#: ../features/settings/user-settings.tsx
+msgid "Unavailable"
+msgstr "Indisponível"
+
+#: ../components/ui/editor/index.tsx
+msgid "Underline"
+msgstr "Sublinhado"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Unknown"
+msgstr "Desconhecido"
+
+#: known-errors.ts
+msgid "Unknown content locale"
+msgstr "Local de conteúdo desconhecido"
+
+#: ../components/file-editor-history.tsx
+msgid "Unknown date"
+msgstr "Data desconhecida"
+
+#: ../components/structured-content-field.tsx
+msgid "Unknown field type: {type}"
+msgstr "Tipo de campo desconhecido: {type}"
+
+#: ../features/activity/activity-feed-item.tsx
+#: known-errors.ts
+msgid "Unknown user"
+msgstr "Usuário desconhecido"
+
+#: ../features/editor/locale-context.tsx
+msgid "Unsaved"
+msgstr "Não salvo"
+
+#: ../features/repository/overview-file-item.tsx
+msgid "Untitled entry"
+msgstr "Entrada sem título"
+
+#: ../features/media/media-browser.tsx
+msgid "Update any content that links to the old filename."
+msgstr "Atualize os links do seu conteúdo que apontam para o nome anterior do arquivo."
+
+#: ../features/dashboard/about-dialog.tsx
+msgid "Update to {latestVersion}"
+msgstr "Atualizar para {latestVersion}"
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "updated"
+msgstr "atualizado"
+
+#: ../components/structured-content-field.tsx
+#: ../features/media/media-browser.tsx
+msgid "Upload"
+msgstr "Carregar"
+
+#: ../features/repository/overview-media-upload.tsx
+msgid "Upload {label}"
+msgstr "Carregar {label}"
+
+#: ../features/media/media-browser.tsx
+msgid "Upload a file or create a folder to get started."
+msgstr "Carregue um arquivo ou crie uma pasta para começar."
+
+#: ../features/repository/overview-media-upload.tsx
+msgid "Upload files to "
+msgstr "Carregar arquivos para "
+
+#: ../features/account/profile-picture.tsx
+msgid "Upload or drop a picture"
+msgstr "Carregar ou soltar uma foto"
+
+#: ../features/account/profile-picture.tsx
+msgid "Upload profile picture"
+msgstr "Carregar foto do perfil"
+
+#: known-errors.ts
+msgid "Upload response omitted the ETag for {value0}"
+msgstr "A resposta de upload omitiu a ETag para {value0}"
+
+#: known-errors.ts
+msgid "Upload stopped because the signed-in account changed."
+msgstr "O upload foi interrompido porque a conta conectada foi alterada."
+
+#: ../features/activity/activity-feed-item.tsx
+msgid "uploaded"
+msgstr "carregado"
+
+#: ../features/media/media-browser.tsx
+#: known-errors.ts
+msgid "Uploading…"
+msgstr "Fazendo upload…"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "Use all my changes"
+msgstr "Usar todas as minhas alterações"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "Use latest saved version"
+msgstr "Use a última versão salva"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "Use my changes"
+msgstr "Usar minhas alterações"
+
+#: known-errors.ts
+msgid "Use the collection creation flow to create a new translation group"
+msgstr "Use o fluxo de criação de coleção para criar um novo grupo de tradução"
+
+#: ../features/account/account-menu.tsx
+msgid "User menu"
+msgstr "Menu do usuário"
+
+#: known-errors.ts
+msgid "User sessions revoked"
+msgstr "Sessões de usuário revogadas"
+
+#: ../features/admin/admin-loading.tsx
+#: ../features/admin/admin-page.tsx
+#: ../features/settings/settings-navigation.ts
+msgid "Users"
+msgstr "Usuários"
+
+#: known-errors.ts
+msgid "useSidebar must be used within a SidebarProvider."
+msgstr "useSidebar deve ser usado dentro de um SidebarProvider."
+
+#: known-errors.ts
+msgid "Verified repository identity is required for {value0}/{value1}"
+msgstr "A identidade do repositório verificada é necessária para {value0}/{value1}"
+
+#: ../components/otp-verification-form.tsx
+msgid "Verify code"
+msgstr "Verifique o código"
+
+#: ../components/otp-verification-form.tsx
+msgid "Verify your login"
+msgstr "Verifique seu login"
+
+#: ../features/dashboard/about-dialog.tsx
+msgid "Version"
+msgstr "Versão"
+
+#: ../features/collections/collection-table.tsx
+msgid "View"
+msgstr "Ver"
+
+#: ../components/structured-content-field.tsx
+msgid "View {path} on GitHub"
+msgstr "Veja {path} no GitHub"
+
+#: ../components/file-editor-menu.tsx
+#: ../components/repository-shell.tsx
+#: ../features/admin/actions-page.tsx
+#: ../features/collections/collection-table.tsx
+#: ../features/media/media-entry.tsx
+msgid "View on GitHub"
+msgstr "Ver no GitHub"
+
+#. placeholder {0}: timestamp.toLocaleString(dateI18n.locale, { timeZone: 'UTC', timeZoneName: 'short' })
+#: ../features/repository/overview-file-item.tsx
+msgid "Visited {0}"
+msgstr "Visitado {0}"
+
+#: ../features/admin/action-run-status.tsx
+msgid "Waiting"
+msgstr "Esperando"
+
+#. js-lingui-explicit-id
+#: ../components/root-error.tsx
+msgid "core.fallback.f05238b4c5"
+msgstr "Não foi possível carregar esta página. Tente novamente ou retorne aos seus projetos."
+
+#: ../features/repository/repository-route-state.tsx
+msgid "We couldn’t load this project page. Try again or return to its overview."
+msgstr "Não foi possível carregar esta página do projeto. Tente novamente ou retorne à visão geral."
+
+#. placeholder {0}: parseErrorPaths[0]
+#: ../features/collections/collection-page.tsx
+msgid "We couldn't read {0}. Some fields may be missing."
+msgstr "Não foi possível ler {0}. Alguns campos podem estar ausentes."
+
+#: ../routes/auth.error.tsx
+msgid "We couldn’t sign you in"
+msgstr "Não foi possível fazer seu login"
+
+#: ../features/dashboard/about-dialog.tsx
+msgid "Website"
+msgstr "Site"
+
+#: ../features/admin/collaborators-page.tsx
+msgid "will lose access to this repository."
+msgstr "perderá o acesso a este repositório."
+
+#: ../features/collections/collection-cell.tsx
+msgid "Yes"
+msgstr "Sim"
+
+#: ../features/editor/start-translation-dialog.tsx
+msgid "You can change this in Account → Content editing."
+msgstr "Você pode alterar isso em Conta → Edição de conteúdo."
+
+#: known-errors.ts
+msgid "You can only cancel your own action runs"
+msgstr "Você só pode cancelar suas próprias ações"
+
+#: ../features/repository/repository-route-state.tsx
+#: known-errors.ts
+msgid "You do not have permission to do this."
+msgstr "Você não tem permissão para fazer isso."
+
+#: ../features/account/account-deleted-notice.tsx
+msgid "Your account has been deleted."
+msgstr "Sua conta foi excluída."
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "Your changes"
+msgstr "Suas alterações"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "Your changes are ready to combine"
+msgstr "Suas alterações estão prontas para serem combinadas"
+
+#: ../features/drafts/draft-merge-dialog.tsx
+msgid "Your changes can be combined with the latest saved version. Save to keep both sets of changes."
+msgstr "Suas alterações podem ser combinadas com a última versão salva. Salve para manter os dois conjuntos de alterações."
+
+#: known-errors.ts
+msgid "Your draft changed during review. Close this dialog and review again."
+msgstr "Seu rascunho foi alterado durante a revisão. Feche esta caixa de diálogo e revise novamente."
+
+#: known-errors.ts
+msgid "Your draft is not ready. Reload and try again."
+msgstr "Seu rascunho não está pronto. Recarregue e tente novamente."
+
+#: ../features/drafts/use-draft-merge.tsx
+msgid "Your draft is retained while the review loads."
+msgstr "Seu rascunho é mantido enquanto a revisão é carregada."
+
+#: ../components/content-entry-editor.tsx
+msgid "Your draft is retained. Try saving again to review the latest changes."
+msgstr "Seu rascunho foi mantido. Tente salvar novamente para revisar as alterações mais recentes."
+
+#: ../features/drafts/draft-save-button.tsx
+msgid "Your local draft needs attention. Open Draft for details."
+msgstr "Seu rascunho local precisa de atenção. Abra Rascunho para obter detalhes."
+
+#: ../features/account/profile-picture.tsx
+msgid "Your picture will be replaced with your default avatar."
+msgstr "Sua foto será substituída pelo seu avatar padrão."
+
+#: ../features/account/delete-account.tsx
+msgid "Your profile, sign-in methods and collaborator access will be permanently deleted. GitHub repositories and their content will be kept. This cannot be undone."
+msgstr "Seu perfil, métodos de login e acesso de colaborador serão excluídos permanentemente. Os repositórios GitHub e seu conteúdo serão mantidos. Isto não pode ser desfeito."
+
+#: known-errors.ts
+msgid "Your sign-in provider did not confirm a verified email address. Verify your email with that provider and try again."
+msgstr "Seu provedor de login não confirmou um endereço de e-mail verificado. Verifique seu e-mail com esse provedor e tente novamente."
+
+#: known-errors.ts
+msgid "Your signed-in account changed. Reload and try again."
+msgstr "Sua conta conectada foi alterada. Recarregue e tente novamente."
+
+#: ../features/dashboard/repository-selector.tsx
+msgid "your signed-in email address"
+msgstr "seu endereço de e-mail conectado"
